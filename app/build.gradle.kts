@@ -28,8 +28,11 @@ android {
         applicationId = "com.bubble.game"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
+
+        // AdMob 앱 ID (AndroidManifest의 meta-data로 들어감)
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-4615819907336992~2572585109"
     }
 
     signingConfigs {
@@ -46,9 +49,14 @@ android {
     buildTypes {
         debug {
             signingConfigs.findByName("bubble")?.let { signingConfig = it }
+            // 개발 중에는 반드시 구글 테스트 광고 (실제 광고를 직접 보면 계정 정지 위험)
+            buildConfigField("String", "REWARDED_INTERSTITIAL_ID", "\"ca-app-pub-3940256099942544/5354046379\"")
+            buildConfigField("String", "INTERSTITIAL_ID", "\"ca-app-pub-3940256099942544/1033173712\"")
         }
         release {
             signingConfigs.findByName("bubble")?.let { signingConfig = it }
+            buildConfigField("String", "REWARDED_INTERSTITIAL_ID", "\"ca-app-pub-4615819907336992/6715010091\"")
+            buildConfigField("String", "INTERSTITIAL_ID", "\"ca-app-pub-4615819907336992/2794066059\"")
             // R8로 코드 축소·난독화, 안 쓰는 리소스 제거
             isMinifyEnabled = true
             isShrinkResources = true
@@ -67,6 +75,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -93,6 +102,8 @@ dependencies {
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    implementation("com.google.android.ump:user-messaging-platform:3.1.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")

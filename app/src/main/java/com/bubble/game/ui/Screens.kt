@@ -1,5 +1,7 @@
 package com.bubble.game.ui
 
+import android.app.Activity
+import com.bubble.game.ads.AdManager
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.alpha
@@ -197,6 +199,16 @@ private fun LobbyScreen(vm: AppViewModel) {
             }
         }
         TextButton(onClick = { showRules = true }) { Text("📖 게임 규칙 보기", color = Ui.text) }
+        ui.info?.let {
+            Text(it, color = Ui.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
+        }
+        val privacyRequired by AdManager.privacyOptionsRequired.collectAsState()
+        if (privacyRequired) {
+            val activity = LocalContext.current as Activity
+            TextButton(onClick = { AdManager.showPrivacyOptions(activity) }) {
+                Text("🔒 광고 개인정보 설정", color = Ui.text.copy(alpha = 0.7f), fontSize = 13.sp)
+            }
+        }
 
         if (ui.leaderboard.isNotEmpty()) {
             SoftCard {
@@ -479,10 +491,47 @@ private fun GameScreen(vm: AppViewModel) {
             }
         }
 
-        if (g.finished && g.winner != null) ResultOverlay(g, onLobby = vm::leaveGame, onAgain = {
-            val lv = AiLevel.entries.firstOrNull { g.opponentName.contains(it.label) } ?: AiLevel.NORMAL
-            vm.startAiGame(lv)
-        })
+        if (g.finished && g.winner != null) {
+            val activity = LocalContext.current as Activity
+            val rewardedReady by AdManager.rewardedReady.collectAsState()
+            var showRewardIntro by remember { mutableStateOf(false) }
+            val lostOnline = g.online && g.winner != g.mySide && (g.scoreDelta ?: 0) < 0
+            val canOfferReward = lostOnline && rewardedReady && vm.rewardTarget() != null
+            ResultOverlay(
+                g,
+                rewardOffer = if (canOfferReward) minOf(OnlineRepository.AD_REFUND_POINTS, -(g.scoreDelta ?: 0)) else null,
+                onLobby = {
+                    if (canOfferReward) {
+                        showRewardIntro = true
+                    } else {
+                        AdManager.maybeShowInterstitial(activity) { vm.leaveGame() }
+                    }
+                },
+                onAgain = {
+                    val lv = AiLevel.entries.firstOrNull { g.opponentName.contains(it.label) } ?: AiLevel.NORMAL
+                    AdManager.maybeShowInterstitial(activity) { vm.startAiGame(lv) }
+                },
+            )
+            if (showRewardIntro) {
+                RewardIntro(
+                    points = minOf(OnlineRepository.AD_REFUND_POINTS, -(g.scoreDelta ?: 0)),
+                    onSkip = { showRewardIntro = false; vm.leaveGame() },
+                    onWatch = {
+                        showRewardIntro = false
+                        val target = vm.rewardTarget()
+                        if (target == null) {
+                            vm.leaveGame()
+                        } else {
+                            AdManager.showRewarded(
+                                activity, target.first, target.second,
+                                onEarned = vm::onAdRewardEarned,
+                                onDone = vm::leaveGame,
+                            )
+                        }
+                    },
+                )
+            }
+        }
     }
 
     if (confirmLeave) {
@@ -538,7 +587,7 @@ private fun TurnBanner(g: GameUi, selecting: Boolean) {
 }
 
 @Composable
-private fun ResultOverlay(g: GameUi, onLobby: () -> Unit, onAgain: () -> Unit) {
+private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onAgain: () -> Unit) {
     val won = g.winner == g.mySide
     val t = rememberInfiniteTransition(label = "result")
     val jump by t.animateFloat(0f, 1f, infiniteRepeatable(tween(450), RepeatMode.Reverse), label = "jump")
@@ -579,6 +628,13 @@ private fun ResultOverlay(g: GameUi, onLobby: () -> Unit, onAgain: () -> Unit) {
                         fontSize = 26.sp, fontWeight = FontWeight.Black,
                         color = if ((d ?: 0) >= 0) Ui.accent else Ui.danger,
                     )
+                    if (rewardOffer != null) {
+                        Text(
+                            "📺 로비로 갈 때 광고를 보면 ${rewardOffer}점을 돌려받아요",
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -651,6 +707,62 @@ private fun SplitCounter(left: Int) {
                     .scale(1f + (1f - drop.value) * 0.4f)
                     .alpha(1f - drop.value),
             )
+        }
+    }
+}
+
+/**
+ * 보상형 전면 광고 안내 화면 (AdMob 정책: 광고 전에 보상 내용을 알리고 건너뛸 수 있어야 함).
+ * 5초 뒤 자동으로 광고가 시작되며, 언제든 건너뛸 수 있습니다.
+ */
+@Composable
+private fun RewardIntro(points: Int, onSkip: () -> Unit, onWatch: () -> Unit) {
+    var remain by remember { mutableStateOf(5) }
+    LaunchedEffect(Unit) {
+        while (remain > 0) {
+            delay(1_000)
+            remain--
+        }
+        onWatch()
+    }
+    BackHandler(onBack = onSkip)
+    Box(
+        Modifier.fillMaxSize().background(Color(0xCC201530)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier.padding(28.dp),
+        ) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("📺", fontSize = 44.sp)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "광고를 보면\n잃은 점수 중 ${points}점을 돌려드려요",
+                    fontSize = 20.sp, fontWeight = FontWeight.Black, color = Ui.text,
+                    textAlign = TextAlign.Center, lineHeight = 28.sp,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "${remain}초 후 광고가 시작돼요",
+                    fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
+                )
+                Text(
+                    "광고를 끝까지 봐야 점수가 돌아와요",
+                    fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),
+                )
+                Spacer(Modifier.height(18.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = onSkip, shape = RoundedCornerShape(18.dp)) {
+                        Text("괜찮아요 (건너뛰기)", color = Ui.text)
+                    }
+                    Button(
+                        onClick = onWatch, shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                    ) { Text("지금 보기", fontWeight = FontWeight.Bold) }
+                }
+            }
         }
     }
 }

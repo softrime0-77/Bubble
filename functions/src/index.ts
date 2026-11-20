@@ -5,7 +5,9 @@
 import { initializeApp } from "firebase-admin/app";
 import { DocumentReference, DocumentSnapshot, FieldValue, getFirestore, Transaction } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
-import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
+import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
+import { logger } from "firebase-functions";
+import { googleKeyLookup, verifySsv } from "./ssv";
 import { applyMove, Board, decodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
@@ -19,6 +21,10 @@ const LOSE_POINTS = 15;
 const TURN_LIMIT_MS = 30_000;
 const TIMEOUT_GRACE_MS = 5_000;
 const QUEUE_STALE_MS = 15_000;
+/** 패배 후 보상형 광고를 보면 돌려주는 점수 (잃은 점수가 이보다 적으면 잃은 만큼만) */
+const AD_REFUND_POINTS = 8;
+/** 우리 보상형 전면 광고 단위 번호 (ca-app-pub-…/6715010091). 테스트 광고 단위는 거절. */
+const REWARDED_AD_UNIT = "6715010091";
 
 /** 구글로 로그인한 사용자만 허용합니다. */
 function requireUser(req: CallableRequest): string {
@@ -253,4 +259,64 @@ export const claimTimeout = onCall(async (req) => {
     return true;
   });
   return { won };
+});
+
+const lookupKey = googleKeyLookup();
+
+/**
+ * AdMob 서버 측 확인(SSV) 콜백. AdMob 콘솔의 보상형 광고 단위 설정에 이 함수의 URL을 넣습니다.
+ * 서명이 맞고, 그 사용자가 해당 게임에서 졌고, 아직 보상받지 않았으면 점수를 돌려줍니다.
+ */
+export const admobSsv = onRequest(async (req, res) => {
+  const raw = req.originalUrl.split("?")[1] ?? "";
+  // AdMob 콘솔의 "확인" 버튼은 파라미터 없이 호출하므로 200으로 응답
+  if (!raw) {
+    res.status(200).send("ok");
+    return;
+  }
+  let p;
+  try {
+    p = await verifySsv(raw, lookupKey);
+  } catch (e) {
+    logger.error("SSV verify error", e);
+    res.status(500).send("verify error");
+    return;
+  }
+  if (!p) {
+    res.status(403).send("bad signature");
+    return;
+  }
+  if (p.adUnit !== REWARDED_AD_UNIT) {
+    logger.info("SSV for other ad unit ignored", { adUnit: p.adUnit });
+    res.status(200).send("ignored");
+    return;
+  }
+  const gameId = p.customData;
+  if (!p.userId || !p.transactionId || !/^[A-Za-z0-9]{1,40}$/.test(gameId)) {
+    res.status(200).send("ignored");
+    return;
+  }
+
+  const result = await db.runTransaction(async (tx) => {
+    const rewardRef = db.collection("adRewards").doc(p.transactionId.replace(/[^A-Za-z0-9_-]/g, "_"));
+    if ((await tx.get(rewardRef)).exists) return "duplicate";
+    const gameRef = db.collection("games").doc(gameId);
+    const gameSnap = await tx.get(gameRef);
+    if (!gameSnap.exists) return "no game";
+    const game = gameSnap.data() as Game & { winner?: Side; catDelta?: number; hamDelta?: number; catRefund?: number; hamRefund?: number };
+    const side = sideOf(game, p.userId);
+    if (!side || game.status !== "finished" || game.winner === side) return "not a loss";
+    const refundField = side === "CAT" ? "catRefund" : "hamRefund";
+    if ((game[refundField] ?? 0) > 0) return "already refunded";
+    const lost = -((side === "CAT" ? game.catDelta : game.hamDelta) ?? 0);
+    const refund = Math.min(AD_REFUND_POINTS, Math.max(0, lost));
+    tx.create(rewardRef, { uid: p.userId, gameId, refund, at: Date.now() });
+    if (refund > 0) {
+      tx.update(gameRef, { [refundField]: refund });
+      tx.update(db.collection("users").doc(p.userId), { score: FieldValue.increment(refund) });
+    }
+    return `refunded ${refund}`;
+  });
+  logger.info("SSV", { uid: p.userId, gameId, result });
+  res.status(200).send(result);
 });

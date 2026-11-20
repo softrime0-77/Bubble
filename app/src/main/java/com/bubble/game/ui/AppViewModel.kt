@@ -61,6 +61,8 @@ data class LobbyUi(
     val onlineAvailable: Boolean = false,
     val needsLogin: Boolean = false,
     val error: String? = null,
+    /** 잠깐 보여줄 안내 (예: 광고 보상 처리 중). */
+    val info: String? = null,
     val profile: Profile? = null,
     val leaderboard: List<Profile> = emptyList(),
 )
@@ -282,6 +284,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** 테스트(스크린샷)용: 로비 상태를 직접 바꿉니다. */
+    /** 보상형 광고의 서버 확인(SSV)에 실어 보낼 (uid, gameId). 온라인 게임에서 졌을 때만. */
+    fun rewardTarget(): Pair<String, String>? {
+        val g = _game.value
+        val me = uid ?: return null
+        val id = onlineGameId ?: return null
+        return if (g.online && g.finished && g.winner != null && g.winner != g.mySide) me to id else null
+    }
+
+    /** 광고를 끝까지 봤을 때 (점수는 서버가 AdMob 확인 후 반영). */
+    fun onAdRewardEarned() {
+        _lobby.update { it.copy(info = "📺 광고 보상 확인 중… 곧 점수가 돌아와요") }
+        viewModelScope.launch {
+            delay(15_000)
+            _lobby.update { it.copy(info = null) }
+        }
+    }
+
     internal fun debugSetLobby(f: (LobbyUi) -> LobbyUi) = _lobby.update(f)
 
     /** 테스트(스크린샷)용: 게임 상태를 직접 바꿉니다. */

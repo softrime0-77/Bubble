@@ -220,6 +220,8 @@ class OnlineRepository(context: Context) {
         const val START_SCORE = 1000
         const val WIN_POINTS = 25
         const val LOSE_POINTS = 15
+        /** 패배 후 보상형 광고를 보면 돌려받는 점수 (functions/src/index.ts의 AD_REFUND_POINTS와 같게) */
+        const val AD_REFUND_POINTS = 8
         const val TURN_LIMIT_MS = 30_000L
         const val TIMEOUT_GRACE_MS = 5_000L
         private const val POLL_MS = 2_500L

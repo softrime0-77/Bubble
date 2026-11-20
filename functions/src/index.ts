@@ -10,6 +10,7 @@ import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functio
 import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
 import { normalizeCode, randomCode } from "./referral";
+import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
@@ -148,6 +149,21 @@ function finishGame(
   });
 }
 
+/** 장착한 동물이 남아 있으면 1개를 쓰고 그 동물을, 없으면 null (장착도 해제). */
+function useAnimal(tx: Transaction, profile: DocumentSnapshot): string | null {
+  const equipped = profile.get("equipped") as string | null | undefined;
+  if (!equipped || !ANIMALS[equipped]) return null;
+  const left = (profile.get(`animals.${equipped}`) as number | undefined) ?? 0;
+  if (left <= 0) {
+    tx.update(profile.ref, { equipped: null });
+    return null;
+  }
+  tx.update(profile.ref, left - 1 > 0
+    ? { [`animals.${equipped}`]: FieldValue.increment(-1) }
+    : { [`animals.${equipped}`]: 0, equipped: null });
+  return equipped;
+}
+
 async function readPlayers(tx: Transaction, game: Game) {
   // AI 쪽은 사용자 문서가 없으므로, 사람 문서를 두 자리에 모두 넣어 둠 (finishGame이 사람 쪽만 씀)
   if (game.vsAi) {
@@ -181,11 +197,17 @@ export const matchmake = onCall(async (req) => {
     const myProfile = await tx.get(db.collection("users").doc(uid));
     if (!myProfile.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
 
-    const waiting = await tx.get(db.collection("queue").where("status", "==", "waiting").limit(50));
-    const candidates = waiting.docs
-      .filter((d) => d.id !== uid && now - ((d.get("heartbeat") as number) ?? 0) < QUEUE_STALE_MS)
-      .sort((a, b) => (a.get("createdAt") as number) - (b.get("createdAt") as number));
-    const opp = candidates[0];
+    const waiting = await tx.get(db.collection("queue").where("status", "==", "waiting").limit(100));
+    const fresh = waiting.docs.filter((d) => d.id !== uid && now - ((d.get("heartbeat") as number) ?? 0) < QUEUE_STALE_MS);
+    // 비슷한 점수끼리 (오래 기다릴수록 범위가 넓어지고 1분 뒤엔 아무나)
+    const myScore = (myProfile.get("score") as number | undefined) ?? START_SCORE;
+    const myCreatedAt = me.exists && me.get("status") === "waiting" ? (me.get("createdAt") as number) : now;
+    const picked = pickOpponent(
+      { id: uid, score: myScore, createdAt: myCreatedAt },
+      fresh.map((d) => ({ id: d.id, score: (d.get("score") as number | undefined) ?? START_SCORE, createdAt: d.get("createdAt") as number })),
+      now,
+    );
+    const opp = picked ? fresh.find((d) => d.id === picked.id) : undefined;
     const oppProfile = opp ? await tx.get(db.collection("users").doc(opp.id)) : null;
 
     const stillWaiting = me.exists && me.get("status") === "waiting";
@@ -194,6 +216,7 @@ export const matchmake = onCall(async (req) => {
         status: "waiting",
         heartbeat: now,
         createdAt: stillWaiting ? me.get("createdAt") : now,
+        score: myScore,
         gameId: null,
       });
       return { gameId: null };
@@ -202,6 +225,9 @@ export const matchmake = onCall(async (req) => {
     const gameRef = db.collection("games").doc();
     const iAmCat = Math.random() < 0.5;
     const [cat, ham] = iAmCat ? [myProfile, oppProfile] : [oppProfile, myProfile];
+    // 동물은 소모품: 장착한 동물이 남아 있으면 이번 판에 1개 사용
+    const catAnimal = useAnimal(tx, cat);
+    const hamAnimal = useAnimal(tx, ham);
     tx.set(gameRef, {
       catUid: cat.id,
       hamUid: ham.id,
@@ -215,10 +241,10 @@ export const matchmake = onCall(async (req) => {
       hamSplits: MAX_SPLITS,
       catRevives: revivesForGame(cat.get("potions")),
       hamRevives: revivesForGame(ham.get("potions")),
-      catSkin: cat.get("equipped") ?? null,
-      hamSkin: ham.get("equipped") ?? null,
-      catTurnMs: turnLimitAgainst(ham.get("equipped")),
-      hamTurnMs: turnLimitAgainst(cat.get("equipped")),
+      catSkin: catAnimal,
+      hamSkin: hamAnimal,
+      catTurnMs: turnLimitAgainst(hamAnimal),
+      hamTurnMs: turnLimitAgainst(catAnimal),
       turn: "CAT",
       status: "playing",
       winner: null,
@@ -378,6 +404,8 @@ export const startAiGame = onCall(async (req) => {
   const myName = me.get("name") ?? "나";
   const myScore = me.get("score") ?? START_SCORE;
   const myRevives = revivesForGame(me.get("potions"));
+  const eq = me.get("equipped") as string | null | undefined;
+  const aiSkin = eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null;
   await gameRef.set({
     vsAi: level,
     catUid: humanIsCat ? uid : AI_UID,
@@ -386,8 +414,9 @@ export const startAiGame = onCall(async (req) => {
     hamName: humanIsCat ? aiName : myName,
     catScore: humanIsCat ? myScore : 0,
     hamScore: humanIsCat ? 0 : myScore,
-    catSkin: humanIsCat ? me.get("equipped") ?? null : null,
-    hamSkin: humanIsCat ? null : me.get("equipped") ?? null,
+    // AI 대전은 시간 제한이 없어 동물을 쓰지 않음 (남아 있으면 모습만)
+    catSkin: humanIsCat ? aiSkin : null,
+    hamSkin: humanIsCat ? null : aiSkin,
     cat: [1, 1],
     ham: [1, 1],
     catSplits: MAX_SPLITS,
@@ -527,15 +556,14 @@ export const buyItem = onCall(async (req) => {
     const pay = splitPayment(price, coins, score);
     if (!pay) throw err("failed-precondition", `포인트가 부족해요 (${price} 필요)`, `Not enough points (${price} needed)`);
     const { fromCoins, fromScore } = pay;
-    const owned = (u.get("owned") as string[] | undefined) ?? [];
-    if (item !== "POTION" && owned.includes(item)) throw err("already-exists", "이미 가지고 있어요", "You already own this");
     tx.update(
       userRef,
       item === "POTION"
         ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(1) }
         : {
+          // 동물은 소모품: 1개 추가하고 바로 장착
           score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins),
-          owned: FieldValue.arrayUnion(item), equipped: item,
+          [`animals.${item}`]: FieldValue.increment(1), equipped: item,
         },
     );
   });
@@ -552,8 +580,8 @@ export const equipAnimal = onCall(async (req) => {
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
     const u = await tx.get(userRef);
-    const owned = (u.get("owned") as string[] | undefined) ?? [];
-    if (animal !== null && !owned.includes(animal as string)) {
+    const left = animal === null ? 0 : ((u.get(`animals.${animal}`) as number | undefined) ?? 0);
+    if (animal !== null && left <= 0) {
       throw err("failed-precondition", "아직 없는 캐릭터예요", "You don't own this character yet");
     }
     tx.update(userRef, { equipped: animal });

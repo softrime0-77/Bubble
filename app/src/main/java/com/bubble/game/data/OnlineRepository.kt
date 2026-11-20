@@ -39,8 +39,8 @@ data class Profile(
     val losses: Int,
     /** 가진 부활물약 수 */
     val potions: Int = 0,
-    /** 산 동물 캐릭터들 */
-    val owned: Set<Animal> = emptySet(),
+    /** 동물별 남은 개수 (소모품: 랜덤 매칭 1판에 1개) */
+    val animals: Map<Animal, Int> = emptyMap(),
     /** 장착한 동물 (null이면 기본 고양이/햄스터) */
     val equipped: Animal? = null,
     /** 내 추천 코드 (처음 친구 초대를 열 때 서버가 만듦) */
@@ -55,6 +55,11 @@ data class Profile(
     val coins: Int = 0,
 ) {
     val rank: Rank get() = Rank.of(score)
+
+    /** 남아 있는 동물들 */
+    val owned: Set<Animal> get() = animals.filterValues { it > 0 }.keys
+
+    fun animalCount(a: Animal): Int = animals[a] ?: 0
 }
 
 data class OnlineGame(
@@ -264,7 +269,9 @@ class OnlineRepository(context: Context) {
         wins = (getLong("wins") ?: 0).toInt(),
         losses = (getLong("losses") ?: 0).toInt(),
         potions = (getLong("potions") ?: 0).toInt(),
-        owned = (get("owned") as? List<*>)?.mapNotNull { Animal.of(it as? String) }?.toSet() ?: emptySet(),
+        animals = (get("animals") as? Map<*, *>)
+            ?.mapNotNull { (k, v) -> Animal.of(k as? String)?.let { a -> a to ((v as? Number)?.toInt() ?: 0) } }
+            ?.toMap() ?: emptyMap(),
         equipped = Animal.of(getString("equipped")),
         refCode = getString("refCode"),
         referred = getString("referredBy") != null,

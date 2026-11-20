@@ -503,10 +503,18 @@ zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活�
 zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，超时即判负。\n", hi = "• ऑनलाइन हर चाल ${OnlineRepository.TURN_LIMIT_MS / 1000} सेकंड। समय खत्म तो हार।\n", es = "• En línea cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Si se acaba el tiempo, pierdes.\n", fr = "• En ligne, chaque tour dure ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Temps écoulé = défaite.\n", ar = "• مدة الدور عبر الإنترنت ${OnlineRepository.TURN_LIMIT_MS / 1000} ثانية. إذا انتهى الوقت تخسر.\n", de = "• Online dauert ein Zug ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Zeit abgelaufen = verloren.\n", pt = "• Online, cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Se o tempo acabar, você perde.\n", ru = "• Онлайн ход длится ${OnlineRepository.TURN_LIMIT_MS / 1000} с. Время вышло — поражение.\n", ja = "• オンラインの1ターンは${OnlineRepository.TURN_LIMIT_MS / 1000}秒。時間切れで負けです。\n",
 ) +
                     tr(
-"   상대가 양·강아지·기린을 장착했다면 내 턴이 20·15·10초로 줄어요.\n\n",
-"   If your opponent equips a sheep, puppy or giraffe, your turn drops to 20, 15 or 10s.\n\n",
-zh = "   如果对手装备了绵羊、小狗或长颈鹿，你的回合会缩短为 20、15 或 10 秒。\n\n", hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ लगाया है, तो आपकी बारी 20, 15 या 10 सेकंड की होगी।\n\n", es = "   Si tu rival equipa una oveja, un perrito o una jirafa, tu turno baja a 20, 15 o 10 s.\n\n", fr = "   Si ton adversaire équipe un mouton, un chiot ou une girafe, ton tour passe à 20, 15 ou 10 s.\n\n", ar = "   إذا جهّز خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 20 أو 15 أو 10 ثوانٍ.\n\n", de = "   Rüstet dein Gegner Schaf, Welpe oder Giraffe aus, sinkt dein Zug auf 20, 15 oder 10 s.\n\n", pt = "   Se o rival equipar ovelha, cachorrinho ou girafa, seu turno cai para 20, 15 ou 10 s.\n\n", ru = "   Если соперник надел овечку, щенка или жирафа, ваш ход сокращается до 20, 15 или 10 с.\n\n", ja = "   相手がヒツジ・子イヌ・キリンを装備していると、自分のターンが20・15・10秒になります。\n\n",
-) +
+                    "   상대가 양·강아지·기린을 썼다면 내 턴이 15·10·5초로 줄어요.\n\n",
+                    "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 10 or 5s.\n\n",
+                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、10 或 5 秒。\n\n",
+                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 10 या 5 सेकंड की होगी।\n\n",
+                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 10 o 5 s.\n\n",
+                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 10 ou 5 s.\n\n",
+                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 10 أو 5 ثوانٍ.\n\n",
+                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 10 oder 5 s.\n\n",
+                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 10 ou 5 s.\n\n",
+                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 10 или 5 с.\n\n",
+                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・10・5秒になります。\n\n",
+                ) +
                     tr(
                         "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1500) → 금(2000) → 루비(5000) → 사파이어(7000) → 다이아(10000)",
                         "• Ranks: Dirt (to 1000) → Copper (1001) → Silver (1500) → Gold (2000) → Ruby (5000) → Sapphire (7000) → Diamond (10000)",
@@ -1130,15 +1138,24 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
         Spacer(Modifier.height(6.dp))
         Text(tr("🐾 동물 친구들", "🐾 Animal Friends", zh = "🐾 动物伙伴", hi = "🐾 जानवर दोस्त", es = "🐾 Amigos animales", fr = "🐾 Amis animaux", ar = "🐾 أصدقاء الحيوانات", de = "🐾 Tierfreunde", pt = "🐾 Amigos animais", ru = "🐾 Друзья-зверята", ja = "🐾 どうぶつの仲間"), fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.text, modifier = Modifier.fillMaxWidth())
         Text(tr(
-"장착하면 내 캐릭터가 바뀌고, 상대의 턴 시간이 줄어들어요 (다음 판부터)",
-"Equip to change your character and shorten your opponent’s turn (from the next game)",
-zh = "装备后会改变你的角色，并缩短对手的回合时间（下一局起生效）", hi = "लगाने पर आपका किरदार बदलेगा और विरोधी की बारी छोटी होगी (अगले गेम से)", es = "Equípalo para cambiar tu personaje y acortar el turno del rival (desde la próxima partida)", fr = "Équipe-le pour changer ton perso et raccourcir le tour adverse (dès la prochaine partie)", ar = "جهّزه لتغيير شخصيتك وتقصير دور خصمك (من المباراة التالية)", de = "Ausrüsten ändert deine Figur und verkürzt den Zug des Gegners (ab der nächsten Partie)", pt = "Equipe para mudar seu personagem e encurtar o turno do rival (a partir da próxima partida)", ru = "Наденьте, чтобы сменить персонажа и сократить ход соперника (со следующей партии)", ja = "装備するとキャラが変わり、相手のターン時間が短くなります（次のゲームから）",
-), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
+                "소모품: 1개 = 랜덤 매칭 1판. 장착한 채 매칭되면 1개를 쓰고, 그 판에 내 캐릭터가 바뀌고 상대의 턴이 짧아져요",
+                "Consumable: 1 = one random match. If equipped when a match starts, one is used: you change character and your opponent's turn gets shorter",
+                zh = "消耗品：1 个 = 1 局随机匹配。装备时匹配成功会消耗 1 个，该局你的角色会改变，对手回合变短",
+                hi = "उपभोग्य: 1 = एक रैंडम मैच। लगा होने पर मैच शुरू होते ही 1 खर्च होगा: आपका किरदार बदलेगा और विरोधी की बारी छोटी होगी",
+                es = "Consumible: 1 = una partida aleatoria. Si está equipado al empezar, se gasta uno: cambias de personaje y el turno rival se acorta",
+                fr = "Consommable : 1 = un match aléatoire. S’il est équipé au début d’un match, un est utilisé : ton perso change et le tour adverse raccourcit",
+                ar = "استهلاكي: 1 = مباراة عشوائية واحدة. إذا كان مجهّزًا عند بدء المباراة يُستخدم واحد: تتغير شخصيتك ويقصر دور خصمك",
+                de = "Verbrauchsgegenstand: 1 = ein Zufallsmatch. Ist er beim Matchstart ausgerüstet, wird einer verbraucht: deine Figur ändert sich und der Gegnerzug wird kürzer",
+                pt = "Consumível: 1 = uma partida aleatória. Se estiver equipado ao começar, um é usado: seu personagem muda e o turno do rival encurta",
+                ru = "Расходник: 1 шт. = один случайный матч. Если надет при старте матча, тратится 1: меняется персонаж, а ход соперника короче",
+                ja = "消耗品：1個 = ランダムマッチ1回。装備したままマッチすると1個使い、その試合はキャラが変わり相手のターンが短くなります",
+            ), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(6.dp))
 
         Animal.entries.forEach { a ->
-            val have = a in p.owned
-            val on = p.equipped == a
+            val count = p.animalCount(a)
+            val have = count > 0
+            val on = p.equipped == a && have
             ShopCard(
                 title = a.label,
                 desc = tr(
@@ -1148,26 +1165,33 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
 ),
                 price = a.price,
                 owned = when {
-                    on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", hi = "✅ लगाया हुआ", es = "✅ Equipado", fr = "✅ Équipé", ar = "✅ مُجهَّز", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
-                    have -> tr("보유 중", "Owned", zh = "已拥有", hi = "पास में है", es = "Lo tienes", fr = "Possédé", ar = "تملكه", de = "Im Besitz", pt = "Você tem", ru = "Есть", ja = "所持中")
+                    have -> tr("보유 ${count}개", "Owned: $count", zh = "拥有 $count 个", hi = "पास में: $count", es = "Tienes: $count",
+                        fr = "Possédés : $count", ar = "لديك: $count", de = "Im Besitz: $count", pt = "Você tem: $count",
+                        ru = "Есть: $count", ja = "所持 ${count}個") + if (on) tr("  ·  ✅ 장착 중", "  ·  ✅ Equipped", zh = "  ·  ✅ 已装备",
+                        hi = "  ·  ✅ लगाया हुआ", es = "  ·  ✅ Equipado", fr = "  ·  ✅ Équipé", ar = "  ·  ✅ مُجهَّز", de = "  ·  ✅ Ausgerüstet",
+                        pt = "  ·  ✅ Equipado", ru = "  ·  ✅ Надето", ja = "  ·  ✅ 装備中") else ""
                     else -> null
                 },
                 art = { Critter(Side.CAT, Modifier.size(84.dp), skin = a, happy = on) },
             ) {
-                when {
-                    on -> OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
-                        Text(tr("장착 해제", "Unequip", zh = "卸下", hi = "हटाएँ", es = "Quitar", fr = "Retirer", ar = "إزالة", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
-                    }
-                    have -> Button(
-                        onClick = { vm.equip(a) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
-                    ) { Text(tr("장착하기", "Equip", zh = "装备", hi = "लगाएँ", es = "Equipar", fr = "Équiper", ar = "تجهيز", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する"), fontWeight = FontWeight.Bold) }
-                    else -> Button(
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Button(
                         onClick = { confirm = Triple(a.name, a.label, a.price) },
                         enabled = !ui.shopBusy && p.score + p.coins >= a.price,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
+                    if (on) {
+                        OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
+                            Text(tr("장착 해제", "Unequip", zh = "卸下", hi = "हटाएँ", es = "Quitar", fr = "Retirer", ar = "إزالة", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
+                        }
+                    } else if (have) {
+                        Button(
+                            onClick = { vm.equip(a) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                        ) { Text(tr("장착하기", "Equip", zh = "装备", hi = "लगाएँ", es = "Equipar", fr = "Équiper", ar = "تجهيز", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する"), fontWeight = FontWeight.Bold) }
+                    }
                 }
             }
         }

@@ -30,8 +30,8 @@ class CatalogTest {
 
     @Test
     fun animalsMatchServerCatalog() {
-        assertEquals(listOf(500, 750, 1000), Animal.entries.map { it.price })
-        assertEquals(listOf(20, 15, 10), Animal.entries.map { it.opponentTurnSec })
+        assertEquals(listOf(30, 50, 100), Animal.entries.map { it.price })
+        assertEquals(listOf(15, 10, 5), Animal.entries.map { it.opponentTurnSec })
         assertEquals(Animal.DOG, Animal.of("DOG"))
         assertEquals(null, Animal.of(null))
     }

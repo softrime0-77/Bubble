@@ -77,9 +77,9 @@ test("revives per game are capped at three and follow potions owned", () => {
 
 test("opponent animal shortens my turn", () => {
   assert.equal(turnLimitAgainst(null), 30_000);
-  assert.equal(turnLimitAgainst("SHEEP"), 20_000);
-  assert.equal(turnLimitAgainst("DOG"), 15_000);
-  assert.equal(turnLimitAgainst("GIRAFFE"), 10_000);
+  assert.equal(turnLimitAgainst("SHEEP"), 15_000);
+  assert.equal(turnLimitAgainst("DOG"), 10_000);
+  assert.equal(turnLimitAgainst("GIRAFFE"), 5_000);
   assert.equal(turnLimitAgainst("DRAGON"), 30_000);
 });
 

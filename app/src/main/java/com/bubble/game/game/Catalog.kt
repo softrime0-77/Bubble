@@ -47,13 +47,14 @@ enum class Rank(
 }
 
 /**
- * 상점에서 파는 동물 캐릭터. 장착하면 상대의 턴 제한 시간이 줄어듭니다.
+ * 상점에서 파는 동물 캐릭터 (소모품). 장착한 채 랜덤 매칭이 잡히면 1개를 쓰고,
+ * 그 판에 내 캐릭터가 바뀌고 상대의 턴 제한 시간이 줄어듭니다.
  * 값은 functions/src/catalog.ts와 같아야 합니다.
  */
 enum class Animal(private val ko: String, private val en: String, val price: Int, val opponentTurnSec: Int) {
-    SHEEP("양", "Sheep", 500, 20),
-    DOG("강아지", "Puppy", 750, 15),
-    GIRAFFE("기린", "Giraffe", 1000, 10),
+    SHEEP("양", "Sheep", 30, 15),
+    DOG("강아지", "Puppy", 50, 10),
+    GIRAFFE("기린", "Giraffe", 100, 5),
     ;
 
     /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */

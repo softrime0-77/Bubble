@@ -10,11 +10,11 @@ export function revivesForGame(potions: unknown): number {
   return Math.min(MAX_REVIVES_PER_GAME, n);
 }
 
-/** 동물 캐릭터: 장착하면 상대의 턴 제한 시간이 줄어듭니다. */
+/** 동물 캐릭터 (소모품): 장착한 채 랜덤 매칭이 잡히면 1개를 쓰고, 그 판에 상대의 턴 시간을 줄입니다. */
 export const ANIMALS: Record<string, { price: number; opponentTurnMs: number }> = {
-  SHEEP: { price: 500, opponentTurnMs: 20_000 },
-  DOG: { price: 750, opponentTurnMs: 15_000 },
-  GIRAFFE: { price: 1000, opponentTurnMs: 10_000 },
+  SHEEP: { price: 30, opponentTurnMs: 15_000 },
+  DOG: { price: 50, opponentTurnMs: 10_000 },
+  GIRAFFE: { price: 100, opponentTurnMs: 5_000 },
 };
 
 export const DEFAULT_TURN_MS = 30_000;

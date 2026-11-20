@@ -27,7 +27,7 @@ Bubble 냥햄대전
 
 🛒 상점
 • 💖 부활물약: 터진 방울을 다시 살려요
-• 🐑 양 · 🐶 강아지 · 🦒 기린: 장착하면 내 캐릭터가 바뀌고 상대의 턴 시간이 줄어들어요
+• 🐑 양 · 🐶 강아지 · 🦒 기린: 그 판에 내 캐릭터가 바뀌고 상대의 턴 시간이 확 줄어들어요
 
 🤖 AI 대전
 • 쉬움 · 보통 · 어려움, 이기면 난이도에 따라 점수를 받아요
@@ -68,7 +68,7 @@ Jump into a random match and face an anonymous player 1:1. It's quick to learn, 
 
 🛒 Shop
 • 💖 Revive potion: bring a popped bubble back
-• 🐑 Sheep · 🐶 Puppy · 🦒 Giraffe: change your character and shorten your opponent's turn
+• 🐑 Sheep · 🐶 Puppy · 🦒 Giraffe: change your character and cut your opponent's turn short for a match
 
 🤖 AI battles
 • Easy, Normal and Hard, with points for every win

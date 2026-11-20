@@ -49,7 +49,8 @@ final class LocalGame: ObservableObject {
         self.board = board
         self.log = log
         turn = mySide
-        deadline = Date().addingTimeInterval(Double(level.turnSec) * 0.62)
+        // CI 스크린샷이 실행 8초 뒤에 찍히므로 그때 게이지가 반쯤 남아 있게
+        deadline = Date().addingTimeInterval(Double(level.turnSec) + 2)
     }
 
     func play(_ move: Move) {

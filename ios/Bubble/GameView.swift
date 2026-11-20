@@ -197,6 +197,7 @@ struct ResultOverlay: View {
                 Text(reasonText).foregroundColor(UiColor.text.opacity(0.7))
                 HStack(spacing: 10) {
                     Button(t("한 판 더"), action: onAgain)
+                        .foregroundColor(UiColor.text)
                         .padding(.horizontal, 18).padding(.vertical, 10)
                         .overlay(Capsule().stroke(UiColor.text.opacity(0.4)))
                     Button(t("로비로"), action: onLobby)

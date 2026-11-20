@@ -41,7 +41,7 @@ struct RootView: View {
             lang.code = code
         }
         guard let i = args.firstIndex(of: "-demo"), i + 1 < args.count, args[i + 1] == "game" else { return }
-        let g = LocalGame(level: .normal, mySide: .cat)
+        let g = LocalGame(level: .easy, mySide: .cat)
         g.setDemo(
             board: Board(cat: [4, 0], ham: [2, 3], catSplits: 1),
             log: [t("고양이") + ": " + setName(0) + " ✂️"]

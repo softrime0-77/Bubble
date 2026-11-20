@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import com.bubble.game.game.Board
 import com.bubble.game.game.Side
@@ -171,6 +173,31 @@ class ScreenshotTest {
             )
         }
         shot("vs", 600)
+    }
+
+    /** 작은 폰(360×640dp)에서 계급표가 잘리지 않는지 (스크롤로 끝까지 보임) */
+    @Test
+    @Config(sdk = [34], qualifiers = "w360dp-h640dp-xxhdpi")
+    fun ranksDialogSmallPhone() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(7300)) }
+        rule.setContent { BubbleApp(vm) }
+        rule.mainClock.advanceTimeBy(600)
+        rule.onNodeWithText("  계급표 ›").performClick()
+        repeat(5) {
+            rule.mainClock.advanceTimeBy(200)
+            org.robolectric.shadows.ShadowLooper.idleMainLooper()
+        }
+        shot("ranks_small_top", 300)
+        // 위로 쓸어 올려 맨 아래(흙)까지 스크롤
+        rule.onNodeWithText("보너스 없음").performTouchInput { swipeUp(startY = bottom, endY = top) }
+        rule.onNodeWithText("7000 ~ 9999점").performTouchInput { swipeUp(startY = bottom, endY = top - 2000f) }
+        repeat(3) {
+            rule.mainClock.advanceTimeBy(200)
+            org.robolectric.shadows.ShadowLooper.idleMainLooper()
+        }
+        shot("ranks_small_bottom", 300)
     }
 
     @Test

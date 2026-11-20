@@ -11,10 +11,15 @@ export interface Waiter {
 /** 이 시간이 지나면 점수와 상관없이 매칭 (앱은 30초가 지나면 AI 대전으로 넘어감) */
 export const ANYONE_AFTER_MS = 20_000;
 
-/** 기다린 시간에 따른 허용 점수 차: 처음 ±150, 1초마다 +25, 20초 지나면 무제한 */
+/** 처음 허용 점수 차 */
+export const START_WINDOW = 1000;
+/** 1초 기다릴 때마다 늘어나는 허용 점수 차 */
+export const WINDOW_PER_SECOND = 1000;
+
+/** 기다린 시간에 따른 허용 점수 차: 처음 ±1000, 1초마다 +1000, 20초 지나면 무제한 */
 export function scoreWindow(waitMs: number): number {
   if (waitMs >= ANYONE_AFTER_MS) return Number.POSITIVE_INFINITY;
-  return 150 + Math.floor(Math.max(0, waitMs) / 1000) * 25;
+  return START_WINDOW + Math.floor(Math.max(0, waitMs) / 1000) * WINDOW_PER_SECOND;
 }
 
 /**

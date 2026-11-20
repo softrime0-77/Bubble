@@ -157,6 +157,7 @@ private fun LobbyScreen(vm: AppViewModel) {
             if (ui.profile != null) ShopIconButton(onClick = vm::openShop)
         }
         TitleBanner()
+        TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
         Spacer(Modifier.height(16.dp))
 
         SoftCard {
@@ -313,7 +314,6 @@ zh = "登录后 AI 对战也能得分", hi = "साइन इन करें, 
             )
         }
         ui.profile?.let { p -> InviteCard(vm, p, ui.shopBusy) }
-        TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
         ui.info?.let {
             Text(it, color = Ui.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
         }
@@ -1361,7 +1361,8 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
         confirmButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", zh = "关闭", hi = "बंद करें", es = "Cerrar", fr = "Fermer", ar = "إغلاق", de = "Schließen", pt = "Fechar", ru = "Закрыть", ja = "閉じる"), fontWeight = FontWeight.Bold) } },
         title = { Text(tr("🏅 계급표", "🏅 Ranks", zh = "🏅 等级表", hi = "🏅 रैंक", es = "🏅 Rangos", fr = "🏅 Rangs", ar = "🏅 الرتب", de = "🏅 Ränge", pt = "🏅 Ranks", ru = "🏅 Ранги", ja = "🏅 ランク表"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
-            Column {
+            // 계급이 7개라 작은 화면에선 길어짐 → 스크롤
+            Column(Modifier.verticalScroll(rememberScrollState())) {
                 Rank.entries.reversed().forEach { r ->
                     val isMine = r == mine
                     val range = when (r) {
@@ -1376,12 +1377,12 @@ zh = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} 分", hi = "
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 3.dp)
+                            .padding(vertical = 2.dp)
                             .background(
                                 if (isMine) Ui.primary.copy(alpha = 0.15f) else Color.Transparent,
                                 RoundedCornerShape(14.dp),
                             )
-                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                            .padding(horizontal = 8.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         // 배지 폭을 맞춰 표처럼 보이게

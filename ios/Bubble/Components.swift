@@ -1,14 +1,15 @@
 import BubbleCore
 import SwiftUI
 
+/// 배경 방울 위치 (제네릭 타입 안에는 static 저장 속성을 둘 수 없어 파일 수준에 둠)
+private let backgroundSeeds: [(CGFloat, CGFloat, CGFloat)] = {
+    var g = SeededRandom(seed: 7)
+    return (0..<16).map { _ in (g.next(), g.next(), 10 + g.next() * 34) }
+}()
+
 /// 둥실둥실 떠오르는 비눗방울 배경
 struct BubbleBackground<Content: View>: View {
     @ViewBuilder var content: Content
-
-    private static let seeds: [(CGFloat, CGFloat, CGFloat)] = {
-        var g = SeededRandom(seed: 7)
-        return (0..<16).map { _ in (g.next(), g.next(), 10 + g.next() * 34) }
-    }()
 
     var body: some View {
         ZStack {
@@ -17,7 +18,7 @@ struct BubbleBackground<Content: View>: View {
             TimelineView(.animation) { tl in
                 let time = tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 18) / 18
                 Canvas { ctx, size in
-                    for (i, s) in Self.seeds.enumerated() {
+                    for (i, s) in backgroundSeeds.enumerated() {
                         let speed = 0.6 + Double(i % 4) * 0.25
                         let y = 1.1 - (Double(s.1) + time * speed).truncatingRemainder(dividingBy: 1.2)
                         let wobble = sin(time * 2 * .pi * Double(1 + i % 3) + Double(i)) * 14

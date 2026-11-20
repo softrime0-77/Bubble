@@ -53,6 +53,9 @@ data class Profile(
     val admin: Boolean = false,
     /** 상점 포인트 (결제로 충전, 상점 전용 — 점수·계급과 별개) */
     val coins: Int = 0,
+    /** ×3 부스터 남은 개수와 켜짐 여부 */
+    val boosts: Int = 0,
+    val boostOn: Boolean = false,
 ) {
     val rank: Rank get() = Rank.of(score)
 
@@ -95,7 +98,12 @@ data class OnlineGame(
     /** 각 플레이어의 나라 (ISO 2글자, 모르면 null) */
     val catCountry: String?,
     val hamCountry: String?,
+    /** 이번 판에 ×3 부스터를 쓴 사람 */
+    val catBoost: Boolean,
+    val hamBoost: Boolean,
 ) {
+    fun boostOf(side: Side): Boolean = if (side == Side.CAT) catBoost else hamBoost
+
     fun countryOf(side: Side): String? = if (side == Side.CAT) catCountry else hamCountry
 
     fun scoreOf(side: Side): Int = if (side == Side.CAT) catScore else hamScore
@@ -259,6 +267,11 @@ class OnlineRepository(context: Context) {
         call("buyItem", mapOf("item" to item))
     }
 
+    /** ×3 부스터 켜기/끄기 */
+    suspend fun setBoost(on: Boolean) {
+        call("setBoost", mapOf("on" to on))
+    }
+
     /** 동물 장착 (null이면 기본 캐릭터). */
     suspend fun equipAnimal(animal: Animal?) {
         call("equipAnimal", mapOf("animal" to animal?.name))
@@ -292,6 +305,8 @@ class OnlineRepository(context: Context) {
         referrals = (getLong("referrals") ?: 0).toInt(),
         admin = getBoolean("admin") ?: false,
         coins = (getLong("coins") ?: 0).toInt(),
+        boosts = (getLong("boosts") ?: 0).toInt(),
+        boostOn = getBoolean("boostOn") ?: false,
     )
 
     /** 서버가 보낸 수 정보로 화면 언어의 설명을 만듭니다. 정보가 없으면 서버 문구(한/영). */
@@ -353,6 +368,8 @@ class OnlineRepository(context: Context) {
             vsAi = getString("vsAi")?.let { v -> AiLevel.entries.firstOrNull { it.name == v } },
             catCountry = getString("catCountry"),
             hamCountry = getString("hamCountry"),
+            catBoost = getBoolean("catBoost") ?: false,
+            hamBoost = getBoolean("hamBoost") ?: false,
         )
     }
 

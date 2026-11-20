@@ -79,6 +79,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -284,42 +285,44 @@ zh = "与匿名玩家 1:1 对战 · 胜利 +${OnlineRepository.WIN_POINTS} 分",
         SoftCard {
             Text(if (ui.profile != null) tr("🤖 AI 대전", "🤖 AI Battle", zh = "🤖 AI 对战", hi = "🤖 AI मुकाबला", es = "🤖 Batalla contra IA", fr = "🤖 Combat contre l’IA", ar = "🤖 معركة ضد الذكاء الاصطناعي", de = "🤖 KI-Duell", pt = "🤖 Batalha contra IA", ru = "🤖 Бой с ИИ", ja = "🤖 AI対戦") else tr("🤖 AI와 연습하기", "🤖 Practice with AI", zh = "🤖 与 AI 练习", hi = "🤖 AI के साथ अभ्यास", es = "🤖 Practicar con IA", fr = "🤖 S’entraîner contre l’IA", ar = "🤖 تدرّب مع الذكاء الاصطناعي", de = "🤖 Gegen KI üben", pt = "🤖 Treinar com IA", ru = "🤖 Тренировка с ИИ", ja = "🤖 AIと練習"), fontWeight = FontWeight.Bold, color = Ui.text)
             Spacer(Modifier.height(8.dp))
+            // 난이도마다 버튼 아래에 승·패 점수와 턴 시간을 세로로 맞춰 표시
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AiLevel.entries.forEach { lv ->
-                    OutlinedButton(
-                        onClick = { vm.startAiGame(lv) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                    ) { Text(lv.label, color = Ui.accent, maxLines = 1, softWrap = false, fontSize = 14.sp) }
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        OutlinedButton(
+                            onClick = { vm.startAiGame(lv) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                        ) { Text(lv.label, color = Ui.accent, maxLines = 1, softWrap = false, fontSize = 14.sp) }
+                        Spacer(Modifier.height(4.dp))
+                        if (ui.profile != null) {
+                            Text(
+                                "🏆 +${lv.winPoints}   💔 ${if (lv.losePoints == 0) "0" else lv.losePoints}",
+                                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.text.copy(alpha = 0.8f),
+                                maxLines = 1, softWrap = false,
+                            )
+                        }
+                        Text(
+                            "⏱ " + tr("${lv.turnSec}초", "${lv.turnSec}s", zh = "${lv.turnSec}秒", hi = "${lv.turnSec}से",
+                                ar = "${lv.turnSec}ث", ru = "${lv.turnSec}с", ja = "${lv.turnSec}秒"),
+                            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent, maxLines = 1,
+                        )
+                    }
                 }
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                if (ui.profile != null) {
-                    AiLevel.entries.joinToString("  ·  ") { tr(
-"${it.label} 승 +${it.winPoints} / 패 ${it.losePoints}",
-"${it.label} W +${it.winPoints} / L ${it.losePoints}",
-zh = "${it.label} 胜 +${it.winPoints} / 负 ${it.losePoints}", hi = "${it.label} जीत +${it.winPoints} / हार ${it.losePoints}", es = "${it.label} V +${it.winPoints} / D ${it.losePoints}", fr = "${it.label} V +${it.winPoints} / D ${it.losePoints}", ar = "${it.label} فوز +${it.winPoints} / خسارة ${it.losePoints}", de = "${it.label} S +${it.winPoints} / N ${it.losePoints}", pt = "${it.label} V +${it.winPoints} / D ${it.losePoints}", ru = "${it.label} П +${it.winPoints} / Пр ${it.losePoints}", ja = "${it.label} 勝 +${it.winPoints} / 敗 ${it.losePoints}",
-) }
-                } else {
-                    tr(
-"로그인하면 AI 대전도 점수가 걸려요",
-"Sign in to earn points in AI battles too",
-zh = "登录后 AI 对战也能得分", hi = "साइन इन करें, AI मुकाबलों में भी अंक मिलेंगे", es = "Inicia sesión para ganar puntos también contra la IA", fr = "Connecte-toi pour gagner des points contre l’IA aussi", ar = "سجّل الدخول لتكسب نقاطًا في معارك الذكاء الاصطناعي أيضًا", de = "Melde dich an, um auch gegen die KI Punkte zu sammeln", pt = "Entre para ganhar pontos também contra a IA", ru = "Войдите, чтобы получать очки и в боях с ИИ", ja = "ログインするとAI対戦でもポイントがもらえます",
-)
-                },
-                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Ui.text.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                "⏱ " + AiLevel.entries.joinToString("  ·  ") {
-                    it.label + " " + tr("${it.turnSec}초", "${it.turnSec}s", zh = "${it.turnSec}秒", hi = "${it.turnSec}से",
-                        ar = "${it.turnSec}ث", ru = "${it.turnSec}с", ja = "${it.turnSec}秒")
-                },
-                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
-                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-            )
+            if (ui.profile == null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    tr("로그인하면 AI 대전도 점수가 걸려요", "Sign in to earn points in AI battles too", zh = "登录后 AI 对战也能得分",
+                        hi = "साइन इन करें, AI मुकाबलों में भी अंक मिलेंगे", es = "Inicia sesión para ganar puntos también contra la IA",
+                        fr = "Connecte-toi pour gagner des points contre l’IA aussi", ar = "سجّل الدخول لتكسب نقاطًا في معارك الذكاء الاصطناعي أيضًا",
+                        de = "Melde dich an, um auch gegen die KI Punkte zu sammeln", pt = "Entre para ganhar pontos também contra a IA",
+                        ru = "Войдите, чтобы получать очки и в боях с ИИ", ja = "ログインするとAI対戦でもポイントがもらえます"),
+                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Ui.text.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
         ui.profile?.let { p -> InviteCard(vm, p, ui.shopBusy) }
         ui.info?.let {
@@ -691,6 +694,14 @@ private fun GameScreen(vm: AppViewModel) {
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(me))
                 ReviveCounter(g.board.revivesLeft(me))
+                if (g.myBoost) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "🚀x3", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color.White,
+                        modifier = Modifier.background(Brush.horizontalGradient(listOf(Ui.primary, Ui.accent)), RoundedCornerShape(50))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
 
             // 분할 모양이 되면 버튼을 보여주고, 횟수를 다 썼으면 비활성화
@@ -936,6 +947,15 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                         fontSize = 26.sp, fontWeight = FontWeight.Black,
                         color = if ((d ?: 0) >= 0) Ui.accent else Ui.danger,
                     )
+                    if (g.myBoost && (d ?: 0) > 0) {
+                        Text(
+                            tr("🚀 ×3 부스터 적용!", "🚀 x3 booster applied!", zh = "🚀 ×3 加成生效！", hi = "🚀 ×3 बूस्टर लगा!",
+                                es = "🚀 ¡Potenciador x3 aplicado!", fr = "🚀 Booster x3 appliqué !", ar = "🚀 تم تطبيق المضاعِف ×3!",
+                                de = "🚀 x3-Booster angewendet!", pt = "🚀 Impulso x3 aplicado!", ru = "🚀 Бустер x3 сработал!",
+                                ja = "🚀 ×3 ブースター適用！"),
+                            fontSize = 16.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark,
+                        )
+                    }
                     if (g.scoreBonus > 0) {
                         Text(
                             tr("✨ 계급 보너스 +${g.scoreBonus}점 포함", "✨ Includes rank bonus +${g.scoreBonus}", zh = "✨ 含等级奖励 +${g.scoreBonus}", hi = "✨ रैंक बोनस +${g.scoreBonus} शामिल", es = "✨ Incluye bonus de rango +${g.scoreBonus}", fr = "✨ Bonus de rang inclus +${g.scoreBonus}", ar = "✨ يشمل مكافأة الرتبة +${g.scoreBonus}", de = "✨ Inkl. Rangbonus +${g.scoreBonus}", pt = "✨ Inclui bônus de rank +${g.scoreBonus}", ru = "✨ С бонусом ранга +${g.scoreBonus}", ja = "✨ ランクボーナス +${g.scoreBonus} 込み"),
@@ -1170,6 +1190,62 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
             ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts", zh = "${Shop.POTION_PRICE} 分购买", hi = "${Shop.POTION_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.POTION_PRICE} pts", fr = "Acheter pour ${Shop.POTION_PRICE} pts", ar = "اشترِ مقابل ${Shop.POTION_PRICE} نقطة", de = "Für ${Shop.POTION_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.POTION_PRICE} pts", ru = "Купить за ${Shop.POTION_PRICE} очк.", ja = "${Shop.POTION_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
+        }
+
+        // ×3 점수 부스터
+        ShopCard(
+            title = tr("×3 점수 부스터", "x3 Score Booster", zh = "×3 分数加成", hi = "×3 स्कोर बूस्टर", es = "Potenciador x3",
+                fr = "Booster x3", ar = "مضاعِف النقاط ×3", de = "x3-Punkte-Booster", pt = "Impulso de pontos x3",
+                ru = "Бустер очков x3", ja = "×3 スコアブースター"),
+            desc = tr("켜두면 다음 랜덤 매칭에서 1개를 쓰고, 이기면 얻는 점수가 3배! (AI 대전에는 쓰지 않아요)",
+                "When on, one is used in your next random match — win and your points are tripled! (Not used in AI battles)",
+                zh = "开启后，下一局随机匹配会使用 1 个，获胜得分翻 3 倍！（AI 对战不使用）",
+                hi = "चालू होने पर अगले रैंडम मैच में 1 इस्तेमाल होगा — जीते तो अंक 3 गुना! (AI मुकाबलों में नहीं)",
+                es = "Activado, se usa uno en tu próxima partida aleatoria: ¡si ganas, puntos x3! (No se usa contra la IA)",
+                fr = "Activé, un est utilisé à ton prochain match aléatoire : gagne et tes points sont triplés ! (Pas contre l’IA)",
+                ar = "عند تشغيله يُستخدم واحد في مباراتك العشوائية التالية — فُز وتتضاعف نقاطك 3 مرات! (لا يُستخدم ضد الذكاء الاصطناعي)",
+                de = "Eingeschaltet wird im nächsten Zufallsmatch einer verbraucht — gewinnst du, gibt es 3-fache Punkte! (Nicht gegen die KI)",
+                pt = "Ligado, um é usado na próxima partida aleatória — vença e seus pontos triplicam! (Não é usado contra a IA)",
+                ru = "Если включён, в следующем случайном матче тратится 1 — победите, и очки утроятся! (В боях с ИИ не тратится)",
+                ja = "ONにすると次のランダムマッチで1個使い、勝つと獲得点数が3倍！（AI対戦では使いません）"),
+            price = Shop.BOOST_PRICE,
+            owned = if (p.boosts > 0) {
+                tr("보유 ${p.boosts}개", "Owned: ${p.boosts}", zh = "拥有 ${p.boosts} 个", hi = "पास में: ${p.boosts}", es = "Tienes: ${p.boosts}",
+                    fr = "Possédés : ${p.boosts}", ar = "لديك: ${p.boosts}", de = "Im Besitz: ${p.boosts}", pt = "Você tem: ${p.boosts}",
+                    ru = "Есть: ${p.boosts}", ja = "所持 ${p.boosts}個") + if (p.boostOn) tr("  ·  🔥 사용 중", "  ·  🔥 On",
+                    zh = "  ·  🔥 使用中", hi = "  ·  🔥 चालू", es = "  ·  🔥 Activo", fr = "  ·  🔥 Activé", ar = "  ·  🔥 مُفعَّل",
+                    de = "  ·  🔥 An", pt = "  ·  🔥 Ligado", ru = "  ·  🔥 Вкл.", ja = "  ·  🔥 使用中") else ""
+            } else {
+                null
+            },
+            art = { BoostArt() },
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = { confirm = Triple("BOOST", tr("×3 부스터", "x3 booster", zh = "×3 加成", hi = "×3 बूस्टर", es = "potenciador x3",
+                        fr = "booster x3", ar = "المضاعِف ×3", de = "x3-Booster", pt = "impulso x3", ru = "бустер x3", ja = "×3 ブースター"), Shop.BOOST_PRICE) },
+                    enabled = !ui.shopBusy && p.score + p.coins >= Shop.BOOST_PRICE,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Text(tr("${Shop.BOOST_PRICE}점에 사기", "Buy for ${Shop.BOOST_PRICE} pts", zh = "${Shop.BOOST_PRICE} 分购买",
+                        hi = "${Shop.BOOST_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.BOOST_PRICE} pts", fr = "Acheter pour ${Shop.BOOST_PRICE} pts",
+                        ar = "اشترِ مقابل ${Shop.BOOST_PRICE} نقطة", de = "Für ${Shop.BOOST_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.BOOST_PRICE} pts",
+                        ru = "Купить за ${Shop.BOOST_PRICE} очк.", ja = "${Shop.BOOST_PRICE}点で買う"), fontWeight = FontWeight.Bold)
+                }
+                if (p.boosts > 0) {
+                    OutlinedButton(onClick = { vm.setBoost(!p.boostOn) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
+                        Text(
+                            if (p.boostOn) tr("끄기", "Turn off", zh = "关闭", hi = "बंद करें", es = "Desactivar", fr = "Désactiver",
+                                ar = "إيقاف", de = "Ausschalten", pt = "Desligar", ru = "Выключить", ja = "OFFにする")
+                            else tr("켜기", "Turn on", zh = "开启", hi = "चालू करें", es = "Activar", fr = "Activer",
+                                ar = "تشغيل", de = "Einschalten", pt = "Ligar", ru = "Включить", ja = "ONにする"),
+                            color = Ui.text,
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(6.dp))
@@ -1869,5 +1945,21 @@ private fun TurnTimer(g: GameUi, now: Long) {
                     .background(color, RoundedCornerShape(50)),
             )
         }
+    }
+}
+
+/** 부스터 그림: 반짝이는 ×3 */
+@Composable
+private fun BoostArt() {
+    val t = rememberInfiniteTransition(label = "boost")
+    val pulse by t.animateFloat(0.92f, 1.08f, infiniteRepeatable(tween(600), RepeatMode.Reverse), label = "pulse")
+    Box(contentAlignment = Alignment.Center) {
+        Text(
+            "×3",
+            fontSize = 44.sp, fontWeight = FontWeight.Black,
+            color = Ui.primaryDark,
+            modifier = Modifier.scale(pulse),
+        )
+        Text("🚀", fontSize = 22.sp, modifier = Modifier.align(Alignment.TopEnd).offset(x = 14.dp, y = (-10).dp))
     }
 }

@@ -14,7 +14,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, cleanCountry, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
@@ -86,6 +86,9 @@ interface Game {
   status: "playing" | "finished";
   /** AI 대전이면 난이도 */
   vsAi?: AiLevel;
+  /** 이번 판에 ✖️3 부스터를 쓴 사람 */
+  catBoost?: boolean;
+  hamBoost?: boolean;
   moveNo: number;
   turnStartedAt: number;
 }
@@ -127,7 +130,8 @@ function finishGame(
     const humanSnap = human === "CAT" ? users.cat : users.ham;
     const pts = AI_POINTS[game.vsAi];
     const bonus = win === human ? rankBonus(pts.win, score(humanSnap)) : 0;
-    const delta = win === human ? pts.win + bonus : -Math.min(-pts.lose, score(humanSnap));
+    const boosted = (human === "CAT" ? game.catBoost : game.hamBoost) === true;
+    const delta = win === human ? winPoints(pts.win, bonus, boosted) : -Math.min(-pts.lose, score(humanSnap));
     tx.update(gameRef, {
       ...extra, status: "finished", winner: win, reason,
       [human === "CAT" ? "catDelta" : "hamDelta"]: delta,
@@ -139,8 +143,8 @@ function finishGame(
   // 이긴 쪽은 계급 보너스(구리 5% ~ 다이아 20%)를 더 받음
   const catBonus = catWon ? rankBonus(WIN_POINTS, score(users.cat)) : 0;
   const hamBonus = catWon ? 0 : rankBonus(WIN_POINTS, score(users.ham));
-  const catDelta = catWon ? WIN_POINTS + catBonus : -Math.min(LOSE_POINTS, score(users.cat));
-  const hamDelta = catWon ? -Math.min(LOSE_POINTS, score(users.ham)) : WIN_POINTS + hamBonus;
+  const catDelta = catWon ? winPoints(WIN_POINTS, catBonus, game.catBoost === true) : -Math.min(LOSE_POINTS, score(users.cat));
+  const hamDelta = catWon ? -Math.min(LOSE_POINTS, score(users.ham)) : winPoints(WIN_POINTS, hamBonus, game.hamBoost === true);
   tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus, hamBonus });
   tx.update(users.cat.ref, {
     score: FieldValue.increment(catDelta),
@@ -150,6 +154,18 @@ function finishGame(
     score: FieldValue.increment(hamDelta),
     [catWon ? "losses" : "wins"]: FieldValue.increment(1),
   });
+}
+
+/** 부스터를 켜뒀고 남아 있으면 1개 쓰고 true. 다 쓰면 자동으로 끔. */
+function useBoost(tx: Transaction, profile: DocumentSnapshot): boolean {
+  if (profile.get("boostOn") !== true) return false;
+  const left = (profile.get("boosts") as number | undefined) ?? 0;
+  if (left <= 0) {
+    tx.update(profile.ref, { boostOn: false });
+    return false;
+  }
+  tx.update(profile.ref, left - 1 > 0 ? { boosts: FieldValue.increment(-1) } : { boosts: 0, boostOn: false });
+  return true;
 }
 
 /** 지금 차례인 사람이 제한 시간을 넘겼는지 (서버 시계 기준) */
@@ -239,6 +255,8 @@ export const matchmake = onCall(async (req) => {
     // 동물은 소모품: 장착한 동물이 남아 있으면 이번 판에 1개 사용
     const catAnimal = useAnimal(tx, cat);
     const hamAnimal = useAnimal(tx, ham);
+    const catBoost = useBoost(tx, cat);
+    const hamBoost = useBoost(tx, ham);
     tx.set(gameRef, {
       catUid: cat.id,
       hamUid: ham.id,
@@ -256,6 +274,8 @@ export const matchmake = onCall(async (req) => {
       hamCountry: iAmCat ? cleanCountry(opp.get("country")) : myCountry,
       catSkin: catAnimal,
       hamSkin: hamAnimal,
+      catBoost,
+      hamBoost,
       catTurnMs: turnLimitAgainst(hamAnimal),
       hamTurnMs: turnLimitAgainst(catAnimal),
       turn: "CAT",
@@ -414,6 +434,7 @@ export const startAiGame = onCall(async (req) => {
   const level = (req.data as { level?: unknown } | null)?.level;
   const country = cleanCountry((req.data as { country?: unknown } | null)?.country);
   if (!isAiLevel(level)) throw err("invalid-argument", "난이도를 골라 주세요", "Please choose a difficulty");
+  // ×3 부스터는 랜덤 매칭 전용이라 AI 대전에서는 쓰지 않음
   const me = await db.collection("users").doc(uid).get();
   if (!me.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
   const humanIsCat = Math.random() < 0.5;
@@ -563,10 +584,10 @@ export const admobSsv = onRequest(async (req, res) => {
 export const buyItem = onCall(async (req) => {
   const uid = requireUser(req);
   const item = (req.data as { item?: unknown } | null)?.item;
-  if (typeof item !== "string" || (item !== "POTION" && !ANIMALS[item])) {
+  if (typeof item !== "string" || (item !== "POTION" && item !== "BOOST" && !ANIMALS[item])) {
     throw err("invalid-argument", "없는 상품이에요", "No such item");
   }
-  const price = item === "POTION" ? POTION_PRICE : ANIMALS[item].price;
+  const price = item === "POTION" ? POTION_PRICE : item === "BOOST" ? BOOST_PRICE : ANIMALS[item].price;
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
     const u = await tx.get(userRef);
@@ -581,6 +602,9 @@ export const buyItem = onCall(async (req) => {
       userRef,
       item === "POTION"
         ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(1) }
+        : item === "BOOST"
+        // 부스터: 1개 추가하고 바로 켬
+        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), boosts: FieldValue.increment(1), boostOn: true }
         : {
           // 동물은 소모품: 1개 추가하고 바로 장착
           score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins),
@@ -823,4 +847,19 @@ export const onlineCount = onCall(async (req) => {
   const since = Date.now() - ONLINE_WINDOW_MS;
   const agg = await db.collection("presence").where("at", ">", since).count().get();
   return { online: agg.data().count };
+});
+
+/** ×3 부스터 켜기/끄기 (켜두면 다음 랜덤 매칭 시작 때 1개 사용, AI 대전에는 안 씀) */
+export const setBoost = onCall(async (req) => {
+  const uid = requireUser(req);
+  const on = (req.data as { on?: unknown } | null)?.on === true;
+  const ref = db.collection("users").doc(uid);
+  await db.runTransaction(async (tx) => {
+    const u = await tx.get(ref);
+    if (on && ((u.get("boosts") as number | undefined) ?? 0) <= 0) {
+      throw err("failed-precondition", "부스터가 없어요", "You have no boosters");
+    }
+    tx.update(ref, { boostOn: on });
+  });
+  return { ok: true };
 });

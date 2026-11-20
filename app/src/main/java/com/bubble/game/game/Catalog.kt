@@ -75,6 +75,10 @@ enum class Animal(private val ko: String, private val en: String, val price: Int
 object Shop {
     const val POTION_PRICE = 50
 
+    /** ×3 점수 부스터 (소모품). functions/src/catalog.ts의 BOOST_PRICE와 같게 */
+    const val BOOST_PRICE = 50
+    const val BOOST_MULTIPLIER = 3
+
     /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
     const val MAX_REVIVES_PER_GAME = 3
 

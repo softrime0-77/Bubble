@@ -78,6 +78,8 @@ data class GameUi(
     val myScore: Int? = null,
     /** 랜덤 매칭에서 30초 동안 상대가 없어 AI로 넘어온 게임 */
     val fallbackAi: Boolean = false,
+    /** 이번 판에 내가 ×3 부스터를 썼는지 */
+    val myBoost: Boolean = false,
 ) {
     /** 서버에서 진행하는 점수 걸린 AI 대전 */
     val scoredAi: Boolean get() = online && aiLevel != null
@@ -249,6 +251,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character", zh = "已换回默认角色", hi = "डिफ़ॉल्ट किरदार पर वापस", es = "Volviste al personaje por defecto", fr = "Retour au personnage par défaut", ar = "تمت العودة إلى الشخصية الافتراضية", de = "Zurück zur Standardfigur", pt = "Voltou ao personagem padrão", ru = "Возвращён обычный персонаж", ja = "デフォルトのキャラに戻しました") else tr("${animal.label} 장착!", "${animal.label} equipped!", zh = "已装备${animal.label}！", hi = "${animal.label} लगा दिया!", es = "¡${animal.label} equipado!", fr = "${animal.label} équipé !", ar = "تم تجهيز ${animal.label}!", de = "${animal.label} ausgerüstet!", pt = "${animal.label} equipado!", ru = "${animal.label}: надето!", ja = "${animal.label}を装備しました！")) {
         repo.equipAnimal(animal)
     }
+
+    fun setBoost(on: Boolean) = shopAction(
+        if (on) {
+            tr("×3 부스터를 켰어요! 다음 게임에서 1개 써요", "x3 booster on! One is used next game",
+                zh = "已开启 ×3 加成！下一局会使用 1 个", hi = "×3 बूस्टर चालू! अगले गेम में 1 इस्तेमाल होगा",
+                es = "¡Potenciador x3 activado! Se usa uno en la próxima partida", fr = "Booster x3 activé ! Un sera utilisé à la prochaine partie",
+                ar = "تم تشغيل المضاعِف ×3! يُستخدم واحد في المباراة التالية", de = "x3-Booster an! Einer wird im nächsten Spiel verbraucht",
+                pt = "Impulso x3 ligado! Um será usado na próxima partida", ru = "Бустер x3 включён! Один потратится в следующей игре",
+                ja = "×3 ブースターON！次のゲームで1個使います")
+        } else {
+            tr("×3 부스터를 껐어요", "x3 booster off", zh = "已关闭 ×3 加成", hi = "×3 बूस्टर बंद", es = "Potenciador x3 desactivado",
+                fr = "Booster x3 désactivé", ar = "تم إيقاف المضاعِف ×3", de = "x3-Booster aus", pt = "Impulso x3 desligado",
+                ru = "Бустер x3 выключен", ja = "×3 ブースターOFF")
+        },
+    ) { repo.setBoost(on) }
 
     private fun shopAction(success: String, action: suspend () -> Unit) {
         if (_lobby.value.shopBusy) return
@@ -497,6 +514,7 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             myCountry = og.countryOf(side),
             opponentCountry = og.countryOf(side.opponent),
             myScore = og.scoreOf(side),
+            myBoost = og.boostOf(side),
             opponentSkin = og.skinOf(side.opponent),
             scoreDelta = og.deltaFor(side),
             scoreBonus = og.bonusFor(side),

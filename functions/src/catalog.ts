@@ -1,6 +1,14 @@
 // 상점 상품과 계급. 앱의 game/Catalog.kt와 같은 값이어야 합니다.
 
 export const POTION_PRICE = 50;
+/** ×3 점수 부스터 (소모품): 켜둔 상태로 랜덤 매칭이 시작되면 1개 사용, 이기면 얻는 점수 3배 (AI 대전엔 안 씀) */
+export const BOOST_PRICE = 50;
+export const BOOST_MULTIPLIER = 3;
+
+/** 이겼을 때 얻는 점수: (기본 + 계급 보너스) × 부스터 */
+export function winPoints(base: number, bonus: number, boosted: boolean): number {
+  return (base + bonus) * (boosted ? BOOST_MULTIPLIER : 1);
+}
 /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
 export const MAX_REVIVES_PER_GAME = 3;
 

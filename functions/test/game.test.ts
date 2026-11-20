@@ -66,7 +66,7 @@ test("revive potion brings back a dead set once", () => {
   assert.deepEqual(decodeMove("R:1"), { kind: "revive", index: 1 });
 });
 
-import { cleanCountry, rankBonus, rankBonusPercent, revivesForGame, splitPayment, turnLimitAgainst } from "../src/catalog";
+import { cleanCountry, winPoints, rankBonus, rankBonusPercent, revivesForGame, splitPayment, turnLimitAgainst } from "../src/catalog";
 
 test("revives per game are capped at three and follow potions owned", () => {
   assert.equal(revivesForGame(0), 0);
@@ -110,4 +110,11 @@ test("country codes are two uppercase letters", () => {
   assert.equal(cleanCountry(" US "), "US");
   assert.equal(cleanCountry("KOR"), null);
   assert.equal(cleanCountry(82), null);
+});
+
+test("x3 booster triples the points won, rank bonus included", () => {
+  assert.equal(winPoints(30, 0, false), 30);
+  assert.equal(winPoints(30, 0, true), 90);
+  assert.equal(winPoints(30, 9, true), 117);
+  assert.equal(winPoints(10, 3, true), 39);
 });

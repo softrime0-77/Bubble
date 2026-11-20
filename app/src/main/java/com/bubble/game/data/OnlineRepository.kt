@@ -1,6 +1,7 @@
 package com.bubble.game.data
 
 import android.content.Context
+import com.bubble.game.game.AiLevel
 import com.bubble.game.game.Animal
 import com.bubble.game.game.Board
 import com.bubble.game.game.GameLogic
@@ -66,6 +67,8 @@ data class OnlineGame(
     /** 각자 자기 차례에 쓸 수 있는 시간 */
     val catTurnMs: Long,
     val hamTurnMs: Long,
+    /** AI 대전이면 난이도 (점수가 걸린 서버 AI 대전) */
+    val vsAi: AiLevel?,
 ) {
     fun skinOf(side: Side): Animal? = if (side == Side.CAT) catSkin else hamSkin
 
@@ -185,6 +188,11 @@ class OnlineRepository(context: Context) {
         runCatching { call("claimTimeout", mapOf("gameId" to gameId)) }
     }
 
+    /** 점수가 걸린 AI 대전 시작 (판과 AI의 수는 서버가 처리). */
+    suspend fun startAiGame(level: AiLevel): String =
+        call("startAiGame", mapOf("level" to level.name))["gameId"] as? String
+            ?: throw ServerException("AI 대전을 시작하지 못했어요")
+
     /** 상점 구매: "POTION" 또는 동물 이름(SHEEP/DOG/GIRAFFE). 점수 차감은 서버가 함. */
     suspend fun buyItem(item: String) {
         call("buyItem", mapOf("item" to item))
@@ -249,6 +257,7 @@ class OnlineRepository(context: Context) {
             hamSkin = Animal.of(getString("hamSkin")),
             catTurnMs = getLong("catTurnMs") ?: TURN_LIMIT_MS,
             hamTurnMs = getLong("hamTurnMs") ?: TURN_LIMIT_MS,
+            vsAi = getString("vsAi")?.let { v -> AiLevel.entries.firstOrNull { it.name == v } },
         )
     }
 

@@ -60,7 +60,11 @@ data class GameUi(
     val opponentSkin: Animal? = null,
     /** 이번 차례의 제한 시간(초) */
     val turnSec: Int? = null,
+    /** AI 대전 난이도 (로컬 연습이든 점수가 걸린 서버 대전이든) */
+    val aiLevel: AiLevel? = null,
 ) {
+    /** 서버에서 진행하는 점수 걸린 AI 대전 */
+    val scoredAi: Boolean get() = online && aiLevel != null
     val myTurn: Boolean get() = !finished && !busy && turn == mySide
 }
 
@@ -292,8 +296,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             reason = og.reason,
             log = log,
             explosion = explosion,
-            turnDeadline = og.turnStartedAt + og.turnMsOf(og.turn),
-            turnSec = (og.turnMsOf(og.turn) / 1000).toInt(),
+            // AI 대전은 시간 제한 없음
+            turnDeadline = if (og.vsAi != null) null else og.turnStartedAt + og.turnMsOf(og.turn),
+            turnSec = if (og.vsAi != null) null else (og.turnMsOf(og.turn) / 1000).toInt(),
+            aiLevel = og.vsAi,
             mySkin = og.skinOf(side),
             opponentSkin = og.skinOf(side.opponent),
             scoreDelta = og.deltaFor(side),
@@ -307,6 +313,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var ai: Ai? = null
 
     fun startAiGame(level: AiLevel) {
+        // 로그인했으면 점수가 걸린 서버 AI 대전, 아니면 폰 안에서 하는 연습
+        if (repo.available && uid != null && _lobby.value.profile != null) {
+            gameJob?.cancel()
+            onlineGameId = null
+            _game.value = GameUi(online = true, busy = true, aiLevel = level, opponentName = "AI 친구 (${level.label})")
+            _screen.value = Screen.Game
+            gameJob = viewModelScope.launch {
+                try {
+                    startOnlineGame(repo.startAiGame(level))
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    _lobby.update { it.copy(error = e.message ?: "AI 대전을 시작하지 못했어요") }
+                    _screen.value = Screen.Lobby
+                }
+            }
+            return
+        }
+        startLocalAiGame(level)
+    }
+
+    private fun startLocalAiGame(level: AiLevel) {
         gameJob?.cancel()
         onlineGameId = null
         ai = Ai(level)
@@ -317,6 +345,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             myName = _lobby.value.profile?.name ?: "나",
             opponentName = "AI 친구 (${level.label})",
             mySkin = _lobby.value.profile?.equipped,
+            aiLevel = level,
         )
         _screen.value = Screen.Game
         gameJob = viewModelScope.launch { aiTurnIfNeeded() }
@@ -355,6 +384,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val g = _game.value
         val me = uid ?: return null
         val id = onlineGameId ?: return null
+        if (g.scoredAi) return null
         return if (g.online && g.finished && g.winner != null && g.winner != g.mySide) me to id else null
     }
 

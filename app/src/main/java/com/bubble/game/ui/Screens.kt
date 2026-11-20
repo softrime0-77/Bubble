@@ -205,7 +205,7 @@ private fun LobbyScreen(vm: AppViewModel) {
         )
         Spacer(Modifier.height(12.dp))
         SoftCard {
-            Text("🤖 AI와 연습하기", fontWeight = FontWeight.Bold, color = Ui.text)
+            Text(if (ui.profile != null) "🤖 AI 대전" else "🤖 AI와 연습하기", fontWeight = FontWeight.Bold, color = Ui.text)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AiLevel.entries.forEach { lv ->
@@ -216,6 +216,16 @@ private fun LobbyScreen(vm: AppViewModel) {
                     ) { Text(lv.label, color = Ui.accent) }
                 }
             }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (ui.profile != null) {
+                    AiLevel.entries.joinToString("  ·  ") { "${it.label} 승 +${it.winPoints} / 패 ${it.losePoints}" }
+                } else {
+                    "로그인하면 AI 대전도 점수가 걸려요"
+                },
+                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Ui.text.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+            )
         }
         TextButton(onClick = { showRules = true }) { Text("📖 게임 규칙 보기", color = Ui.text) }
         ui.info?.let {
@@ -551,7 +561,7 @@ private fun GameScreen(vm: AppViewModel) {
                     }
                 },
                 onAgain = {
-                    val lv = AiLevel.entries.firstOrNull { g.opponentName.contains(it.label) } ?: AiLevel.NORMAL
+                    val lv = g.aiLevel ?: AiLevel.NORMAL
                     AdManager.maybeShowInterstitial(activity) { vm.startAiGame(lv) }
                 },
             )
@@ -581,7 +591,15 @@ private fun GameScreen(vm: AppViewModel) {
         AlertDialog(
             onDismissRequest = { confirmLeave = false },
             title = { Text("게임에서 나갈까요?") },
-            text = { Text(if (g.online) "지금 나가면 기권패로 처리돼요 (-${OnlineRepository.LOSE_POINTS}점)." else "연습 게임이 끝나요.") },
+            text = {
+                Text(
+                    when {
+                        g.scoredAi -> "지금 나가면 패배로 처리돼요 (${g.aiLevel!!.losePoints}점)."
+                        g.online -> "지금 나가면 기권패로 처리돼요 (-${OnlineRepository.LOSE_POINTS}점)."
+                        else -> "연습 게임이 끝나요."
+                    },
+                )
+            },
             confirmButton = { TextButton(onClick = { confirmLeave = false; vm.leaveGame() }) { Text("나가기", color = Ui.danger) } },
             dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text("계속하기") } },
         )
@@ -613,7 +631,7 @@ private fun TurnBanner(g: GameUi, selecting: Boolean) {
     val text = when {
         g.finished -> "게임 끝!"
         g.busy && g.turn == g.mySide -> "보내는 중…"
-        g.turn != g.mySide -> if (g.online) "상대가 고민 중이에요…" else "AI가 생각 중… 🤔"
+        g.turn != g.mySide -> if (g.aiLevel != null) "AI가 생각 중… 🤔" else "상대가 고민 중이에요…"
         selecting -> "어디에 더할까요? 반짝이는 방울을 눌러요"
         else -> "내 차례! 내 방울을 하나 골라요"
     }
@@ -681,7 +699,7 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                 }
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (!g.online) {
+                    if (g.aiLevel != null) {
                         OutlinedButton(onClick = onAgain, shape = RoundedCornerShape(18.dp)) { Text("한 판 더") }
                     }
                     Button(

@@ -8,6 +8,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
+import { AiLevel, chooseMove, isAiLevel } from "./ai";
 import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, revivesForGame, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
@@ -24,6 +25,17 @@ const TIMEOUT_GRACE_MS = 5_000;
 const QUEUE_STALE_MS = 15_000;
 /** 패배 후 보상형 광고를 보면 돌려주는 점수 (잃은 점수가 이보다 적으면 잃은 만큼만) */
 const AD_REFUND_POINTS = 8;
+/** AI 대전 점수 (난이도별 승리/패배). 승패 기록(wins/losses)에는 넣지 않음. */
+const AI_POINTS: Record<AiLevel, { win: number; lose: number }> = {
+  EASY: { win: 1, lose: 0 },
+  NORMAL: { win: 5, lose: -3 },
+  HARD: { win: 10, lose: -5 },
+};
+const AI_UID = "AI";
+const AI_LABEL: Record<AiLevel, string> = { EASY: "쉬움", NORMAL: "보통", HARD: "어려움" };
+const AI_THINK_MS = 900;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 /** 우리 보상형 전면 광고 단위 번호 (ca-app-pub-…/6715010091). 테스트 광고 단위는 거절. */
 const REWARDED_AD_UNIT = "6715010091";
 
@@ -59,6 +71,8 @@ interface Game {
   hamTurnMs?: number;
   turn: Side;
   status: "playing" | "finished";
+  /** AI 대전이면 난이도 */
+  vsAi?: AiLevel;
   moveNo: number;
   turnStartedAt: number;
 }
@@ -94,6 +108,19 @@ function finishGame(
 ) {
   const score = (s: DocumentSnapshot) => (s.get("score") as number | undefined) ?? START_SCORE;
   const catWon = win === "CAT";
+  if (game.vsAi) {
+    // AI 대전: 사람 쪽 점수만 난이도표대로 (0점 밑으로는 안 내려감)
+    const human: Side = game.catUid === AI_UID ? "HAMSTER" : "CAT";
+    const humanSnap = human === "CAT" ? users.cat : users.ham;
+    const pts = AI_POINTS[game.vsAi];
+    const delta = win === human ? pts.win : -Math.min(-pts.lose, score(humanSnap));
+    tx.update(gameRef, {
+      ...extra, status: "finished", winner: win, reason,
+      [human === "CAT" ? "catDelta" : "hamDelta"]: delta,
+    });
+    if (delta !== 0) tx.update(humanSnap.ref, { score: FieldValue.increment(delta) });
+    return;
+  }
   const catDelta = catWon ? WIN_POINTS : -Math.min(LOSE_POINTS, score(users.cat));
   const hamDelta = catWon ? -Math.min(LOSE_POINTS, score(users.ham)) : WIN_POINTS;
   tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta });
@@ -108,6 +135,11 @@ function finishGame(
 }
 
 async function readPlayers(tx: Transaction, game: Game) {
+  // AI 쪽은 사용자 문서가 없으므로, 사람 문서를 두 자리에 모두 넣어 둠 (finishGame이 사람 쪽만 씀)
+  if (game.vsAi) {
+    const human = await tx.get(db.collection("users").doc(game.catUid === AI_UID ? game.hamUid : game.catUid));
+    return { cat: human, ham: human };
+  }
   const [cat, ham] = await Promise.all([
     tx.get(db.collection("users").doc(game.catUid)),
     tx.get(db.collection("users").doc(game.hamUid)),
@@ -254,8 +286,104 @@ export const submitMove = onCall(async (req) => {
     } else {
       tx.update(ref, update);
     }
+    return game.vsAi && !win;
+  }).then(async (aiNext) => {
+    if (aiNext) {
+      await sleep(AI_THINK_MS);
+      await aiTurn(gameId);
+    }
   });
   return { ok: true };
+});
+
+/** AI 차례면 AI가 한 수 둡니다. */
+async function aiTurn(gameId: string) {
+  const ref = db.collection("games").doc(gameId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const game = snap.data() as Game;
+    if (!game.vsAi || game.status !== "playing") return;
+    const aiSide: Side = game.catUid === AI_UID ? "CAT" : "HAMSTER";
+    if (game.turn !== aiSide) return;
+    const board: Board = {
+      cat: game.cat, ham: game.ham,
+      catSplits: game.catSplits ?? MAX_SPLITS, hamSplits: game.hamSplits ?? MAX_SPLITS,
+      catRevives: game.catRevives ?? 0, hamRevives: game.hamRevives ?? 0,
+    };
+    const r = applyMove(board, aiSide, chooseMove(board, aiSide, game.vsAi));
+    const update = {
+      cat: r.board.cat, ham: r.board.ham,
+      catSplits: r.board.catSplits, hamSplits: r.board.hamSplits,
+      catRevives: r.board.catRevives ?? 0, hamRevives: r.board.hamRevives ?? 0,
+      turn: opponent(aiSide),
+      lastDesc: r.description,
+      explodedSide: r.exploded?.side ?? null,
+      explodedIndex: r.exploded?.index ?? -1,
+      moveNo: game.moveNo + 1,
+      turnStartedAt: Date.now(),
+    };
+    const win = winner(r.board);
+    if (win) {
+      finishGame(tx, ref, game, win, "normal", await readPlayers(tx, game), update);
+    } else {
+      tx.update(ref, update);
+    }
+  });
+}
+
+/**
+ * AI 대전 시작 (점수가 걸린 대전). 판과 AI의 수는 모두 서버가 처리합니다.
+ * 점수: 쉬움 +1/0, 보통 +5/-3, 어려움 +10/-5.
+ */
+export const startAiGame = onCall(async (req) => {
+  const uid = requireUser(req);
+  const level = (req.data as { level?: unknown } | null)?.level;
+  if (!isAiLevel(level)) throw new HttpsError("invalid-argument", "난이도를 골라 주세요");
+  const me = await db.collection("users").doc(uid).get();
+  if (!me.exists) throw new HttpsError("failed-precondition", "프로필이 없어요");
+  const humanIsCat = Math.random() < 0.5;
+  const now = Date.now();
+  const gameRef = db.collection("games").doc();
+  const aiName = `AI 친구 (${AI_LABEL[level]})`;
+  const myName = me.get("name") ?? "나";
+  const myScore = me.get("score") ?? START_SCORE;
+  const myRevives = revivesForGame(me.get("potions"));
+  await gameRef.set({
+    vsAi: level,
+    catUid: humanIsCat ? uid : AI_UID,
+    hamUid: humanIsCat ? AI_UID : uid,
+    catName: humanIsCat ? myName : aiName,
+    hamName: humanIsCat ? aiName : myName,
+    catScore: humanIsCat ? myScore : 0,
+    hamScore: humanIsCat ? 0 : myScore,
+    catSkin: humanIsCat ? me.get("equipped") ?? null : null,
+    hamSkin: humanIsCat ? null : me.get("equipped") ?? null,
+    cat: [1, 1],
+    ham: [1, 1],
+    catSplits: MAX_SPLITS,
+    hamSplits: MAX_SPLITS,
+    catRevives: humanIsCat ? myRevives : 0,
+    hamRevives: humanIsCat ? 0 : myRevives,
+    catTurnMs: DEFAULT_TURN_MS,
+    hamTurnMs: DEFAULT_TURN_MS,
+    turn: "CAT",
+    status: "playing",
+    winner: null,
+    reason: "",
+    lastDesc: "",
+    explodedSide: null,
+    explodedIndex: -1,
+    moveNo: 0,
+    turnStartedAt: now,
+    createdAt: now,
+  });
+  if (!humanIsCat) {
+    // AI가 고양이면 먼저 둠 (앱이 화면을 띄울 시간을 조금 줌)
+    await sleep(AI_THINK_MS + 300);
+    await aiTurn(gameRef.id);
+  }
+  return { gameId: gameRef.id };
 });
 
 /** 기권 (게임 중 나가기). */
@@ -277,7 +405,7 @@ export const claimTimeout = onCall(async (req) => {
   const gameId = requireGameId(req.data);
   const won = await db.runTransaction(async (tx) => {
     const { ref, game, side } = await loadGame(tx, gameId, uid);
-    if (game.status !== "playing" || game.turn !== opponent(side)) return false;
+    if (game.vsAi || game.status !== "playing" || game.turn !== opponent(side)) return false;
     const limit = (game.turn === "CAT" ? game.catTurnMs : game.hamTurnMs) ?? TURN_LIMIT_MS;
     if (Date.now() - game.turnStartedAt <= limit + TIMEOUT_GRACE_MS) return false;
     const players = await readPlayers(tx, game);
@@ -332,6 +460,7 @@ export const admobSsv = onRequest(async (req, res) => {
     const game = gameSnap.data() as Game & { winner?: Side; catDelta?: number; hamDelta?: number; catRefund?: number; hamRefund?: number };
     const side = sideOf(game, p.userId);
     if (!side || game.status !== "finished" || game.winner === side) return "not a loss";
+    if (game.vsAi) return "ai game";
     const refundField = side === "CAT" ? "catRefund" : "hamRefund";
     if ((game[refundField] ?? 0) > 0) return "already refunded";
     const lost = -((side === "CAT" ? game.catDelta : game.hamDelta) ?? 0);

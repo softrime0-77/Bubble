@@ -325,8 +325,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    _lobby.update { it.copy(error = e.message ?: "AI 대전을 시작하지 못했어요") }
-                    _screen.value = Screen.Lobby
+                    // 서버에 연결할 수 없으면 점수 없는 연습으로라도 계속 플레이
+                    startLocalAiGame(level)
+                    _game.update {
+                        it.copy(notice = "서버에 연결할 수 없어 점수 없는 연습으로 진행해요 (${e.message ?: "오류"})")
+                    }
                 }
             }
             return

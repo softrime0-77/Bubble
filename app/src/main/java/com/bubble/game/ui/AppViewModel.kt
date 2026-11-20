@@ -11,9 +11,11 @@ import com.bubble.game.data.OnlineRepository
 import com.bubble.game.data.Profile
 import com.bubble.game.game.Ai
 import com.bubble.game.game.AiLevel
+import com.bubble.game.game.Animal
 import com.bubble.game.game.Board
 import com.bubble.game.game.GameLogic
 import com.bubble.game.game.Move
+import com.bubble.game.game.Rank
 import com.bubble.game.game.Side
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -29,6 +31,7 @@ sealed interface Screen {
     data object Lobby : Screen
     data class Matching(val startedAt: Long) : Screen
     data object Game : Screen
+    data object Shop : Screen
 }
 
 /** 터짐 애니메이션을 한 번만 틀기 위한 표식. */
@@ -52,6 +55,11 @@ data class GameUi(
     /** 서버가 수를 거절했을 때 등 잠깐 보여줄 안내 문구. */
     val notice: String? = null,
     val busy: Boolean = false,
+    /** 장착한 동물 캐릭터 (null이면 기본 고양이/햄스터) */
+    val mySkin: Animal? = null,
+    val opponentSkin: Animal? = null,
+    /** 이번 차례의 제한 시간(초) */
+    val turnSec: Int? = null,
 ) {
     val myTurn: Boolean get() = !finished && !busy && turn == mySide
 }
@@ -63,6 +71,10 @@ data class LobbyUi(
     val error: String? = null,
     /** 잠깐 보여줄 안내 (예: 광고 보상 처리 중). */
     val info: String? = null,
+    /** 계급이 올랐을 때 축하 화면을 띄울 점수 */
+    val rankUpScore: Int? = null,
+    /** 상점 구매/장착 처리 중 */
+    val shopBusy: Boolean = false,
     val profile: Profile? = null,
     val leaderboard: List<Profile> = emptyList(),
 )
@@ -86,6 +98,41 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var onlineGameId: String? = null
 
     private var sessionJob: Job? = null
+    private var lastRank: Rank? = null
+
+    fun dismissRankUp() = _lobby.update { it.copy(rankUpScore = null) }
+
+    // ---------- 상점 ----------
+
+    fun openShop() {
+        if (_lobby.value.profile != null) _screen.value = Screen.Shop
+    }
+
+    fun closeShop() {
+        _screen.value = Screen.Lobby
+    }
+
+    /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
+    fun buy(item: String, label: String) = shopAction("$label 구매 완료! 🎉") { repo.buyItem(item) }
+
+    fun equip(animal: Animal?) = shopAction(if (animal == null) "기본 캐릭터로 바꿨어요" else "${animal.label} 장착!") {
+        repo.equipAnimal(animal)
+    }
+
+    private fun shopAction(success: String, action: suspend () -> Unit) {
+        if (_lobby.value.shopBusy) return
+        _lobby.update { it.copy(shopBusy = true, error = null, info = null) }
+        viewModelScope.launch {
+            try {
+                action()
+                _lobby.update { it.copy(shopBusy = false, info = success) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lobby.update { it.copy(shopBusy = false, error = e.message ?: "실패했어요") }
+            }
+        }
+    }
 
     init {
         val id = if (repo.available) repo.currentUid else null
@@ -123,6 +170,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         sessionJob?.cancel()
         sessionJob = null
         uid = null
+        lastRank = null
         repo.signOut()
         _lobby.value = LobbyUi(onlineAvailable = true, loading = false, needsLogin = true)
     }
@@ -139,7 +187,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         sessionJob = viewModelScope.launch {
             try {
                 repo.ensureProfile(id)
-                launch { repo.profileFlow(id).collect { p -> _lobby.update { it.copy(profile = p, loading = false) } } }
+                launch {
+                    repo.profileFlow(id).collect { p ->
+                        val rank = p?.rank
+                        val prev = lastRank
+                        val rankedUp = rank != null && prev != null && rank.ordinal > prev.ordinal
+                        if (rank != null) lastRank = rank
+                        _lobby.update {
+                            it.copy(
+                                profile = p,
+                                loading = false,
+                                rankUpScore = if (rankedUp) p!!.score else it.rankUpScore,
+                            )
+                        }
+                    }
+                }
                 launch { repo.leaderboardFlow().collect { l -> _lobby.update { it.copy(leaderboard = l) } } }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -230,7 +292,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             reason = og.reason,
             log = log,
             explosion = explosion,
-            turnDeadline = og.turnStartedAt + OnlineRepository.TURN_LIMIT_MS,
+            turnDeadline = og.turnStartedAt + og.turnMsOf(og.turn),
+            turnSec = (og.turnMsOf(og.turn) / 1000).toInt(),
+            mySkin = og.skinOf(side),
+            opponentSkin = og.skinOf(side.opponent),
             scoreDelta = og.deltaFor(side),
             notice = if (newMove) null else notice,
             busy = false,
@@ -251,6 +316,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             mySide = mySide,
             myName = _lobby.value.profile?.name ?: "나",
             opponentName = "AI 친구 (${level.label})",
+            mySkin = _lobby.value.profile?.equipped,
         )
         _screen.value = Screen.Game
         gameJob = viewModelScope.launch { aiTurnIfNeeded() }

@@ -3,6 +3,10 @@ package com.bubble.game.ui
 import android.app.Activity
 import com.bubble.game.ads.AdManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.graphics.graphicsLayer
+import com.bubble.game.game.Shop
+import com.bubble.game.game.Rank
+import com.bubble.game.game.Animal
 import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.alpha
 import androidx.compose.animation.core.spring
@@ -86,8 +90,12 @@ fun BubbleApp(vm: AppViewModel) {
                 Screen.Lobby -> LobbyScreen(vm)
                 is Screen.Matching -> MatchingScreen(s.startedAt, onCancel = vm::cancelMatching)
                 Screen.Game -> GameScreen(vm)
+                Screen.Shop -> ShopScreen(vm)
             }
         }
+        val lobby by vm.lobby.collectAsState()
+        val rankUp = lobby.rankUpScore
+        if (rankUp != null && screen == Screen.Lobby) RankUpCelebration(rankUp, onDismiss = vm::dismissRankUp)
     }
 }
 
@@ -108,6 +116,11 @@ private fun LobbyScreen(vm: AppViewModel) {
             .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (ui.profile != null) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                ShopIconButton(onClick = vm::openShop)
+            }
+        }
         TitleBanner()
         Spacer(Modifier.height(16.dp))
 
@@ -150,11 +163,17 @@ private fun LobbyScreen(vm: AppViewModel) {
                 ui.profile != null -> {
                     val p = ui.profile!!
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Critter(Side.CAT, Modifier.size(44.dp))
+                        Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped)
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
-                            Text("${p.wins}승 ${p.losses}패", fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f))
+                            Spacer(Modifier.height(4.dp))
+                            RankBadge(p.score)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "${p.wins}승 ${p.losses}패 · 💖 부활물약 ${p.potions}개",
+                                fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
+                            )
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("${p.score}", fontWeight = FontWeight.Black, fontSize = 26.sp, color = Ui.primaryDark)
@@ -228,6 +247,8 @@ private fun LobbyScreen(vm: AppViewModel) {
                             modifier = Modifier.width(32.dp), color = Ui.text, fontWeight = FontWeight.Bold,
                         )
                         Text(p.name + if (me) " (나)" else "", modifier = Modifier.weight(1f), color = Ui.text)
+                        RankBadge(p.score)
+                        Spacer(Modifier.width(8.dp))
                         Text("${p.score}점", color = Ui.primaryDark, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -311,7 +332,10 @@ private fun RulesDialog(onDismiss: () -> Unit) {
                     "   ✂️ 분할: 한 방울이 짝수(2·4마리)이고 다른 방울이 0일 때 반씩 나눠요.\n" +
                     "   ✂️ 분할은 한 게임에 한 사람당 최대 ${GameLogic.MAX_SPLITS}번까지!\n\n" +
                     "• 내 방울 2개가 모두 터지면 져요.\n\n" +
-                    "• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.",
+                    "• 💖 부활물약(상점)이 있으면 터진 방울을 1마리로 살릴 수 있어요. 한 판에 최대 3번!\n\n" +
+                    "• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.\n" +
+                    "   상대가 양·강아지·기린을 장착했다면 내 턴이 20·15·10초로 줄어요.\n\n" +
+                    "• 계급: 1000점 이하 흙, 이후 100점마다 구리 → 은 → 금 → 다이아",
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -399,9 +423,10 @@ private fun GameScreen(vm: AppViewModel) {
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(opp, g.opponentName, g.opponentScore?.let { "${it}점" }, active = g.turn == opp && !g.finished)
+                PlayerTag(opp, g.opponentName, g.opponentScore?.let { "${it}점" }, active = g.turn == opp && !g.finished, skin = g.opponentSkin)
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(opp))
+                ReviveCounter(g.board.revivesLeft(opp))
             }
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
@@ -413,6 +438,7 @@ private fun GameScreen(vm: AppViewModel) {
                         title = GameLogic.setName(i),
                         mode = if (target) BubbleMode.TARGET else BubbleMode.NORMAL,
                         size = 140.dp,
+                        skin = g.opponentSkin,
                         preview = if (target) previewFor(theirs[i]) else null,
                         explodeKey = g.explosion?.takeIf { it.side == opp && it.index == i }?.id,
                         onClick = if (target) ({ vm.play(Move.Add(sel!!, true, i)); selected = null }) else null,
@@ -440,6 +466,7 @@ private fun GameScreen(vm: AppViewModel) {
                             else -> BubbleMode.NORMAL
                         },
                         size = 150.dp,
+                        skin = g.mySkin,
                         preview = if (boostTarget) "💪 " + previewFor(mine[i]) else null,
                         explodeKey = g.explosion?.takeIf { it.side == me && it.index == i }?.id,
                         onClick = when {
@@ -452,9 +479,10 @@ private fun GameScreen(vm: AppViewModel) {
             }
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(me, if (g.myName == "나") "나" else g.myName + " (나)", null, active = g.myTurn)
+                PlayerTag(me, if (g.myName == "나") "나" else g.myName + " (나)", null, active = g.myTurn, skin = g.mySkin)
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(me))
+                ReviveCounter(g.board.revivesLeft(me))
             }
 
             // 분할 모양이 되면 버튼을 보여주고, 횟수를 다 썼으면 비활성화
@@ -471,6 +499,21 @@ private fun GameScreen(vm: AppViewModel) {
                     Text(
                         if (splitsLeft > 0) "✂️ 분할하기 (${power / 2} + ${power / 2}) · 남은 ${splitsLeft}회"
                         else "✂️ 분할 횟수를 모두 썼어요",
+                        fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                    )
+                }
+            }
+            // 부활물약: 터진 방울이 있고 물약이 남았으면 (선택 없이 바로 사용)
+            val reviveTarget = (0 until GameLogic.SET_COUNT).firstOrNull { GameLogic.canRevive(g.board, me, it) }
+            AnimatedVisibility(g.myTurn && reviveTarget != null, enter = fadeIn() + slideInVertically { it }) {
+                Button(
+                    onClick = { reviveTarget?.let { vm.play(Move.Revive(it)) }; selected = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5C8A)),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    Text(
+                        "💖 부활물약으로 ${GameLogic.setName(reviveTarget ?: 0)} 살리기 · 남은 ${g.board.revivesLeft(me)}개",
                         fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     )
                 }
@@ -546,7 +589,7 @@ private fun GameScreen(vm: AppViewModel) {
 }
 
 @Composable
-private fun PlayerTag(side: Side, name: String, extra: String?, active: Boolean) {
+private fun PlayerTag(side: Side, name: String, extra: String?, active: Boolean, skin: Animal? = null) {
     val t = rememberInfiniteTransition(label = "tag")
     val glow by t.animateFloat(0.3f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "glow")
     Row(
@@ -558,9 +601,9 @@ private fun PlayerTag(side: Side, name: String, extra: String?, active: Boolean)
             .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Critter(side, Modifier.size(26.dp))
+        Critter(side, Modifier.size(26.dp), skin = skin)
         Spacer(Modifier.width(6.dp))
-        Text("${side.label} · $name", color = Ui.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Text("${skin?.label ?: side.label} · $name", color = Ui.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         if (extra != null) Text("  $extra", color = Ui.primaryDark, fontSize = 13.sp)
     }
 }
@@ -765,4 +808,205 @@ private fun RewardIntro(points: Int, onSkip: () -> Unit, onWatch: () -> Unit) {
             }
         }
     }
+}
+
+// ======================= 상점 =======================
+
+@Composable
+private fun ShopIconButton(onClick: () -> Unit) {
+    val t = rememberInfiniteTransition(label = "shopIcon")
+    val bob by t.animateFloat(-3f, 3f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "bob")
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Ui.gold, contentColor = Ui.text),
+        modifier = Modifier.offset(y = bob.dp),
+    ) {
+        Text("🛒 상점", fontWeight = FontWeight.Black, fontSize = 16.sp)
+    }
+}
+
+@Composable
+private fun ShopScreen(vm: AppViewModel) {
+    val ui by vm.lobby.collectAsState()
+    val p = ui.profile
+    BackHandler(onBack = vm::closeShop)
+    var confirm by remember { mutableStateOf<Triple<String, String, Int>?>(null) }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = vm::closeShop) { Text("← 로비", color = Ui.text) }
+            Spacer(Modifier.weight(1f))
+            if (p != null) {
+                Text("내 점수 ", color = Ui.text, fontSize = 14.sp)
+                Text("${p.score}점", color = Ui.primaryDark, fontWeight = FontWeight.Black, fontSize = 20.sp)
+            }
+        }
+        Text("🛒 상점", fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
+        Text("점수로 아이템을 살 수 있어요 (점수가 줄면 계급도 내려갈 수 있어요)", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+        Spacer(Modifier.height(10.dp))
+        ui.info?.let { Text(it, color = Ui.accent, fontWeight = FontWeight.Bold) }
+        ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
+        if (p == null) return@Column
+
+        // 부활물약
+        ShopCard(
+            title = "💖 부활물약",
+            desc = "내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 ${Shop.MAX_REVIVES_PER_GAME}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용",
+            price = Shop.POTION_PRICE,
+            owned = "보유 ${p.potions}개",
+            art = { PotionArt(Modifier.size(84.dp)) },
+        ) {
+            Button(
+                onClick = { confirm = Triple("POTION", "부활물약", Shop.POTION_PRICE) },
+                enabled = !ui.shopBusy && p.score >= Shop.POTION_PRICE,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+            ) { Text("${Shop.POTION_PRICE}점에 사기", fontWeight = FontWeight.Bold) }
+        }
+
+        Spacer(Modifier.height(6.dp))
+        Text("🐾 동물 친구들", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.text, modifier = Modifier.fillMaxWidth())
+        Text("장착하면 내 캐릭터가 바뀌고, 상대의 턴 시간이 줄어들어요 (다음 판부터)", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(6.dp))
+
+        Animal.entries.forEach { a ->
+            val have = a in p.owned
+            val on = p.equipped == a
+            ShopCard(
+                title = a.label,
+                desc = "⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초",
+                price = a.price,
+                owned = when {
+                    on -> "✅ 장착 중"
+                    have -> "보유 중"
+                    else -> null
+                },
+                art = { Critter(Side.CAT, Modifier.size(84.dp), skin = a, happy = on) },
+            ) {
+                when {
+                    on -> OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
+                        Text("장착 해제", color = Ui.text)
+                    }
+                    have -> Button(
+                        onClick = { vm.equip(a) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                    ) { Text("장착하기", fontWeight = FontWeight.Bold) }
+                    else -> Button(
+                        onClick = { confirm = Triple(a.name, a.label, a.price) },
+                        enabled = !ui.shopBusy && p.score >= a.price,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                    ) { Text("${a.price}점에 사기", fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+    }
+
+    confirm?.let { (item, label, price) ->
+        val after = (p?.score ?: 0) - price
+        AlertDialog(
+            onDismissRequest = { confirm = null },
+            title = { Text("$label 살까요?", fontWeight = FontWeight.Black) },
+            text = {
+                Column {
+                    Text("${price}점을 써요. 남는 점수: ${after}점", fontWeight = FontWeight.Bold)
+                    if (p != null && Rank.of(after) != p.rank) {
+                        Spacer(Modifier.height(6.dp))
+                        Text("⚠️ 계급이 ${p.rank.label} → ${Rank.of(after).label}(으)로 내려가요", color = Ui.danger, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { vm.buy(item, label); confirm = null }) { Text("살게요") } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text("취소") } },
+        )
+    }
+}
+
+@Composable
+private fun ShopCard(
+    title: String,
+    desc: String,
+    price: Int,
+    owned: String?,
+    art: @Composable () -> Unit,
+    action: @Composable () -> Unit,
+) {
+    SoftCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(96.dp).background(Ui.bgTop, RoundedCornerShape(24.dp)),
+                contentAlignment = Alignment.Center,
+            ) { art() }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text)
+                    Spacer(Modifier.width(6.dp))
+                    Text("${price}점", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
+                }
+                Text(desc, fontSize = 13.sp, color = Ui.text.copy(alpha = 0.8f), lineHeight = 18.sp)
+                if (owned != null) Text(owned, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
+                Spacer(Modifier.height(6.dp))
+                action()
+            }
+        }
+    }
+}
+
+/** 하트 모양 병에 담긴 부활물약. */
+@Composable
+private fun PotionArt(modifier: Modifier) {
+    val t = rememberInfiniteTransition(label = "potion")
+    val wobble by t.animateFloat(-5f, 5f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "w")
+    val tw by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_200)), label = "tw")
+    androidx.compose.foundation.Canvas(modifier.graphicsLayer { rotationZ = wobble }) {
+        val w = size.width
+        val h = size.height
+        val c = androidx.compose.ui.geometry.Offset(w / 2, h * 0.6f)
+        val r = w * 0.3f
+        // 병목, 코르크
+        drawRect(Color(0xFFE3F2FD), androidx.compose.ui.geometry.Offset(w * 0.42f, h * 0.18f), androidx.compose.ui.geometry.Size(w * 0.16f, h * 0.2f))
+        drawRoundRect(Color(0xFFB7794A), androidx.compose.ui.geometry.Offset(w * 0.4f, h * 0.1f), androidx.compose.ui.geometry.Size(w * 0.2f, h * 0.1f), androidx.compose.ui.geometry.CornerRadius(6f))
+        // 병
+        drawCircle(Color(0xFFE3F2FD), r, c)
+        // 하트 물약
+        val heart = androidx.compose.ui.graphics.Path().apply {
+            val hx = c.x
+            val hy = c.y - r * 0.15f
+            val k = r * 0.7f
+            moveTo(hx, hy + k * 0.9f)
+            cubicTo(hx - k * 1.3f, hy, hx - k * 0.6f, hy - k * 0.9f, hx, hy - k * 0.3f)
+            cubicTo(hx + k * 0.6f, hy - k * 0.9f, hx + k * 1.3f, hy, hx, hy + k * 0.9f)
+            close()
+        }
+        drawPath(heart, Color(0xFFFF5C8A))
+        drawCircle(Color.White.copy(alpha = 0.8f), r * 0.14f, c + androidx.compose.ui.geometry.Offset(-r * 0.45f, -r * 0.45f))
+        drawCircle(Color.White, r, c, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f))
+        val a = kotlin.math.sin(tw * Math.PI).toFloat()
+        sparkle(c + androidx.compose.ui.geometry.Offset(r * 0.9f, -r * 0.9f), 9f * a + 2f, Ui.gold.copy(alpha = a))
+        sparkle(c + androidx.compose.ui.geometry.Offset(-r * 1.0f, r * 0.2f), 6f * (1 - a) + 2f, Color.White.copy(alpha = 1 - a))
+    }
+}
+
+/** 이번 판에 남은 부활물약 (없으면 표시 안 함). */
+@Composable
+private fun ReviveCounter(left: Int) {
+    if (left <= 0) return
+    Spacer(Modifier.width(6.dp))
+    Text(
+        "💖×$left",
+        fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFFE0457B),
+        modifier = Modifier
+            .background(Color(0x33FF5C8A), RoundedCornerShape(50))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
 }

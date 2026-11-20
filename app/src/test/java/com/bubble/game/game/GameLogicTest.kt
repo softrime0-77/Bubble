@@ -86,6 +86,19 @@ class GameLogicTest {
     }
 
     @Test
+    fun revivePotionBringsBackDeadSetOnce() {
+        val b = Board(cat = listOf(3, 0), ham = listOf(1, 1), catRevives = 1)
+        assertTrue(GameLogic.isLegal(b, Side.CAT, Move.Revive(1)))
+        assertFalse(GameLogic.isLegal(b, Side.CAT, Move.Revive(0)))
+        val after = GameLogic.apply(b, Side.CAT, Move.Revive(1)).board
+        assertEquals(listOf(3, 1), after.cat)
+        assertEquals(0, after.revivesLeft(Side.CAT))
+        assertFalse(GameLogic.isLegal(after.copy(cat = listOf(3, 0)), Side.CAT, Move.Revive(1)))
+        assertFalse(GameLogic.isLegal(Board(cat = listOf(3, 0)), Side.CAT, Move.Revive(1)))
+        assertEquals(Move.Revive(1), Move.decode(Move.Revive(1).encode()))
+    }
+
+    @Test
     fun losingBothSetsLoses() {
         val b = Board(cat = listOf(4, 1), ham = listOf(0, 1))
         val r = GameLogic.apply(b, Side.CAT, Move.Add(0, true, 1))

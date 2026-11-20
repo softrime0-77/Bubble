@@ -8,6 +8,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
+import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, revivesForGame, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
@@ -18,7 +19,7 @@ setGlobalOptions({ region: "asia-northeast3", maxInstances: 10 });
 const START_SCORE = 1000;
 const WIN_POINTS = 25;
 const LOSE_POINTS = 15;
-const TURN_LIMIT_MS = 30_000;
+const TURN_LIMIT_MS = DEFAULT_TURN_MS;
 const TIMEOUT_GRACE_MS = 5_000;
 const QUEUE_STALE_MS = 15_000;
 /** 패배 후 보상형 광고를 보면 돌려주는 점수 (잃은 점수가 이보다 적으면 잃은 만큼만) */
@@ -51,6 +52,11 @@ interface Game {
   /** 남은 분할 횟수 (예전 게임 문서엔 없을 수 있음) */
   catSplits?: number;
   hamSplits?: number;
+  catRevives?: number;
+  hamRevives?: number;
+  /** 각자 자기 차례에 쓸 수 있는 시간 (상대가 장착한 동물에 따라 줄어듦) */
+  catTurnMs?: number;
+  hamTurnMs?: number;
   turn: Side;
   status: "playing" | "finished";
   moveNo: number;
@@ -161,6 +167,12 @@ export const matchmake = onCall(async (req) => {
       ham: [1, 1],
       catSplits: MAX_SPLITS,
       hamSplits: MAX_SPLITS,
+      catRevives: revivesForGame(cat.get("potions")),
+      hamRevives: revivesForGame(ham.get("potions")),
+      catSkin: cat.get("equipped") ?? null,
+      hamSkin: ham.get("equipped") ?? null,
+      catTurnMs: turnLimitAgainst(ham.get("equipped")),
+      hamTurnMs: turnLimitAgainst(cat.get("equipped")),
       turn: "CAT",
       status: "playing",
       winner: null,
@@ -206,15 +218,27 @@ export const submitMove = onCall(async (req) => {
       ham: game.ham,
       catSplits: game.catSplits ?? MAX_SPLITS,
       hamSplits: game.hamSplits ?? MAX_SPLITS,
+      catRevives: game.catRevives ?? 0,
+      hamRevives: game.hamRevives ?? 0,
     };
     if (!isLegal(board, side, move)) throw new HttpsError("invalid-argument", "규칙에 맞지 않는 수예요");
 
+    // 부활물약은 실제로 가진 물약을 하나 소모 (읽기는 쓰기보다 먼저)
+    const myRef = db.collection("users").doc(uid);
+    if (move.kind === "revive") {
+      const mine = await tx.get(myRef);
+      if (((mine.get("potions") as number | undefined) ?? 0) < 1) {
+        throw new HttpsError("failed-precondition", "부활물약이 없어요");
+      }
+    }
     const r = applyMove(board, side, move);
     const update = {
       cat: r.board.cat,
       ham: r.board.ham,
       catSplits: r.board.catSplits,
       hamSplits: r.board.hamSplits,
+      catRevives: r.board.catRevives ?? 0,
+      hamRevives: r.board.hamRevives ?? 0,
       turn: opponent(side),
       lastDesc: r.description,
       explodedSide: r.exploded?.side ?? null,
@@ -223,8 +247,9 @@ export const submitMove = onCall(async (req) => {
       turnStartedAt: Date.now(),
     };
     const win = winner(r.board);
-    if (win) {
-      const players = await readPlayers(tx, game);
+    const players = win ? await readPlayers(tx, game) : null;
+    if (move.kind === "revive") tx.update(myRef, { potions: FieldValue.increment(-1) });
+    if (win && players) {
       finishGame(tx, ref, game, win, "normal", players, update);
     } else {
       tx.update(ref, update);
@@ -253,7 +278,8 @@ export const claimTimeout = onCall(async (req) => {
   const won = await db.runTransaction(async (tx) => {
     const { ref, game, side } = await loadGame(tx, gameId, uid);
     if (game.status !== "playing" || game.turn !== opponent(side)) return false;
-    if (Date.now() - game.turnStartedAt <= TURN_LIMIT_MS + TIMEOUT_GRACE_MS) return false;
+    const limit = (game.turn === "CAT" ? game.catTurnMs : game.hamTurnMs) ?? TURN_LIMIT_MS;
+    if (Date.now() - game.turnStartedAt <= limit + TIMEOUT_GRACE_MS) return false;
     const players = await readPlayers(tx, game);
     finishGame(tx, ref, game, side, "timeout", players);
     return true;
@@ -319,4 +345,53 @@ export const admobSsv = onRequest(async (req, res) => {
   });
   logger.info("SSV", { uid: p.userId, gameId, result });
   res.status(200).send(result);
+});
+
+/**
+ * 상점 구매. 점수로 아이템을 삽니다.
+ * - POTION: 부활물약 1개 (1000점)
+ * - SHEEP / DOG / GIRAFFE: 동물 캐릭터 (사면 바로 장착)
+ */
+export const buyItem = onCall(async (req) => {
+  const uid = requireUser(req);
+  const item = (req.data as { item?: unknown } | null)?.item;
+  if (typeof item !== "string" || (item !== "POTION" && !ANIMALS[item])) {
+    throw new HttpsError("invalid-argument", "없는 상품이에요");
+  }
+  const price = item === "POTION" ? POTION_PRICE : ANIMALS[item].price;
+  const userRef = db.collection("users").doc(uid);
+  await db.runTransaction(async (tx) => {
+    const u = await tx.get(userRef);
+    if (!u.exists) throw new HttpsError("failed-precondition", "프로필이 없어요");
+    const score = (u.get("score") as number | undefined) ?? START_SCORE;
+    if (score < price) throw new HttpsError("failed-precondition", `점수가 부족해요 (${price}점 필요)`);
+    const owned = (u.get("owned") as string[] | undefined) ?? [];
+    if (item !== "POTION" && owned.includes(item)) throw new HttpsError("already-exists", "이미 가지고 있어요");
+    tx.update(
+      userRef,
+      item === "POTION"
+        ? { score: FieldValue.increment(-price), potions: FieldValue.increment(1) }
+        : { score: FieldValue.increment(-price), owned: FieldValue.arrayUnion(item), equipped: item },
+    );
+  });
+  return { ok: true };
+});
+
+/** 가진 동물 캐릭터 장착 (null이면 기본 고양이/햄스터). 다음 판부터 적용됩니다. */
+export const equipAnimal = onCall(async (req) => {
+  const uid = requireUser(req);
+  const animal = (req.data as { animal?: unknown } | null)?.animal ?? null;
+  if (animal !== null && (typeof animal !== "string" || !ANIMALS[animal])) {
+    throw new HttpsError("invalid-argument", "없는 캐릭터예요");
+  }
+  const userRef = db.collection("users").doc(uid);
+  await db.runTransaction(async (tx) => {
+    const u = await tx.get(userRef);
+    const owned = (u.get("owned") as string[] | undefined) ?? [];
+    if (animal !== null && !owned.includes(animal as string)) {
+      throw new HttpsError("failed-precondition", "아직 없는 캐릭터예요");
+    }
+    tx.update(userRef, { equipped: animal });
+  });
+  return { ok: true };
 });

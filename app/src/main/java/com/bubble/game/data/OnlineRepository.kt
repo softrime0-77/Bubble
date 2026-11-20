@@ -1,9 +1,11 @@
 package com.bubble.game.data
 
 import android.content.Context
+import com.bubble.game.game.Animal
 import com.bubble.game.game.Board
 import com.bubble.game.game.GameLogic
 import com.bubble.game.game.Move
+import com.bubble.game.game.Rank
 import com.bubble.game.game.Side
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -29,7 +31,15 @@ data class Profile(
     val score: Int,
     val wins: Int,
     val losses: Int,
-)
+    /** 가진 부활물약 수 */
+    val potions: Int = 0,
+    /** 산 동물 캐릭터들 */
+    val owned: Set<Animal> = emptySet(),
+    /** 장착한 동물 (null이면 기본 고양이/햄스터) */
+    val equipped: Animal? = null,
+) {
+    val rank: Rank get() = Rank.of(score)
+}
 
 data class OnlineGame(
     val id: String,
@@ -51,7 +61,16 @@ data class OnlineGame(
     val turnStartedAt: Long,
     val catDelta: Int?,
     val hamDelta: Int?,
+    val catSkin: Animal?,
+    val hamSkin: Animal?,
+    /** 각자 자기 차례에 쓸 수 있는 시간 */
+    val catTurnMs: Long,
+    val hamTurnMs: Long,
 ) {
+    fun skinOf(side: Side): Animal? = if (side == Side.CAT) catSkin else hamSkin
+
+    fun turnMsOf(side: Side): Long = if (side == Side.CAT) catTurnMs else hamTurnMs
+
     fun sideOf(uid: String): Side? = when (uid) {
         catUid -> Side.CAT
         hamUid -> Side.HAMSTER
@@ -166,6 +185,16 @@ class OnlineRepository(context: Context) {
         runCatching { call("claimTimeout", mapOf("gameId" to gameId)) }
     }
 
+    /** 상점 구매: "POTION" 또는 동물 이름(SHEEP/DOG/GIRAFFE). 점수 차감은 서버가 함. */
+    suspend fun buyItem(item: String) {
+        call("buyItem", mapOf("item" to item))
+    }
+
+    /** 동물 장착 (null이면 기본 캐릭터). */
+    suspend fun equipAnimal(animal: Animal?) {
+        call("equipAnimal", mapOf("animal" to animal?.name))
+    }
+
     private suspend fun call(name: String, data: Map<String, Any?> = emptyMap()): Map<*, *> {
         try {
             val result = functions.getHttpsCallable(name).call(data).await()
@@ -181,6 +210,9 @@ class OnlineRepository(context: Context) {
         score = (getLong("score") ?: START_SCORE.toLong()).toInt(),
         wins = (getLong("wins") ?: 0).toInt(),
         losses = (getLong("losses") ?: 0).toInt(),
+        potions = (getLong("potions") ?: 0).toInt(),
+        owned = (get("owned") as? List<*>)?.mapNotNull { Animal.of(it as? String) }?.toSet() ?: emptySet(),
+        equipped = Animal.of(getString("equipped")),
     )
 
     private fun DocumentSnapshot.toGame(): OnlineGame {
@@ -199,6 +231,8 @@ class OnlineRepository(context: Context) {
                 ham = sets("ham"),
                 catSplits = (getLong("catSplits") ?: GameLogic.MAX_SPLITS.toLong()).toInt(),
                 hamSplits = (getLong("hamSplits") ?: GameLogic.MAX_SPLITS.toLong()).toInt(),
+                catRevives = (getLong("catRevives") ?: 0).toInt(),
+                hamRevives = (getLong("hamRevives") ?: 0).toInt(),
             ),
             turn = getString("turn")?.let { Side.valueOf(it) } ?: Side.CAT,
             finished = getString("status") == "finished",
@@ -211,6 +245,10 @@ class OnlineRepository(context: Context) {
             turnStartedAt = getLong("turnStartedAt") ?: System.currentTimeMillis(),
             catDelta = getLong("catDelta")?.toInt(),
             hamDelta = getLong("hamDelta")?.toInt(),
+            catSkin = Animal.of(getString("catSkin")),
+            hamSkin = Animal.of(getString("hamSkin")),
+            catTurnMs = getLong("catTurnMs") ?: TURN_LIMIT_MS,
+            hamTurnMs = getLong("hamTurnMs") ?: TURN_LIMIT_MS,
         )
     }
 

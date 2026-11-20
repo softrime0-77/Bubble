@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -112,6 +113,7 @@ fun SetBubble(
     preview: String? = null,
     explodeKey: Int? = null,
     onClick: (() -> Unit)? = null,
+    skin: com.bubble.game.game.Animal? = null,
 ) {
     val t = rememberInfiniteTransition(label = "bubble")
     val breathe by t.animateFloat(
@@ -224,6 +226,7 @@ fun SetBubble(
                         }
                         Critter(
                             side = side,
+                            skin = skin,
                             phase = i + if (side == Side.CAT) 0 else 5,
                             modifier = Modifier
                                 .align(Alignment.Center)
@@ -288,5 +291,164 @@ fun SetBubble(
                 .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
                 .padding(horizontal = 8.dp, vertical = 2.dp),
         )
+    }
+}
+
+// ======================= 계급 배지 =======================
+
+private fun rankColors(rank: com.bubble.game.game.Rank, hueShift: Float): List<Color> = when (rank) {
+    com.bubble.game.game.Rank.DIRT -> listOf(Color(0xFF9C7A5B), Color(0xFF7A5A3E))
+    com.bubble.game.game.Rank.COPPER -> listOf(Color(0xFFF0A36B), Color(0xFFB8673A), Color(0xFFE38B52))
+    com.bubble.game.game.Rank.SILVER -> listOf(Color(0xFFF4F6FA), Color(0xFFAEB6C4), Color(0xFFE2E6EE))
+    com.bubble.game.game.Rank.GOLD -> listOf(Color(0xFFFFF1A8), Color(0xFFFFC02E), Color(0xFFE59A00), Color(0xFFFFE27A))
+    com.bubble.game.game.Rank.DIAMOND -> List(5) { i ->
+        Color.hsv((hueShift * 360f + i * 55f) % 360f, 0.35f, 1f)
+    }
+}
+
+/**
+ * 계급 배지. 흙은 효과 없음, 구리 → 은 → 금 → 다이아로 갈수록
+ * 반짝이 수·빛 줄기·무지개 효과가 늘어나 더 화려해집니다.
+ */
+@Composable
+fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false) {
+    val rank = com.bubble.game.game.Rank.of(score)
+    val level = rank.sparkle
+    val t = rememberInfiniteTransition(label = "rank")
+    val shine by t.animateFloat(
+        -0.4f, 1.4f,
+        infiniteRepeatable(tween(if (level >= 3) 1_600 else 2_400, easing = LinearEasing)),
+        label = "shine",
+    )
+    val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_300, easing = LinearEasing)), label = "tw")
+    val hue by t.animateFloat(0f, 1f, infiniteRepeatable(tween(4_000, easing = LinearEasing)), label = "hue")
+    val glow by t.animateFloat(0.4f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "glow")
+
+    val fontSize = if (large) 18.sp else 12.sp
+    val padH = if (large) 14.dp else 8.dp
+    val padV = if (large) 6.dp else 2.dp
+    val textColor = when (rank) {
+        com.bubble.game.game.Rank.DIRT, com.bubble.game.game.Rank.COPPER -> Color.White
+        else -> Color(0xFF4A3B5C)
+    }
+    val sparkleCount = when (level) { 1 -> 2; 2 -> 4; 3 -> 7; 4 -> 12; else -> 0 }
+    val seeds = remember(sparkleCount) {
+        val r = Random(level * 31 + 7)
+        List(sparkleCount) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
+    }
+
+    Box(modifier, contentAlignment = Alignment.Center) {
+        // 금·다이아는 뒤에서 은은하게 빛남
+        if (level >= 3) {
+            Canvas(Modifier.matchParentSize().scale(1.25f)) {
+                drawRoundRect(
+                    Brush.radialGradient(
+                        listOf(rankColors(rank, hue)[1].copy(alpha = 0.55f * glow), Color.Transparent),
+                    ),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height),
+                )
+            }
+        }
+        Text(
+            "${rank.emoji} ${rank.label}",
+            fontSize = fontSize,
+            fontWeight = FontWeight.Black,
+            color = textColor,
+            modifier = Modifier
+                .background(
+                    Brush.linearGradient(rankColors(rank, hue)),
+                    RoundedCornerShape(50),
+                )
+                .then(
+                    if (level >= 2) {
+                        // 빛 줄기가 배지를 훑고 지나감
+                        // 글자 뒤(배경 위)로 지나가게 해서 글자가 흐려지지 않게
+                        Modifier.drawBehind {
+                            val x = shine * size.width
+                            drawRect(
+                                Brush.linearGradient(
+                                    listOf(Color.Transparent, Color.White.copy(alpha = 0.75f), Color.Transparent),
+                                    start = Offset(x - size.height, 0f),
+                                    end = Offset(x + size.height, size.height),
+                                ),
+                            )
+                        }
+                    } else {
+                        Modifier
+                    },
+                )
+                .padding(horizontal = padH, vertical = padV),
+        )
+        // 반짝이
+        if (sparkleCount > 0) {
+            Canvas(Modifier.matchParentSize()) {
+                seeds.forEachIndexed { i, (sx, sy, phase) ->
+                    val p = (twinkle + phase) % 1f
+                    val a = sin(p * PI).toFloat()
+                    val pos = Offset(
+                        (sx * 1.3f - 0.15f) * size.width,
+                        (sy * 1.8f - 0.4f) * size.height,
+                    )
+                    val color = if (rank == com.bubble.game.game.Rank.DIAMOND) {
+                        Color.hsv((hue * 360f + i * 47f) % 360f, 0.5f, 1f)
+                    } else if (level >= 3) Color(0xFFFFF4B0) else Color.White
+                    sparkle(pos, (if (large) 7f else 4.5f) * density * (0.4f + a * 0.8f), color.copy(alpha = a))
+                }
+            }
+        }
+    }
+}
+
+/** 계급이 올랐을 때 축하 화면. 높은 계급일수록 반짝이가 더 많이, 더 크게 터집니다. */
+@Composable
+fun RankUpCelebration(score: Int, onDismiss: () -> Unit) {
+    val rank = com.bubble.game.game.Rank.of(score)
+    val burst = remember { Animatable(0f) }
+    val pop = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        pop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessLow))
+    }
+    LaunchedEffect(Unit) { burst.animateTo(1f, tween(1_800, easing = FastOutSlowInEasing)) }
+    val count = 16 + rank.sparkle * 14
+    val parts = remember { List(count) { Triple(Random.nextFloat(), Random.nextFloat(), Random.nextFloat()) } }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xAA201530))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val p = burst.value
+            parts.forEachIndexed { i, (a, s, h) ->
+                val ang = (i / count.toFloat() + a * 0.05f) * 2 * PI
+                val dist = size.minDimension * (0.1f + p * (0.35f + s * 0.3f))
+                val pos = center + Offset((cos(ang) * dist).toFloat(), (sin(ang) * dist).toFloat() + p * p * 120f)
+                val color = when (rank) {
+                    com.bubble.game.game.Rank.DIAMOND -> Color.hsv(h * 360f, 0.55f, 1f)
+                    com.bubble.game.game.Rank.GOLD -> listOf(Ui.gold, Color(0xFFFFF4B0), Color.White)[i % 3]
+                    else -> listOf(rankColors(rank, 0f)[0], Color.White)[i % 2]
+                }
+                sparkle(pos, (1f - p * 0.7f) * (6f + s * (4f + rank.sparkle * 3f)) * density, color.copy(alpha = 1f - p * 0.6f))
+            }
+        }
+        androidx.compose.foundation.layout.Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.scale(pop.value),
+        ) {
+            Text("🎉 승급! 🎉", fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White)
+            androidx.compose.foundation.layout.Spacer(Modifier.size(14.dp))
+            RankBadge(score, large = true, modifier = Modifier.scale(1.6f))
+            androidx.compose.foundation.layout.Spacer(Modifier.size(22.dp))
+            Text(
+                "${rank.label} 계급이 되었어요!",
+                fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White,
+            )
+            Text("화면을 누르면 닫혀요", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+        }
     }
 }

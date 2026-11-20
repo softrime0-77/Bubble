@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { applyMove, decodeMove, isLegal, winner, Board as FullBoard, Move, Sets } from "../src/game";
 
 // 테스트에서는 분할 횟수를 생략하면 3회로 채움
-type Board = { cat: Sets; ham: Sets; catSplits?: number; hamSplits?: number };
+type Board = { cat: Sets; ham: Sets; catSplits?: number; hamSplits?: number; catRevives?: number; hamRevives?: number };
 const full = (b: Board): FullBoard => ({ catSplits: 3, hamSplits: 3, ...b });
 
 const add = (from: number, toOpponent: boolean, to: number): Move => ({ kind: "add", from, toOpponent, to });
@@ -53,4 +53,32 @@ test("split is limited to three per player", () => {
   const last = applyMove(full({ cat: [4, 0], ham: [1, 1], catSplits: 1 }), "CAT", { kind: "split", from: 0 }).board;
   assert.deepEqual(last.cat, [2, 2]);
   assert.equal(last.catSplits, 0);
+});
+
+test("revive potion brings back a dead set once", () => {
+  const b = full({ cat: [3, 0], ham: [1, 1], catRevives: 1 } as Board);
+  assert.equal(isLegal(b, "CAT", { kind: "revive", index: 1 }), true);
+  assert.equal(isLegal(b, "CAT", { kind: "revive", index: 0 }), false);
+  const after = applyMove(b, "CAT", { kind: "revive", index: 1 }).board;
+  assert.deepEqual(after.cat, [3, 1]);
+  assert.equal(after.catRevives, 0);
+  assert.equal(isLegal(full({ cat: [3, 0], ham: [1, 1] }), "CAT", { kind: "revive", index: 1 }), false);
+  assert.deepEqual(decodeMove("R:1"), { kind: "revive", index: 1 });
+});
+
+import { revivesForGame, turnLimitAgainst } from "../src/catalog";
+
+test("revives per game are capped at three and follow potions owned", () => {
+  assert.equal(revivesForGame(0), 0);
+  assert.equal(revivesForGame(undefined), 0);
+  assert.equal(revivesForGame(2), 2);
+  assert.equal(revivesForGame(10), 3);
+});
+
+test("opponent animal shortens my turn", () => {
+  assert.equal(turnLimitAgainst(null), 30_000);
+  assert.equal(turnLimitAgainst("SHEEP"), 20_000);
+  assert.equal(turnLimitAgainst("DOG"), 15_000);
+  assert.equal(turnLimitAgainst("GIRAFFE"), 10_000);
+  assert.equal(turnLimitAgainst("DRAGON"), 30_000);
 });

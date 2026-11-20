@@ -8,11 +8,15 @@ export interface Board {
   /** 남은 분할 횟수 */
   catSplits: number;
   hamSplits: number;
+  /** 이번 판에서 쓸 수 있는 부활물약 수 */
+  catRevives?: number;
+  hamRevives?: number;
 }
 
 export type Move =
   | { kind: "add"; from: number; toOpponent: boolean; to: number }
-  | { kind: "split"; from: number };
+  | { kind: "split"; from: number }
+  | { kind: "revive"; index: number };
 
 export const EXPLODE_AT = 5;
 /** 한 게임에서 한 사람이 쓸 수 있는 분할 횟수 */
@@ -47,6 +51,10 @@ export function decodeMove(s: unknown): Move | null {
     if (Number.isNaN(from) || Number.isNaN(to) || (p[2] !== "0" && p[2] !== "1")) return null;
     return { kind: "add", from, toOpponent: p[2] === "1", to };
   }
+  if (p[0] === "R" && p.length === 2) {
+    const index = idx(p[1]);
+    return Number.isNaN(index) ? null : { kind: "revive", index };
+  }
   if (p[0] === "S" && p.length === 2) {
     const from = idx(p[1]);
     return Number.isNaN(from) ? null : { kind: "split", from };
@@ -64,10 +72,20 @@ export function canSplit(b: Board, side: Side, from: number): boolean {
   return splitsLeft(b, side) > 0 && n > 0 && n % 2 === 0 && mine[1 - from] === 0;
 }
 
+export function revivesLeft(b: Board, s: Side): number {
+  return (s === "CAT" ? b.catRevives : b.hamRevives) ?? 0;
+}
+
+export function canRevive(b: Board, side: Side, index: number): boolean {
+  const mine = sets(b, side);
+  return revivesLeft(b, side) > 0 && mine[index] === 0 && mine[1 - index] > 0;
+}
+
 export function isLegal(b: Board, side: Side, m: Move): boolean {
   if (winner(b) !== null) return false;
   const mine = sets(b, side);
   if (m.kind === "split") return canSplit(b, side, m.from);
+  if (m.kind === "revive") return canRevive(b, side, m.index);
   if (mine[m.from] <= 0) return false;
   if (m.toOpponent) return sets(b, opponent(side))[m.to] > 0;
   return m.to !== m.from && mine[m.to] > 0;
@@ -82,6 +100,17 @@ export interface MoveResult {
 export function applyMove(b: Board, side: Side, m: Move): MoveResult {
   if (!isLegal(b, side, m)) throw new Error("illegal move");
   const who = label(side);
+  if (m.kind === "revive") {
+    const v = [...sets(b, side)] as Sets;
+    v[m.index] = 1;
+    const left = revivesLeft(b, side) - 1;
+    const revived = withSets(b, side, v);
+    return {
+      board: side === "CAT" ? { ...revived, catRevives: left } : { ...revived, hamRevives: left },
+      exploded: null,
+      description: `${who}: 💖 부활물약으로 ${setName(m.index)} 부활!`,
+    };
+  }
   if (m.kind === "split") {
     const half = sets(b, side)[m.from] / 2;
     const left = splitsLeft(b, side) - 1;

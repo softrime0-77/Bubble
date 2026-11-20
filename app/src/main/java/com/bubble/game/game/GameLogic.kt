@@ -17,9 +17,13 @@ sealed class Move {
     data class Add(val from: Int, val toOpponent: Boolean, val to: Int) : Move()
     data class Split(val from: Int) : Move()
 
+    /** 부활물약: 내 죽은(0마리) 세트 [index]를 1마리로 살림. 차례를 씀. */
+    data class Revive(val index: Int) : Move()
+
     fun encode(): String = when (this) {
         is Add -> "A:$from:${if (toOpponent) 1 else 0}:$to"
         is Split -> "S:$from"
+        is Revive -> "R:$index"
     }
 
     companion object {
@@ -28,6 +32,7 @@ sealed class Move {
             return when (p.firstOrNull()) {
                 "A" -> if (p.size == 4) Add(p[1].toInt(), p[2] == "1", p[3].toInt()) else null
                 "S" -> if (p.size == 2) Split(p[1].toInt()) else null
+                "R" -> if (p.size == 2) Revive(p[1].toInt()) else null
                 else -> null
             }
         }
@@ -47,7 +52,15 @@ data class Board(
     val ham: List<Int> = listOf(1, 1),
     val catSplits: Int = GameLogic.MAX_SPLITS,
     val hamSplits: Int = GameLogic.MAX_SPLITS,
+    /** 이번 판에서 쓸 수 있는 부활물약 수 (가진 물약이 있으면 1, 없으면 0) */
+    val catRevives: Int = 0,
+    val hamRevives: Int = 0,
 ) {
+    fun revivesLeft(side: Side): Int = if (side == Side.CAT) catRevives else hamRevives
+
+    fun withRevivesLeft(side: Side, n: Int): Board =
+        if (side == Side.CAT) copy(catRevives = n) else copy(hamRevives = n)
+
     fun sets(side: Side): List<Int> = if (side == Side.CAT) cat else ham
 
     fun splitsLeft(side: Side): Int = if (side == Side.CAT) catSplits else hamSplits
@@ -84,6 +97,12 @@ object GameLogic {
         return n > 0 && n % 2 == 0 && mine[1 - from] == 0
     }
 
+    /** 부활 가능 여부: 물약이 남았고, 그 세트가 죽었고, 다른 세트는 살아있을 때. */
+    fun canRevive(board: Board, side: Side, index: Int): Boolean {
+        val mine = board.sets(side)
+        return board.revivesLeft(side) > 0 && mine[index] == 0 && mine[1 - index] > 0
+    }
+
     /** 분할 가능 여부: 모양 조건 + 남은 분할 횟수가 있을 때. */
     fun canSplit(board: Board, side: Side, from: Int): Boolean =
         board.splitsLeft(side) > 0 && splitShapeOk(board, side, from)
@@ -103,6 +122,7 @@ object GameLogic {
                 }
             }
             is Move.Split -> move.from in 0 until SET_COUNT && canSplit(board, side, move.from)
+            is Move.Revive -> move.index in 0 until SET_COUNT && canRevive(board, side, move.index)
         }
     }
 
@@ -115,6 +135,7 @@ object GameLogic {
                 moves += Move.Add(from, false, to)
             }
             moves += Move.Split(from)
+            moves += Move.Revive(from)
         }
         return moves.filter { isLegal(board, side, it) }
     }
@@ -139,6 +160,15 @@ object GameLogic {
                     board = board.with(targetSide, target),
                     exploded = if (boom) targetSide to move.to else null,
                     description = desc,
+                )
+            }
+            is Move.Revive -> {
+                val sets = board.sets(side).toMutableList()
+                sets[move.index] = 1
+                MoveResult(
+                    board = board.with(side, sets).withRevivesLeft(side, board.revivesLeft(side) - 1),
+                    exploded = null,
+                    description = "$who: 💖 부활물약으로 ${setName(move.index)} 부활!",
                 )
             }
             is Move.Split -> {

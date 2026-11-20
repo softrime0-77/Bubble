@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Bubble" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/bubble_bg</item>
+    </style>
+    <color name="bubble_bg">#FFFFE3F1</color>
+    <color name="ic_bg">#FFFFD6EA</color>
+</resources>

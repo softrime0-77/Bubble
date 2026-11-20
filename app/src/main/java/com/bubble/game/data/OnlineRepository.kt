@@ -196,6 +196,12 @@ class OnlineRepository(context: Context) {
         runCatching { call("claimTimeout", mapOf("gameId" to gameId)) }
     }
 
+    /** 계정 삭제: 서버가 진행 중 대전 기권 → 프로필·아이템 삭제 → 로그인 계정 삭제. */
+    suspend fun deleteAccount() {
+        call("deleteAccount")
+        auth.signOut()
+    }
+
     /** 점수가 걸린 AI 대전 시작 (판과 AI의 수는 서버가 처리). */
     suspend fun startAiGame(level: AiLevel): String =
         call("startAiGame", mapOf("level" to level.name))["gameId"] as? String

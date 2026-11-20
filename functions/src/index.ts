@@ -3,6 +3,7 @@
 // 앱은 games/queue 문서를 직접 쓸 수 없고(firestore.rules), 이 함수들을 호출만 합니다.
 
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { DocumentReference, DocumentSnapshot, FieldValue, getFirestore, Transaction } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
@@ -534,5 +535,38 @@ export const equipAnimal = onCall(async (req) => {
     }
     tx.update(userRef, { equipped: animal });
   });
+  return { ok: true };
+});
+
+/**
+ * 계정 삭제 (플레이 스토어 정책: 앱 안에서 계정과 데이터를 지울 수 있어야 함).
+ * 1) 진행 중인 대전은 기권 처리 (상대 승리, 점수 반영)
+ * 2) 매칭 대기열과 프로필(점수·아이템) 삭제
+ * 3) 구글 로그인 계정(Firebase Auth) 삭제
+ * 끝난 대전 기록은 부정행위 확인을 위해 남겨 두며, 개인정보처리방침에 적힌 대로 최대 1년 보관합니다.
+ */
+export const deleteAccount = onCall(async (req) => {
+  const uid = requireUser(req);
+  const games = db.collection("games");
+  const [asCat, asHam] = await Promise.all([
+    games.where("catUid", "==", uid).where("status", "==", "playing").get(),
+    games.where("hamUid", "==", uid).where("status", "==", "playing").get(),
+  ]);
+  for (const g of [...asCat.docs, ...asHam.docs]) {
+    await db.runTransaction(async (tx) => {
+      const { ref, game, side } = await loadGame(tx, g.id, uid);
+      if (game.status !== "playing") return;
+      finishGame(tx, ref, game, opponent(side), "forfeit", await readPlayers(tx, game));
+    });
+  }
+  await db.collection("queue").doc(uid).delete();
+  await db.collection("users").doc(uid).delete();
+  try {
+    await getAuth().deleteUser(uid);
+  } catch (e) {
+    logger.error("auth delete failed", { uid, e });
+    throw err("internal", "계정 삭제 중 문제가 생겼어요. 다시 시도해 주세요", "Something went wrong deleting your account. Please try again");
+  }
+  logger.info("account deleted", { uid, forfeited: asCat.size + asHam.size });
   return { ok: true };
 });

@@ -114,6 +114,7 @@ private fun LobbyScreen(vm: AppViewModel) {
     var showRules by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
     var showRanks by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
 
     Column(
         Modifier
@@ -199,6 +200,17 @@ private fun LobbyScreen(vm: AppViewModel) {
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = vm::signOut) { Text(tr("로그아웃", "Sign out"), color = Ui.text.copy(alpha = 0.6f)) }
                     }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Text(
+                            tr("계정 삭제", "Delete account"),
+                            fontSize = 12.sp,
+                            color = Ui.danger.copy(alpha = 0.7f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { confirmDelete = true }
+                                .padding(horizontal = 12.dp, vertical = 2.dp),
+                        )
+                    }
                 }
                 else -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text(ui.error ?: tr("접속하지 못했어요", "Could not connect"), color = Ui.danger, textAlign = TextAlign.Center)
@@ -282,6 +294,29 @@ private fun LobbyScreen(vm: AppViewModel) {
 
     if (showRules) RulesDialog { showRules = false }
     if (showRanks) RanksDialog(ui.profile?.score ?: 0) { showRanks = false }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(tr("정말 계정을 삭제할까요?", "Delete your account?"), fontWeight = FontWeight.Black) },
+            text = {
+                Text(
+                    tr(
+                        "점수, 계급, 승패 기록, 부활물약, 동물 친구가 모두 사라지고 되돌릴 수 없어요.\n" +
+                            "진행 중인 대전은 기권 처리돼요.\n\n같은 구글 계정으로 다시 로그인하면 1000점부터 새로 시작해요.",
+                        "Your score, rank, record, potions and animal friends will be gone for good.\n" +
+                            "Any game in progress counts as a forfeit.\n\nSigning in again with the same Google account starts fresh at 1000 pts.",
+                    ),
+                    lineHeight = 21.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; vm.deleteAccount() }) {
+                    Text(tr("삭제", "Delete"), color = Ui.danger, fontWeight = FontWeight.Black)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("취소", "Cancel")) } },
+        )
+    }
     if (renaming) {
         var name by remember { mutableStateOf(ui.profile?.name ?: "") }
         AlertDialog(

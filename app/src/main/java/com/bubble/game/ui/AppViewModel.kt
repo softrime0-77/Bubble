@@ -183,6 +183,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _lobby.value = LobbyUi(onlineAvailable = true, loading = false, needsLogin = true)
     }
 
+    /** 계정과 모든 게임 데이터를 지우고 로그인 화면으로 돌아갑니다. */
+    fun deleteAccount() {
+        if (_lobby.value.loading) return
+        _lobby.update { it.copy(loading = true, error = null) }
+        viewModelScope.launch {
+            try {
+                repo.deleteAccount()
+                sessionJob?.cancel()
+                sessionJob = null
+                uid = null
+                lastRank = null
+                _lobby.value = LobbyUi(
+                    onlineAvailable = true,
+                    loading = false,
+                    needsLogin = true,
+                    info = tr("계정이 삭제됐어요. 이용해 주셔서 고마워요 🐾", "Your account was deleted. Thanks for playing 🐾"),
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lobby.update {
+                    it.copy(loading = false, error = e.message ?: tr("계정을 삭제하지 못했어요", "Could not delete your account"))
+                }
+            }
+        }
+    }
+
     /** 로그인된 상태에서 프로필/랭킹을 다시 불러옵니다. */
     fun connect() {
         uid?.let { startSession(it) }

@@ -6,6 +6,9 @@ on:
     paths: ["ios/**", ".github/workflows/ios.yml"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-15
@@ -69,3 +72,14 @@ jobs:
         with:
           name: ios-screenshots
           path: ios/shots/*.png
+
+      # 스크린샷을 ios-screenshots 브랜치에도 올려서 바로 볼 수 있게 함 (main에는 영향 없음)
+      - name: Publish screenshots to ios-screenshots branch
+        if: success()
+        working-directory: ios/shots
+        run: |
+          git init -q
+          git checkout -q -b ios-screenshots
+          git add *.png
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -q -m "iOS screenshots for ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ios-screenshots

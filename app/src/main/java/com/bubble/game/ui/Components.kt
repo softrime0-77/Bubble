@@ -304,13 +304,16 @@ private fun rankColors(rank: com.bubble.game.game.Rank, hueShift: Float): List<C
     com.bubble.game.game.Rank.COPPER -> listOf(Color(0xFFF0A36B), Color(0xFFB8673A), Color(0xFFE38B52))
     com.bubble.game.game.Rank.SILVER -> listOf(Color(0xFFF4F6FA), Color(0xFFAEB6C4), Color(0xFFE2E6EE))
     com.bubble.game.game.Rank.GOLD -> listOf(Color(0xFFFFF1A8), Color(0xFFFFC02E), Color(0xFFE59A00), Color(0xFFFFE27A))
-    com.bubble.game.game.Rank.DIAMOND -> List(5) { i ->
-        Color.hsv((hueShift * 360f + i * 55f) % 360f, 0.35f, 1f)
+    com.bubble.game.game.Rank.RUBY -> listOf(Color(0xFFFF8FB0), Color(0xFFE0115F), Color(0xFF9B0B3F), Color(0xFFFF5C8A))
+    com.bubble.game.game.Rank.SAPPHIRE -> listOf(Color(0xFF9AD7FF), Color(0xFF1F6FEB), Color(0xFF0B3D91), Color(0xFF5AA9FF))
+    // 다이아: 무지개빛이 계속 흐르는 가장 화려한 배지
+    com.bubble.game.game.Rank.DIAMOND -> List(6) { i ->
+        Color.hsv((hueShift * 360f + i * 50f) % 360f, 0.32f, 1f)
     }
 }
 
 /**
- * 계급 배지. 흙은 효과 없음, 구리 → 은 → 금 → 다이아로 갈수록
+ * 계급 배지. 흙은 효과 없음, 구리 → 은 → 금 → 루비 → 사파이어 → 다이아로 갈수록
  * 반짝이 수·빛 줄기·무지개 효과가 늘어나 더 화려해집니다.
  */
 @Composable
@@ -331,22 +334,24 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
     val padH = if (large) 14.dp else 8.dp
     val padV = if (large) 6.dp else 2.dp
     val textColor = when (rank) {
-        com.bubble.game.game.Rank.DIRT, com.bubble.game.game.Rank.COPPER -> Color.White
+        com.bubble.game.game.Rank.DIRT, com.bubble.game.game.Rank.COPPER,
+        com.bubble.game.game.Rank.RUBY, com.bubble.game.game.Rank.SAPPHIRE -> Color.White
         else -> Color(0xFF4A3B5C)
     }
-    val sparkleCount = when (level) { 1 -> 2; 2 -> 4; 3 -> 7; 4 -> 12; else -> 0 }
+    // 흙 0 → 구리 2 → 은 4 → 금 6 → 루비 8 → 사파이어 11 → 다이아 16
+    val sparkleCount = when (level) { 1 -> 2; 2 -> 4; 3 -> 6; 4 -> 8; 5 -> 11; 6 -> 16; else -> 0 }
     val seeds = remember(sparkleCount) {
         val r = Random(level * 31 + 7)
         List(sparkleCount) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
     }
 
     Box(modifier, contentAlignment = Alignment.Center) {
-        // 금·다이아는 뒤에서 은은하게 빛남
+        // 금 이상은 뒤에서 은은하게 빛남 (높을수록 크고 진하게)
         if (level >= 3) {
-            Canvas(Modifier.matchParentSize().scale(1.25f)) {
+            Canvas(Modifier.matchParentSize().scale(1.15f + (level - 3) * 0.08f)) {
                 drawRoundRect(
                     Brush.radialGradient(
-                        listOf(rankColors(rank, hue)[1].copy(alpha = 0.55f * glow), Color.Transparent),
+                        listOf(rankColors(rank, hue)[1].copy(alpha = (0.4f + (level - 3) * 0.1f) * glow), Color.Transparent),
                     ),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height),
                 )
@@ -355,6 +360,8 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
         Text(
             "${rank.emoji} ${rank.label}",
             fontSize = fontSize,
+            maxLines = 1,
+            softWrap = false,
             fontWeight = FontWeight.Black,
             color = textColor,
             modifier = Modifier
@@ -394,9 +401,13 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
                         (sx * 1.3f - 0.15f) * size.width,
                         (sy * 1.8f - 0.4f) * size.height,
                     )
-                    val color = if (rank == com.bubble.game.game.Rank.DIAMOND) {
-                        Color.hsv((hue * 360f + i * 47f) % 360f, 0.5f, 1f)
-                    } else if (level >= 3) Color(0xFFFFF4B0) else Color.White
+                    val color = when (rank) {
+                        com.bubble.game.game.Rank.DIAMOND -> Color.hsv((hue * 360f + i * 47f) % 360f, 0.5f, 1f)
+                        com.bubble.game.game.Rank.SAPPHIRE -> if (i % 2 == 0) Color(0xFFBFE6FF) else Color.White
+                        com.bubble.game.game.Rank.RUBY -> if (i % 2 == 0) Color(0xFFFFC2D6) else Color.White
+                        com.bubble.game.game.Rank.GOLD -> Color(0xFFFFF4B0)
+                        else -> Color.White
+                    }
                     sparkle(pos, (if (large) 7f else 4.5f) * density * (0.4f + a * 0.8f), color.copy(alpha = a))
                 }
             }
@@ -436,6 +447,8 @@ fun RankUpCelebration(score: Int, onDismiss: () -> Unit) {
                 val color = when (rank) {
                     com.bubble.game.game.Rank.DIAMOND -> Color.hsv(h * 360f, 0.55f, 1f)
                     com.bubble.game.game.Rank.GOLD -> listOf(Ui.gold, Color(0xFFFFF4B0), Color.White)[i % 3]
+                    com.bubble.game.game.Rank.RUBY -> listOf(Color(0xFFE0115F), Color(0xFFFF8FB0), Color.White)[i % 3]
+                    com.bubble.game.game.Rank.SAPPHIRE -> listOf(Color(0xFF1F6FEB), Color(0xFF9AD7FF), Color.White)[i % 3]
                     else -> listOf(rankColors(rank, 0f)[0], Color.White)[i % 2]
                 }
                 sparkle(pos, (1f - p * 0.7f) * (6f + s * (4f + rank.sparkle * 3f)) * density, color.copy(alpha = 1f - p * 0.6f))

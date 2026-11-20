@@ -27,15 +27,21 @@ export function turnLimitAgainst(opponentEquipped: unknown): number {
 }
 
 /**
- * 계급 보너스: 이겨서 얻는 점수에 추가로 붙는 비율(%).
- * 흙(1000점 이하) 0%, 구리(1001~) 5%, 은(1101~) 10%, 금(1201~) 15%, 다이아(1301~) 20%.
+ * 계급과 보너스. 앱의 game/Catalog.kt Rank와 같아야 합니다.
+ * 흙(~1000) 0%, 구리(1001~) 5%, 은(1500~) 10%, 금(2000~) 15%,
+ * 루비(5000~) 20%, 사파이어(7000~) 25%, 다이아(10000~) 30%.
  */
+export const RANKS: { name: string; min: number; bonus: number }[] = [
+  { name: "DIAMOND", min: 10000, bonus: 30 },
+  { name: "SAPPHIRE", min: 7000, bonus: 25 },
+  { name: "RUBY", min: 5000, bonus: 20 },
+  { name: "GOLD", min: 2000, bonus: 15 },
+  { name: "SILVER", min: 1500, bonus: 10 },
+  { name: "COPPER", min: 1001, bonus: 5 },
+];
+
 export function rankBonusPercent(score: number): number {
-  if (score >= 1301) return 20;
-  if (score >= 1201) return 15;
-  if (score >= 1101) return 10;
-  if (score >= 1001) return 5;
-  return 0;
+  return RANKS.find((r) => score >= r.min)?.bonus ?? 0;
 }
 
 /** 얻는 점수 [base]에 붙는 보너스 점수 (반올림). */

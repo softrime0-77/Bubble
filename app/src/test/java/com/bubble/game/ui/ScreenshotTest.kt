@@ -66,9 +66,10 @@ class ScreenshotTest {
         vm.debugSetLobby {
             it.copy(
                 onlineAvailable = true, loading = false, profile = richProfile(1215),
-                leaderboard = listOf(1420, 1215, 1150, 1040, 980).mapIndexed { i, sc ->
-                    com.bubble.game.data.Profile("u$i", listOf("다이아냥", "말랑고양이42", "은빛햄찌", "구리댕댕", "흙수저양")[i], sc, 0, 0)
-                }.let { l -> l.toMutableList().also { it[1] = richProfile(1215) } },
+                onlineCount = 12,
+                leaderboard = listOf(12400, 7300, 5200, 2600, 1600, 1100, 980).mapIndexed { i, sc ->
+                    com.bubble.game.data.Profile("u$i", listOf("다이아냥", "말랑고양이42", "루비햄찌", "금빛냥", "은빛햄찌", "구리댕댕", "흙수저양")[i], sc, 0, 0)
+                }.let { l -> l.toMutableList().also { it[1] = richProfile(7300) } },
             )
         }
         rule.setContent { BubbleApp(vm) }
@@ -79,7 +80,7 @@ class ScreenshotTest {
     fun ranksDialog() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())
-        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1150)) }
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(7300), onlineCount = 12) }
         rule.setContent { BubbleApp(vm) }
         rule.mainClock.advanceTimeBy(600)
         rule.onNodeWithText("  계급표 ›").performClick()
@@ -143,6 +144,19 @@ class ScreenshotTest {
     }
 
     @Test
+    fun welcome() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1000), welcome = "new" to 1000) }
+        rule.setContent { BubbleApp(vm) }
+        repeat(5) {
+            rule.mainClock.advanceTimeBy(200)
+            org.robolectric.shadows.ShadowLooper.idleMainLooper()
+        }
+        shot("welcome", 300)
+    }
+
+    @Test
     fun shop() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())
@@ -156,7 +170,7 @@ class ScreenshotTest {
     fun rankUp() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())
-        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1310), rankUpScore = 1310) }
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(10200), rankUpScore = 10200) }
         rule.setContent { BubbleApp(vm) }
         shot("rankup", 700)
     }

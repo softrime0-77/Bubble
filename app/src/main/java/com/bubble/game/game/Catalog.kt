@@ -3,7 +3,8 @@ package com.bubble.game.game
 import com.bubble.game.i18n.Lang
 
 /**
- * 계급. 1000점 이하는 흙, 이후 100점마다 한 단계씩 올라갑니다.
+ * 계급. 흙(~1000) · 구리(1001~) · 은(1500~) · 금(2000~) · 루비(5000~) · 사파이어(7000~) · 다이아(10000~).
+ * 값은 functions/src/catalog.ts의 RANKS와 같아야 합니다.
  * [sparkle]이 클수록 배지의 반짝임 효과가 화려해집니다.
  * [bonusPercent]: 이겨서 얻는 점수에 추가로 붙는 비율.
  */
@@ -17,9 +18,11 @@ enum class Rank(
 ) {
     DIRT("흙", "Dirt", "🟫", Int.MIN_VALUE, 0, 0),
     COPPER("구리", "Copper", "🥉", 1001, 1, 5),
-    SILVER("은", "Silver", "🥈", 1101, 2, 10),
-    GOLD("금", "Gold", "🥇", 1201, 3, 15),
-    DIAMOND("다이아", "Diamond", "💎", 1301, 4, 20);
+    SILVER("은", "Silver", "🥈", 1500, 2, 10),
+    GOLD("금", "Gold", "🥇", 2000, 3, 15),
+    RUBY("루비", "Ruby", "🔴", 5000, 4, 20),
+    SAPPHIRE("사파이어", "Sapphire", "🔷", 7000, 5, 25),
+    DIAMOND("다이아", "Diamond", "💎", 10000, 6, 30);
 
     /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */
     private val others: List<String>
@@ -28,6 +31,8 @@ enum class Rank(
             COPPER -> listOf("铜", "कॉपर", "Cobre", "Cuivre", "نحاس", "Kupfer", "Cobre", "Медь", "銅")
             SILVER -> listOf("银", "सिल्वर", "Plata", "Argent", "فضة", "Silber", "Prata", "Серебро", "銀")
             GOLD -> listOf("金", "गोल्ड", "Oro", "Or", "ذهب", "Gold", "Ouro", "Золото", "金")
+            RUBY -> listOf("红宝石", "रूबी", "Rubí", "Rubis", "ياقوت أحمر", "Rubin", "Rubi", "Рубин", "ルビー")
+            SAPPHIRE -> listOf("蓝宝石", "नीलम", "Zafiro", "Saphir", "ياقوت أزرق", "Saphir", "Safira", "Сапфир", "サファイア")
             DIAMOND -> listOf("钻石", "डायमंड", "Diamante", "Diamant", "ماس", "Diamant", "Diamante", "Алмаз", "ダイヤ")
         }
 

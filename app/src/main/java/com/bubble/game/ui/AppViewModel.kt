@@ -84,6 +84,10 @@ data class LobbyUi(
     val rankUpScore: Int? = null,
     /** 상점 구매/장착 처리 중 */
     val shopBusy: Boolean = false,
+    /** 가입 환영 팝업: ("new" / "returning" / "admin", 시작 점수) */
+    val welcome: Pair<String, Int>? = null,
+    /** 동시 접속자 수 (관리자만) */
+    val onlineCount: Int? = null,
     val profile: Profile? = null,
     val leaderboard: List<Profile> = emptyList(),
 )
@@ -111,21 +115,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissRankUp() = _lobby.update { it.copy(rankUpScore = null) }
 
+    fun dismissWelcome() = _lobby.update { it.copy(welcome = null) }
+
     // ---------- 인앱 결제 ----------
 
     /** 포인트 상품 결제. 서버가 영수증을 확인한 뒤에 점수가 들어옵니다. */
     val billing = BillingManager(app, viewModelScope) { productId, token ->
         val ok = repo.verifyPurchase(productId, token)
+        val amount = BillingManager.PRODUCTS[productId] ?: 0
         if (ok) {
             _lobby.update {
                 it.copy(
                     info = tr(
-                        "결제 완료! +${BillingManager.POINTS_500_AMOUNT}점 🎉", "Payment complete! +${BillingManager.POINTS_500_AMOUNT} pts 🎉",
-                        zh = "支付完成！+${BillingManager.POINTS_500_AMOUNT} 分 🎉", hi = "भुगतान पूरा! +${BillingManager.POINTS_500_AMOUNT} अंक 🎉",
-                        es = "¡Pago completado! +${BillingManager.POINTS_500_AMOUNT} pts 🎉", fr = "Paiement effectué ! +${BillingManager.POINTS_500_AMOUNT} pts 🎉",
-                        ar = "تم الدفع! +${BillingManager.POINTS_500_AMOUNT} نقطة 🎉", de = "Zahlung abgeschlossen! +${BillingManager.POINTS_500_AMOUNT} Pkt 🎉",
-                        pt = "Pagamento concluído! +${BillingManager.POINTS_500_AMOUNT} pts 🎉", ru = "Оплата прошла! +${BillingManager.POINTS_500_AMOUNT} очк. 🎉",
-                        ja = "購入完了！+${BillingManager.POINTS_500_AMOUNT}点 🎉",
+                        "결제 완료! +${amount}점 🎉", "Payment complete! +${amount} pts 🎉",
+                        zh = "支付完成！+${amount} 分 🎉", hi = "भुगतान पूरा! +${amount} अंक 🎉",
+                        es = "¡Pago completado! +${amount} pts 🎉", fr = "Paiement effectué ! +${amount} pts 🎉",
+                        ar = "تم الدفع! +${amount} نقطة 🎉", de = "Zahlung abgeschlossen! +${amount} Pkt 🎉",
+                        pt = "Pagamento concluído! +${amount} pts 🎉", ru = "Оплата прошла! +${amount} очк. 🎉",
+                        ja = "購入完了！+${amount}点 🎉",
                     ),
                 )
             }
@@ -133,8 +140,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         ok
     }
 
-    fun buyPoints(activity: android.app.Activity) {
-        if (!billing.buy(activity)) {
+    fun buyPoints(activity: android.app.Activity, productId: String) {
+        if (!billing.buy(activity, productId)) {
             _lobby.update {
                 it.copy(
                     error = tr(
@@ -289,7 +296,23 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
         _lobby.update { it.copy(loading = true, needsLogin = false, error = null) }
         sessionJob = viewModelScope.launch {
             try {
-                repo.ensureProfile(id)
+                repo.ensureProfile()?.let { w -> _lobby.update { it.copy(welcome = w) } }
+                // 1분마다 접속 신호
+                launch {
+                    while (isActive) {
+                        runCatching { repo.pingPresence(id) }
+                        delay(60_000)
+                    }
+                }
+                // 관리자면 30초마다 동시 접속자 수
+                launch {
+                    while (isActive) {
+                        if (_lobby.value.profile?.admin == true) {
+                            runCatching { repo.onlineCount() }.onSuccess { n -> _lobby.update { it.copy(onlineCount = n) } }
+                        }
+                        delay(30_000)
+                    }
+                }
                 launch {
                     repo.profileFlow(id).collect { p ->
                         val rank = p?.rank

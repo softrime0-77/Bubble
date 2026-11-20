@@ -49,6 +49,8 @@ data class Profile(
     val referred: Boolean = false,
     /** 내가 초대한 친구 수 */
     val referrals: Int = 0,
+    /** 관리자 계정 (동시 접속자 수가 보임) */
+    val admin: Boolean = false,
 ) {
     val rank: Rank get() = Rank.of(score)
 }
@@ -130,23 +132,24 @@ class OnlineRepository(context: Context) {
 
     fun signOut() = auth.signOut()
 
-    /** 첫 로그인이면 프로필을 만듭니다 (점수 1000점, 규칙에서 초기값 강제). */
-    suspend fun ensureProfile(uid: String) {
-        val ref = users.document(uid)
-        db.runTransaction { tx ->
-            if (!tx.get(ref).exists()) {
-                tx.set(
-                    ref,
-                    mapOf(
-                        "name" to randomNickname(),
-                        "score" to START_SCORE,
-                        "wins" to 0,
-                        "losses" to 0,
-                    ),
-                )
-            }
-        }.await()
+    /**
+     * 첫 로그인이면 서버가 프로필을 만듭니다 (보통 1000점 · 탈퇴 후 재가입 0점 · 관리자 5000점).
+     * 새로 만들었으면 종류("new" / "returning" / "admin")와 시작 점수, 이미 있으면 null.
+     */
+    suspend fun ensureProfile(): Pair<String, Int>? {
+        val r = call("ensureProfile", mapOf("name" to randomNickname()))
+        val kind = r["kind"] as? String ?: return null
+        return kind to ((r["score"] as? Number)?.toInt() ?: START_SCORE)
     }
+
+    /** 접속 중 신호 (관리자 화면의 동시 접속자 수에 쓰임) */
+    suspend fun pingPresence(uid: String) {
+        db.collection("presence").document(uid).set(mapOf("at" to System.currentTimeMillis())).await()
+    }
+
+    /** 동시 접속자 수 (관리자만) */
+    suspend fun onlineCount(): Int =
+        (call("onlineCount")["online"] as? Number)?.toInt() ?: 0
 
     suspend fun setNickname(uid: String, name: String) {
         users.document(uid).update("name", name.trim().take(12)).await()
@@ -264,6 +267,7 @@ class OnlineRepository(context: Context) {
         refCode = getString("refCode"),
         referred = getString("referredBy") != null,
         referrals = (getLong("referrals") ?: 0).toInt(),
+        admin = getBoolean("admin") ?: false,
     )
 
     /** 서버가 보낸 수 정보로 화면 언어의 설명을 만듭니다. 정보가 없으면 서버 문구(한/영). */
@@ -330,7 +334,7 @@ class OnlineRepository(context: Context) {
         /** functions/src/index.ts 의 region과 같아야 합니다. */
         const val REGION = "asia-northeast3"
         const val START_SCORE = 1000
-        const val WIN_POINTS = 25
+        const val WIN_POINTS = 30
         const val LOSE_POINTS = 15
         /** 패배 후 보상형 광고를 보면 돌려받는 점수 (functions/src/index.ts의 AD_REFUND_POINTS와 같게) */
         const val AD_REFUND_POINTS = 8

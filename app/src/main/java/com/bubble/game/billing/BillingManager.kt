@@ -34,16 +34,20 @@ class BillingManager(
     private val onPurchased: suspend (productId: String, token: String) -> Boolean,
 ) {
     companion object {
-        /** Play Console에 만들 소모성 상품 ID (functions/src/index.ts의 PRODUCTS와 같게) */
-        const val POINTS_500 = "points_500"
-        const val POINTS_500_AMOUNT = 500
+        /** Play Console에 만들 소모성 상품 ID → 지급 점수 (functions/src/index.ts의 PRODUCTS와 같게) */
+        val PRODUCTS: Map<String, Int> = linkedMapOf(
+            "points_100" to 100,
+            "points_500" to 500,
+            "points_1000" to 1000,
+            "points_2000" to 2000,
+        )
     }
 
-    private val _price = MutableStateFlow<String?>(null)
-    /** 스토어에 표시된 가격 (예: ₩500). null이면 아직 구매할 수 없음 */
-    val price: StateFlow<String?> = _price.asStateFlow()
+    private val _prices = MutableStateFlow<Map<String, String>>(emptyMap())
+    /** 상품 ID → 스토어에 표시된 가격 (예: ₩500). 비어 있으면 아직 구매할 수 없음 */
+    val prices: StateFlow<Map<String, String>> = _prices.asStateFlow()
 
-    private var details: ProductDetails? = null
+    private var details: Map<String, ProductDetails> = emptyMap()
 
     private val client: BillingClient = BillingClient.newBuilder(context.applicationContext)
         .setListener { result, purchases -> onUpdated(result, purchases) }
@@ -63,7 +67,7 @@ class BillingManager(
             }
 
             override fun onBillingServiceDisconnected() {
-                _price.value = null
+                _prices.value = emptyMap()
             }
         })
     }
@@ -71,21 +75,21 @@ class BillingManager(
     private suspend fun loadProduct() {
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
-                listOf(
+                PRODUCTS.keys.map { id ->
                     QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(POINTS_500)
+                        .setProductId(id)
                         .setProductType(BillingClient.ProductType.INAPP)
-                        .build(),
-                ),
+                        .build()
+                },
             ).build()
         val result = client.queryProductDetails(params)
-        details = result.productDetailsList?.firstOrNull()
-        _price.value = details?.oneTimePurchaseOfferDetails?.formattedPrice
+        details = result.productDetailsList.orEmpty().associateBy { it.productId }
+        _prices.value = details.mapNotNull { (id, d) -> d.oneTimePurchaseOfferDetails?.formattedPrice?.let { id to it } }.toMap()
     }
 
     /** 결제 창 띄우기. 상품을 못 불러왔으면 false. */
-    fun buy(activity: Activity): Boolean {
-        val d = details ?: return false
+    fun buy(activity: Activity, productId: String): Boolean {
+        val d = details[productId] ?: return false
         val params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(d).build()))
             .build()

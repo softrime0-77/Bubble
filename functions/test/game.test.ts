@@ -83,14 +83,17 @@ test("opponent animal shortens my turn", () => {
   assert.equal(turnLimitAgainst("DRAGON"), 30_000);
 });
 
-test("rank bonus adds 0/5/10/15/20 percent to earned points", () => {
-  assert.deepEqual([1000, 1001, 1101, 1201, 1301].map(rankBonusPercent), [0, 5, 10, 15, 20]);
-  assert.equal(rankBonus(25, 1000), 0);
-  assert.equal(rankBonus(25, 1050), 1); // 1.25 -> 1
-  assert.equal(rankBonus(25, 1150), 3); // 2.5 -> 3
-  assert.equal(rankBonus(25, 1250), 4); // 3.75 -> 4
-  assert.equal(rankBonus(25, 1400), 5);
-  assert.equal(rankBonus(10, 1400), 2);
-  assert.equal(rankBonus(1, 1400), 0); // 0.2 -> 0
-  assert.equal(rankBonus(-15, 1400), 0); // 잃는 점수엔 없음
+test("rank bonus follows the new tiers", () => {
+  assert.deepEqual(
+    [1000, 1001, 1499, 1500, 2000, 5000, 7000, 10000].map(rankBonusPercent),
+    [0, 5, 5, 10, 15, 20, 25, 30],
+  );
+  assert.equal(rankBonus(30, 1000), 0);
+  assert.equal(rankBonus(30, 1200), 2); // 1.5 -> 2
+  assert.equal(rankBonus(30, 1600), 3);
+  assert.equal(rankBonus(30, 2500), 5); // 4.5 -> 5
+  assert.equal(rankBonus(30, 6000), 6);
+  assert.equal(rankBonus(30, 8000), 8); // 7.5 -> 8
+  assert.equal(rankBonus(30, 12000), 9);
+  assert.equal(rankBonus(-15, 12000), 0);
 });

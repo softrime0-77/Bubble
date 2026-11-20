@@ -137,6 +137,19 @@ private fun LobbyScreen(vm: AppViewModel) {
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             LanguageMenu()
+            // 관리자만: 동시 접속자 수
+            ui.onlineCount?.let { n ->
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    tr("🟢 ${n}명 접속", "🟢 $n online", zh = "🟢 在线 $n", hi = "🟢 $n ऑनलाइन", es = "🟢 $n en línea",
+                        fr = "🟢 $n en ligne", ar = "🟢 $n متصل", de = "🟢 $n online", pt = "🟢 $n online",
+                        ru = "🟢 $n в сети", ja = "🟢 ${n}人接続中"),
+                    fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color(0xFF2E7D32),
+                    modifier = Modifier
+                        .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
             Spacer(Modifier.weight(1f))
             if (ui.profile != null) ShopIconButton(onClick = vm::openShop)
         }
@@ -328,6 +341,7 @@ zh = "登录后 AI 对战也能得分", hi = "साइन इन करें, 
         }
     }
 
+    ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
     if (showRules) RulesDialog { showRules = false }
     if (showRanks) RanksDialog(ui.profile?.score ?: 0) { showRanks = false }
     if (confirmDelete) {
@@ -485,10 +499,18 @@ zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，�
 zh = "   如果对手装备了绵羊、小狗或长颈鹿，你的回合会缩短为 20、15 或 10 秒。\n\n", hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ लगाया है, तो आपकी बारी 20, 15 या 10 सेकंड की होगी।\n\n", es = "   Si tu rival equipa una oveja, un perrito o una jirafa, tu turno baja a 20, 15 o 10 s.\n\n", fr = "   Si ton adversaire équipe un mouton, un chiot ou une girafe, ton tour passe à 20, 15 ou 10 s.\n\n", ar = "   إذا جهّز خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 20 أو 15 أو 10 ثوانٍ.\n\n", de = "   Rüstet dein Gegner Schaf, Welpe oder Giraffe aus, sinkt dein Zug auf 20, 15 oder 10 s.\n\n", pt = "   Se o rival equipar ovelha, cachorrinho ou girafa, seu turno cai para 20, 15 ou 10 s.\n\n", ru = "   Если соперник надел овечку, щенка или жирафа, ваш ход сокращается до 20, 15 или 10 с.\n\n", ja = "   相手がヒツジ・子イヌ・キリンを装備していると、自分のターンが20・15・10秒になります。\n\n",
 ) +
                     tr(
-"• 계급: 1000점 이하 흙, 이후 100점마다 구리 → 은 → 금 → 다이아",
-"• Ranks: Dirt up to 1000 pts, then every 100 pts Copper → Silver → Gold → Diamond",
-zh = "• 等级：1000 分以下为泥土，之后每 100 分：铜 → 银 → 金 → 钻石", hi = "• रैंक: 1000 अंक तक मिट्टी, फिर हर 100 अंक पर कॉपर → सिल्वर → गोल्ड → डायमंड", es = "• Rangos: Tierra hasta 1000 pts, luego cada 100 pts Cobre → Plata → Oro → Diamante", fr = "• Rangs : Terre jusqu’à 1000 pts, puis tous les 100 pts Cuivre → Argent → Or → Diamant", ar = "• الرتب: تراب حتى 1000 نقطة، ثم كل 100 نقطة نحاس ← فضة ← ذهب ← ماس", de = "• Ränge: Erde bis 1000 Pkt, dann alle 100 Pkt Kupfer → Silber → Gold → Diamant", pt = "• Ranks: Terra até 1000 pts, depois a cada 100 pts Cobre → Prata → Ouro → Diamante", ru = "• Ранги: Земля до 1000 очк., затем каждые 100 очк. Медь → Серебро → Золото → Алмаз", ja = "• ランク：1000点以下は土、以降100点ごとに 銅 → 銀 → 金 → ダイヤ",
-),
+                        "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1500) → 금(2000) → 루비(5000) → 사파이어(7000) → 다이아(10000)",
+                        "• Ranks: Dirt (to 1000) → Copper (1001) → Silver (1500) → Gold (2000) → Ruby (5000) → Sapphire (7000) → Diamond (10000)",
+                        zh = "• 等级：泥土（≤1000）→ 铜（1001）→ 银（1500）→ 金（2000）→ 红宝石（5000）→ 蓝宝石（7000）→ 钻石（10000）",
+                        hi = "• रैंक: मिट्टी (1000 तक) → कॉपर (1001) → सिल्वर (1500) → गोल्ड (2000) → रूबी (5000) → नीलम (7000) → डायमंड (10000)",
+                        es = "• Rangos: Tierra (hasta 1000) → Cobre (1001) → Plata (1500) → Oro (2000) → Rubí (5000) → Zafiro (7000) → Diamante (10000)",
+                        fr = "• Rangs : Terre (jusqu’à 1000) → Cuivre (1001) → Argent (1500) → Or (2000) → Rubis (5000) → Saphir (7000) → Diamant (10000)",
+                        ar = "• الرتب: تراب (حتى 1000) ← نحاس (1001) ← فضة (1500) ← ذهب (2000) ← ياقوت أحمر (5000) ← ياقوت أزرق (7000) ← ماس (10000)",
+                        de = "• Ränge: Erde (bis 1000) → Kupfer (1001) → Silber (1500) → Gold (2000) → Rubin (5000) → Saphir (7000) → Diamant (10000)",
+                        pt = "• Ranks: Terra (até 1000) → Cobre (1001) → Prata (1500) → Ouro (2000) → Rubi (5000) → Safira (7000) → Diamante (10000)",
+                        ru = "• Ранги: Земля (до 1000) → Медь (1001) → Серебро (1500) → Золото (2000) → Рубин (5000) → Сапфир (7000) → Алмаз (10000)",
+                        ja = "• ランク：土（〜1000）→ 銅（1001）→ 銀（1500）→ 金（2000）→ ルビー（5000）→ サファイア（7000）→ ダイヤ（10000）",
+                    ),
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -1276,7 +1298,7 @@ zh = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} 分", hi = "
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         // 배지 폭을 맞춰 표처럼 보이게
-                        Box(Modifier.width(112.dp), contentAlignment = Alignment.CenterStart) {
+                        Box(Modifier.width(140.dp), contentAlignment = Alignment.CenterStart) {
                             RankBadge(if (r == Rank.DIRT) 1000 else r.minScore, large = true)
                         }
                         Column(Modifier.weight(1f)) {
@@ -1316,10 +1338,18 @@ zh = "我的分数 ${myScore} · 距离${next.label}还差 ${next.minScore - myS
 zh = "🎁 等级奖励：获胜（随机匹配和 AI 对战）时根据等级额外加分。", hi = "🎁 रैंक बोनस: जीत (रैंडम मैच और AI मुकाबला) पर रैंक के हिसाब से अतिरिक्त अंक मिलते हैं। ", es = "🎁 Bonus de rango: las victorias (partida aleatoria y contra IA) dan puntos extra según tu rango. ", fr = "🎁 Bonus de rang : les victoires (match aléatoire et IA) rapportent des points en plus selon ton rang. ", ar = "🎁 مكافأة الرتبة: الانتصارات (المباراة العشوائية ومعارك الذكاء الاصطناعي) تمنح نقاطًا إضافية حسب رتبتك. ", de = "🎁 Rangbonus: Siege (Zufallsmatch und KI-Duell) bringen je nach Rang Extrapunkte. ", pt = "🎁 Bônus de rank: vitórias (partida aleatória e contra IA) dão pontos extras conforme seu rank. ", ru = "🎁 Бонус ранга: за победы (случайный матч и бой с ИИ) дают дополнительные очки в зависимости от ранга. ", ja = "🎁 ランクボーナス：勝利（ランダムマッチ・AI対戦）でランクに応じて点数が増えます。",
 ) +
                         tr(
-"예) 다이아가 랜덤 매칭에서 이기면 25점 + 20%(5점) = 30점",
-"e.g. a Diamond player winning a random match gets 25 + 20% (5) = 30 pts",
-zh = "例：钻石玩家赢得随机匹配可得 25 + 20%（5）= 30 分", hi = "उदा. डायमंड खिलाड़ी रैंडम मैच जीतने पर 25 + 20% (5) = 30 अंक पाता है", es = "p. ej. un jugador Diamante que gana una partida aleatoria recibe 25 + 20% (5) = 30 pts", fr = "ex. un joueur Diamant qui gagne un match aléatoire reçoit 25 + 20 % (5) = 30 pts", ar = "مثال: لاعب الماس الفائز في مباراة عشوائية يحصل على 25 + 20% (5) = 30 نقطة", de = "z. B. bekommt ein Diamant-Spieler für einen Zufallsmatch-Sieg 25 + 20 % (5) = 30 Pkt", pt = "ex.: um jogador Diamante que vence uma partida aleatória ganha 25 + 20% (5) = 30 pts", ru = "напр., игрок ранга Алмаз за победу в случайном матче получает 25 + 20% (5) = 30 очк.", ja = "例：ダイヤがランダムマッチで勝つと 25 + 20%（5）= 30点",
-),
+                        "예) 다이아가 랜덤 매칭에서 이기면 30점 + 30%(9점) = 39점",
+                        "e.g. a Diamond player winning a random match gets 30 + 30% (9) = 39 pts",
+                        zh = "例：钻石玩家赢得随机匹配可得 30 + 30%（9）= 39 分",
+                        hi = "उदा. डायमंड खिलाड़ी रैंडम मैच जीतने पर 30 + 30% (9) = 39 अंक पाता है",
+                        es = "p. ej. un jugador Diamante que gana una partida aleatoria recibe 30 + 30% (9) = 39 pts",
+                        fr = "ex. un joueur Diamant qui gagne un match aléatoire reçoit 30 + 30 % (9) = 39 pts",
+                        ar = "مثال: لاعب الماس الفائز في مباراة عشوائية يحصل على 30 + 30% (9) = 39 نقطة",
+                        de = "z. B. bekommt ein Diamant-Spieler für einen Zufallsmatch-Sieg 30 + 30 % (9) = 39 Pkt",
+                        pt = "ex.: um jogador Diamante que vence uma partida aleatória ganha 30 + 30% (9) = 39 pts",
+                        ru = "напр., игрок ранга Алмаз за победу в случайном матче получает 30 + 30% (9) = 39 очк.",
+                        ja = "例：ダイヤがランダムマッチで勝つと 30 + 30%（9）= 39点",
+                    ),
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ui.text,
                     lineHeight = 19.sp,
                     modifier = Modifier
@@ -1480,32 +1510,114 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
 /** 공유 메시지에 넣는 링크 (플레이 스토어 출시 후에는 스토어 주소로 바꾸면 좋아요) */
 private const val INVITE_LINK = "https://softrime0-77.github.io/Bubble/"
 
-/** 상점 맨 위: 포인트 충전 (Google Play 결제). */
+/** 상점 맨 위: 포인트 충전 (Google Play 결제). 100 · 500 · 1000 · 2000점 */
 @Composable
 private fun PointsCard(vm: AppViewModel) {
-    val price by vm.billing.price.collectAsState()
+    val prices by vm.billing.prices.collectAsState()
     val activity = LocalContext.current as Activity
-    ShopCard(
-        title = tr("💰 포인트 충전", "💰 Get points", zh = "💰 充值积分", hi = "💰 अंक खरीदें", es = "💰 Conseguir puntos",
-            fr = "💰 Obtenir des points", ar = "💰 احصل على نقاط", de = "💰 Punkte kaufen", pt = "💰 Comprar pontos",
-            ru = "💰 Купить очки", ja = "💰 ポイント購入"),
-        desc = tr("${BillingManager.POINTS_500_AMOUNT}점이 바로 들어와요", "Get ${BillingManager.POINTS_500_AMOUNT} pts instantly",
-            zh = "立即获得 ${BillingManager.POINTS_500_AMOUNT} 分", hi = "तुरंत ${BillingManager.POINTS_500_AMOUNT} अंक पाएँ",
-            es = "Recibe ${BillingManager.POINTS_500_AMOUNT} pts al instante", fr = "Reçois ${BillingManager.POINTS_500_AMOUNT} pts tout de suite",
-            ar = "احصل على ${BillingManager.POINTS_500_AMOUNT} نقطة فورًا", de = "Sofort ${BillingManager.POINTS_500_AMOUNT} Pkt erhalten",
-            pt = "Receba ${BillingManager.POINTS_500_AMOUNT} pts na hora", ru = "Сразу ${BillingManager.POINTS_500_AMOUNT} очк.",
-            ja = "すぐに${BillingManager.POINTS_500_AMOUNT}点もらえます"),
-        price = null,
-        owned = null,
-        art = { Text("💰", fontSize = 56.sp) },
-    ) {
-        Button(
-            onClick = { vm.buyPoints(activity) },
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Ui.gold, contentColor = Ui.text),
-        ) {
-            Text(price ?: tr("구매하기", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء",
-                de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "購入"), fontWeight = FontWeight.Black)
+    SoftCard {
+        Text(
+            tr("💰 포인트 충전", "💰 Get points", zh = "💰 充值积分", hi = "💰 अंक खरीदें", es = "💰 Conseguir puntos",
+                fr = "💰 Obtenir des points", ar = "💰 احصل على نقاط", de = "💰 Punkte kaufen", pt = "💰 Comprar pontos",
+                ru = "💰 Купить очки", ja = "💰 ポイント購入"),
+            fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text,
+        )
+        Spacer(Modifier.height(8.dp))
+        BillingManager.PRODUCTS.entries.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                row.forEach { (id, points) ->
+                    Button(
+                        onClick = { vm.buyPoints(activity, id) },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.gold, contentColor = Ui.text),
+                        contentPadding = PaddingValues(vertical = 10.dp, horizontal = 6.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "💰 " + tr("${points}점", "$points pts", zh = "$points 分", hi = "$points अंक", es = "$points pts",
+                                    fr = "$points pts", ar = "$points نقطة", de = "$points Pkt", pt = "$points pts",
+                                    ru = "$points очк.", ja = "${points}点"),
+                                fontWeight = FontWeight.Black, fontSize = 17.sp,
+                            )
+                            Text(prices[id] ?: "₩$points", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+/** 가입 환영 팝업 */
+@Composable
+private fun WelcomeDialog(kind: String, score: Int, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Critter(Side.CAT, Modifier.size(72.dp), happy = true) },
+        title = {
+            Text(
+                tr("🎉 가입을 환영해요!", "🎉 Welcome to Bubble!", zh = "🎉 欢迎加入！", hi = "🎉 स्वागत है!",
+                    es = "🎉 ¡Bienvenido a Bubble!", fr = "🎉 Bienvenue dans Bubble !", ar = "🎉 أهلًا بك في Bubble!",
+                    de = "🎉 Willkommen bei Bubble!", pt = "🎉 Bem-vindo ao Bubble!", ru = "🎉 Добро пожаловать в Bubble!",
+                    ja = "🎉 ようこそ Bubble へ！"),
+                fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        text = {
+            Text(
+                when (kind) {
+                    "returning" -> tr(
+                        "다시 오신 걸 환영해요! 탈퇴했던 계정이라 0점부터 시작해요.",
+                        "Welcome back! This account was deleted before, so you start from 0 pts.",
+                        zh = "欢迎回来！此账号曾被删除，因此从 0 分开始。",
+                        hi = "वापसी पर स्वागत है! यह खाता पहले हटाया गया था, इसलिए आप 0 अंक से शुरू करेंगे।",
+                        es = "¡Bienvenido de nuevo! Esta cuenta se eliminó antes, así que empiezas con 0 pts.",
+                        fr = "Bon retour ! Ce compte a déjà été supprimé, tu repars donc de 0 pt.",
+                        ar = "مرحبًا بعودتك! حُذف هذا الحساب من قبل، لذا ستبدأ من 0 نقطة.",
+                        de = "Willkommen zurück! Dieses Konto wurde schon einmal gelöscht, daher startest du bei 0 Pkt.",
+                        pt = "Bem-vindo de volta! Esta conta foi excluída antes, então você começa com 0 pts.",
+                        ru = "С возвращением! Этот аккаунт уже удаляли, поэтому вы начинаете с 0 очк.",
+                        ja = "おかえりなさい！以前に削除したアカウントなので0点からのスタートです。",
+                    )
+                    "admin" -> tr(
+                        "관리자 계정으로 ${score}점이 지급됐어요. 동시 접속자 수가 로비 위에 보여요.",
+                        "Admin account: you got $score pts. The online player count shows at the top of the lobby.",
+                        zh = "管理员账号：已获得 $score 分。大厅顶部会显示在线人数。",
+                        hi = "एडमिन खाता: आपको $score अंक मिले। ऑनलाइन खिलाड़ियों की संख्या लॉबी में ऊपर दिखेगी।",
+                        es = "Cuenta de administrador: recibiste $score pts. Arriba verás cuántos jugadores hay en línea.",
+                        fr = "Compte administrateur : tu as reçu $score pts. Le nombre de joueurs en ligne s’affiche en haut.",
+                        ar = "حساب المسؤول: حصلت على $score نقطة. يظهر عدد المتصلين أعلى الردهة.",
+                        de = "Admin-Konto: Du hast $score Pkt erhalten. Oben in der Lobby siehst du, wie viele online sind.",
+                        pt = "Conta de administrador: você recebeu $score pts. O número de jogadores online aparece no topo.",
+                        ru = "Аккаунт администратора: начислено $score очк. Число игроков в сети видно вверху лобби.",
+                        ja = "管理者アカウントとして${score}点が付与されました。ロビー上部に同時接続数が表示されます。",
+                    )
+                    else -> tr(
+                        "시작 점수 ${score}점을 드렸어요. 랜덤 매칭과 AI 대전으로 계급을 올려 보세요!",
+                        "You start with $score pts. Climb the ranks in random matches and AI battles!",
+                        zh = "你获得了 $score 分起始分。通过随机匹配和 AI 对战提升等级吧！",
+                        hi = "आप $score अंकों से शुरू करते हैं। रैंडम मैच और AI मुकाबलों से रैंक बढ़ाइए!",
+                        es = "Empiezas con $score pts. ¡Sube de rango en partidas aleatorias y contra la IA!",
+                        fr = "Tu commences avec $score pts. Grimpe dans les rangs en match aléatoire et contre l’IA !",
+                        ar = "تبدأ بـ $score نقطة. ارتقِ في الرتب عبر المباريات العشوائية ومعارك الذكاء الاصطناعي!",
+                        de = "Du startest mit $score Pkt. Steig in Zufallsmatches und KI-Duellen im Rang auf!",
+                        pt = "Você começa com $score pts. Suba de rank em partidas aleatórias e contra a IA!",
+                        ru = "Вы начинаете с $score очк. Повышайте ранг в случайных матчах и боях с ИИ!",
+                        ja = "スタート時に${score}点をプレゼント！ランダムマッチとAI対戦でランクを上げよう！",
+                    )
+                },
+                textAlign = TextAlign.Center, lineHeight = 22.sp, modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss, shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+            ) {
+                Text(tr("시작하기", "Let's go", zh = "开始", hi = "शुरू करें", es = "¡Vamos!", fr = "C’est parti", ar = "لنبدأ",
+                    de = "Los geht’s", pt = "Vamos lá", ru = "Поехали", ja = "はじめる"), fontWeight = FontWeight.Bold)
+            }
+        },
+    )
 }

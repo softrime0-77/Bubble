@@ -33,6 +33,9 @@
       <tr><td>구글 계정 식별자(Firebase 사용자 ID), 구글 계정 이메일</td><td>로그인, 계정 구분 (이메일은 다른 이용자에게 공개되지 않음)</td></tr>
       <tr><td>닉네임, 점수, 승패 기록, 계급, 보유 아이템</td><td>게임 진행, 랭킹 표시 (닉네임·점수·계급은 다른 이용자에게 보임)</td></tr>
       <tr><td>대전 기록(수, 결과)</td><td>대전 진행, 승패·점수 판정, 부정행위 방지</td></tr>
+      <tr><td>마지막 접속 시각</td><td>동시 접속자 수 집계 (개인을 식별해 공개하지 않음)</td></tr>
+      <tr><td>추천 코드, 초대 관계</td><td>친구 추천 보상 지급</td></tr>
+      <tr><td>인앱 결제 주문 번호·영수증 토큰</td><td>결제 확인, 중복 지급 방지 (카드 정보는 Google이 처리하며 앱은 받지 않음)</td></tr>
       <tr><td>광고 ID, 기기·앱 정보(광고 SDK가 수집)</td><td>광고 표시, 광고 성과 측정, 광고 사기 방지</td></tr>
     </table>
     <p>이름, 전화번호, 위치, 연락처 등은 수집하지 않습니다.</p>
@@ -49,7 +52,7 @@
     <p>유럽 경제 지역(EEA)·영국 등 동의가 필요한 지역에서는 처음 실행할 때 광고 동의 화면이 나오며, 로비의 "광고 개인정보 설정"에서 언제든 바꿀 수 있습니다. 기기 설정에서 광고 ID를 재설정하거나 맞춤 광고를 끌 수 있습니다.</p>
 
     <h2>4. 보관 기간과 삭제</h2>
-    <p>정보는 계정이 유지되는 동안 보관하며, 계정 삭제를 요청하면 프로필·점수·아이템 정보와 로그인 계정을 지체 없이 삭제합니다. 대전 기록은 부정행위 확인을 위해 최대 1년 보관 후 삭제합니다.</p>
+    <p>정보는 계정이 유지되는 동안 보관하며, 계정 삭제를 요청하면 프로필·점수·아이템 정보와 로그인 계정을 지체 없이 삭제합니다. 대전 기록은 부정행위 확인을 위해 최대 1년 보관 후 삭제합니다. 탈퇴 후 재가입 시 시작 점수를 0점으로 하기 위해, 이메일 주소 자체가 아닌 이메일의 일방향 해시값만 보관합니다. 결제 기록은 관련 법령에 따른 기간 동안 보관합니다.</p>
     <p><b>계정 삭제:</b> 앱의 <b>로비 → 계정 삭제</b>에서 바로 삭제할 수 있습니다. 진행 중인 대전은 기권 처리됩니다. 앱을 쓸 수 없다면 아래 연락처로 앱에 표시된 닉네임과 함께 삭제를 요청해 주세요.</p>
 
     <h2>5. 아동</h2>
@@ -73,6 +76,9 @@
       <tr><td>Google account identifier (Firebase user ID), Google account email</td><td>Sign-in and telling accounts apart (your email is never shown to other players)</td></tr>
       <tr><td>Nickname, score, win/loss record, rank, items owned</td><td>Running the game and leaderboard (nickname, score and rank are visible to other players)</td></tr>
       <tr><td>Match records (moves, results)</td><td>Running matches, deciding results and scores, preventing cheating</td></tr>
+      <tr><td>Last-seen time</td><td>Counting how many players are online (never shown per person)</td></tr>
+      <tr><td>Referral code and who invited you</td><td>Giving referral rewards</td></tr>
+      <tr><td>In-app purchase order ID and receipt token</td><td>Verifying payments and preventing double grants (card details are handled by Google, never by the App)</td></tr>
       <tr><td>Advertising ID, device and app information (collected by the ads SDK)</td><td>Showing ads, measuring ad performance, preventing ad fraud</td></tr>
     </table>
     <p>We do not collect your name, phone number, location or contacts.</p>
@@ -89,7 +95,7 @@
     <p>Where consent is required (e.g. the EEA and UK), a consent form is shown on first launch, and you can change your choice any time from "Ad privacy settings" in the lobby. You can reset your advertising ID or opt out of personalized ads in your device settings.</p>
 
     <h2>4. Retention and deletion</h2>
-    <p>We keep your data while your account exists. When you request deletion, we promptly delete your profile, score and items and your sign-in account. Match records are kept for up to one year to investigate cheating, then deleted.</p>
+    <p>We keep your data while your account exists. When you request deletion, we promptly delete your profile, score and items and your sign-in account. Match records are kept for up to one year to investigate cheating, then deleted. So that a re-created account starts from 0 points, we keep only a one-way hash of the email address, not the address itself. Payment records are kept for the period required by law.</p>
     <p><b>To delete your account:</b> tap <b>Lobby → Delete account</b> in the App. Any game in progress counts as a forfeit. If you can’t use the App, email us at the address below with the nickname shown in the App.</p>
 
     <h2>5. Children</h2>

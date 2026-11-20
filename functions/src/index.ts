@@ -11,6 +11,7 @@ import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
 import { normalizeCode, randomCode } from "./referral";
 import { GoogleAuth } from "google-auth-library";
+import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
 import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
@@ -26,7 +27,7 @@ function err(code: ConstructorParameters<typeof HttpsError>[0], ko: string, en: 
 setGlobalOptions({ region: "asia-northeast3", maxInstances: 10 });
 
 const START_SCORE = 1000;
-const WIN_POINTS = 25;
+const WIN_POINTS = 30;
 const LOSE_POINTS = 15;
 const TURN_LIMIT_MS = DEFAULT_TURN_MS;
 const TIMEOUT_GRACE_MS = 5_000;
@@ -574,7 +575,13 @@ export const deleteAccount = onCall(async (req) => {
       finishGame(tx, ref, game, opponent(side), "forfeit", await readPlayers(tx, game));
     });
   }
+  // 같은 구글 계정으로 다시 가입하면 0점에서 시작하도록, 이메일 대신 해시만 남김
+  const email = req.auth?.token.email;
+  if (typeof email === "string") {
+    await db.collection("deletedAccounts").doc(emailHash(email)).set({ at: Date.now() });
+  }
   await db.collection("queue").doc(uid).delete();
+  await db.collection("presence").doc(uid).delete();
   await db.collection("users").doc(uid).delete();
   try {
     await getAuth().deleteUser(uid);
@@ -647,7 +654,7 @@ export const redeemReferral = onCall(async (req) => {
 
 const PACKAGE_NAME = "com.bubble.game";
 /** Play Console에 만든 소모성 상품 ID → 지급 점수 */
-const PRODUCTS: Record<string, number> = { points_500: 500 };
+const PRODUCTS: Record<string, number> = { points_100: 100, points_500: 500, points_1000: 1000, points_2000: 2000 };
 
 const playAuth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] });
 
@@ -695,4 +702,68 @@ export const verifyPurchase = onCall(async (req) => {
   });
   logger.info("purchase granted", { uid, productId, orderId: info.orderId, granted });
   return { granted };
+});
+
+// ======================= 가입 / 관리자 / 동시 접속 =======================
+
+/** 관리자 계정 (가입 시 5000점, 동시 접속자 수 보기) */
+const ADMIN_EMAILS = ["softrime0@gmail.com"];
+const ADMIN_START_SCORE = 5000;
+/** 탈퇴했다가 같은 구글 계정으로 다시 가입하면 시작 점수 */
+const RETURNING_START_SCORE = 0;
+/** 이 시간 안에 신호를 보낸 사용자를 "접속 중"으로 셈 */
+const ONLINE_WINDOW_MS = 2 * 60_000;
+
+function emailHash(email: string): string {
+  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+}
+
+function isAdmin(req: CallableRequest): boolean {
+  const email = req.auth?.token.email;
+  return typeof email === "string" && req.auth?.token.email_verified === true &&
+    ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
+/**
+ * 첫 로그인 때 프로필 만들기 (서버만 만들 수 있음).
+ * 시작 점수: 보통 1000점 · 탈퇴 후 재가입 0점 · 관리자 5000점.
+ * 돌려주는 kind로 앱이 가입 환영 팝업을 띄웁니다 (이미 있으면 null).
+ */
+export const ensureProfile = onCall(async (req) => {
+  const uid = requireUser(req);
+  const admin = isAdmin(req);
+  const rawName = (req.data as { name?: unknown } | null)?.name;
+  const name = typeof rawName === "string" && rawName.trim() ? rawName.trim().slice(0, 12) : "Player";
+  const email = req.auth?.token.email;
+  const deletedBefore = typeof email === "string"
+    ? (await db.collection("deletedAccounts").doc(emailHash(email)).get()).exists
+    : false;
+  const ref = db.collection("users").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) {
+      // 관리자는 처음 한 번 5000점까지 채워줌
+      if (admin && !snap.get("adminSeeded")) {
+        const score = (snap.get("score") as number | undefined) ?? START_SCORE;
+        tx.update(ref, { admin: true, adminSeeded: true, score: Math.max(score, ADMIN_START_SCORE) });
+      }
+      return { kind: null };
+    }
+    const kind = admin ? "admin" : deletedBefore ? "returning" : "new";
+    const score = admin ? ADMIN_START_SCORE : deletedBefore ? RETURNING_START_SCORE : START_SCORE;
+    tx.set(ref, {
+      name, score, wins: 0, losses: 0, createdAt: Date.now(),
+      ...(admin ? { admin: true, adminSeeded: true } : {}),
+    });
+    return { kind, score };
+  });
+});
+
+/** 동시 접속자 수 (관리자 전용). 앱은 presence/{uid}에 1분마다 신호를 남깁니다. */
+export const onlineCount = onCall(async (req) => {
+  requireUser(req);
+  if (!isAdmin(req)) throw err("permission-denied", "관리자만 볼 수 있어요", "Admins only");
+  const since = Date.now() - ONLINE_WINDOW_MS;
+  const agg = await db.collection("presence").where("at", ">", since).count().get();
+  return { online: agg.data().count };
 });

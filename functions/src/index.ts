@@ -6,7 +6,7 @@ import { initializeApp } from "firebase-admin/app";
 import { DocumentReference, DocumentSnapshot, FieldValue, getFirestore, Transaction } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
-import { applyMove, Board, decodeMove, isLegal, opponent, Side, winner } from "./game";
+import { applyMove, Board, decodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
 const db = getFirestore();
@@ -42,6 +42,9 @@ interface Game {
   hamUid: string;
   cat: [number, number];
   ham: [number, number];
+  /** 남은 분할 횟수 (예전 게임 문서엔 없을 수 있음) */
+  catSplits?: number;
+  hamSplits?: number;
   turn: Side;
   status: "playing" | "finished";
   moveNo: number;
@@ -150,6 +153,8 @@ export const matchmake = onCall(async (req) => {
       hamScore: ham.get("score") ?? START_SCORE,
       cat: [1, 1],
       ham: [1, 1],
+      catSplits: MAX_SPLITS,
+      hamSplits: MAX_SPLITS,
       turn: "CAT",
       status: "playing",
       winner: null,
@@ -190,13 +195,20 @@ export const submitMove = onCall(async (req) => {
     const { ref, game, side } = await loadGame(tx, gameId, uid);
     if (game.status !== "playing") throw new HttpsError("failed-precondition", "이미 끝난 게임이에요");
     if (game.turn !== side) throw new HttpsError("failed-precondition", "내 차례가 아니에요");
-    const board: Board = { cat: game.cat, ham: game.ham };
+    const board: Board = {
+      cat: game.cat,
+      ham: game.ham,
+      catSplits: game.catSplits ?? MAX_SPLITS,
+      hamSplits: game.hamSplits ?? MAX_SPLITS,
+    };
     if (!isLegal(board, side, move)) throw new HttpsError("invalid-argument", "규칙에 맞지 않는 수예요");
 
     const r = applyMove(board, side, move);
     const update = {
       cat: r.board.cat,
       ham: r.board.ham,
+      catSplits: r.board.catSplits,
+      hamSplits: r.board.hamSplits,
       turn: opponent(side),
       lastDesc: r.description,
       explodedSide: r.exploded?.side ?? null,

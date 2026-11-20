@@ -67,6 +67,25 @@ class GameLogicTest {
     }
 
     @Test
+    fun splitIsLimitedToThreePerPlayer() {
+        var b = Board(cat = listOf(2, 0), ham = listOf(1, 1))
+        assertEquals(3, b.splitsLeft(Side.CAT))
+        b = GameLogic.apply(b, Side.CAT, Move.Split(0)).board
+        assertEquals(2, b.splitsLeft(Side.CAT))
+        assertEquals(3, b.splitsLeft(Side.HAMSTER))
+
+        val noneLeft = Board(cat = listOf(4, 0), ham = listOf(1, 1), catSplits = 0)
+        assertFalse(GameLogic.isLegal(noneLeft, Side.CAT, Move.Split(0)))
+        assertTrue(GameLogic.splitShapeOk(noneLeft, Side.CAT, 0))
+        assertTrue(GameLogic.legalMoves(noneLeft, Side.CAT).none { it is Move.Split })
+
+        val oneLeft = noneLeft.copy(catSplits = 1)
+        val after = GameLogic.apply(oneLeft, Side.CAT, Move.Split(0)).board
+        assertEquals(listOf(2, 2), after.cat)
+        assertEquals(0, after.splitsLeft(Side.CAT))
+    }
+
+    @Test
     fun losingBothSetsLoses() {
         val b = Board(cat = listOf(4, 1), ham = listOf(0, 1))
         val r = GameLogic.apply(b, Side.CAT, Move.Add(0, true, 1))

@@ -41,12 +41,19 @@ data class MoveResult(
     val description: String,
 )
 
-/** 판 상태. 각 진영은 세트 2개(인덱스 0, 1)를 가집니다. */
+/** 판 상태. 각 진영은 세트 2개(인덱스 0, 1)와 남은 분할 횟수를 가집니다. */
 data class Board(
     val cat: List<Int> = listOf(1, 1),
     val ham: List<Int> = listOf(1, 1),
+    val catSplits: Int = GameLogic.MAX_SPLITS,
+    val hamSplits: Int = GameLogic.MAX_SPLITS,
 ) {
     fun sets(side: Side): List<Int> = if (side == Side.CAT) cat else ham
+
+    fun splitsLeft(side: Side): Int = if (side == Side.CAT) catSplits else hamSplits
+
+    fun withSplitsLeft(side: Side, n: Int): Board =
+        if (side == Side.CAT) copy(catSplits = n) else copy(hamSplits = n)
 
     fun with(side: Side, sets: List<Int>): Board =
         if (side == Side.CAT) copy(cat = sets) else copy(ham = sets)
@@ -65,14 +72,21 @@ object GameLogic {
     const val SET_COUNT = 2
     const val EXPLODE_AT = 5
 
+    /** 한 게임에서 한 사람이 쓸 수 있는 분할 횟수. */
+    const val MAX_SPLITS = 3
+
     fun setName(i: Int) = "${i + 1}번 세트"
 
-    /** 분할 가능 여부: 세트가 짝수(2 이상)이고 다른 세트가 0일 때. */
-    fun canSplit(board: Board, side: Side, from: Int): Boolean {
+    /** 분할 모양 조건: 세트가 짝수(2 이상)이고 다른 세트가 0일 때. (횟수는 따지지 않음) */
+    fun splitShapeOk(board: Board, side: Side, from: Int): Boolean {
         val mine = board.sets(side)
         val n = mine[from]
         return n > 0 && n % 2 == 0 && mine[1 - from] == 0
     }
+
+    /** 분할 가능 여부: 모양 조건 + 남은 분할 횟수가 있을 때. */
+    fun canSplit(board: Board, side: Side, from: Int): Boolean =
+        board.splitsLeft(side) > 0 && splitShapeOk(board, side, from)
 
     fun isLegal(board: Board, side: Side, move: Move): Boolean {
         if (board.winner() != null) return false
@@ -129,10 +143,11 @@ object GameLogic {
             }
             is Move.Split -> {
                 val half = board.sets(side)[move.from] / 2
+                val left = board.splitsLeft(side) - 1
                 MoveResult(
-                    board = board.with(side, listOf(half, half)),
+                    board = board.with(side, listOf(half, half)).withSplitsLeft(side, left),
                     exploded = null,
-                    description = "$who: ${setName(move.from)} 분할 → ${half}마리, ${half}마리 ✂️",
+                    description = "$who: ${setName(move.from)} 분할 → ${half}마리, ${half}마리 ✂️ (분할 -1, 남은 ${left}회)",
                 )
             }
         }

@@ -2,13 +2,21 @@
 
 export type Side = "CAT" | "HAMSTER";
 export type Sets = [number, number];
-export interface Board { cat: Sets; ham: Sets }
+export interface Board {
+  cat: Sets;
+  ham: Sets;
+  /** 남은 분할 횟수 */
+  catSplits: number;
+  hamSplits: number;
+}
 
 export type Move =
   | { kind: "add"; from: number; toOpponent: boolean; to: number }
   | { kind: "split"; from: number };
 
 export const EXPLODE_AT = 5;
+/** 한 게임에서 한 사람이 쓸 수 있는 분할 횟수 */
+export const MAX_SPLITS = 3;
 
 export const opponent = (s: Side): Side => (s === "CAT" ? "HAMSTER" : "CAT");
 export const label = (s: Side) => (s === "CAT" ? "고양이" : "햄스터");
@@ -46,10 +54,14 @@ export function decodeMove(s: unknown): Move | null {
   return null;
 }
 
+export function splitsLeft(b: Board, s: Side): number {
+  return s === "CAT" ? b.catSplits : b.hamSplits;
+}
+
 export function canSplit(b: Board, side: Side, from: number): boolean {
   const mine = sets(b, side);
   const n = mine[from];
-  return n > 0 && n % 2 === 0 && mine[1 - from] === 0;
+  return splitsLeft(b, side) > 0 && n > 0 && n % 2 === 0 && mine[1 - from] === 0;
 }
 
 export function isLegal(b: Board, side: Side, m: Move): boolean {
@@ -72,10 +84,12 @@ export function applyMove(b: Board, side: Side, m: Move): MoveResult {
   const who = label(side);
   if (m.kind === "split") {
     const half = sets(b, side)[m.from] / 2;
+    const left = splitsLeft(b, side) - 1;
+    const split = withSets(b, side, [half, half]);
     return {
-      board: withSets(b, side, [half, half]),
+      board: side === "CAT" ? { ...split, catSplits: left } : { ...split, hamSplits: left },
       exploded: null,
-      description: `${who}: ${setName(m.from)} 분할 → ${half}마리, ${half}마리 ✂️`,
+      description: `${who}: ${setName(m.from)} 분할 → ${half}마리, ${half}마리 ✂️ (분할 -1, 남은 ${left}회)`,
     };
   }
   const power = sets(b, side)[m.from];

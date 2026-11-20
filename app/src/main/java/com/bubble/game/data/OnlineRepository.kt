@@ -2,6 +2,7 @@ package com.bubble.game.data
 
 import android.content.Context
 import com.bubble.game.game.Board
+import com.bubble.game.game.GameLogic
 import com.bubble.game.game.Move
 import com.bubble.game.game.Side
 import com.google.firebase.FirebaseApp
@@ -193,7 +194,12 @@ class OnlineRepository(context: Context) {
             hamName = getString("hamName") ?: "햄스터",
             catScore = (getLong("catScore") ?: 0).toInt(),
             hamScore = (getLong("hamScore") ?: 0).toInt(),
-            board = Board(cat = sets("cat"), ham = sets("ham")),
+            board = Board(
+                cat = sets("cat"),
+                ham = sets("ham"),
+                catSplits = (getLong("catSplits") ?: GameLogic.MAX_SPLITS.toLong()).toInt(),
+                hamSplits = (getLong("hamSplits") ?: GameLogic.MAX_SPLITS.toLong()).toInt(),
+            ),
             turn = getString("turn")?.let { Side.valueOf(it) } ?: Side.CAT,
             finished = getString("status") == "finished",
             winner = getString("winner")?.let { Side.valueOf(it) },

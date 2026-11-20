@@ -1,6 +1,10 @@
 package com.bubble.game.ui
 
 import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.launch
+import androidx.compose.ui.draw.alpha
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -283,7 +287,7 @@ private fun RulesDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text("알겠어요!") } },
-        title = { Text("게임 규칙") },
+        title = { Text("게임 규칙", fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
             Text(
                 "• 고양이와 햄스터가 각자 방울(세트) 2개에 1마리씩 들고 시작해요. 고양이가 먼저!\n\n" +
@@ -292,9 +296,14 @@ private fun RulesDialog(onDismiss: () -> Unit) {
                     "   💪 내 다른 방울에 더할 수 있어요 (강화)\n\n" +
                     "• 방울이 5마리 이상이 되면 💥 펑! 터져서 0마리가 돼요.\n\n" +
                     "• 0마리 방울은 공격도 강화도 못 해요. 살리는 방법은 분할뿐!\n" +
-                    "   ✂️ 분할: 한 방울이 짝수(2·4마리)이고 다른 방울이 0일 때 반씩 나눠요.\n\n" +
+                    "   ✂️ 분할: 한 방울이 짝수(2·4마리)이고 다른 방울이 0일 때 반씩 나눠요.\n" +
+                    "   ✂️ 분할은 한 게임에 한 사람당 최대 ${GameLogic.MAX_SPLITS}번까지!\n\n" +
                     "• 내 방울 2개가 모두 터지면 져요.\n\n" +
                     "• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.",
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Ui.text,
             )
         },
     )
@@ -377,7 +386,11 @@ private fun GameScreen(vm: AppViewModel) {
                     )
                 }
             }
-            PlayerTag(opp, g.opponentName, g.opponentScore?.let { "${it}점" }, active = g.turn == opp && !g.finished)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PlayerTag(opp, g.opponentName, g.opponentScore?.let { "${it}점" }, active = g.turn == opp && !g.finished)
+                Spacer(Modifier.width(8.dp))
+                SplitCounter(g.board.splitsLeft(opp))
+            }
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
                 for (i in 0 until GameLogic.SET_COUNT) {
@@ -426,24 +439,42 @@ private fun GameScreen(vm: AppViewModel) {
                 }
             }
             Spacer(Modifier.height(16.dp))
-            PlayerTag(me, if (g.myName == "나") "나" else g.myName + " (나)", null, active = g.myTurn)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PlayerTag(me, if (g.myName == "나") "나" else g.myName + " (나)", null, active = g.myTurn)
+                Spacer(Modifier.width(8.dp))
+                SplitCounter(g.board.splitsLeft(me))
+            }
 
-            val canSplit = sel != null && GameLogic.canSplit(g.board, me, sel)
-            AnimatedVisibility(canSplit, enter = fadeIn() + slideInVertically { it }) {
+            // 분할 모양이 되면 버튼을 보여주고, 횟수를 다 썼으면 비활성화
+            val splitsLeft = g.board.splitsLeft(me)
+            val splitShape = sel != null && GameLogic.splitShapeOk(g.board, me, sel)
+            AnimatedVisibility(splitShape, enter = fadeIn() + slideInVertically { it }) {
                 Button(
                     onClick = { vm.play(Move.Split(sel!!)); selected = null },
+                    enabled = splitsLeft > 0,
                     colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
                     shape = RoundedCornerShape(20.dp),
                     modifier = Modifier.padding(top = 10.dp),
-                ) { Text("✂️ 분할해서 빈 방울 살리기 (${power / 2} + ${power / 2})", fontWeight = FontWeight.Bold) }
+                ) {
+                    Text(
+                        if (splitsLeft > 0) "✂️ 분할하기 (${power / 2} + ${power / 2}) · 남은 ${splitsLeft}회"
+                        else "✂️ 분할 횟수를 모두 썼어요",
+                        fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                    )
+                }
             }
             Spacer(Modifier.height(8.dp))
-            g.notice?.let { Text(it, fontSize = 12.sp, color = Ui.danger, textAlign = TextAlign.Center) }
+            g.notice?.let {
+                Text(it, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Ui.danger, textAlign = TextAlign.Center)
+            }
             g.log.take(2).forEachIndexed { i, line ->
                 Text(
-                    line, fontSize = 12.sp,
-                    color = Ui.text.copy(alpha = if (i == 0) 0.9f else 0.5f),
+                    line,
+                    fontSize = if (i == 0) 16.sp else 14.sp,
+                    fontWeight = if (i == 0) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    color = Ui.text.copy(alpha = if (i == 0) 1f else 0.55f),
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
         }
@@ -496,12 +527,12 @@ private fun TurnBanner(g: GameUi, selecting: Boolean) {
     }
     AnimatedContent(text, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.8f)) togetherWith fadeOut() }, label = "turn") {
         Text(
-            it, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+            it, fontSize = 22.sp, fontWeight = FontWeight.Black, lineHeight = 28.sp,
             color = if (g.turn == g.mySide && !g.finished) Ui.primaryDark else Ui.text,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .background(Color.White.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .background(Color.White.copy(alpha = 0.8f), RoundedCornerShape(24.dp))
+                .padding(horizontal = 20.dp, vertical = 12.dp),
         )
     }
 }
@@ -560,6 +591,66 @@ private fun ResultOverlay(g: GameUi, onLobby: () -> Unit, onAgain: () -> Unit) {
                     ) { Text("로비로") }
                 }
             }
+        }
+    }
+}
+
+/** 남은 분할 횟수. 줄어들면 "-1"이 떠오르며 사라집니다. */
+@Composable
+private fun SplitCounter(left: Int) {
+    var previous by remember { mutableStateOf(left) }
+    val drop = remember { Animatable(1f) }
+    val bump = remember { Animatable(1f) }
+    var lost by remember { mutableStateOf(0) }
+    LaunchedEffect(left) {
+        if (left < previous) {
+            lost = previous - left
+            launch {
+                bump.snapTo(1.35f)
+                bump.animateTo(1f, spring(dampingRatio = 0.35f))
+            }
+            drop.snapTo(0f)
+            drop.animateTo(1f, tween(1_400))
+        }
+        previous = left
+    }
+    Box(contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .scale(bump.value)
+                .background(
+                    if (left == 0) Color(0xFFE0E0E0) else Ui.accent.copy(alpha = 0.18f),
+                    RoundedCornerShape(50),
+                )
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("✂️", fontSize = 14.sp)
+            Spacer(Modifier.width(4.dp))
+            repeat(GameLogic.MAX_SPLITS) { i ->
+                Box(
+                    Modifier
+                        .padding(horizontal = 1.5.dp)
+                        .size(9.dp)
+                        .background(if (i < left) Ui.accent else Color(0xFFBDBDBD), RoundedCornerShape(50)),
+                )
+            }
+            Spacer(Modifier.width(5.dp))
+            Text(
+                "$left/${GameLogic.MAX_SPLITS}",
+                fontWeight = FontWeight.Black, fontSize = 14.sp,
+                color = if (left == 0) Color(0xFF9E9E9E) else Ui.accent,
+            )
+        }
+        if (drop.value < 1f) {
+            Text(
+                "-$lost",
+                fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.danger,
+                modifier = Modifier
+                    .offset(y = (-18 - drop.value * 26).dp)
+                    .scale(1f + (1f - drop.value) * 0.4f)
+                    .alpha(1f - drop.value),
+            )
         }
     }
 }

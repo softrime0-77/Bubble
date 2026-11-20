@@ -438,6 +438,7 @@ private fun GameScreen(vm: AppViewModel) {
                 ) { Text("✂️ 분할해서 빈 방울 살리기 (${power / 2} + ${power / 2})", fontWeight = FontWeight.Bold) }
             }
             Spacer(Modifier.height(8.dp))
+            g.notice?.let { Text(it, fontSize = 12.sp, color = Ui.danger, textAlign = TextAlign.Center) }
             g.log.take(2).forEachIndexed { i, line ->
                 Text(
                     line, fontSize = 12.sp,

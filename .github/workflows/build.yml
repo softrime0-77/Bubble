@@ -47,12 +47,31 @@ jobs:
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
 
-      - name: Build debug APK
+      - name: Build APK / AAB
         env:
           BUBBLE_KEYSTORE_PASSWORD: ${{ secrets.BUBBLE_KEYSTORE_PASSWORD }}
-        run: ./gradlew --no-daemon assembleDebug
+        run: |
+          if [ -f keystore/bubble.jks ] && [ -n "$BUBBLE_KEYSTORE_PASSWORD" ]; then
+            ./gradlew --no-daemon assembleDebug assembleRelease bundleRelease
+          else
+            ./gradlew --no-daemon assembleDebug
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bubble-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: bubble-builds
+          path: |
+            app/build/outputs/apk/**/*.apk
+            app/build/outputs/bundle/release/*.aab
+
+  functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: functions
+      - run: npm test
+        working-directory: functions

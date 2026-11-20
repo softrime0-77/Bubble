@@ -31,7 +31,7 @@
 
 ## 기술
 
-Kotlin · Jetpack Compose · Firebase (Google 로그인 + Cloud Firestore) · Credential Manager
+Kotlin · Jetpack Compose · Firebase (Google 로그인 + Cloud Firestore + Cloud Functions) · Credential Manager
 
 ```
 app/src/main/java/com/bubble/game/
@@ -39,8 +39,36 @@ app/src/main/java/com/bubble/game/
   game/Ai.kt               AI 상대
   data/OnlineRepository.kt 로그인 · 매칭 · 대전 · 점수 (Firestore)
   ui/                      화면, 캐릭터 그림, 방울 애니메이션
-firestore.rules            Firestore 보안 규칙
+functions/src/index.ts     서버: 매칭 · 수 검증 · 승패 · 점수 (Cloud Functions)
+functions/src/game.ts      서버용 규칙 엔진 (앱과 같은 규칙)
+firestore.rules            Firestore 보안 규칙 (점수·게임은 서버만 쓰기)
 ```
+
+### 점수 조작 방지
+
+앱은 게임 판과 점수를 직접 쓸 수 없습니다. 매칭, 수 두기, 승패 판정, 점수 계산은 모두 Cloud Functions가
+서버에서 검증하고 기록하며, 앱은 Firestore에서 결과를 읽기만 합니다.
+- `matchmake` / `leaveQueue`: 랜덤 매칭
+- `submitMove`: 차례·규칙 검증 후 판 갱신, 끝나면 두 사람 점수 반영
+- `forfeit`: 기권
+- `claimTimeout`: 상대가 30초(+5초 여유)를 넘기면 승리 (서버 시계 기준)
+
+## 서버 배포 (Cloud Functions + 보안 규칙)
+
+Cloud Functions는 Firebase **Blaze(종량제) 요금제**가 필요합니다. 무료 사용량(월 호출 200만 회 등)이 넉넉해서
+작은 게임은 보통 요금이 나오지 않지만, 결제 카드 등록이 필요하고 예산 알림을 걸어두는 것을 권장합니다.
+
+1. Firebase 콘솔 → 왼쪽 아래 **업그레이드** → Blaze 선택 (Google Cloud 콘솔에서 예산 알림 설정 권장)
+2. 컴퓨터에 [Node.js 22](https://nodejs.org)를 설치하고, 이 저장소 폴더에서:
+
+```bash
+npm install -g firebase-tools
+firebase login
+cd functions && npm install && cd ..
+firebase deploy --only functions,firestore:rules
+```
+
+배포가 끝나야 새 앱(1.1.0)에서 매칭과 대전이 동작합니다. 1.0.0 앱은 서버 배포 후 게임 판을 직접 쓰지 못해 더 이상 대전할 수 없습니다.
 
 ## 온라인 대전 켜기 (Firebase 설정)
 
@@ -58,6 +86,15 @@ firestore.rules            Firestore 보안 규칙
 구글 로그인은 Firebase에 등록한 SHA-1과 같은 키로 서명한 APK에서만 동작합니다.
 `keystore/bubble.jks`가 있고 비밀번호가 `local.properties`의 `bubbleKeystorePassword`(또는 환경변수 `BUBBLE_KEYSTORE_PASSWORD`)에 있으면 그 키로 서명합니다.
 키와 비밀번호는 저장소에 올리지 않습니다. 잃어버리면 같은 키로 다시 서명할 수 없으니 안전한 곳에 보관하세요.
+
+## 정식 릴리스 빌드
+
+- 릴리스 빌드는 R8로 코드 축소·난독화와 리소스 축소를 합니다.
+- `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab` (Play 스토어 업로드용)
+- `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk` (직접 배포용)
+- 새 버전을 낼 때마다 `app/build.gradle.kts`의 `versionCode`(1씩 증가)와 `versionName`을 올리세요.
+- Play 스토어에 올릴 때 **Play 앱 서명**을 쓰면 Google이 최종 서명을 다시 합니다. 그 경우 Play Console → 앱 무결성에 나오는
+  **앱 서명 키 SHA-1**도 Firebase에 지문으로 추가해야 스토어에서 받은 앱의 구글 로그인이 동작합니다.
 
 ## APK 받기 / 빌드
 

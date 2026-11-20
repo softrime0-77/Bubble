@@ -49,6 +49,8 @@ data class GameUi(
     val explosion: Explosion? = null,
     val turnDeadline: Long? = null,
     val scoreDelta: Int? = null,
+    /** 서버가 수를 거절했을 때 등 잠깐 보여줄 안내 문구. */
+    val notice: String? = null,
     val busy: Boolean = false,
 ) {
     val myTurn: Boolean get() = !finished && !busy && turn == mySide
@@ -154,12 +156,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---------- 랜덤 매칭 ----------
 
     fun startMatching() {
-        val me = _lobby.value.profile ?: return
+        if (_lobby.value.profile == null) return
         if (matchJob?.isActive == true) return
         _screen.value = Screen.Matching(System.currentTimeMillis())
         matchJob = viewModelScope.launch {
             try {
-                val gameId = repo.findMatch(me)
+                val gameId = repo.findMatch()
                 startOnlineGame(gameId)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -184,7 +186,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Game
         gameJob = viewModelScope.launch {
             var lastMove = -1
-            var settled = false
             launch {
                 // 상대 시간 초과 감시
                 while (isActive) {
@@ -194,7 +195,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     if (!g.finished && g.turn != g.mySide &&
                         System.currentTimeMillis() > deadline + OnlineRepository.TIMEOUT_GRACE_MS
                     ) {
-                        repo.claimTimeout(gameId, me)
+                        repo.claimTimeout(gameId)
                     }
                 }
             }
@@ -203,11 +204,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val side = og.sideOf(me) ?: return@collect
                 _game.update { cur -> cur.merge(og, side, lastMove) }
                 lastMove = og.moveNo
-                if (og.finished && !settled) {
-                    settled = true
-                    val delta = runCatching { repo.settleScore(gameId, me) }.getOrNull()
-                    _game.update { it.copy(scoreDelta = delta) }
-                }
             }
         }
     }
@@ -233,6 +229,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             log = log,
             explosion = explosion,
             turnDeadline = og.turnStartedAt + OnlineRepository.TURN_LIMIT_MS,
+            scoreDelta = og.deltaFor(side),
+            notice = if (newMove) null else notice,
             busy = false,
         )
     }
@@ -299,11 +297,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (!g.myTurn || !GameLogic.isLegal(g.board, g.mySide, move)) return
         if (g.online) {
             val id = onlineGameId ?: return
-            val me = uid ?: return
             _game.update { it.copy(busy = true) }
             viewModelScope.launch {
-                runCatching { repo.submitMove(id, me, move) }
-                    .onFailure { _game.update { it.copy(busy = false) } }
+                runCatching { repo.submitMove(id, move) }
+                    .onFailure { e -> _game.update { it.copy(busy = false, notice = e.message) } }
             }
         } else {
             applyLocal(g.mySide, move)
@@ -315,12 +312,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun leaveGame() {
         val g = _game.value
         val id = onlineGameId
-        val me = uid
-        if (g.online && !g.finished && id != null && me != null) {
-            viewModelScope.launch {
-                repo.forfeit(id, me)
-                runCatching { repo.settleScore(id, me) }
-            }
+        if (g.online && !g.finished && id != null) {
+            viewModelScope.launch { repo.forfeit(id) }
         }
         gameJob?.cancel()
         gameJob = null

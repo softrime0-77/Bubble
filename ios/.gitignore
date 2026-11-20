@@ -1,0 +1,4 @@
+Bubble.xcodeproj/
+build/
+.build/
+*.xcuserstate

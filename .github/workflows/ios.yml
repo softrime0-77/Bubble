@@ -1,0 +1,71 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Core tests (game rules, AI, ranks)
+        working-directory: ios/BubbleCore
+        run: swift test
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Pick an iPhone simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)['devices']
+          print(next(x['udid'] for k, v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')))
+          ")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices | grep "$UDID"
+
+      - name: Build for simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build -project Bubble.xcodeproj -scheme Bubble \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO | tail -40
+
+      - name: Screenshots
+        working-directory: ios
+        run: |
+          UDID=${{ steps.sim.outputs.udid }}
+          APP=build/Build/Products/Debug-iphonesimulator/Bubble.app
+          mkdir -p shots
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          shot() {
+            xcrun simctl terminate "$UDID" com.bubble.game 2>/dev/null || true
+            xcrun simctl launch "$UDID" com.bubble.game "${@:2}"
+            sleep 8
+            xcrun simctl io "$UDID" screenshot "shots/$1.png"
+          }
+          shot lobby_ko -lang ko
+          shot game_ko -lang ko -demo game
+          shot lobby_ja -lang ja
+          shot game_ar -lang ar -demo game
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-screenshots
+          path: ios/shots/*.png

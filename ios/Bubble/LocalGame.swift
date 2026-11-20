@@ -1,0 +1,108 @@
+import BubbleCore
+import Foundation
+
+/// 폰 안에서 하는 AI 연습 게임 (점수 없음). 1단계 범위.
+@MainActor
+final class LocalGame: ObservableObject {
+    let level: AiLevel
+    let mySide: Side
+    private let ai: Ai
+
+    @Published private(set) var board = Board()
+    @Published private(set) var turn: Side = .cat
+    @Published private(set) var finished = false
+    @Published private(set) var winner: Side? = nil
+    @Published private(set) var reason = ""
+    @Published private(set) var log: [String] = []
+    @Published private(set) var explosion: (Explosion, Int)? = nil
+    @Published private(set) var deadline: Date? = nil
+    @Published private(set) var busy = false
+    @Published var selected: Int? = nil
+
+    private var explosionId = 0
+    private var timerTask: Task<Void, Never>?
+
+    var myTurn: Bool { !finished && !busy && turn == mySide }
+    var opponentName: String {
+        tr("AI 친구 (\(level.label))", "AI Buddy (\(level.label))", zh: "AI 伙伴（\(level.label)）", hi: "AI दोस्त (\(level.label))",
+           es: "Amigo IA (\(level.label))", fr: "Copain IA (\(level.label))", ar: "رفيق الذكاء الاصطناعي (\(level.label))",
+           de: "KI-Kumpel (\(level.label))", pt: "Amigo IA (\(level.label))", ru: "ИИ-друг (\(level.label))", ja: "AIフレンド（\(level.label)）")
+    }
+
+    init(level: AiLevel, mySide: Side? = nil) {
+        self.level = level
+        self.ai = Ai(level: level)
+        self.mySide = mySide ?? (Bool.random() ? .cat : .hamster)
+        startTurn()
+        timerTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                self?.checkTimeout()
+            }
+        }
+    }
+
+    deinit { timerTask?.cancel() }
+
+    /// 스크린샷/미리보기용 판 설정
+    func setDemo(board: Board, log: [String]) {
+        self.board = board
+        self.log = log
+        turn = mySide
+        deadline = Date().addingTimeInterval(Double(level.turnSec) * 0.62)
+    }
+
+    func play(_ move: Move) {
+        guard myTurn, GameLogic.isLegal(board, mySide, move) else { return }
+        apply(mySide, move)
+        selected = nil
+        startTurn()
+    }
+
+    func stop() { timerTask?.cancel() }
+
+    private func apply(_ side: Side, _ move: Move) {
+        guard let r = try? GameLogic.apply(board, side, move) else { return }
+        board = r.board
+        turn = side.opponent
+        log = Array(([MoveText.describe(r.info)] + log).prefix(30))
+        if let e = r.exploded {
+            explosionId += 1
+            explosion = (e, explosionId)
+        }
+        if let w = r.board.winner {
+            finished = true
+            winner = w
+            reason = "normal"
+            deadline = nil
+        }
+    }
+
+    /// 차례 시작: 내 차례면 타이머, AI 차례면 잠시 생각한 뒤 둠
+    private func startTurn() {
+        guard !finished else { return }
+        if turn == mySide {
+            deadline = Date().addingTimeInterval(Double(level.turnSec))
+            busy = false
+        } else {
+            deadline = nil
+            busy = true
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64.random(in: 700_000_000...1_400_000_000))
+                guard let self, !self.finished else { return }
+                let m = self.ai.choose(self.board, self.turn)
+                self.apply(self.turn, m)
+                self.busy = false
+                self.startTurn()
+            }
+        }
+    }
+
+    private func checkTimeout() {
+        guard !finished, turn == mySide, let d = deadline, Date() > d else { return }
+        finished = true
+        winner = mySide.opponent
+        reason = "timeout"
+        deadline = nil
+    }
+}

@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [main]
+    paths-ignore: ["ios/**", ".github/workflows/ios.yml"]
   workflow_dispatch:
 
 jobs:
@@ -16,7 +17,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # GitHub 우분투 러너에는 Android SDK가 이미 설치돼 있음 (setup-android는 라이선스 수락 단계에서 실패해서 뺌)
 
       # 저장소 Secrets에 GOOGLE_SERVICES_JSON(파일 내용 그대로)을 넣으면 온라인 대전이 켜진 APK가 만들어집니다.
       - name: Firebase config

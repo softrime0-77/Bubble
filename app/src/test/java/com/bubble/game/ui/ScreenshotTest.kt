@@ -56,6 +56,7 @@ class ScreenshotTest {
     private fun richProfile(score: Int) = com.bubble.game.data.Profile(
         uid = "me", name = "말랑고양이42", score = score, wins = 12, losses = 5, potions = 2,
         owned = setOf(com.bubble.game.game.Animal.SHEEP), equipped = com.bubble.game.game.Animal.SHEEP,
+        refCode = "K7Q2MX", referrals = 3,
     )
 
     @Test

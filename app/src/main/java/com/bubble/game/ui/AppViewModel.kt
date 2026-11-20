@@ -7,6 +7,7 @@ import android.content.Context
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.bubble.game.billing.BillingManager
 import com.bubble.game.data.GoogleSignIn
 import com.bubble.game.data.OnlineGame
 import com.bubble.game.data.OnlineRepository
@@ -109,6 +110,64 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var lastRank: Rank? = null
 
     fun dismissRankUp() = _lobby.update { it.copy(rankUpScore = null) }
+
+    // ---------- 인앱 결제 ----------
+
+    /** 포인트 상품 결제. 서버가 영수증을 확인한 뒤에 점수가 들어옵니다. */
+    val billing = BillingManager(app, viewModelScope) { productId, token ->
+        val ok = repo.verifyPurchase(productId, token)
+        if (ok) {
+            _lobby.update {
+                it.copy(
+                    info = tr(
+                        "결제 완료! +${BillingManager.POINTS_500_AMOUNT}점 🎉", "Payment complete! +${BillingManager.POINTS_500_AMOUNT} pts 🎉",
+                        zh = "支付完成！+${BillingManager.POINTS_500_AMOUNT} 分 🎉", hi = "भुगतान पूरा! +${BillingManager.POINTS_500_AMOUNT} अंक 🎉",
+                        es = "¡Pago completado! +${BillingManager.POINTS_500_AMOUNT} pts 🎉", fr = "Paiement effectué ! +${BillingManager.POINTS_500_AMOUNT} pts 🎉",
+                        ar = "تم الدفع! +${BillingManager.POINTS_500_AMOUNT} نقطة 🎉", de = "Zahlung abgeschlossen! +${BillingManager.POINTS_500_AMOUNT} Pkt 🎉",
+                        pt = "Pagamento concluído! +${BillingManager.POINTS_500_AMOUNT} pts 🎉", ru = "Оплата прошла! +${BillingManager.POINTS_500_AMOUNT} очк. 🎉",
+                        ja = "購入完了！+${BillingManager.POINTS_500_AMOUNT}点 🎉",
+                    ),
+                )
+            }
+        }
+        ok
+    }
+
+    fun buyPoints(activity: android.app.Activity) {
+        if (!billing.buy(activity)) {
+            _lobby.update {
+                it.copy(
+                    error = tr(
+                        "플레이 스토어에서 설치한 앱에서만 구매할 수 있어요", "Purchases are only available in the Play Store version",
+                        zh = "仅限从 Play 商店安装的版本购买", hi = "खरीदारी सिर्फ़ Play Store वाले वर्ज़न में उपलब्ध है",
+                        es = "Las compras solo están disponibles en la versión de Play Store", fr = "Les achats ne sont possibles que dans la version Play Store",
+                        ar = "الشراء متاح فقط في نسخة متجر Play", de = "Käufe sind nur in der Play-Store-Version möglich",
+                        pt = "Compras só estão disponíveis na versão da Play Store", ru = "Покупки доступны только в версии из Play Маркета",
+                        ja = "購入はPlayストア版でのみ利用できます",
+                    ),
+                )
+            }
+        }
+    }
+
+    // ---------- 친구 추천 ----------
+
+    /** 내 추천 코드 불러오기 (없으면 서버가 만듦). */
+    fun loadReferralCode() {
+        if (_lobby.value.profile?.refCode != null || uid == null) return
+        viewModelScope.launch { runCatching { repo.referralCode() } }
+    }
+
+    fun redeemReferral(code: String) = shopAction(
+        tr(
+            "코드를 입력했어요! 친구에게 +30점이 들어갔어요 🎁", "Code applied! Your friend got +30 pts 🎁",
+            zh = "已使用邀请码！你的朋友获得 +30 分 🎁", hi = "कोड लग गया! आपके दोस्त को +30 अंक मिले 🎁",
+            es = "¡Código aplicado! Tu amigo recibió +30 pts 🎁", fr = "Code appliqué ! Ton ami a reçu +30 pts 🎁",
+            ar = "تم تطبيق الرمز! حصل صديقك على +30 نقطة 🎁", de = "Code eingelöst! Dein Freund hat +30 Pkt bekommen 🎁",
+            pt = "Código aplicado! Seu amigo ganhou +30 pts 🎁", ru = "Код принят! Друг получил +30 очк. 🎁",
+            ja = "コードを入力しました！友だちに+30点が入りました 🎁",
+        ),
+    ) { repo.redeemReferral(code) }
 
     // ---------- 상점 ----------
 
@@ -225,6 +284,7 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
 
     private fun startSession(id: String) {
         uid = id
+        billing.start()
         sessionJob?.cancel()
         _lobby.update { it.copy(loading = true, needsLogin = false, error = null) }
         sessionJob = viewModelScope.launch {

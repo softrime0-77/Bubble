@@ -123,6 +123,29 @@ firebase deploy --only functions,firestore:rules
 `keystore/bubble.jks`가 있고 비밀번호가 `local.properties`의 `bubbleKeystorePassword`(또는 환경변수 `BUBBLE_KEYSTORE_PASSWORD`)에 있으면 그 키로 서명합니다.
 키와 비밀번호는 저장소에 올리지 않습니다. 잃어버리면 같은 키로 다시 서명할 수 없으니 안전한 곳에 보관하세요.
 
+## 친구 추천
+
+- 로비의 **친구 초대**에서 내 6자리 코드를 공유하고, 친구가 그 코드를 입력하면 **초대한 사람에게 +30점**.
+- 코드 입력은 계정당 1번, 자기 코드 불가, 초대 보상은 1인당 최대 100명까지 (서버 `redeemReferral`).
+
+## 인앱 결제 (500점 = ₩500)
+
+상점 맨 위 **포인트 충전**. Google Play 결제 → 서버(`verifyPurchase`)가 Google Play Developer API로 영수증을 확인한 뒤에만 점수 지급, 같은 영수증은 한 번만 인정.
+
+설정 (한 번만):
+1. Play Console → **수익 창출 설정**에서 판매자(결제) 프로필을 만듭니다.
+2. 결제 라이브러리가 들어간 AAB(v1.10.0 이상)를 테스트 트랙에 올립니다.
+3. Play Console → **수익 창출 → 제품 → 인앱 상품 → 상품 만들기**
+   - 상품 ID: `points_500` (정확히 이 이름)
+   - 이름/설명: 예) "포인트 500"
+   - 가격: ₩500 (다른 나라 가격은 자동 환산) → **활성화**
+4. [Google Cloud 콘솔](https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project=bubble-422ef)에서 **Google Play Android Developer API** 사용 설정
+5. Play Console → **사용자 및 권한 → 새 사용자 초대**
+   - 이메일: `92307501556-compute@developer.gserviceaccount.com` (Cloud Functions 서버 계정)
+   - 앱 권한: Bubble 선택, **재무 데이터 보기**, **주문 및 구독 관리** 체크
+   - 권한이 적용되기까지 최대 하루 걸릴 수 있습니다.
+6. 테스트: Play Console → 설정 → **라이선스 테스트**에 본인 구글 계정을 넣으면 실제 돈 없이 결제를 시험할 수 있습니다.
+
 ## 정식 릴리스 빌드
 
 - 릴리스 빌드는 R8로 코드 축소·난독화와 리소스 축소를 합니다.

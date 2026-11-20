@@ -43,6 +43,12 @@ data class Profile(
     val owned: Set<Animal> = emptySet(),
     /** 장착한 동물 (null이면 기본 고양이/햄스터) */
     val equipped: Animal? = null,
+    /** 내 추천 코드 (처음 친구 초대를 열 때 서버가 만듦) */
+    val refCode: String? = null,
+    /** 다른 사람의 추천 코드를 이미 입력했는지 */
+    val referred: Boolean = false,
+    /** 내가 초대한 친구 수 */
+    val referrals: Int = 0,
 ) {
     val rank: Rank get() = Rank.of(score)
 }
@@ -198,6 +204,21 @@ class OnlineRepository(context: Context) {
         runCatching { call("claimTimeout", mapOf("gameId" to gameId)) }
     }
 
+    /** 내 추천 코드 (없으면 서버가 새로 만듦) */
+    suspend fun referralCode(): String =
+        call("getReferralCode")["code"] as? String ?: throw ServerException("no code")
+
+    /** 친구의 추천 코드 입력 (초대한 친구가 +30점) */
+    suspend fun redeemReferral(code: String) {
+        call("redeemReferral", mapOf("code" to code))
+    }
+
+    /** 인앱 결제 영수증을 서버가 확인하고 점수를 지급. 지급(또는 이미 지급됨)이면 true. */
+    suspend fun verifyPurchase(productId: String, token: String): Boolean {
+        val r = call("verifyPurchase", mapOf("productId" to productId, "token" to token))
+        return (r["granted"] as? Number)?.toInt()?.let { it > 0 } == true || r["already"] == true
+    }
+
     /** 계정 삭제: 서버가 진행 중 대전 기권 → 프로필·아이템 삭제 → 로그인 계정 삭제. */
     suspend fun deleteAccount() {
         call("deleteAccount")
@@ -240,6 +261,9 @@ class OnlineRepository(context: Context) {
         potions = (getLong("potions") ?: 0).toInt(),
         owned = (get("owned") as? List<*>)?.mapNotNull { Animal.of(it as? String) }?.toSet() ?: emptySet(),
         equipped = Animal.of(getString("equipped")),
+        refCode = getString("refCode"),
+        referred = getString("referredBy") != null,
+        referrals = (getLong("referrals") ?: 0).toInt(),
     )
 
     /** 서버가 보낸 수 정보로 화면 언어의 설명을 만듭니다. 정보가 없으면 서버 문구(한/영). */

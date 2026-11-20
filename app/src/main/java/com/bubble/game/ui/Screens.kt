@@ -1,6 +1,7 @@
 package com.bubble.game.ui
 
 import com.bubble.game.i18n.tr
+import com.bubble.game.billing.BillingManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.LayoutDirection
@@ -287,6 +288,7 @@ zh = "登录后 AI 对战也能得分", hi = "साइन इन करें, 
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
             )
         }
+        ui.profile?.let { p -> InviteCard(vm, p, ui.shopBusy) }
         TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
         ui.info?.let {
             Text(it, color = Ui.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
@@ -1063,6 +1065,8 @@ zh = "用分数购买道具（分数减少时等级可能下降）", hi = "अ�
         ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
         if (p == null) return@Column
 
+        PointsCard(vm)
+
         // 부활물약
         ShopCard(
             title = tr("💖 부활물약", "💖 Revive Potion", zh = "💖 复活药水", hi = "💖 रिवाइव पोशन", es = "💖 Poción de revivir", fr = "💖 Potion de résurrection", ar = "💖 جرعة الإحياء", de = "💖 Wiederbelebungstrank", pt = "💖 Poção de reviver", ru = "💖 Зелье оживления", ja = "💖 復活薬"),
@@ -1161,7 +1165,8 @@ zh = "⚠️ 你的等级会从${p.rank.label}降到${Rank.of(after).label}", hi
 private fun ShopCard(
     title: String,
     desc: String,
-    price: Int,
+    /** 점수 가격 (null이면 표시 안 함) */
+    price: Int?,
     owned: String?,
     art: @Composable () -> Unit,
     action: @Composable () -> Unit,
@@ -1177,7 +1182,7 @@ private fun ShopCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(title, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text)
                     Spacer(Modifier.width(6.dp))
-                    Text(tr("${price}점", "${price} pts", zh = "${price} 分", hi = "${price} अंक", es = "${price} pts", fr = "${price} pts", ar = "${price} نقطة", de = "${price} Pkt", pt = "${price} pts", ru = "${price} очк.", ja = "${price}点"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
+if (price != null) Text(tr("${price}점", "${price} pts", zh = "${price} 分", hi = "${price} अंक", es = "${price} pts", fr = "${price} pts", ar = "${price} نقطة", de = "${price} Pkt", pt = "${price} pts", ru = "${price} очк.", ja = "${price}点"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
                 }
                 Text(desc, fontSize = 13.sp, color = Ui.text.copy(alpha = 0.8f), lineHeight = 18.sp)
                 if (owned != null) Text(owned, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
@@ -1369,6 +1374,138 @@ private fun LanguageMenu() {
                     },
                 )
             }
+        }
+    }
+}
+
+/** 친구 초대 카드: 내 추천 코드 공유 + 친구 코드 입력. */
+@Composable
+private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: Boolean) {
+    val context = LocalContext.current
+    LaunchedEffect(p.uid) { vm.loadReferralCode() }
+    var input by remember { mutableStateOf("") }
+    SoftCard {
+        Text(
+            tr("🎁 친구 초대", "🎁 Invite friends", zh = "🎁 邀请好友", hi = "🎁 दोस्तों को बुलाएँ", es = "🎁 Invita a tus amigos",
+                fr = "🎁 Invite tes amis", ar = "🎁 ادعُ أصدقاءك", de = "🎁 Freunde einladen", pt = "🎁 Convide amigos",
+                ru = "🎁 Пригласить друзей", ja = "🎁 友だち招待"),
+            fontWeight = FontWeight.Bold, color = Ui.text,
+        )
+        Text(
+            tr("친구가 내 코드를 입력하면 내가 +30점!", "Get +30 pts when a friend enters your code!",
+                zh = "好友输入你的邀请码，你就得 +30 分！", hi = "दोस्त आपका कोड डाले तो आपको +30 अंक!",
+                es = "¡Gana +30 pts cuando un amigo use tu código!", fr = "Gagne +30 pts quand un ami entre ton code !",
+                ar = "احصل على +30 نقطة عندما يُدخل صديقك رمزك!", de = "+30 Pkt, wenn ein Freund deinen Code eingibt!",
+                pt = "Ganhe +30 pts quando um amigo usar seu código!", ru = "+30 очк., когда друг введёт ваш код!",
+                ja = "友だちが自分のコードを入力すると +30点！"),
+            fontSize = 13.sp, color = Ui.text.copy(alpha = 0.75f),
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                p.refCode ?: "······",
+                fontSize = 24.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark, letterSpacing = 3.sp,
+                modifier = Modifier
+                    .background(Ui.bgTop, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            )
+            Spacer(Modifier.weight(1f))
+            Button(
+                onClick = {
+                    val code = p.refCode ?: return@Button
+                    val msg = tr(
+                        "Bubble 냥햄대전에서 같이 놀자! 🐱🐹\n추천 코드: $code\n$INVITE_LINK",
+                        "Play Bubble: Cats vs Hamsters with me! 🐱🐹\nMy referral code: $code\n$INVITE_LINK",
+                        zh = "来和我一起玩 Bubble 猫咪大战仓鼠吧！🐱🐹\n邀请码：$code\n$INVITE_LINK",
+                        hi = "मेरे साथ Bubble खेलो! 🐱🐹\nमेरा रेफ़रल कोड: $code\n$INVITE_LINK",
+                        es = "¡Juega conmigo a Bubble: Gatos vs Hámsteres! 🐱🐹\nMi código: $code\n$INVITE_LINK",
+                        fr = "Viens jouer à Bubble : Chats contre Hamsters avec moi ! 🐱🐹\nMon code : $code\n$INVITE_LINK",
+                        ar = "العب معي Bubble: قطط ضد هامستر! 🐱🐹\nرمز الدعوة: $code\n$INVITE_LINK",
+                        de = "Spiel mit mir Bubble: Katzen gegen Hamster! 🐱🐹\nMein Code: $code\n$INVITE_LINK",
+                        pt = "Jogue Bubble: Gatos vs Hamsters comigo! 🐱🐹\nMeu código: $code\n$INVITE_LINK",
+                        ru = "Сыграй со мной в Bubble: котики против хомяков! 🐱🐹\nМой код: $code\n$INVITE_LINK",
+                        ja = "一緒に Bubble ネコ vs ハムスター で遊ぼう！🐱🐹\n招待コード：$code\n$INVITE_LINK",
+                    )
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, msg)
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, null))
+                },
+                enabled = p.refCode != null,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+            ) {
+                Text(tr("공유하기", "Share", zh = "分享", hi = "शेयर करें", es = "Compartir", fr = "Partager", ar = "مشاركة",
+                    de = "Teilen", pt = "Compartilhar", ru = "Поделиться", ja = "共有"), fontWeight = FontWeight.Bold)
+            }
+        }
+        if (p.referrals > 0) {
+            Text(
+                tr("초대한 친구 ${p.referrals}명", "Friends invited: ${p.referrals}", zh = "已邀请好友：${p.referrals}",
+                    hi = "बुलाए गए दोस्त: ${p.referrals}", es = "Amigos invitados: ${p.referrals}", fr = "Amis invités : ${p.referrals}",
+                    ar = "الأصدقاء المدعوون: ${p.referrals}", de = "Eingeladene Freunde: ${p.referrals}",
+                    pt = "Amigos convidados: ${p.referrals}", ru = "Приглашено друзей: ${p.referrals}", ja = "招待した友だち：${p.referrals}人"),
+                fontSize = 12.sp, color = Ui.accent, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (!p.referred) {
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it.uppercase().filter { c -> c.isLetterOrDigit() }.take(6) },
+                    singleLine = true,
+                    label = {
+                        Text(tr("친구 코드 입력", "Friend's code", zh = "好友的邀请码", hi = "दोस्त का कोड", es = "Código de un amigo",
+                            fr = "Code d’un ami", ar = "رمز صديق", de = "Code eines Freundes", pt = "Código de um amigo",
+                            ru = "Код друга", ja = "友だちのコード"), fontSize = 12.sp)
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = { vm.redeemReferral(input); input = "" },
+                    enabled = input.length == 6 && !busy,
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(tr("확인", "Apply", zh = "确认", hi = "लागू करें", es = "Aplicar", fr = "Valider", ar = "تطبيق",
+                        de = "Einlösen", pt = "Aplicar", ru = "Ввести", ja = "決定"), color = Ui.accent)
+                }
+            }
+        }
+    }
+}
+
+/** 공유 메시지에 넣는 링크 (플레이 스토어 출시 후에는 스토어 주소로 바꾸면 좋아요) */
+private const val INVITE_LINK = "https://softrime0-77.github.io/Bubble/"
+
+/** 상점 맨 위: 포인트 충전 (Google Play 결제). */
+@Composable
+private fun PointsCard(vm: AppViewModel) {
+    val price by vm.billing.price.collectAsState()
+    val activity = LocalContext.current as Activity
+    ShopCard(
+        title = tr("💰 포인트 충전", "💰 Get points", zh = "💰 充值积分", hi = "💰 अंक खरीदें", es = "💰 Conseguir puntos",
+            fr = "💰 Obtenir des points", ar = "💰 احصل على نقاط", de = "💰 Punkte kaufen", pt = "💰 Comprar pontos",
+            ru = "💰 Купить очки", ja = "💰 ポイント購入"),
+        desc = tr("${BillingManager.POINTS_500_AMOUNT}점이 바로 들어와요", "Get ${BillingManager.POINTS_500_AMOUNT} pts instantly",
+            zh = "立即获得 ${BillingManager.POINTS_500_AMOUNT} 分", hi = "तुरंत ${BillingManager.POINTS_500_AMOUNT} अंक पाएँ",
+            es = "Recibe ${BillingManager.POINTS_500_AMOUNT} pts al instante", fr = "Reçois ${BillingManager.POINTS_500_AMOUNT} pts tout de suite",
+            ar = "احصل على ${BillingManager.POINTS_500_AMOUNT} نقطة فورًا", de = "Sofort ${BillingManager.POINTS_500_AMOUNT} Pkt erhalten",
+            pt = "Receba ${BillingManager.POINTS_500_AMOUNT} pts na hora", ru = "Сразу ${BillingManager.POINTS_500_AMOUNT} очк.",
+            ja = "すぐに${BillingManager.POINTS_500_AMOUNT}点もらえます"),
+        price = null,
+        owned = null,
+        art = { Text("💰", fontSize = 56.sp) },
+    ) {
+        Button(
+            onClick = { vm.buyPoints(activity) },
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Ui.gold, contentColor = Ui.text),
+        ) {
+            Text(price ?: tr("구매하기", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء",
+                de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "購入"), fontWeight = FontWeight.Black)
         }
     }
 }

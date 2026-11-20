@@ -9,6 +9,8 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
+import { normalizeCode, randomCode } from "./referral";
+import { GoogleAuth } from "google-auth-library";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
 import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
@@ -582,4 +584,115 @@ export const deleteAccount = onCall(async (req) => {
   }
   logger.info("account deleted", { uid, forfeited: asCat.size + asHam.size });
   return { ok: true };
+});
+
+// ======================= 친구 추천 =======================
+
+/** 친구를 초대한 사람이 받는 점수 */
+const REFERRAL_POINTS = 30;
+/** 한 사람이 초대 보상을 받을 수 있는 최대 인원 (부계정 악용 방지) */
+const MAX_REFERRALS = 100;
+
+/** 내 추천 코드 (없으면 새로 만듦). refCodes/{code} → uid 로 중복을 막습니다. */
+export const getReferralCode = onCall(async (req) => {
+  const uid = requireUser(req);
+  const userRef = db.collection("users").doc(uid);
+  const existing = (await userRef.get()).get("refCode") as string | undefined;
+  if (existing) return { code: existing };
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = randomCode();
+    const codeRef = db.collection("refCodes").doc(code);
+    const made = await db.runTransaction(async (tx) => {
+      const [u, c] = await Promise.all([tx.get(userRef), tx.get(codeRef)]);
+      if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+      const already = u.get("refCode") as string | undefined;
+      if (already) return already;
+      if (c.exists) return null;
+      tx.set(codeRef, { uid });
+      tx.update(userRef, { refCode: code });
+      return code;
+    });
+    if (made) return { code: made };
+  }
+  throw err("internal", "코드를 만들지 못했어요. 다시 시도해 주세요", "Could not create a code. Please try again");
+});
+
+/** 친구의 추천 코드 입력. 계정당 한 번, 초대한 사람에게 +30점. */
+export const redeemReferral = onCall(async (req) => {
+  const uid = requireUser(req);
+  const code = normalizeCode((req.data as { code?: unknown } | null)?.code);
+  if (!code) throw err("invalid-argument", "코드 형식이 맞지 않아요 (6자리)", "That code doesn't look right (6 characters)");
+  const meRef = db.collection("users").doc(uid);
+  const codeRef = db.collection("refCodes").doc(code);
+  await db.runTransaction(async (tx) => {
+    const [me, c] = await Promise.all([tx.get(meRef), tx.get(codeRef)]);
+    if (!me.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    if (me.get("referredBy")) throw err("already-exists", "이미 추천 코드를 입력했어요", "You've already entered a referral code");
+    if (!c.exists) throw err("not-found", "없는 추천 코드예요", "No such referral code");
+    const inviter = c.get("uid") as string;
+    if (inviter === uid) throw err("invalid-argument", "내 코드는 입력할 수 없어요", "You can't use your own code");
+    const inviterRef = db.collection("users").doc(inviter);
+    const inv = await tx.get(inviterRef);
+    if (!inv.exists) throw err("not-found", "없는 추천 코드예요", "No such referral code");
+    const count = (inv.get("referrals") as number | undefined) ?? 0;
+    tx.update(meRef, { referredBy: inviter });
+    if (count < MAX_REFERRALS) {
+      tx.update(inviterRef, { score: FieldValue.increment(REFERRAL_POINTS), referrals: FieldValue.increment(1) });
+    }
+  });
+  return { ok: true };
+});
+
+// ======================= 인앱 결제 =======================
+
+const PACKAGE_NAME = "com.bubble.game";
+/** Play Console에 만든 소모성 상품 ID → 지급 점수 */
+const PRODUCTS: Record<string, number> = { points_500: 500 };
+
+const playAuth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] });
+
+/**
+ * 결제 영수증 확인 후 점수 지급.
+ * Google Play Developer API로 영수증이 진짜이고 결제 완료 상태인지 확인하고,
+ * purchases/{token} 기록으로 같은 영수증을 두 번 쓰지 못하게 합니다.
+ * (Cloud Functions 서비스 계정을 Play Console 사용자로 초대해 두어야 합니다 — README 참고)
+ */
+export const verifyPurchase = onCall(async (req) => {
+  const uid = requireUser(req);
+  const data = (req.data ?? {}) as { productId?: unknown; token?: unknown };
+  const productId = typeof data.productId === "string" ? data.productId : "";
+  const token = typeof data.token === "string" ? data.token : "";
+  const points = PRODUCTS[productId];
+  if (!points || !token || token.length > 4096) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
+
+  const purchaseRef = db.collection("purchases").doc(token.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 1400));
+  const done = await purchaseRef.get();
+  if (done.exists) {
+    if (done.get("uid") !== uid) throw err("permission-denied", "다른 계정의 결제예요", "This purchase belongs to another account");
+    return { granted: 0, already: true };
+  }
+
+  const client = await playAuth.getClient();
+  const url =
+    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}` +
+    `/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}`;
+  let info: { purchaseState?: number; consumptionState?: number; orderId?: string };
+  try {
+    info = (await client.request({ url })).data as typeof info;
+  } catch (e) {
+    logger.error("play verify failed", { uid, productId, e });
+    throw err("failed-precondition", "결제를 확인하지 못했어요. 잠시 후 다시 시도해 주세요", "Couldn't verify the purchase. Please try again shortly");
+  }
+  // purchaseState 0 = 결제 완료 (1 취소, 2 대기)
+  if (info.purchaseState !== 0) throw err("failed-precondition", "결제가 아직 완료되지 않았어요", "The payment isn't complete yet");
+
+  const granted = await db.runTransaction(async (tx) => {
+    const again = await tx.get(purchaseRef);
+    if (again.exists) return 0;
+    tx.create(purchaseRef, { uid, productId, points, orderId: info.orderId ?? null, at: Date.now() });
+    tx.update(db.collection("users").doc(uid), { score: FieldValue.increment(points) });
+    return points;
+  });
+  logger.info("purchase granted", { uid, productId, orderId: info.orderId, granted });
+  return { granted };
 });

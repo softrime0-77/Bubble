@@ -184,3 +184,14 @@ firebase deploy --only functions,firestore:rules
   - `BUBBLE_KEYSTORE_BASE64`: `keystore/bubble.jks`를 base64로 인코딩한 값
   - `BUBBLE_KEYSTORE_PASSWORD`: 서명 키 비밀번호
 - **직접 빌드**: Android Studio로 열어서 실행하거나 `./gradlew assembleDebug`.
+
+## iOS (진행 중)
+
+`ios/` 폴더에 SwiftUI로 만든 아이폰 앱이 있습니다. 서버(Firebase)는 안드로이드와 같은 것을 써서, 완성되면 아이폰·안드로이드 사용자가 서로 매칭됩니다.
+
+- `ios/BubbleCore`: 게임 규칙·AI·계급/상점 데이터 (Swift 패키지, 안드로이드·서버와 같은 규칙, 테스트 포함)
+- `ios/Bubble`: SwiftUI 화면 (캐릭터·방울·타이머·11개 언어). `Strings.swift`는 안드로이드 번역에서 자동 생성한 표
+- `ios/project.yml`: XcodeGen 설정 (`xcodegen generate`로 Xcode 프로젝트 생성)
+- 빌드 확인: GitHub Actions **iOS** 워크플로(Mac)에서 테스트 → 시뮬레이터 빌드 → 스크린샷. 스크린샷은 `ios-screenshots` 브랜치에 올라감
+
+진행 단계: ✅ 1단계 게임 화면·AI 연습 → 2단계 로그인(Google·Apple)·온라인 대전 → 3단계 상점·결제(StoreKit)·광고 → 4단계 마무리·TestFlight

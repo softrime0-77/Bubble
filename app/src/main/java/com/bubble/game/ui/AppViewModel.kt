@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bubble.game.billing.BillingManager
 import com.bubble.game.data.GoogleSignIn
+import com.bubble.game.data.Invite
 import com.bubble.game.data.OnlineGame
 import com.bubble.game.data.OnlineRepository
 import com.bubble.game.data.Profile
@@ -127,12 +128,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _lobby.update {
                 it.copy(
                     info = tr(
-                        "결제 완료! +${amount}점 🎉", "Payment complete! +${amount} pts 🎉",
-                        zh = "支付完成！+${amount} 分 🎉", hi = "भुगतान पूरा! +${amount} अंक 🎉",
-                        es = "¡Pago completado! +${amount} pts 🎉", fr = "Paiement effectué ! +${amount} pts 🎉",
-                        ar = "تم الدفع! +${amount} نقطة 🎉", de = "Zahlung abgeschlossen! +${amount} Pkt 🎉",
-                        pt = "Pagamento concluído! +${amount} pts 🎉", ru = "Оплата прошла! +${amount} очк. 🎉",
-                        ja = "購入完了！+${amount}点 🎉",
+                        "결제 완료! 💰 상점 포인트 +$amount 🎉", "Payment complete! 💰 +$amount shop points 🎉",
+                        zh = "支付完成！💰 商店积分 +$amount 🎉", hi = "भुगतान पूरा! 💰 +$amount शॉप पॉइंट 🎉",
+                        es = "¡Pago completado! 💰 +$amount puntos de tienda 🎉", fr = "Paiement effectué ! 💰 +$amount points boutique 🎉",
+                        ar = "تم الدفع! 💰 +$amount من نقاط المتجر 🎉", de = "Zahlung abgeschlossen! 💰 +$amount Shop-Punkte 🎉",
+                        pt = "Pagamento concluído! 💰 +$amount pontos da loja 🎉", ru = "Оплата прошла! 💰 +$amount очков магазина 🎉",
+                        ja = "購入完了！💰 ショップポイント +$amount 🎉",
                     ),
                 )
             }
@@ -158,6 +159,49 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---------- 친구 추천 ----------
+
+    private var redeemingInvite = false
+
+    /** 초대 링크·설치 정보로 받은 코드. 로그인되어 있으면 바로, 아니면 로그인 후 자동 입력. */
+    fun receiveInvite(code: String) {
+        Invite.savePending(getApplication(), code)
+        _lobby.value.profile?.let { tryRedeemPendingInvite(it) }
+    }
+
+    private fun tryRedeemPendingInvite(p: Profile) {
+        val app = getApplication<Application>()
+        val code = Invite.pending(app) ?: return
+        if (p.referred || p.refCode == code) {
+            Invite.clearPending(app)
+            return
+        }
+        if (redeemingInvite) return
+        redeemingInvite = true
+        viewModelScope.launch {
+            try {
+                repo.redeemReferral(code)
+                _lobby.update {
+                    it.copy(
+                        info = tr(
+                            "초대 코드 ${code}가 입력됐어요! 친구에게 +30점이 들어갔어요 🎁", "Invite code $code applied! Your friend got +30 pts 🎁",
+                            zh = "已使用邀请码 $code！你的朋友获得 +30 分 🎁", hi = "इनवाइट कोड $code लग गया! दोस्त को +30 अंक मिले 🎁",
+                            es = "¡Código $code aplicado! Tu amigo recibió +30 pts 🎁", fr = "Code $code appliqué ! Ton ami a reçu +30 pts 🎁",
+                            ar = "تم تطبيق رمز الدعوة $code! حصل صديقك على +30 نقطة 🎁", de = "Code $code eingelöst! Dein Freund hat +30 Pkt bekommen 🎁",
+                            pt = "Código $code aplicado! Seu amigo ganhou +30 pts 🎁", ru = "Код $code принят! Друг получил +30 очк. 🎁",
+                            ja = "招待コード ${code} を入力しました！友だちに+30点 🎁",
+                        ),
+                    )
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lobby.update { it.copy(error = e.message) }
+            } finally {
+                Invite.clearPending(app)
+                redeemingInvite = false
+            }
+        }
+    }
 
     /** 내 추천 코드 불러오기 (없으면 서버가 만듦). */
     fun loadReferralCode() {
@@ -319,6 +363,7 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                         val prev = lastRank
                         val rankedUp = rank != null && prev != null && rank.ordinal > prev.ordinal
                         if (rank != null) lastRank = rank
+                        if (p != null) tryRedeemPendingInvite(p)
                         _lobby.update {
                             it.copy(
                                 profile = p,

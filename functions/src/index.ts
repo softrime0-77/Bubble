@@ -13,7 +13,7 @@ import { normalizeCode, randomCode } from "./referral";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, turnLimitAgainst } from "./catalog";
+import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
@@ -506,7 +506,7 @@ export const admobSsv = onRequest(async (req, res) => {
 });
 
 /**
- * 상점 구매. 점수로 아이템을 삽니다.
+ * 상점 구매. 상점 포인트(coins, 결제로 충전)를 먼저 쓰고 모자라면 점수에서 씁니다.
  * - POTION: 부활물약 1개 (1000점)
  * - SHEEP / DOG / GIRAFFE: 동물 캐릭터 (사면 바로 장착)
  */
@@ -522,14 +522,21 @@ export const buyItem = onCall(async (req) => {
     const u = await tx.get(userRef);
     if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
     const score = (u.get("score") as number | undefined) ?? START_SCORE;
-    if (score < price) throw err("failed-precondition", `점수가 부족해요 (${price}점 필요)`, `Not enough points (${price} needed)`);
+    const coins = (u.get("coins") as number | undefined) ?? 0;
+    // 상점 포인트(결제)를 먼저 쓰고, 모자라는 만큼 점수에서
+    const pay = splitPayment(price, coins, score);
+    if (!pay) throw err("failed-precondition", `포인트가 부족해요 (${price} 필요)`, `Not enough points (${price} needed)`);
+    const { fromCoins, fromScore } = pay;
     const owned = (u.get("owned") as string[] | undefined) ?? [];
     if (item !== "POTION" && owned.includes(item)) throw err("already-exists", "이미 가지고 있어요", "You already own this");
     tx.update(
       userRef,
       item === "POTION"
-        ? { score: FieldValue.increment(-price), potions: FieldValue.increment(1) }
-        : { score: FieldValue.increment(-price), owned: FieldValue.arrayUnion(item), equipped: item },
+        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(1) }
+        : {
+          score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins),
+          owned: FieldValue.arrayUnion(item), equipped: item,
+        },
     );
   });
   return { ok: true };
@@ -654,7 +661,8 @@ export const redeemReferral = onCall(async (req) => {
 
 const PACKAGE_NAME = "com.bubble.game";
 /** Play Console에 만든 소모성 상품 ID → 지급 점수 */
-const PRODUCTS: Record<string, number> = { points_100: 100, points_500: 500, points_1000: 1000, points_2000: 2000 };
+/** 결제로 받는 것은 "상점 포인트(coins)" — 상점 전용이라 점수·계급에는 들어가지 않음 */
+const PRODUCTS: Record<string, number> = { points_500: 500, points_1000: 1000, points_2000: 2000 };
 
 const playAuth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] });
 
@@ -697,7 +705,7 @@ export const verifyPurchase = onCall(async (req) => {
     const again = await tx.get(purchaseRef);
     if (again.exists) return 0;
     tx.create(purchaseRef, { uid, productId, points, orderId: info.orderId ?? null, at: Date.now() });
-    tx.update(db.collection("users").doc(uid), { score: FieldValue.increment(points) });
+    tx.update(db.collection("users").doc(uid), { coins: FieldValue.increment(points) });
     return points;
   });
   logger.info("purchase granted", { uid, productId, orderId: info.orderId, granted });

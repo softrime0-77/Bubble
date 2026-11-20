@@ -48,3 +48,13 @@ export function rankBonusPercent(score: number): number {
 export function rankBonus(base: number, score: number): number {
   return base > 0 ? Math.round((base * rankBonusPercent(score)) / 100) : 0;
 }
+
+/**
+ * 상점 결제 나누기: 상점 포인트(coins)를 먼저 쓰고 모자라면 점수(score)에서.
+ * 둘을 합쳐도 모자라면 null.
+ */
+export function splitPayment(price: number, coins: number, score: number): { fromCoins: number; fromScore: number } | null {
+  const fromCoins = Math.min(Math.max(coins, 0), price);
+  const fromScore = price - fromCoins;
+  return fromScore > Math.max(score, 0) ? null : { fromCoins, fromScore };
+}

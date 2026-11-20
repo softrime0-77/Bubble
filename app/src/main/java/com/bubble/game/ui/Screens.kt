@@ -1,6 +1,7 @@
 package com.bubble.game.ui
 
 import com.bubble.game.i18n.tr
+import com.bubble.game.data.Invite
 import com.bubble.game.billing.BillingManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.PaddingValues
@@ -218,10 +219,18 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 tr(
-"${p.wins}승 ${p.losses}패 · 💖 부활물약 ${p.potions}개",
-"${p.wins}W ${p.losses}L · 💖 Potions ${p.potions}",
-zh = "${p.wins}胜 ${p.losses}负 · 💖 药水 ${p.potions}", hi = "${p.wins}जीत ${p.losses}हार · 💖 पोशन ${p.potions}", es = "${p.wins}V ${p.losses}D · 💖 Pociones ${p.potions}", fr = "${p.wins}V ${p.losses}D · 💖 Potions ${p.potions}", ar = "${p.wins} فوز ${p.losses} خسارة · 💖 جرعات ${p.potions}", de = "${p.wins}S ${p.losses}N · 💖 Tränke ${p.potions}", pt = "${p.wins}V ${p.losses}D · 💖 Poções ${p.potions}", ru = "${p.wins}П ${p.losses}Пр · 💖 Зелья ${p.potions}", ja = "${p.wins}勝 ${p.losses}敗 · 💖 復活薬 ${p.potions}個",
-),
+                                    "${p.wins}승 ${p.losses}패 · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    "${p.wins}W ${p.losses}L · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    zh = "${p.wins}胜 ${p.losses}负 · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    hi = "${p.wins}जीत ${p.losses}हार · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    es = "${p.wins}V ${p.losses}D · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    fr = "${p.wins}V ${p.losses}D · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    ar = "${p.wins} فوز ${p.losses} خسارة · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    de = "${p.wins}S ${p.losses}N · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    pt = "${p.wins}V ${p.losses}D · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    ru = "${p.wins}П ${p.losses}Пр · 💖 ${p.potions} · 💰 ${p.coins}",
+                                    ja = "${p.wins}勝 ${p.losses}敗 · 💖 ${p.potions} · 💰 ${p.coins}",
+                                ),
                                 fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
                             )
                         }
@@ -1074,14 +1083,23 @@ private fun ShopScreen(vm: AppViewModel) {
             if (p != null) {
                 Text(tr("내 점수 ", "My score ", zh = "我的分数 ", hi = "मेरा स्कोर ", es = "Mi puntuación ", fr = "Mon score ", ar = "نقاطي ", de = "Mein Punktestand ", pt = "Minha pontuação ", ru = "Мой счёт ", ja = "自分のスコア "), color = Ui.text, fontSize = 14.sp)
                 Text(tr("${p.score}점", "${p.score} pts", zh = "${p.score} 分", hi = "${p.score} अंक", es = "${p.score} pts", fr = "${p.score} pts", ar = "${p.score} نقطة", de = "${p.score} Pkt", pt = "${p.score} pts", ru = "${p.score} очк.", ja = "${p.score}点"), color = Ui.primaryDark, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                Text("  💰 ${p.coins}", color = Color(0xFFC88A00), fontWeight = FontWeight.Black, fontSize = 18.sp)
             }
         }
         Text(tr("🛒 상점", "🛒 Shop", zh = "🛒 商店", hi = "🛒 दुकान", es = "🛒 Tienda", fr = "🛒 Boutique", ar = "🛒 المتجر", de = "🛒 Shop", pt = "🛒 Loja", ru = "🛒 Магазин", ja = "🛒 ショップ"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
         Text(tr(
-"점수로 아이템을 살 수 있어요 (점수가 줄면 계급도 내려갈 수 있어요)",
-"Spend points on items (your rank can drop if your score does)",
-zh = "用分数购买道具（分数减少时等级可能下降）", hi = "अंकों से आइटम खरीदें (स्कोर घटा तो रैंक भी घट सकती है)", es = "Gasta puntos en objetos (tu rango puede bajar si baja tu puntuación)", fr = "Dépense tes points en objets (ton rang peut baisser avec ton score)", ar = "أنفق نقاطك على العناصر (قد تنخفض رتبتك إذا انخفضت نقاطك)", de = "Gib Punkte für Items aus (dein Rang kann sinken, wenn deine Punkte sinken)", pt = "Gaste pontos em itens (seu rank pode cair se a pontuação cair)", ru = "Тратьте очки на предметы (ранг может упасть вместе со счётом)", ja = "点数でアイテムを買えます（点数が減るとランクが下がることも）",
-), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                "💰 상점 포인트를 먼저 쓰고, 모자라면 점수에서 써요 (점수가 줄면 계급이 내려갈 수 있어요)",
+                "💰 Shop points are spent first, then your score (your rank can drop if your score does)",
+                zh = "先使用 💰 商店积分，不够时再扣分数（分数减少等级可能下降）",
+                hi = "पहले 💰 शॉप पॉइंट खर्च होंगे, फिर आपका स्कोर (स्कोर घटा तो रैंक भी घट सकती है)",
+                es = "Primero se gastan los 💰 puntos de tienda y luego tu puntuación (tu rango puede bajar)",
+                fr = "Les 💰 points boutique sont utilisés d’abord, puis ton score (ton rang peut baisser)",
+                ar = "تُستخدم 💰 نقاط المتجر أولًا ثم نقاطك (قد تنخفض رتبتك)",
+                de = "Zuerst werden 💰 Shop-Punkte verwendet, dann dein Punktestand (dein Rang kann sinken)",
+                pt = "Primeiro são usados os 💰 pontos da loja, depois sua pontuação (seu rank pode cair)",
+                ru = "Сначала тратятся 💰 очки магазина, потом ваш счёт (ранг может понизиться)",
+                ja = "💰 ショップポイントから先に使い、足りない分はスコアから（スコアが減るとランクが下がることも）",
+            ), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))
         ui.info?.let { Text(it, color = Ui.accent, fontWeight = FontWeight.Bold) }
         ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
@@ -1103,7 +1121,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
         ) {
             Button(
                 onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬"), Shop.POTION_PRICE) },
-                enabled = !ui.shopBusy && p.score >= Shop.POTION_PRICE,
+                enabled = !ui.shopBusy && p.score + p.coins >= Shop.POTION_PRICE,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
             ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts", zh = "${Shop.POTION_PRICE} 分购买", hi = "${Shop.POTION_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.POTION_PRICE} pts", fr = "Acheter pour ${Shop.POTION_PRICE} pts", ar = "اشترِ مقابل ${Shop.POTION_PRICE} نقطة", de = "Für ${Shop.POTION_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.POTION_PRICE} pts", ru = "Купить за ${Shop.POTION_PRICE} очк.", ja = "${Shop.POTION_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
@@ -1146,7 +1164,7 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
                     ) { Text(tr("장착하기", "Equip", zh = "装备", hi = "लगाएँ", es = "Equipar", fr = "Équiper", ar = "تجهيز", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する"), fontWeight = FontWeight.Bold) }
                     else -> Button(
                         onClick = { confirm = Triple(a.name, a.label, a.price) },
-                        enabled = !ui.shopBusy && p.score >= a.price,
+                        enabled = !ui.shopBusy && p.score + p.coins >= a.price,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
                     ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
@@ -1156,17 +1174,28 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
     }
 
     confirm?.let { (item, label, price) ->
-        val after = (p?.score ?: 0) - price
+        // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙)
+        val fromCoins = minOf(p?.coins ?: 0, price)
+        val fromScore = price - fromCoins
+        val after = (p?.score ?: 0) - fromScore
         AlertDialog(
             onDismissRequest = { confirm = null },
             title = { Text(tr("$label 살까요?", "Buy $label?", zh = "购买 ${label}？", hi = "$label खरीदें?", es = "¿Comprar $label?", fr = "Acheter $label ?", ar = "شراء ${label}؟", de = "$label kaufen?", pt = "Comprar $label?", ru = "Купить $label?", ja = "${label}を買いますか？"), fontWeight = FontWeight.Black) },
             text = {
                 Column {
                     Text(tr(
-"${price}점을 써요. 남는 점수: ${after}점",
-"Costs ${price} pts. You’ll have ${after} pts left.",
-zh = "花费 ${price} 分，剩余 ${after} 分。", hi = "${price} अंक लगेंगे। बचेंगे ${after} अंक।", es = "Cuesta ${price} pts. Te quedarán ${after} pts.", fr = "Coûte ${price} pts. Il te restera ${after} pts.", ar = "التكلفة ${price} نقطة. سيتبقى لك ${after} نقطة.", de = "Kostet ${price} Pkt. Danach hast du ${after} Pkt.", pt = "Custa ${price} pts. Vão sobrar ${after} pts.", ru = "Стоит ${price} очк. Останется ${after} очк.", ja = "${price}点を使います。残り${after}点。",
-), fontWeight = FontWeight.Bold)
+                        "💰 상점 포인트 $fromCoins + 점수 $fromScore 사용\n남는 점수: ${after}점",
+                        "Uses 💰 $fromCoins shop points + $fromScore score\nScore left: $after",
+                        zh = "使用 💰 商店积分 $fromCoins + 分数 $fromScore\n剩余分数：$after",
+                        hi = "💰 $fromCoins शॉप पॉइंट + $fromScore स्कोर लगेगा\nबचा स्कोर: $after",
+                        es = "Usa 💰 $fromCoins puntos de tienda + $fromScore de puntuación\nPuntuación restante: $after",
+                        fr = "Utilise 💰 $fromCoins points boutique + $fromScore de score\nScore restant : $after",
+                        ar = "يستخدم 💰 $fromCoins من نقاط المتجر + $fromScore من النقاط\nالمتبقي: $after",
+                        de = "Nutzt 💰 $fromCoins Shop-Punkte + $fromScore Punktestand\nVerbleibend: $after",
+                        pt = "Usa 💰 $fromCoins pontos da loja + $fromScore de pontuação\nPontuação restante: $after",
+                        ru = "Будет списано 💰 $fromCoins очков магазина + $fromScore счёта\nОстанется: $after",
+                        ja = "💰 ショップポイント${fromCoins} + スコア${fromScore}を使用\n残りスコア：$after",
+                    ), fontWeight = FontWeight.Bold)
                     if (p != null && Rank.of(after) != p.rank) {
                         Spacer(Modifier.height(6.dp))
                         Text(tr(
@@ -1443,18 +1472,19 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
             Button(
                 onClick = {
                     val code = p.refCode ?: return@Button
+                    val link = Invite.link(code)
                     val msg = tr(
-                        "Bubble 냥햄대전에서 같이 놀자! 🐱🐹\n추천 코드: $code\n$INVITE_LINK",
-                        "Play Bubble: Cats vs Hamsters with me! 🐱🐹\nMy referral code: $code\n$INVITE_LINK",
-                        zh = "来和我一起玩 Bubble 猫咪大战仓鼠吧！🐱🐹\n邀请码：$code\n$INVITE_LINK",
-                        hi = "मेरे साथ Bubble खेलो! 🐱🐹\nमेरा रेफ़रल कोड: $code\n$INVITE_LINK",
-                        es = "¡Juega conmigo a Bubble: Gatos vs Hámsteres! 🐱🐹\nMi código: $code\n$INVITE_LINK",
-                        fr = "Viens jouer à Bubble : Chats contre Hamsters avec moi ! 🐱🐹\nMon code : $code\n$INVITE_LINK",
-                        ar = "العب معي Bubble: قطط ضد هامستر! 🐱🐹\nرمز الدعوة: $code\n$INVITE_LINK",
-                        de = "Spiel mit mir Bubble: Katzen gegen Hamster! 🐱🐹\nMein Code: $code\n$INVITE_LINK",
-                        pt = "Jogue Bubble: Gatos vs Hamsters comigo! 🐱🐹\nMeu código: $code\n$INVITE_LINK",
-                        ru = "Сыграй со мной в Bubble: котики против хомяков! 🐱🐹\nМой код: $code\n$INVITE_LINK",
-                        ja = "一緒に Bubble ネコ vs ハムスター で遊ぼう！🐱🐹\n招待コード：$code\n$INVITE_LINK",
+                        "Bubble 냥햄대전에서 같이 놀자! 🐱🐹\n추천 코드: $code\n$link",
+                        "Play Bubble: Cats vs Hamsters with me! 🐱🐹\nMy referral code: $code\n$link",
+                        zh = "来和我一起玩 Bubble 猫咪大战仓鼠吧！🐱🐹\n邀请码：$code\n$link",
+                        hi = "मेरे साथ Bubble खेलो! 🐱🐹\nमेरा रेफ़रल कोड: $code\n$link",
+                        es = "¡Juega conmigo a Bubble: Gatos vs Hámsteres! 🐱🐹\nMi código: $code\n$link",
+                        fr = "Viens jouer à Bubble : Chats contre Hamsters avec moi ! 🐱🐹\nMon code : $code\n$link",
+                        ar = "العب معي Bubble: قطط ضد هامستر! 🐱🐹\nرمز الدعوة: $code\n$link",
+                        de = "Spiel mit mir Bubble: Katzen gegen Hamster! 🐱🐹\nMein Code: $code\n$link",
+                        pt = "Jogue Bubble: Gatos vs Hamsters comigo! 🐱🐹\nMeu código: $code\n$link",
+                        ru = "Сыграй со мной в Bubble: котики против хомяков! 🐱🐹\nМой код: $code\n$link",
+                        ja = "一緒に Bubble ネコ vs ハムスター で遊ぼう！🐱🐹\n招待コード：$code\n$link",
                     )
                     val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                         type = "text/plain"
@@ -1468,6 +1498,29 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
             ) {
                 Text(tr("공유하기", "Share", zh = "分享", hi = "शेयर करें", es = "Compartir", fr = "Partager", ar = "مشاركة",
                     de = "Teilen", pt = "Compartilhar", ru = "Поделиться", ja = "共有"), fontWeight = FontWeight.Bold)
+            }
+        }
+        // 초대 링크 복사
+        p.refCode?.let { code ->
+            val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+            var copied by remember { mutableStateOf(false) }
+            TextButton(onClick = {
+                clipboard.setText(androidx.compose.ui.text.AnnotatedString(Invite.link(code)))
+                copied = true
+            }) {
+                Text(
+                    if (copied) {
+                        tr("✅ 링크를 복사했어요", "✅ Link copied", zh = "✅ 链接已复制", hi = "✅ लिंक कॉपी हो गया", es = "✅ Enlace copiado",
+                            fr = "✅ Lien copié", ar = "✅ تم نسخ الرابط", de = "✅ Link kopiert", pt = "✅ Link copiado",
+                            ru = "✅ Ссылка скопирована", ja = "✅ リンクをコピーしました")
+                    } else {
+                        tr("🔗 초대 링크 복사", "🔗 Copy invite link", zh = "🔗 复制邀请链接", hi = "🔗 इनवाइट लिंक कॉपी करें",
+                            es = "🔗 Copiar enlace de invitación", fr = "🔗 Copier le lien d’invitation", ar = "🔗 نسخ رابط الدعوة",
+                            de = "🔗 Einladungslink kopieren", pt = "🔗 Copiar link de convite", ru = "🔗 Скопировать ссылку",
+                            ja = "🔗 招待リンクをコピー")
+                    },
+                    color = Ui.accent, fontWeight = FontWeight.Bold, fontSize = 13.sp,
+                )
             }
         }
         if (p.referrals > 0) {
@@ -1507,8 +1560,6 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
     }
 }
 
-/** 공유 메시지에 넣는 링크 (플레이 스토어 출시 후에는 스토어 주소로 바꾸면 좋아요) */
-private const val INVITE_LINK = "https://softrime0-77.github.io/Bubble/"
 
 /** 상점 맨 위: 포인트 충전 (Google Play 결제). 100 · 500 · 1000 · 2000점 */
 @Composable
@@ -1521,6 +1572,20 @@ private fun PointsCard(vm: AppViewModel) {
                 fr = "💰 Obtenir des points", ar = "💰 احصل على نقاط", de = "💰 Punkte kaufen", pt = "💰 Comprar pontos",
                 ru = "💰 Купить очки", ja = "💰 ポイント購入"),
             fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text,
+        )
+        Text(
+            tr("결제한 포인트는 💰 상점 포인트로 들어가요. 상점 전용이라 계급·랭킹 점수와는 별개예요.",
+                "Purchased points go to 💰 shop points. They're for the shop only and don't count toward your rank or leaderboard score.",
+                zh = "购买的积分会存入 💰 商店积分，仅限商店使用，不计入等级和排行榜分数。",
+                hi = "खरीदे गए पॉइंट 💰 शॉप पॉइंट में जाते हैं। ये सिर्फ़ दुकान के लिए हैं, रैंक या लीडरबोर्ड स्कोर में नहीं गिने जाते।",
+                es = "Los puntos comprados van a 💰 puntos de tienda. Solo sirven en la tienda y no cuentan para tu rango ni la clasificación.",
+                fr = "Les points achetés vont dans les 💰 points boutique. Ils servent uniquement en boutique et ne comptent ni pour le rang ni pour le classement.",
+                ar = "تذهب النقاط المشتراة إلى 💰 نقاط المتجر. وهي للمتجر فقط ولا تُحتسب في الرتبة أو لوحة المتصدرين.",
+                de = "Gekaufte Punkte landen als 💰 Shop-Punkte. Sie gelten nur im Shop und zählen nicht für Rang oder Bestenliste.",
+                pt = "Os pontos comprados vão para 💰 pontos da loja. São só para a loja e não contam para rank ou ranking.",
+                ru = "Купленные очки идут в 💰 очки магазина. Они только для магазина и не влияют на ранг и рейтинг.",
+                ja = "購入したポイントは 💰 ショップポイントになります。ショップ専用で、ランクやランキングのスコアには入りません。"),
+            fontSize = 12.sp, color = Ui.text.copy(alpha = 0.75f), lineHeight = 17.sp,
         )
         Spacer(Modifier.height(8.dp))
         BillingManager.PRODUCTS.entries.chunked(2).forEach { row ->
@@ -1535,9 +1600,7 @@ private fun PointsCard(vm: AppViewModel) {
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "💰 " + tr("${points}점", "$points pts", zh = "$points 分", hi = "$points अंक", es = "$points pts",
-                                    fr = "$points pts", ar = "$points نقطة", de = "$points Pkt", pt = "$points pts",
-                                    ru = "$points очк.", ja = "${points}点"),
+                                "💰 " + "$points",
                                 fontWeight = FontWeight.Black, fontSize = 17.sp,
                             )
                             Text(prices[id] ?: "₩$points", fontSize = 13.sp, fontWeight = FontWeight.Bold)

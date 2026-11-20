@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bubble 초대장</title>
+<meta property="og:title" content="Bubble 냥햄대전 초대장 🐱🐹">
+<meta property="og:description" content="친구가 초대했어요! 같이 방울을 터뜨려요.">
+<meta property="og:image" content="https://softrime0-77.github.io/Bubble/store/feature_1024x500_ko.png">
+<style>
+  :root { --ink:#4a3b5c; --pink:#ff7eb3; --pinkd:#e0518f; --violet:#7c6cf2; }
+  body { margin:0; font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",Roboto,sans-serif; color:var(--ink);
+         background:linear-gradient(#ffe3f1,#dcd6ff) fixed; text-align:center; min-height:100vh; }
+  main { max-width:480px; margin:0 auto; padding:32px 16px 48px; }
+  .icon { width:112px; border-radius:28px; box-shadow:0 6px 20px #0002; }
+  h1 { color:var(--pinkd); margin:18px 0 6px; font-size:1.6rem; }
+  .code { display:inline-block; margin:14px 0 6px; padding:10px 22px; border-radius:16px; background:#fff;
+          font-size:2rem; font-weight:900; letter-spacing:.3em; color:var(--pinkd); }
+  .hint { font-size:.9rem; opacity:.8; }
+  a.btn { display:block; margin:12px auto; max-width:320px; padding:14px; border-radius:999px; color:#fff;
+          font-weight:800; text-decoration:none; font-size:1.05rem; }
+  .open { background:var(--violet); } .play { background:var(--pink); } .apk { background:#fff; color:var(--ink) !important; }
+</style>
+</head>
+<body>
+<main>
+  <img class="icon" src="store/icon_512.png" alt="Bubble">
+  <h1 id="title">친구가 Bubble에 초대했어요!</h1>
+  <p id="desc">고양이 vs 햄스터, 1:1 방울 터뜨리기 대결 🫧</p>
+  <div class="code" id="code">------</div>
+  <p class="hint" id="hint">앱을 이 링크로 열거나 설치하면 추천 코드가 자동으로 입력돼요</p>
+  <a class="btn open" id="open" href="#">앱에서 열기</a>
+  <a class="btn play" id="play" href="#">Google Play에서 받기</a>
+  <a class="btn apk" id="apk" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">APK 직접 받기</a>
+</main>
+<script>
+  // 코드는 6자리 영문 대문자/숫자만 허용
+  var raw = new URLSearchParams(location.search).get("code") || "";
+  var code = /^[A-Z0-9]{6}$/.test(raw.toUpperCase()) ? raw.toUpperCase() : "";
+  document.getElementById("code").textContent = code || "------";
+  document.getElementById("open").href = "bubble://invite?code=" + encodeURIComponent(code);
+  document.getElementById("play").href = "https://play.google.com/store/apps/details?id=com.bubble.game&referrer=" +
+    encodeURIComponent("code=" + code);
+  if (!(navigator.language || "").toLowerCase().startsWith("ko")) {
+    document.documentElement.lang = "en";
+    document.title = "Bubble invite";
+    document.getElementById("title").textContent = "A friend invited you to Bubble!";
+    document.getElementById("desc").textContent = "Cats vs Hamsters — pop bubbles in 1:1 battles 🫧";
+    document.getElementById("hint").textContent = "Open or install the app from this link and the referral code is entered for you";
+    document.getElementById("open").textContent = "Open in the app";
+    document.getElementById("play").textContent = "Get it on Google Play";
+    document.getElementById("apk").textContent = "Download the APK";
+  }
+</script>
+</body>
+</html>

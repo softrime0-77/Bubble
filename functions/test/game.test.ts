@@ -66,7 +66,7 @@ test("revive potion brings back a dead set once", () => {
   assert.deepEqual(decodeMove("R:1"), { kind: "revive", index: 1 });
 });
 
-import { rankBonus, rankBonusPercent, revivesForGame, turnLimitAgainst } from "../src/catalog";
+import { rankBonus, rankBonusPercent, revivesForGame, splitPayment, turnLimitAgainst } from "../src/catalog";
 
 test("revives per game are capped at three and follow potions owned", () => {
   assert.equal(revivesForGame(0), 0);
@@ -96,4 +96,11 @@ test("rank bonus follows the new tiers", () => {
   assert.equal(rankBonus(30, 8000), 8); // 7.5 -> 8
   assert.equal(rankBonus(30, 12000), 9);
   assert.equal(rankBonus(-15, 12000), 0);
+});
+
+test("shop payment uses coins first, then score", () => {
+  assert.deepEqual(splitPayment(1000, 1500, 0), { fromCoins: 1000, fromScore: 0 });
+  assert.deepEqual(splitPayment(1000, 300, 1200), { fromCoins: 300, fromScore: 700 });
+  assert.deepEqual(splitPayment(500, 0, 500), { fromCoins: 0, fromScore: 500 });
+  assert.equal(splitPayment(1000, 300, 600), null);
 });

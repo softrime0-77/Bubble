@@ -28,8 +28,8 @@ android {
         applicationId = "com.bubble.game"
         minSdk = 24
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.11.0"
+        versionCode = 14
+        versionName = "1.12.0"
 
         // AdMob 앱 ID (AndroidManifest의 meta-data로 들어감)
         manifestPlaceholders["admobAppId"] = "ca-app-pub-4615819907336992~2572585109"
@@ -105,6 +105,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-ads:23.6.0")
     implementation("com.google.android.ump:user-messaging-platform:3.1.0")
     implementation("com.android.billingclient:billing-ktx:7.1.1")
+    implementation("com.android.installreferrer:installreferrer:2.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")

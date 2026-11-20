@@ -36,7 +36,6 @@ class BillingManager(
     companion object {
         /** Play Console에 만들 소모성 상품 ID → 지급 점수 (functions/src/index.ts의 PRODUCTS와 같게) */
         val PRODUCTS: Map<String, Int> = linkedMapOf(
-            "points_100" to 100,
             "points_500" to 500,
             "points_1000" to 1000,
             "points_2000" to 2000,

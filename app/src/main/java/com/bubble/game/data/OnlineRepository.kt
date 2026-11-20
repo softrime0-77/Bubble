@@ -51,6 +51,8 @@ data class Profile(
     val referrals: Int = 0,
     /** 관리자 계정 (동시 접속자 수가 보임) */
     val admin: Boolean = false,
+    /** 상점 포인트 (결제로 충전, 상점 전용 — 점수·계급과 별개) */
+    val coins: Int = 0,
 ) {
     val rank: Rank get() = Rank.of(score)
 }
@@ -268,6 +270,7 @@ class OnlineRepository(context: Context) {
         referred = getString("referredBy") != null,
         referrals = (getLong("referrals") ?: 0).toInt(),
         admin = getBoolean("admin") ?: false,
+        coins = (getLong("coins") ?: 0).toInt(),
     )
 
     /** 서버가 보낸 수 정보로 화면 언어의 설명을 만듭니다. 정보가 없으면 서버 문구(한/영). */

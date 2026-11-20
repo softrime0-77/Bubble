@@ -73,10 +73,10 @@ enum class Animal(private val ko: String, private val en: String, val price: Int
 }
 
 object Shop {
-    const val POTION_PRICE = 1000
+    const val POTION_PRICE = 50
 
     /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
     const val MAX_REVIVES_PER_GAME = 3
 
-    const val DEFAULT_TURN_SEC = 30
+    const val DEFAULT_TURN_SEC = 20
 }

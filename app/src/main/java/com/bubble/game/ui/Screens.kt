@@ -2,6 +2,7 @@ package com.bubble.game.ui
 
 import com.bubble.game.i18n.tr
 import com.bubble.game.data.Invite
+import com.bubble.game.data.Country
 import com.bubble.game.billing.BillingManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.PaddingValues
@@ -44,6 +45,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -562,6 +564,17 @@ private fun MatchingScreen(startedAt: Long, onCancel: () -> Unit) {
         Text(tr("상대를 찾고 있어요", "Looking for an opponent", zh = "正在寻找对手", hi = "विरोधी ढूँढ रहे हैं", es = "Buscando rival", fr = "Recherche d’un adversaire", ar = "جارٍ البحث عن خصم", de = "Suche Gegner", pt = "Procurando um rival", ru = "Ищем соперника", ja = "相手を探しています") + ".".repeat(sec % 4), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ui.text)
         Spacer(Modifier.height(6.dp))
         Text("%d:%02d".format(sec / 60, sec % 60), fontSize = 16.sp, color = Ui.text.copy(alpha = 0.7f))
+        val left = ((OnlineRepository.MATCH_TIMEOUT_MS / 1000) - sec).coerceAtLeast(0)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            tr("${left}초 안에 상대가 없으면 🤖 AI(어려움)와 대결해요", "No opponent in ${left}s? You'll face 🤖 AI (Hard)",
+                zh = "${left} 秒内没有对手，将与 🤖 AI（困难）对战", hi = "${left} सेकंड में विरोधी नहीं मिला तो 🤖 AI (कठिन) से मुकाबला",
+                es = "¿Sin rival en ${left} s? Jugarás contra 🤖 IA (Difícil)", fr = "Pas d’adversaire dans ${left} s ? Tu affronteras 🤖 l’IA (Difficile)",
+                ar = "إذا لم يوجد خصم خلال ${left} ث ستواجه 🤖 الذكاء الاصطناعي (صعب)", de = "Kein Gegner in ${left} s? Dann spielst du gegen 🤖 KI (Schwer)",
+                pt = "Sem rival em ${left} s? Você enfrentará 🤖 IA (Difícil)", ru = "Нет соперника за ${left} с? Сыграете с 🤖 ИИ (Сложно)",
+                ja = "${left}秒以内に相手がいなければ 🤖 AI（むずかしい）と対戦します"),
+            fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ui.accent, textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(32.dp))
         OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(20.dp)) { Text(tr("매칭 취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル"), color = Ui.text) }
     }
@@ -615,7 +628,7 @@ private fun GameScreen(vm: AppViewModel) {
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(opp, g.opponentName, g.opponentScore?.let { tr("${it}점", "${it} pts", zh = "${it} 分", hi = "${it} अंक", es = "${it} pts", fr = "${it} pts", ar = "${it} نقطة", de = "${it} Pkt", pt = "${it} pts", ru = "${it} очк.", ja = "${it}点") }, active = g.turn == opp && !g.finished, skin = g.opponentSkin, modifier = Modifier.weight(1f, fill = false))
+                PlayerTag(opp, g.opponentName, g.opponentScore?.let { tr("${it}점", "${it} pts", zh = "${it} 分", hi = "${it} अंक", es = "${it} pts", fr = "${it} pts", ar = "${it} نقطة", de = "${it} Pkt", pt = "${it} pts", ru = "${it} очк.", ja = "${it}点") }, active = g.turn == opp && !g.finished, skin = g.opponentSkin, modifier = Modifier.weight(1f, fill = false), country = g.opponentCountry, score = if (g.aiLevel == null) g.opponentScore else null)
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(opp))
                 ReviveCounter(g.board.revivesLeft(opp))
@@ -671,7 +684,7 @@ private fun GameScreen(vm: AppViewModel) {
             }
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(me, if (g.myName == tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分")) tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分") else g.myName + tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)"), null, active = g.myTurn, skin = g.mySkin, modifier = Modifier.weight(1f, fill = false))
+                PlayerTag(me, if (g.myName == tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分")) tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分") else g.myName + tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)"), null, active = g.myTurn, skin = g.mySkin, modifier = Modifier.weight(1f, fill = false), country = g.myCountry, score = g.myScore)
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(me))
                 ReviveCounter(g.board.revivesLeft(me))
@@ -732,6 +745,19 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
+        }
+
+        // 매칭되면 3초 동안 VS 소개 (나라·계급)
+        var showVs by remember { mutableStateOf(false) }
+        LaunchedEffect(g.gameId) {
+            if (g.gameId != null) {
+                showVs = true
+                delay(3_000)
+                showVs = false
+            }
+        }
+        AnimatedVisibility(showVs && !g.finished, enter = fadeIn() + scaleIn(initialScale = 0.9f), exit = fadeOut()) {
+            VsIntro(g) { showVs = false }
         }
 
         if (g.finished && g.winner != null) {
@@ -812,6 +838,9 @@ private fun PlayerTag(
     active: Boolean,
     skin: Animal? = null,
     modifier: Modifier = Modifier,
+    country: String? = null,
+    /** 점수가 있으면 계급 배지 표시 */
+    score: Int? = null,
 ) {
     val t = rememberInfiniteTransition(label = "tag")
     val glow by t.animateFloat(0.3f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "glow")
@@ -825,6 +854,7 @@ private fun PlayerTag(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Critter(side, Modifier.size(26.dp), skin = skin)
+        if (country != null) Text(" " + Country.flag(country), fontSize = 15.sp)
         Spacer(Modifier.width(6.dp))
         // 이름이 길면 말줄임 (옆의 분할·물약 표시가 찌그러지지 않게)
         Text(
@@ -832,6 +862,10 @@ private fun PlayerTag(
             color = Ui.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
         )
+        if (score != null) {
+            Spacer(Modifier.width(4.dp))
+            RankBadge(score)
+        }
         if (extra != null) Text("  $extra", color = Ui.primaryDark, fontSize = 13.sp)
     }
 }
@@ -1707,4 +1741,67 @@ private fun WelcomeDialog(kind: String, score: Int, onDismiss: () -> Unit) {
             }
         },
     )
+}
+
+/** 매칭 직후 VS 소개: 양쪽 나라·닉네임·계급 */
+@Composable
+private fun VsIntro(g: GameUi, onClose: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xF0201530))
+            .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, onClick = onClose),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(20.dp)) {
+            Text(
+                if (g.fallbackAi) {
+                    tr("상대를 찾지 못해 🤖 AI(어려움)와 대결해요", "No opponent found, so you'll face 🤖 AI (Hard)",
+                        zh = "没有找到对手，将与 🤖 AI（困难）对战", hi = "विरोधी नहीं मिला, इसलिए 🤖 AI (कठिन) से मुकाबला",
+                        es = "No hubo rival, así que juegas contra 🤖 IA (Difícil)", fr = "Aucun adversaire trouvé : tu affrontes 🤖 l’IA (Difficile)",
+                        ar = "لم يُعثر على خصم، لذا ستواجه 🤖 الذكاء الاصطناعي (صعب)", de = "Kein Gegner gefunden, du spielst gegen 🤖 KI (Schwer)",
+                        pt = "Nenhum rival encontrado, você vai enfrentar 🤖 IA (Difícil)", ru = "Соперник не найден — играете с 🤖 ИИ (Сложно)",
+                        ja = "相手が見つからなかったので 🤖 AI（むずかしい）と対戦します")
+                } else {
+                    tr("⚔️ 매칭 완료!", "⚔️ Match found!", zh = "⚔️ 匹配成功！", hi = "⚔️ मैच मिल गया!", es = "⚔️ ¡Rival encontrado!",
+                        fr = "⚔️ Adversaire trouvé !", ar = "⚔️ تم العثور على خصم!", de = "⚔️ Gegner gefunden!", pt = "⚔️ Rival encontrado!",
+                        ru = "⚔️ Соперник найден!", ja = "⚔️ マッチング成立！")
+                },
+                fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(20.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
+                VsCard(g.mySide, g.mySkin, g.myName, g.myCountry, g.myScore, isAi = false, Modifier.weight(1f))
+                Text("VS", fontSize = 30.sp, fontWeight = FontWeight.Black, color = Ui.gold, modifier = Modifier.padding(horizontal = 10.dp))
+                VsCard(g.mySide.opponent, g.opponentSkin, g.opponentName, g.opponentCountry, g.opponentScore, isAi = g.aiLevel != null, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VsCard(side: Side, skin: Animal?, name: String, country: String?, score: Int?, isAi: Boolean, modifier: Modifier) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = modifier.fillMaxHeight(),
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Critter(side, Modifier.size(72.dp), skin = skin, happy = true)
+            Text(if (isAi) "🤖" else Country.flag(country), fontSize = 30.sp)
+            if (!isAi && country != null) {
+                Text(Country.name(country), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center, maxLines = 1)
+            }
+            Text(
+                name, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Ui.text,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(6.dp))
+            if (!isAi && score != null && score > 0) RankBadge(score)
+        }
+    }
 }

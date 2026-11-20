@@ -14,7 +14,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
+import { ANIMALS, cleanCountry, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
@@ -183,6 +183,7 @@ async function readPlayers(tx: Transaction, game: Game) {
  */
 export const matchmake = onCall(async (req) => {
   const uid = requireUser(req);
+  const myCountry = cleanCountry((req.data as { country?: unknown } | null)?.country);
   return db.runTransaction(async (tx) => {
     const now = Date.now();
     const meRef = db.collection("queue").doc(uid);
@@ -217,6 +218,7 @@ export const matchmake = onCall(async (req) => {
         heartbeat: now,
         createdAt: stillWaiting ? me.get("createdAt") : now,
         score: myScore,
+        country: myCountry,
         gameId: null,
       });
       return { gameId: null };
@@ -241,6 +243,8 @@ export const matchmake = onCall(async (req) => {
       hamSplits: MAX_SPLITS,
       catRevives: revivesForGame(cat.get("potions")),
       hamRevives: revivesForGame(ham.get("potions")),
+      catCountry: iAmCat ? myCountry : cleanCountry(opp.get("country")),
+      hamCountry: iAmCat ? cleanCountry(opp.get("country")) : myCountry,
       catSkin: catAnimal,
       hamSkin: hamAnimal,
       catTurnMs: turnLimitAgainst(hamAnimal),
@@ -394,6 +398,7 @@ async function aiTurn(gameId: string) {
 export const startAiGame = onCall(async (req) => {
   const uid = requireUser(req);
   const level = (req.data as { level?: unknown } | null)?.level;
+  const country = cleanCountry((req.data as { country?: unknown } | null)?.country);
   if (!isAiLevel(level)) throw err("invalid-argument", "난이도를 골라 주세요", "Please choose a difficulty");
   const me = await db.collection("users").doc(uid).get();
   if (!me.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
@@ -408,6 +413,8 @@ export const startAiGame = onCall(async (req) => {
   const aiSkin = eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null;
   await gameRef.set({
     vsAi: level,
+    catCountry: humanIsCat ? country : null,
+    hamCountry: humanIsCat ? null : country,
     catUid: humanIsCat ? uid : AI_UID,
     hamUid: humanIsCat ? AI_UID : uid,
     catName: humanIsCat ? myName : aiName,

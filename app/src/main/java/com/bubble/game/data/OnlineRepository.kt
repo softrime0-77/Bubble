@@ -92,7 +92,14 @@ data class OnlineGame(
     val hamTurnMs: Long,
     /** AI 대전이면 난이도 (점수가 걸린 서버 AI 대전) */
     val vsAi: AiLevel?,
+    /** 각 플레이어의 나라 (ISO 2글자, 모르면 null) */
+    val catCountry: String?,
+    val hamCountry: String?,
 ) {
+    fun countryOf(side: Side): String? = if (side == Side.CAT) catCountry else hamCountry
+
+    fun scoreOf(side: Side): Int = if (side == Side.CAT) catScore else hamScore
+
     fun skinOf(side: Side): Animal? = if (side == Side.CAT) catSkin else hamSkin
 
     fun turnMsOf(side: Side): Long = if (side == Side.CAT) catTurnMs else hamTurnMs
@@ -179,15 +186,22 @@ class OnlineRepository(context: Context) {
 
     /**
      * 랜덤 매칭. 상대를 찾을 때까지 서버에 주기적으로 물어보고, 게임 ID를 돌려줍니다.
+     * [timeoutMs] 안에 상대가 없으면 대기열에서 빠지고 null (→ 앱이 AI 대전으로 넘어감).
      * 코루틴이 취소되면(매칭 취소) 대기열에서 빠집니다.
      */
-    suspend fun findMatch(): String {
+    suspend fun findMatch(country: String?, timeoutMs: Long = MATCH_TIMEOUT_MS): String? {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        val data = mapOf("country" to country)
         try {
-            while (true) {
-                val gameId = call("matchmake")["gameId"] as? String
+            while (System.currentTimeMillis() < deadline) {
+                val gameId = call("matchmake", data)["gameId"] as? String
                 if (gameId != null) return gameId
                 delay(POLL_MS)
             }
+            // 시간이 다 됐으면 마지막으로 한 번 더 확인 (그사이 누가 나를 잡았을 수 있음)
+            (call("matchmake", data)["gameId"] as? String)?.let { return it }
+            call("leaveQueue")
+            return null
         } catch (e: CancellationException) {
             withContext(NonCancellable) { runCatching { call("leaveQueue") } }
             throw e
@@ -236,8 +250,8 @@ class OnlineRepository(context: Context) {
     }
 
     /** 점수가 걸린 AI 대전 시작 (판과 AI의 수는 서버가 처리). */
-    suspend fun startAiGame(level: AiLevel): String =
-        call("startAiGame", mapOf("level" to level.name))["gameId"] as? String
+    suspend fun startAiGame(level: AiLevel, country: String?): String =
+        call("startAiGame", mapOf("level" to level.name, "country" to country))["gameId"] as? String
             ?: throw ServerException(tr("AI 대전을 시작하지 못했어요", "Could not start the AI battle", zh = "无法开始 AI 对战", hi = "AI मुकाबला शुरू नहीं हो सका", es = "No se pudo iniciar la batalla contra la IA", fr = "Impossible de lancer le combat contre l’IA", ar = "تعذّر بدء معركة الذكاء الاصطناعي", de = "KI-Duell konnte nicht gestartet werden", pt = "Não foi possível iniciar a batalha contra a IA", ru = "Не удалось начать бой с ИИ", ja = "AI対戦を開始できませんでした"))
 
     /** 상점 구매: "POTION" 또는 동물 이름(SHEEP/DOG/GIRAFFE). 점수 차감은 서버가 함. */
@@ -337,6 +351,8 @@ class OnlineRepository(context: Context) {
             catTurnMs = getLong("catTurnMs") ?: TURN_LIMIT_MS,
             hamTurnMs = getLong("hamTurnMs") ?: TURN_LIMIT_MS,
             vsAi = getString("vsAi")?.let { v -> AiLevel.entries.firstOrNull { it.name == v } },
+            catCountry = getString("catCountry"),
+            hamCountry = getString("hamCountry"),
         )
     }
 
@@ -348,9 +364,11 @@ class OnlineRepository(context: Context) {
         const val LOSE_POINTS = 15
         /** 패배 후 보상형 광고를 보면 돌려받는 점수 (functions/src/index.ts의 AD_REFUND_POINTS와 같게) */
         const val AD_REFUND_POINTS = 8
-        const val TURN_LIMIT_MS = 30_000L
+        const val TURN_LIMIT_MS = 20_000L
         const val TIMEOUT_GRACE_MS = 5_000L
         private const val POLL_MS = 2_500L
+        /** 이 시간 안에 사람 상대가 없으면 AI(어려움)와 대결 */
+        const val MATCH_TIMEOUT_MS = 30_000L
 
         private val adjectives = listOf("말랑", "몽글", "졸린", "배고픈", "용감한", "수줍은", "통통", "보송", "새침한", "씩씩한")
         private val animals = listOf("고양이", "햄스터", "냥이", "햄찌", "치즈냥", "골든햄")

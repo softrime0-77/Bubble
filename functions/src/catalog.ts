@@ -1,6 +1,6 @@
 // 상점 상품과 계급. 앱의 game/Catalog.kt와 같은 값이어야 합니다.
 
-export const POTION_PRICE = 1000;
+export const POTION_PRICE = 50;
 /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
 export const MAX_REVIVES_PER_GAME = 3;
 
@@ -17,7 +17,8 @@ export const ANIMALS: Record<string, { price: number; opponentTurnMs: number }> 
   GIRAFFE: { price: 100, opponentTurnMs: 5_000 },
 };
 
-export const DEFAULT_TURN_MS = 30_000;
+/** 기본 턴 시간 (상대가 동물을 쓰면 더 짧아짐) */
+export const DEFAULT_TURN_MS = 20_000;
 
 /** 상대가 장착한 동물에 따라 정해지는 내 턴 제한 시간. */
 export function turnLimitAgainst(opponentEquipped: unknown): number {
@@ -57,4 +58,11 @@ export function splitPayment(price: number, coins: number, score: number): { fro
   const fromCoins = Math.min(Math.max(coins, 0), price);
   const fromScore = price - fromCoins;
   return fromScore > Math.max(score, 0) ? null : { fromCoins, fromScore };
+}
+
+/** 국가 코드 정리: 영문 대문자 2글자만 (아니면 null) */
+export function cleanCountry(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const c = raw.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(c) ? c : null;
 }

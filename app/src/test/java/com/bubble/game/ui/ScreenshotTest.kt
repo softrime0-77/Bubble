@@ -157,6 +157,23 @@ class ScreenshotTest {
     }
 
     @Test
+    fun vsIntro() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.HARD)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                online = true, aiLevel = null, gameId = "g1", myName = "말랑고양이42", opponentName = "SleepyCat77",
+                myCountry = "KR", opponentCountry = "JP", myScore = 7300, opponentScore = 2400,
+                mySide = Side.CAT, turn = Side.CAT, busy = false, mySkin = com.bubble.game.game.Animal.SHEEP,
+            )
+        }
+        shot("vs", 600)
+    }
+
+    @Test
     fun shop() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

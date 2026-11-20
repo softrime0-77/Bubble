@@ -66,7 +66,7 @@ test("revive potion brings back a dead set once", () => {
   assert.deepEqual(decodeMove("R:1"), { kind: "revive", index: 1 });
 });
 
-import { rankBonus, rankBonusPercent, revivesForGame, splitPayment, turnLimitAgainst } from "../src/catalog";
+import { cleanCountry, rankBonus, rankBonusPercent, revivesForGame, splitPayment, turnLimitAgainst } from "../src/catalog";
 
 test("revives per game are capped at three and follow potions owned", () => {
   assert.equal(revivesForGame(0), 0);
@@ -76,11 +76,11 @@ test("revives per game are capped at three and follow potions owned", () => {
 });
 
 test("opponent animal shortens my turn", () => {
-  assert.equal(turnLimitAgainst(null), 30_000);
+  assert.equal(turnLimitAgainst(null), 20_000);
   assert.equal(turnLimitAgainst("SHEEP"), 15_000);
   assert.equal(turnLimitAgainst("DOG"), 10_000);
   assert.equal(turnLimitAgainst("GIRAFFE"), 5_000);
-  assert.equal(turnLimitAgainst("DRAGON"), 30_000);
+  assert.equal(turnLimitAgainst("DRAGON"), 20_000);
 });
 
 test("rank bonus follows the new tiers", () => {
@@ -103,4 +103,11 @@ test("shop payment uses coins first, then score", () => {
   assert.deepEqual(splitPayment(1000, 300, 1200), { fromCoins: 300, fromScore: 700 });
   assert.deepEqual(splitPayment(500, 0, 500), { fromCoins: 0, fromScore: 500 });
   assert.equal(splitPayment(1000, 300, 600), null);
+});
+
+test("country codes are two uppercase letters", () => {
+  assert.equal(cleanCountry("kr"), "KR");
+  assert.equal(cleanCountry(" US "), "US");
+  assert.equal(cleanCountry("KOR"), null);
+  assert.equal(cleanCountry(82), null);
 });

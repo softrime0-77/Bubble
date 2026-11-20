@@ -8,6 +8,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bubble.game.billing.BillingManager
+import com.bubble.game.data.Country
 import com.bubble.game.data.GoogleSignIn
 import com.bubble.game.data.Invite
 import com.bubble.game.data.OnlineGame
@@ -68,6 +69,15 @@ data class GameUi(
     val turnSec: Int? = null,
     /** AI 대전 난이도 (로컬 연습이든 점수가 걸린 서버 대전이든) */
     val aiLevel: AiLevel? = null,
+    /** 온라인 게임 ID (VS 소개 화면을 게임마다 한 번 띄우는 데 씀) */
+    val gameId: String? = null,
+    /** 양쪽 나라 (ISO 2글자) */
+    val myCountry: String? = null,
+    val opponentCountry: String? = null,
+    /** 내 점수 (VS 화면의 계급 표시용) */
+    val myScore: Int? = null,
+    /** 랜덤 매칭에서 30초 동안 상대가 없어 AI로 넘어온 게임 */
+    val fallbackAi: Boolean = false,
 ) {
     /** 서버에서 진행하는 점수 걸린 AI 대전 */
     val scoredAi: Boolean get() = online && aiLevel != null
@@ -107,6 +117,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val game: StateFlow<GameUi> = _game.asStateFlow()
 
     private var uid: String? = null
+
+    /** 상대에게 보여줄 내 나라 */
+    private val country: String? by lazy { Country.detect(getApplication()) }
     private var matchJob: Job? = null
     private var gameJob: Job? = null
     private var onlineGameId: String? = null
@@ -400,8 +413,13 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         _screen.value = Screen.Matching(System.currentTimeMillis())
         matchJob = viewModelScope.launch {
             try {
-                val gameId = repo.findMatch()
-                startOnlineGame(gameId)
+                val gameId = repo.findMatch(country)
+                if (gameId != null) {
+                    startOnlineGame(gameId)
+                } else {
+                    // 30초 동안 사람 상대가 없으면 AI(어려움)와 대결
+                    startAiGame(AiLevel.HARD, fallback = true)
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -417,11 +435,11 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         _screen.value = Screen.Lobby
     }
 
-    private fun startOnlineGame(gameId: String) {
+    private fun startOnlineGame(gameId: String, fallbackAi: Boolean = false) {
         val me = uid ?: return
         onlineGameId = gameId
         gameJob?.cancel()
-        _game.value = GameUi(online = true, busy = true)
+        _game.value = GameUi(online = true, busy = true, gameId = gameId, fallbackAi = fallbackAi)
         _screen.value = Screen.Game
         gameJob = viewModelScope.launch {
             var lastMove = -1
@@ -473,6 +491,9 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             turnSec = if (og.vsAi != null) null else (og.turnMsOf(og.turn) / 1000).toInt(),
             aiLevel = og.vsAi,
             mySkin = og.skinOf(side),
+            myCountry = og.countryOf(side),
+            opponentCountry = og.countryOf(side.opponent),
+            myScore = og.scoreOf(side),
             opponentSkin = og.skinOf(side.opponent),
             scoreDelta = og.deltaFor(side),
             scoreBonus = og.bonusFor(side),
@@ -485,7 +506,7 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
 
     private var ai: Ai? = null
 
-    fun startAiGame(level: AiLevel) {
+    fun startAiGame(level: AiLevel, fallback: Boolean = false) {
         // 로그인했으면 점수가 걸린 서버 AI 대전, 아니면 폰 안에서 하는 연습
         if (repo.available && uid != null && _lobby.value.profile != null) {
             gameJob?.cancel()
@@ -494,7 +515,7 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             _screen.value = Screen.Game
             gameJob = viewModelScope.launch {
                 try {
-                    startOnlineGame(repo.startAiGame(level))
+                    startOnlineGame(repo.startAiGame(level, country), fallbackAi = fallback)
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {

@@ -31,7 +31,8 @@ const START_SCORE = 1000;
 const WIN_POINTS = 30;
 const LOSE_POINTS = 15;
 const TURN_LIMIT_MS = DEFAULT_TURN_MS;
-const TIMEOUT_GRACE_MS = 5_000;
+/** 턴 시간 판정 여유 (네트워크 지연용). 시간 판단은 서버 시계로만 함 */
+const TIMEOUT_GRACE_MS = 2_000;
 const QUEUE_STALE_MS = 15_000;
 /** 패배 후 보상형 광고를 보면 돌려주는 점수 (잃은 점수가 이보다 적으면 잃은 만큼만) */
 const AD_REFUND_POINTS = 8;
@@ -42,6 +43,8 @@ const AI_POINTS: Record<AiLevel, { win: number; lose: number }> = {
   HARD: { win: 10, lose: -5 },
 };
 const AI_UID = "AI";
+/** AI 대전에서 사람 쪽 턴 시간 (난이도별) */
+const AI_TURN_MS: Record<AiLevel, number> = { EASY: 20_000, NORMAL: 15_000, HARD: 5_000 };
 const AI_LABEL: Record<AiLevel, string> = { EASY: "쉬움", NORMAL: "보통", HARD: "어려움" };
 const AI_THINK_MS = 900;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -147,6 +150,12 @@ function finishGame(
     score: FieldValue.increment(hamDelta),
     [catWon ? "losses" : "wins"]: FieldValue.increment(1),
   });
+}
+
+/** 지금 차례인 사람이 제한 시간을 넘겼는지 (서버 시계 기준) */
+function isLate(game: Game): boolean {
+  const limit = (game.turn === "CAT" ? game.catTurnMs : game.hamTurnMs) ?? TURN_LIMIT_MS;
+  return Date.now() - game.turnStartedAt > limit + TIMEOUT_GRACE_MS;
 }
 
 /** 장착한 동물이 남아 있으면 1개를 쓰고 그 동물을, 없으면 null (장착도 해제). */
@@ -289,6 +298,11 @@ export const submitMove = onCall(async (req) => {
     const { ref, game, side } = await loadGame(tx, gameId, uid);
     if (game.status !== "playing") throw err("failed-precondition", "이미 끝난 게임이에요", "This game is already over");
     if (game.turn !== side) throw err("failed-precondition", "내 차례가 아니에요", "It's not your turn");
+    // 시간을 넘겨 도착한 수는 받지 않고 시간 초과 패배
+    if (isLate(game)) {
+      finishGame(tx, ref, game, opponent(side), "timeout", await readPlayers(tx, game));
+      return false;
+    }
     const board: Board = {
       cat: game.cat,
       ham: game.ham,
@@ -430,8 +444,8 @@ export const startAiGame = onCall(async (req) => {
     hamSplits: MAX_SPLITS,
     catRevives: humanIsCat ? myRevives : 0,
     hamRevives: humanIsCat ? 0 : myRevives,
-    catTurnMs: DEFAULT_TURN_MS,
-    hamTurnMs: DEFAULT_TURN_MS,
+    catTurnMs: AI_TURN_MS[level],
+    hamTurnMs: AI_TURN_MS[level],
     turn: "CAT",
     status: "playing",
     winner: null,
@@ -470,12 +484,12 @@ export const claimTimeout = onCall(async (req) => {
   const gameId = requireGameId(req.data);
   const won = await db.runTransaction(async (tx) => {
     const { ref, game, side } = await loadGame(tx, gameId, uid);
-    if (game.vsAi || game.status !== "playing" || game.turn !== opponent(side)) return false;
-    const limit = (game.turn === "CAT" ? game.catTurnMs : game.hamTurnMs) ?? TURN_LIMIT_MS;
-    if (Date.now() - game.turnStartedAt <= limit + TIMEOUT_GRACE_MS) return false;
-    const players = await readPlayers(tx, game);
-    finishGame(tx, ref, game, side, "timeout", players);
-    return true;
+    if (game.status !== "playing") return false;
+    // 온라인: 상대 차례가 시간 초과면 내가 승리 / AI 대전: 내 차례가 시간 초과면 AI 승리
+    const lateSide = game.vsAi ? side : opponent(side);
+    if (game.turn !== lateSide || !isLate(game)) return false;
+    finishGame(tx, ref, game, opponent(lateSide), "timeout", await readPlayers(tx, game));
+    return !game.vsAi;
   });
   return { won };
 });

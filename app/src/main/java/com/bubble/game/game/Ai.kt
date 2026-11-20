@@ -12,10 +12,12 @@ enum class AiLevel(
     val mistakeRate: Double,
     val winPoints: Int,
     val losePoints: Int,
+    /** 내 턴 시간(초). functions/src/index.ts의 AI_TURN_MS와 같게 */
+    val turnSec: Int,
 ) {
-    EASY("쉬움", "Easy", 1, 0.45, 1, 0),
-    NORMAL("보통", "Normal", 4, 0.12, 5, -3),
-    HARD("어려움", "Hard", 9, 0.0, 10, -5),
+    EASY("쉬움", "Easy", 1, 0.45, 1, 0, 20),
+    NORMAL("보통", "Normal", 4, 0.12, 5, -3, 15),
+    HARD("어려움", "Hard", 9, 0.0, 10, -5, 5),
     ;
 
     /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */

@@ -312,6 +312,14 @@ zh = "登录后 AI 对战也能得分", hi = "साइन इन करें, 
                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Ui.text.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
             )
+            Text(
+                "⏱ " + AiLevel.entries.joinToString("  ·  ") {
+                    it.label + " " + tr("${it.turnSec}초", "${it.turnSec}s", zh = "${it.turnSec}秒", hi = "${it.turnSec}से",
+                        ar = "${it.turnSec}ث", ru = "${it.turnSec}с", ja = "${it.turnSec}秒")
+                },
+                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            )
         }
         ui.profile?.let { p -> InviteCard(vm, p, ui.shopBusy) }
         ui.info?.let {
@@ -505,17 +513,19 @@ zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活�
 zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，超时即判负。\n", hi = "• ऑनलाइन हर चाल ${OnlineRepository.TURN_LIMIT_MS / 1000} सेकंड। समय खत्म तो हार।\n", es = "• En línea cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Si se acaba el tiempo, pierdes.\n", fr = "• En ligne, chaque tour dure ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Temps écoulé = défaite.\n", ar = "• مدة الدور عبر الإنترنت ${OnlineRepository.TURN_LIMIT_MS / 1000} ثانية. إذا انتهى الوقت تخسر.\n", de = "• Online dauert ein Zug ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Zeit abgelaufen = verloren.\n", pt = "• Online, cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Se o tempo acabar, você perde.\n", ru = "• Онлайн ход длится ${OnlineRepository.TURN_LIMIT_MS / 1000} с. Время вышло — поражение.\n", ja = "• オンラインの1ターンは${OnlineRepository.TURN_LIMIT_MS / 1000}秒。時間切れで負けです。\n",
 ) +
                     tr(
-                    "   상대가 양·강아지·기린을 썼다면 내 턴이 15·10·5초로 줄어요.\n\n",
-                    "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 10 or 5s.\n\n",
-                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、10 或 5 秒。\n\n",
-                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 10 या 5 सेकंड की होगी।\n\n",
-                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 10 o 5 s.\n\n",
-                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 10 ou 5 s.\n\n",
-                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 10 أو 5 ثوانٍ.\n\n",
-                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 10 oder 5 s.\n\n",
-                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 10 ou 5 s.\n\n",
-                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 10 или 5 с.\n\n",
-                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・10・5秒になります。\n\n",
+                    "   상대가 양·강아지·기린을 썼다면 내 턴이 15·10·5초로 줄어요.\n" +
+                        "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 5초. 시간을 넘기면 패배!\n\n",
+                    "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 10 or 5s.\n" +
+                        "• Your turn vs AI: Easy 20s · Normal 15s · Hard 5s. Run out of time and you lose!\n\n",
+                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、10 或 5 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 5 秒。超时判负！\n\n",
+                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 10 या 5 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 5से। समय खत्म तो हार!\n\n",
+                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 10 o 5 s.\n• Tu turno contra la IA: Fácil 20 s · Normal 15 s · Difícil 5 s. ¡Si se acaba el tiempo, pierdes!\n\n",
+                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 10 ou 5 s.\n• Ton tour contre l’IA : Facile 20 s · Normal 15 s · Difficile 5 s. Temps écoulé = défaite !\n\n",
+                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 10 أو 5 ثوانٍ.\n• دورك ضد الذكاء الاصطناعي: سهل 20ث · عادي 15ث · صعب 5ث. إذا انتهى الوقت تخسر!\n\n",
+                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 10 oder 5 s.\n• Dein Zug gegen die KI: Leicht 20 s · Normal 15 s · Schwer 5 s. Zeit abgelaufen = verloren!\n\n",
+                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 10 ou 5 s.\n• Seu turno contra a IA: Fácil 20 s · Normal 15 s · Difícil 5 s. Acabou o tempo, você perde!\n\n",
+                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 10 или 5 с.\n• Ваш ход против ИИ: Легко 20 с · Нормально 15 с · Сложно 5 с. Время вышло — поражение!\n\n",
+                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・10・5秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい5秒。時間切れで負け！\n\n",
                 ) +
                     tr(
                         "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1500) → 금(2000) → 루비(5000) → 사파이어(7000) → 다이아(10000)",
@@ -596,8 +606,7 @@ private fun GameScreen(vm: AppViewModel) {
     BackHandler { if (g.finished) vm.leaveGame() else confirmLeave = true }
 
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) { while (true) { delay(250); now = System.currentTimeMillis() } }
-    val remain = g.turnDeadline?.let { ((it - now) / 1000).coerceAtLeast(0) }
+    LaunchedEffect(Unit) { while (true) { delay(100); now = System.currentTimeMillis() } }
 
     val me = g.mySide
     val opp = me.opponent
@@ -619,13 +628,6 @@ private fun GameScreen(vm: AppViewModel) {
                     Text(tr("← 나가기", "← Leave", zh = "← 离开", hi = "← छोड़ें", es = "← Salir", fr = "← Quitter", ar = "→ خروج", de = "← Verlassen", pt = "← Sair", ru = "← Выйти", ja = "← 退出"), color = Ui.text)
                 }
                 Spacer(Modifier.weight(1f))
-                if (remain != null && !g.finished) {
-                    Text(
-                        tr("⏱ ${remain}초", "⏱ ${remain}s", zh = "⏱ ${remain}秒", hi = "⏱ ${remain}से", es = "⏱ ${remain}s", fr = "⏱ ${remain}s", ar = "⏱ ${remain}ث", de = "⏱ ${remain}s", pt = "⏱ ${remain}s", ru = "⏱ ${remain}с", ja = "⏱ ${remain}秒"),
-                        color = if (remain <= 10) Ui.danger else Ui.text,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PlayerTag(opp, g.opponentName, g.opponentScore?.let { tr("${it}점", "${it} pts", zh = "${it} 分", hi = "${it} अंक", es = "${it} pts", fr = "${it} pts", ar = "${it} نقطة", de = "${it} Pkt", pt = "${it} pts", ru = "${it} очк.", ja = "${it}点") }, active = g.turn == opp && !g.finished, skin = g.opponentSkin, modifier = Modifier.weight(1f, fill = false), country = g.opponentCountry, score = if (g.aiLevel == null) g.opponentScore else null)
@@ -653,6 +655,7 @@ private fun GameScreen(vm: AppViewModel) {
 
             Spacer(Modifier.weight(1f))
             TurnBanner(g, sel != null)
+            TurnTimer(g, now)
             Spacer(Modifier.weight(1f))
 
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
@@ -1803,6 +1806,68 @@ private fun VsCard(side: Side, skin: Animal?, name: String, country: String?, sc
             )
             Spacer(Modifier.height(6.dp))
             if (!isAi && score != null && score > 0) RankBadge(score)
+        }
+    }
+}
+
+/**
+ * 남은 턴 시간: 큰 숫자 + 줄어드는 게이지.
+ * 초록 → 주황 → 빨강으로 바뀌고, 마지막 5초는 깜빡입니다.
+ */
+@Composable
+private fun TurnTimer(g: GameUi, now: Long) {
+    val deadline = g.turnDeadline
+    val total = (g.turnSec ?: 0) * 1000L
+    if (g.finished || deadline == null || total <= 0) return
+    val leftMs = (deadline - now).coerceIn(0, total)
+    val leftSec = ((leftMs + 999) / 1000).toInt()
+    val fraction = leftMs.toFloat() / total
+    val urgent = leftMs <= 5_000
+    val color = when {
+        urgent -> Ui.danger
+        fraction > 0.5f -> Color(0xFF43A047)
+        else -> Color(0xFFFF9800)
+    }
+    val t = rememberInfiniteTransition(label = "timer")
+    val blink by t.animateFloat(1f, 0.25f, infiniteRepeatable(tween(250), RepeatMode.Reverse), label = "blink")
+    val alpha = if (urgent) blink else 1f
+    val mine = g.turn == g.mySide
+
+    Column(
+        Modifier.fillMaxWidth().padding(top = 10.dp, start = 24.dp, end = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (mine) tr("내 시간", "Your time", zh = "我的时间", hi = "आपका समय", es = "Tu tiempo", fr = "Ton temps",
+                    ar = "وقتك", de = "Deine Zeit", pt = "Seu tempo", ru = "Ваше время", ja = "自分の時間")
+                else tr("상대 시간", "Their time", zh = "对手时间", hi = "विरोधी का समय", es = "Tiempo rival", fr = "Temps adverse",
+                    ar = "وقت الخصم", de = "Gegnerzeit", pt = "Tempo do rival", ru = "Время соперника", ja = "相手の時間"),
+                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ui.text.copy(alpha = 0.7f),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "⏱ $leftSec",
+                fontSize = if (urgent) 40.sp else 32.sp,
+                fontWeight = FontWeight.Black,
+                color = color,
+                modifier = Modifier.alpha(alpha),
+            )
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color.White.copy(alpha = 0.7f)),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(fraction)
+                    .fillMaxHeight()
+                    .alpha(alpha)
+                    .background(color, RoundedCornerShape(50)),
+            )
         }
     }
 }

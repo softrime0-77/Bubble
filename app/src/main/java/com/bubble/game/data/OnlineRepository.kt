@@ -365,7 +365,8 @@ class OnlineRepository(context: Context) {
         /** 패배 후 보상형 광고를 보면 돌려받는 점수 (functions/src/index.ts의 AD_REFUND_POINTS와 같게) */
         const val AD_REFUND_POINTS = 8
         const val TURN_LIMIT_MS = 20_000L
-        const val TIMEOUT_GRACE_MS = 5_000L
+        /** 서버의 시간 판정 여유(2초)보다 조금 길게 */
+        const val TIMEOUT_GRACE_MS = 2_500L
         private const val POLL_MS = 2_500L
         /** 이 시간 안에 사람 상대가 없으면 AI(어려움)와 대결 */
         const val MATCH_TIMEOUT_MS = 30_000L

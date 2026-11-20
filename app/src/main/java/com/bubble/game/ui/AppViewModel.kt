@@ -449,7 +449,9 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
                     delay(1_000)
                     val g = _game.value
                     val deadline = g.turnDeadline ?: continue
-                    if (!g.finished && g.turn != g.mySide &&
+                    // 온라인은 상대가 시간 초과면, AI 대전은 내가 시간 초과면 서버에 알림 (판정은 서버가)
+                    val lateIsMe = g.aiLevel != null
+                    if (!g.finished && (g.turn == g.mySide) == lateIsMe &&
                         System.currentTimeMillis() > deadline + OnlineRepository.TIMEOUT_GRACE_MS
                     ) {
                         repo.claimTimeout(gameId)
@@ -487,8 +489,9 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             log = log,
             explosion = explosion,
             // AI 대전은 시간 제한 없음
-            turnDeadline = if (og.vsAi != null) null else og.turnStartedAt + og.turnMsOf(og.turn),
-            turnSec = if (og.vsAi != null) null else (og.turnMsOf(og.turn) / 1000).toInt(),
+            // AI 대전은 내 차례에만 시간 제한 (AI 차례는 표시 안 함)
+            turnDeadline = if (og.vsAi != null && og.turn != side) null else og.turnStartedAt + og.turnMsOf(og.turn),
+            turnSec = if (og.vsAi != null && og.turn != side) null else (og.turnMsOf(og.turn) / 1000).toInt(),
             aiLevel = og.vsAi,
             mySkin = og.skinOf(side),
             myCountry = og.countryOf(side),
@@ -549,10 +552,26 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
             opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})", zh = "AI 伙伴（${level.label}）", hi = "AI दोस्त (${level.label})", es = "Amigo IA (${level.label})", fr = "Copain IA (${level.label})", ar = "رفيق الذكاء الاصطناعي (${level.label})", de = "KI-Kumpel (${level.label})", pt = "Amigo IA (${level.label})", ru = "ИИ-друг (${level.label})", ja = "AIフレンド（${level.label}）"),
             mySkin = _lobby.value.profile?.equipped,
             aiLevel = level,
+            turnDeadline = if (mySide == Side.CAT) System.currentTimeMillis() + level.turnSec * 1000L else null,
+            turnSec = if (mySide == Side.CAT) level.turnSec else null,
         )
         _screen.value = Screen.Game
         gameJob = viewModelScope.launch { aiTurnIfNeeded() }
+        // 연습 게임도 내 차례 시간 제한 (넘기면 패배)
+        localTimerJob?.cancel()
+        localTimerJob = viewModelScope.launch {
+            while (isActive) {
+                delay(200)
+                val g = _game.value
+                val deadline = g.turnDeadline ?: continue
+                if (!g.online && !g.finished && g.turn == g.mySide && System.currentTimeMillis() > deadline) {
+                    _game.value = g.copy(finished = true, winner = g.mySide.opponent, reason = "timeout", busy = false, turnDeadline = null)
+                }
+            }
+        }
     }
+
+    private var localTimerJob: Job? = null
 
     private suspend fun aiTurnIfNeeded() {
         val g = _game.value
@@ -576,6 +595,8 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
             winner = w,
             reason = if (w != null) "normal" else "",
             log = (listOf(r.localized) + g.log).take(30),
+            turnDeadline = if (w == null && side.opponent == g.mySide) System.currentTimeMillis() + (g.aiLevel?.turnSec ?: 20) * 1000L else null,
+            turnSec = if (w == null && side.opponent == g.mySide) g.aiLevel?.turnSec else null,
             explosion = r.exploded?.let { Explosion(it.first, it.second, id) } ?: g.explosion,
             busy = false,
         )
@@ -639,6 +660,8 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
         }
         gameJob?.cancel()
         gameJob = null
+        localTimerJob?.cancel()
+        localTimerJob = null
         onlineGameId = null
         _screen.value = Screen.Lobby
     }

@@ -1,5 +1,11 @@
 package com.bubble.game.ui
 
+import com.bubble.game.i18n.tr
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import com.bubble.game.i18n.Lang
+
 import android.app.Activity
 import com.bubble.game.ads.AdManager
 import androidx.activity.compose.BackHandler
@@ -118,10 +124,10 @@ private fun LobbyScreen(vm: AppViewModel) {
             .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (ui.profile != null) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                ShopIconButton(onClick = vm::openShop)
-            }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            LanguageMenu()
+            Spacer(Modifier.weight(1f))
+            if (ui.profile != null) ShopIconButton(onClick = vm::openShop)
         }
         TitleBanner()
         Spacer(Modifier.height(16.dp))
@@ -129,16 +135,16 @@ private fun LobbyScreen(vm: AppViewModel) {
         SoftCard {
             when {
                 !ui.onlineAvailable -> Text(
-                    "온라인 대전은 Firebase 설정(google-services.json)을 넣고 다시 빌드하면 열려요.\n지금은 AI 연습을 즐겨 주세요!",
+                    tr("온라인 대전은 Firebase 설정(google-services.json)을 넣고 다시 빌드하면 열려요.\n지금은 AI 연습을 즐겨 주세요!", "Online play opens once Firebase (google-services.json) is added and the app is rebuilt.\nEnjoy AI practice for now!"),
                     color = Ui.text, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                 )
                 ui.needsLogin && !ui.loading -> Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("구글 계정으로 로그인하면\n점수와 전적이 계정에 저장돼요", color = Ui.text, textAlign = TextAlign.Center)
+                    Text(tr("구글 계정으로 로그인하면\n점수와 전적이 계정에 저장돼요", "Sign in with Google to save\nyour score and record"), color = Ui.text, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(4.dp))
-                    Text("상대에게는 구글 이름 대신 닉네임만 보여요", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f))
+                    Text(tr("상대에게는 구글 이름 대신 닉네임만 보여요", "Opponents only see your nickname, not your Google name"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f))
                     Spacer(Modifier.height(12.dp))
                     val activity = LocalContext.current
                     Button(
@@ -150,7 +156,7 @@ private fun LobbyScreen(vm: AppViewModel) {
                     ) {
                         Text("G", fontWeight = FontWeight.Black, fontSize = 20.sp, color = Color(0xFF4285F4))
                         Spacer(Modifier.width(10.dp))
-                        Text("Google로 시작하기", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(tr("Google로 시작하기", "Continue with Google"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     if (ui.error != null) {
                         Spacer(Modifier.height(8.dp))
@@ -160,7 +166,7 @@ private fun LobbyScreen(vm: AppViewModel) {
                 ui.loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(22.dp), color = Ui.primary, strokeWidth = 3.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text("서버에 접속하는 중…", color = Ui.text)
+                    Text(tr("서버에 접속하는 중…", "Connecting to server…"), color = Ui.text)
                 }
                 ui.profile != null -> {
                     val p = ui.profile!!
@@ -175,28 +181,28 @@ private fun LobbyScreen(vm: AppViewModel) {
                                 modifier = Modifier.clickable { showRanks = true },
                             ) {
                                 RankBadge(p.score)
-                                Text("  계급표 ›", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
+                                Text(tr("  계급표 ›", "  Ranks ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "${p.wins}승 ${p.losses}패 · 💖 부활물약 ${p.potions}개",
+                                tr("${p.wins}승 ${p.losses}패 · 💖 부활물약 ${p.potions}개", "${p.wins}W ${p.losses}L · 💖 Potions ${p.potions}"),
                                 fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("${p.score}", fontWeight = FontWeight.Black, fontSize = 26.sp, color = Ui.primaryDark)
-                            Text("점", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f))
+                            Text(tr("점", "pts"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f))
                         }
                     }
                     Row {
-                        TextButton(onClick = { renaming = true }) { Text("✏️ 닉네임 바꾸기", color = Ui.accent) }
+                        TextButton(onClick = { renaming = true }) { Text(tr("✏️ 닉네임 바꾸기", "✏️ Change nickname"), color = Ui.accent) }
                         Spacer(Modifier.weight(1f))
-                        TextButton(onClick = vm::signOut) { Text("로그아웃", color = Ui.text.copy(alpha = 0.6f)) }
+                        TextButton(onClick = vm::signOut) { Text(tr("로그아웃", "Sign out"), color = Ui.text.copy(alpha = 0.6f)) }
                     }
                 }
                 else -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(ui.error ?: "접속하지 못했어요", color = Ui.danger, textAlign = TextAlign.Center)
-                    TextButton(onClick = vm::connect) { Text("다시 시도") }
+                    Text(ui.error ?: tr("접속하지 못했어요", "Could not connect"), color = Ui.danger, textAlign = TextAlign.Center)
+                    TextButton(onClick = vm::connect) { Text(tr("다시 시도", "Retry")) }
                 }
             }
             if (ui.error != null && ui.profile != null) {
@@ -206,14 +212,14 @@ private fun LobbyScreen(vm: AppViewModel) {
 
         Spacer(Modifier.height(16.dp))
         BigButton(
-            text = "🎲  랜덤 매칭",
-            sub = "익명의 상대와 1:1 대결 · 승리 +${OnlineRepository.WIN_POINTS}점",
+            text = tr("🎲  랜덤 매칭", "🎲  Random Match"),
+            sub = tr("익명의 상대와 1:1 대결 · 승리 +${OnlineRepository.WIN_POINTS}점", "1:1 vs an anonymous player · Win +${OnlineRepository.WIN_POINTS} pts"),
             enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
             onClick = vm::startMatching,
         )
         Spacer(Modifier.height(12.dp))
         SoftCard {
-            Text(if (ui.profile != null) "🤖 AI 대전" else "🤖 AI와 연습하기", fontWeight = FontWeight.Bold, color = Ui.text)
+            Text(if (ui.profile != null) tr("🤖 AI 대전", "🤖 AI Battle") else tr("🤖 AI와 연습하기", "🤖 Practice with AI"), fontWeight = FontWeight.Bold, color = Ui.text)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AiLevel.entries.forEach { lv ->
@@ -227,15 +233,15 @@ private fun LobbyScreen(vm: AppViewModel) {
             Spacer(Modifier.height(6.dp))
             Text(
                 if (ui.profile != null) {
-                    AiLevel.entries.joinToString("  ·  ") { "${it.label} 승 +${it.winPoints} / 패 ${it.losePoints}" }
+                    AiLevel.entries.joinToString("  ·  ") { tr("${it.label} 승 +${it.winPoints} / 패 ${it.losePoints}", "${it.label} W +${it.winPoints} / L ${it.losePoints}") }
                 } else {
-                    "로그인하면 AI 대전도 점수가 걸려요"
+                    tr("로그인하면 AI 대전도 점수가 걸려요", "Sign in to earn points in AI battles too")
                 },
                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Ui.text.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
             )
         }
-        TextButton(onClick = { showRules = true }) { Text("📖 게임 규칙 보기", color = Ui.text) }
+        TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play"), color = Ui.text) }
         ui.info?.let {
             Text(it, color = Ui.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
         }
@@ -243,13 +249,13 @@ private fun LobbyScreen(vm: AppViewModel) {
         if (privacyRequired) {
             val activity = LocalContext.current as Activity
             TextButton(onClick = { AdManager.showPrivacyOptions(activity) }) {
-                Text("🔒 광고 개인정보 설정", color = Ui.text.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text(tr("🔒 광고 개인정보 설정", "🔒 Ad privacy settings"), color = Ui.text.copy(alpha = 0.7f), fontSize = 13.sp)
             }
         }
 
         if (ui.leaderboard.isNotEmpty()) {
             SoftCard {
-                Text("🏆 랭킹", fontWeight = FontWeight.Bold, color = Ui.text)
+                Text(tr("🏆 랭킹", "🏆 Leaderboard"), fontWeight = FontWeight.Bold, color = Ui.text)
                 Spacer(Modifier.height(6.dp))
                 ui.leaderboard.forEachIndexed { i, p ->
                     val me = p.uid == ui.profile?.uid
@@ -264,10 +270,10 @@ private fun LobbyScreen(vm: AppViewModel) {
                             when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "${i + 1}" },
                             modifier = Modifier.width(32.dp), color = Ui.text, fontWeight = FontWeight.Bold,
                         )
-                        Text(p.name + if (me) " (나)" else "", modifier = Modifier.weight(1f), color = Ui.text)
+                        Text(p.name + if (me) tr(" (나)", " (me)") else "", modifier = Modifier.weight(1f), color = Ui.text)
                         RankBadge(p.score)
                         Spacer(Modifier.width(8.dp))
-                        Text("${p.score}점", color = Ui.primaryDark, fontWeight = FontWeight.Bold)
+                        Text(tr("${p.score}점", "${p.score} pts"), color = Ui.primaryDark, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -280,12 +286,12 @@ private fun LobbyScreen(vm: AppViewModel) {
         var name by remember { mutableStateOf(ui.profile?.name ?: "") }
         AlertDialog(
             onDismissRequest = { renaming = false },
-            title = { Text("닉네임") },
+            title = { Text(tr("닉네임", "Nickname")) },
             text = {
-                OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text("최대 12자") })
+                OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text(tr("최대 12자", "Up to 12 characters")) })
             },
-            confirmButton = { TextButton(onClick = { vm.rename(name); renaming = false }) { Text("저장") } },
-            dismissButton = { TextButton(onClick = { renaming = false }) { Text("취소") } },
+            confirmButton = { TextButton(onClick = { vm.rename(name); renaming = false }) { Text(tr("저장", "Save")) } },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text(tr("취소", "Cancel")) } },
         )
     }
 }
@@ -298,7 +304,7 @@ private fun TitleBanner() {
         Critter(Side.CAT, Modifier.size(64.dp).offset(y = (-hop * 10).dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 6.dp)) {
             Text("Bubble", fontSize = 44.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
-            Text("냥냥 vs 햄햄 방울 대전", fontSize = 14.sp, color = Ui.text)
+            Text(tr("냥냥 vs 햄햄 방울 대전", "Cats vs Hamsters bubble battle"), fontSize = 14.sp, color = Ui.text)
         }
         Critter(Side.HAMSTER, Modifier.size(64.dp).offset(y = (-(1 - hop) * 10).dp))
     }
@@ -338,23 +344,23 @@ private fun BigButton(text: String, sub: String, enabled: Boolean, onClick: () -
 private fun RulesDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("알겠어요!") } },
-        title = { Text("게임 규칙", fontWeight = FontWeight.Black, fontSize = 24.sp) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("알겠어요!", "Got it!")) } },
+        title = { Text(tr("게임 규칙", "How to play"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
             Text(
-                "• 고양이와 햄스터가 각자 방울(세트) 2개에 1마리씩 들고 시작해요. 고양이가 먼저!\n\n" +
-                    "• 내 차례에는 내 방울 하나를 골라요. 그 방울의 마리 수만큼\n" +
-                    "   ⚔️ 상대 방울에 더하거나 (공격)\n" +
-                    "   💪 내 다른 방울에 더할 수 있어요 (강화)\n\n" +
-                    "• 방울이 5마리 이상이 되면 💥 펑! 터져서 0마리가 돼요.\n\n" +
-                    "• 0마리 방울은 공격도 강화도 못 해요. 살리는 방법은 분할뿐!\n" +
-                    "   ✂️ 분할: 한 방울이 짝수(2·4마리)이고 다른 방울이 0일 때 반씩 나눠요.\n" +
-                    "   ✂️ 분할은 한 게임에 한 사람당 최대 ${GameLogic.MAX_SPLITS}번까지!\n\n" +
-                    "• 내 방울 2개가 모두 터지면 져요.\n\n" +
-                    "• 💖 부활물약(상점)이 있으면 터진 방울을 1마리로 살릴 수 있어요. 한 판에 최대 3번!\n\n" +
-                    "• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.\n" +
-                    "   상대가 양·강아지·기린을 장착했다면 내 턴이 20·15·10초로 줄어요.\n\n" +
-                    "• 계급: 1000점 이하 흙, 이후 100점마다 구리 → 은 → 금 → 다이아",
+                tr("• 고양이와 햄스터가 각자 방울(세트) 2개에 1마리씩 들고 시작해요. 고양이가 먼저!\n\n", "• Cats and hamsters each start with 2 bubbles (sets) holding 1 critter. Cats go first!\n\n") +
+                    tr("• 내 차례에는 내 방울 하나를 골라요. 그 방울의 마리 수만큼\n", "• On your turn, pick one of your bubbles. Add its critter count\n") +
+                    tr("   ⚔️ 상대 방울에 더하거나 (공격)\n", "   ⚔️ to an opponent bubble (attack)\n") +
+                    tr("   💪 내 다른 방울에 더할 수 있어요 (강화)\n\n", "   💪 or to your other bubble (boost)\n\n") +
+                    tr("• 방울이 5마리 이상이 되면 💥 펑! 터져서 0마리가 돼요.\n\n", "• A bubble with 5 or more critters goes 💥 POP! and drops to 0.\n\n") +
+                    tr("• 0마리 방울은 공격도 강화도 못 해요. 살리는 방법은 분할뿐!\n", "• An empty bubble can’t be attacked or boosted. Only a split revives it!\n") +
+                    tr("   ✂️ 분할: 한 방울이 짝수(2·4마리)이고 다른 방울이 0일 때 반씩 나눠요.\n", "   ✂️ Split: if one bubble has an even count (2 or 4) and the other is empty, halve it.\n") +
+                    tr("   ✂️ 분할은 한 게임에 한 사람당 최대 ${GameLogic.MAX_SPLITS}번까지!\n\n", "   ✂️ Up to ${GameLogic.MAX_SPLITS} splits per player per game!\n\n") +
+                    tr("• 내 방울 2개가 모두 터지면 져요.\n\n", "• Lose both bubbles and you lose.\n\n") +
+                    tr("• 💖 부활물약(상점)이 있으면 터진 방울을 1마리로 살릴 수 있어요. 한 판에 최대 3번!\n\n", "• 💖 Revive potions (shop) bring a popped bubble back with 1 critter. Up to 3 per game!\n\n") +
+                    tr("• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.\n", "• Online turns last ${OnlineRepository.TURN_LIMIT_MS / 1000}s. Run out of time and you lose.\n") +
+                    tr("   상대가 양·강아지·기린을 장착했다면 내 턴이 20·15·10초로 줄어요.\n\n", "   If your opponent equips a sheep, puppy or giraffe, your turn drops to 20, 15 or 10s.\n\n") +
+                    tr("• 계급: 1000점 이하 흙, 이후 100점마다 구리 → 은 → 금 → 다이아", "• Ranks: Dirt up to 1000 pts, then every 100 pts Copper → Silver → Gold → Diamond"),
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -386,11 +392,11 @@ private fun MatchingScreen(startedAt: Long, onCancel: () -> Unit) {
             Critter(Side.HAMSTER, Modifier.size(110.dp).offset(x = (-swing * 14).dp, y = (-kotlin.math.abs(swing) * 12).dp))
         }
         Spacer(Modifier.height(28.dp))
-        Text("상대를 찾고 있어요" + ".".repeat(sec % 4), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ui.text)
+        Text(tr("상대를 찾고 있어요", "Looking for an opponent") + ".".repeat(sec % 4), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ui.text)
         Spacer(Modifier.height(6.dp))
         Text("%d:%02d".format(sec / 60, sec % 60), fontSize = 16.sp, color = Ui.text.copy(alpha = 0.7f))
         Spacer(Modifier.height(32.dp))
-        OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(20.dp)) { Text("매칭 취소", color = Ui.text) }
+        OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(20.dp)) { Text(tr("매칭 취소", "Cancel"), color = Ui.text) }
     }
 }
 
@@ -420,7 +426,7 @@ private fun GameScreen(vm: AppViewModel) {
     val sel = selected
     val power = sel?.let { mine[it] } ?: 0
 
-    fun previewFor(target: Int) = if (target + power >= GameLogic.EXPLODE_AT) "💥 펑!" else "→ ${target + power}"
+    fun previewFor(target: Int) = if (target + power >= GameLogic.EXPLODE_AT) tr("💥 펑!", "💥 POP!") else "→ ${target + power}"
 
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -430,19 +436,19 @@ private fun GameScreen(vm: AppViewModel) {
             // 상단 바
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { if (g.finished) vm.leaveGame() else confirmLeave = true }) {
-                    Text("← 나가기", color = Ui.text)
+                    Text(tr("← 나가기", "← Leave"), color = Ui.text)
                 }
                 Spacer(Modifier.weight(1f))
                 if (remain != null && !g.finished) {
                     Text(
-                        "⏱ ${remain}초",
+                        tr("⏱ ${remain}초", "⏱ ${remain}s"),
                         color = if (remain <= 10) Ui.danger else Ui.text,
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(opp, g.opponentName, g.opponentScore?.let { "${it}점" }, active = g.turn == opp && !g.finished, skin = g.opponentSkin)
+                PlayerTag(opp, g.opponentName, g.opponentScore?.let { tr("${it}점", "${it} pts") }, active = g.turn == opp && !g.finished, skin = g.opponentSkin)
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(opp))
                 ReviveCounter(g.board.revivesLeft(opp))
@@ -498,7 +504,7 @@ private fun GameScreen(vm: AppViewModel) {
             }
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(me, if (g.myName == "나") "나" else g.myName + " (나)", null, active = g.myTurn, skin = g.mySkin)
+                PlayerTag(me, if (g.myName == tr("나", "Me")) tr("나", "Me") else g.myName + tr(" (나)", " (me)"), null, active = g.myTurn, skin = g.mySkin)
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(me))
                 ReviveCounter(g.board.revivesLeft(me))
@@ -516,8 +522,8 @@ private fun GameScreen(vm: AppViewModel) {
                     modifier = Modifier.padding(top = 10.dp),
                 ) {
                     Text(
-                        if (splitsLeft > 0) "✂️ 분할하기 (${power / 2} + ${power / 2}) · 남은 ${splitsLeft}회"
-                        else "✂️ 분할 횟수를 모두 썼어요",
+                        if (splitsLeft > 0) tr("✂️ 분할하기 (${power / 2} + ${power / 2}) · 남은 ${splitsLeft}회", "✂️ Split (${power / 2} + ${power / 2}) · ${splitsLeft} left")
+                        else tr("✂️ 분할 횟수를 모두 썼어요", "✂️ No splits left"),
                         fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     )
                 }
@@ -532,7 +538,7 @@ private fun GameScreen(vm: AppViewModel) {
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
                     Text(
-                        "💖 부활물약으로 ${GameLogic.setName(reviveTarget ?: 0)} 살리기 · 남은 ${g.board.revivesLeft(me)}개",
+                        tr("💖 부활물약으로 ${GameLogic.setName(reviveTarget ?: 0)} 살리기 · 남은 ${g.board.revivesLeft(me)}개", "💖 Revive ${GameLogic.setName(reviveTarget ?: 0)} · ${g.board.revivesLeft(me)} left"),
                         fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     )
                 }
@@ -599,18 +605,18 @@ private fun GameScreen(vm: AppViewModel) {
     if (confirmLeave) {
         AlertDialog(
             onDismissRequest = { confirmLeave = false },
-            title = { Text("게임에서 나갈까요?") },
+            title = { Text(tr("게임에서 나갈까요?", "Leave the game?")) },
             text = {
                 Text(
                     when {
-                        g.scoredAi -> "지금 나가면 패배로 처리돼요 (${g.aiLevel!!.losePoints}점)."
-                        g.online -> "지금 나가면 기권패로 처리돼요 (-${OnlineRepository.LOSE_POINTS}점)."
-                        else -> "연습 게임이 끝나요."
+                        g.scoredAi -> tr("지금 나가면 패배로 처리돼요 (${g.aiLevel!!.losePoints}점).", "Leaving now counts as a loss (${g.aiLevel!!.losePoints} pts).")
+                        g.online -> tr("지금 나가면 기권패로 처리돼요 (-${OnlineRepository.LOSE_POINTS}점).", "Leaving now counts as a forfeit (-${OnlineRepository.LOSE_POINTS} pts).")
+                        else -> tr("연습 게임이 끝나요.", "This practice game will end.")
                     },
                 )
             },
-            confirmButton = { TextButton(onClick = { confirmLeave = false; vm.leaveGame() }) { Text("나가기", color = Ui.danger) } },
-            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text("계속하기") } },
+            confirmButton = { TextButton(onClick = { confirmLeave = false; vm.leaveGame() }) { Text(tr("나가기", "Leave"), color = Ui.danger) } },
+            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(tr("계속하기", "Keep playing")) } },
         )
     }
 }
@@ -638,11 +644,11 @@ private fun PlayerTag(side: Side, name: String, extra: String?, active: Boolean,
 @Composable
 private fun TurnBanner(g: GameUi, selecting: Boolean) {
     val text = when {
-        g.finished -> "게임 끝!"
-        g.busy && g.turn == g.mySide -> "보내는 중…"
-        g.turn != g.mySide -> if (g.aiLevel != null) "AI가 생각 중… 🤔" else "상대가 고민 중이에요…"
-        selecting -> "어디에 더할까요? 반짝이는 방울을 눌러요"
-        else -> "내 차례! 내 방울을 하나 골라요"
+        g.finished -> tr("게임 끝!", "Game over!")
+        g.busy && g.turn == g.mySide -> tr("보내는 중…", "Sending…")
+        g.turn != g.mySide -> if (g.aiLevel != null) tr("AI가 생각 중… 🤔", "AI is thinking… 🤔") else tr("상대가 고민 중이에요…", "Opponent is thinking…")
+        selecting -> tr("어디에 더할까요? 반짝이는 방울을 눌러요", "Where to add? Tap a glowing bubble")
+        else -> tr("내 차례! 내 방울을 하나 골라요", "Your turn! Pick one of your bubbles")
     }
     AnimatedContent(text, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.8f)) togetherWith fadeOut() }, label = "turn") {
         Text(
@@ -676,14 +682,14 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                     happy = won,
                 )
                 Text(
-                    if (won) "승리! 🎉" else "아쉬운 패배…",
+                    if (won) tr("승리! 🎉", "You win! 🎉") else tr("아쉬운 패배…", "So close…"),
                     fontSize = 32.sp, fontWeight = FontWeight.Black,
                     color = if (won) Ui.primaryDark else Ui.text,
                 )
                 val reason = when (g.reason) {
-                    "forfeit" -> if (won) "상대가 나갔어요" else "기권했어요"
-                    "timeout" -> if (won) "상대가 시간을 넘겼어요" else "시간을 넘겼어요"
-                    else -> if (won) "상대 방울을 모두 터뜨렸어요!" else "내 방울이 모두 터졌어요"
+                    "forfeit" -> if (won) tr("상대가 나갔어요", "Your opponent left") else tr("기권했어요", "You forfeited")
+                    "timeout" -> if (won) tr("상대가 시간을 넘겼어요", "Your opponent ran out of time") else tr("시간을 넘겼어요", "You ran out of time")
+                    else -> if (won) tr("상대 방울을 모두 터뜨렸어요!", "You popped all their bubbles!") else tr("내 방울이 모두 터졌어요", "All your bubbles popped")
                 }
                 Text(reason, color = Ui.text.copy(alpha = 0.7f))
                 if (g.online) {
@@ -691,22 +697,22 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                     val d = g.scoreDelta
                     Text(
                         when {
-                            d == null -> "점수 계산 중…"
-                            d >= 0 -> "+$d 점"
-                            else -> "$d 점"
+                            d == null -> tr("점수 계산 중…", "Calculating score…")
+                            d >= 0 -> tr("+$d 점", "+$d pts")
+                            else -> tr("$d 점", "$d pts")
                         },
                         fontSize = 26.sp, fontWeight = FontWeight.Black,
                         color = if ((d ?: 0) >= 0) Ui.accent else Ui.danger,
                     )
                     if (g.scoreBonus > 0) {
                         Text(
-                            "✨ 계급 보너스 +${g.scoreBonus}점 포함",
+                            tr("✨ 계급 보너스 +${g.scoreBonus}점 포함", "✨ Includes rank bonus +${g.scoreBonus}"),
                             fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ui.gold.copy(red = 0.85f, green = 0.6f, blue = 0f),
                         )
                     }
                     if (rewardOffer != null) {
                         Text(
-                            "📺 로비로 갈 때 광고를 보면 ${rewardOffer}점을 돌려받아요",
+                            tr("📺 로비로 갈 때 광고를 보면 ${rewardOffer}점을 돌려받아요", "📺 Watch an ad on the way out to get ${rewardOffer} pts back"),
                             fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
                             textAlign = TextAlign.Center,
                         )
@@ -715,12 +721,12 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (g.aiLevel != null) {
-                        OutlinedButton(onClick = onAgain, shape = RoundedCornerShape(18.dp)) { Text("한 판 더") }
+                        OutlinedButton(onClick = onAgain, shape = RoundedCornerShape(18.dp)) { Text(tr("한 판 더", "Play again")) }
                     }
                     Button(
                         onClick = onLobby, shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                    ) { Text("로비로") }
+                    ) { Text(tr("로비로", "Lobby")) }
                 }
             }
         }
@@ -815,28 +821,28 @@ private fun RewardIntro(points: Int, onSkip: () -> Unit, onWatch: () -> Unit) {
                 Text("📺", fontSize = 44.sp)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "광고를 보면\n잃은 점수 중 ${points}점을 돌려드려요",
+                    tr("광고를 보면\n잃은 점수 중 ${points}점을 돌려드려요", "Watch an ad to get\n${points} of your lost points back"),
                     fontSize = 20.sp, fontWeight = FontWeight.Black, color = Ui.text,
                     textAlign = TextAlign.Center, lineHeight = 28.sp,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "${remain}초 후 광고가 시작돼요",
+                    tr("${remain}초 후 광고가 시작돼요", "Ad starts in ${remain}s"),
                     fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
                 )
                 Text(
-                    "광고를 끝까지 봐야 점수가 돌아와요",
+                    tr("광고를 끝까지 봐야 점수가 돌아와요", "Watch to the end to get your points back"),
                     fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),
                 )
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = onSkip, shape = RoundedCornerShape(18.dp)) {
-                        Text("괜찮아요 (건너뛰기)", color = Ui.text)
+                        Text(tr("괜찮아요 (건너뛰기)", "No thanks (skip)"), color = Ui.text)
                     }
                     Button(
                         onClick = onWatch, shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
-                    ) { Text("지금 보기", fontWeight = FontWeight.Bold) }
+                    ) { Text(tr("지금 보기", "Watch now"), fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -855,7 +861,7 @@ private fun ShopIconButton(onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = Ui.gold, contentColor = Ui.text),
         modifier = Modifier.offset(y = bob.dp),
     ) {
-        Text("🛒 상점", fontWeight = FontWeight.Black, fontSize = 16.sp)
+        Text(tr("🛒 상점", "🛒 Shop"), fontWeight = FontWeight.Black, fontSize = 16.sp)
     }
 }
 
@@ -876,15 +882,15 @@ private fun ShopScreen(vm: AppViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = vm::closeShop) { Text("← 로비", color = Ui.text) }
+            TextButton(onClick = vm::closeShop) { Text(tr("← 로비", "← Lobby"), color = Ui.text) }
             Spacer(Modifier.weight(1f))
             if (p != null) {
-                Text("내 점수 ", color = Ui.text, fontSize = 14.sp)
-                Text("${p.score}점", color = Ui.primaryDark, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                Text(tr("내 점수 ", "My score "), color = Ui.text, fontSize = 14.sp)
+                Text(tr("${p.score}점", "${p.score} pts"), color = Ui.primaryDark, fontWeight = FontWeight.Black, fontSize = 20.sp)
             }
         }
-        Text("🛒 상점", fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
-        Text("점수로 아이템을 살 수 있어요 (점수가 줄면 계급도 내려갈 수 있어요)", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+        Text(tr("🛒 상점", "🛒 Shop"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
+        Text(tr("점수로 아이템을 살 수 있어요 (점수가 줄면 계급도 내려갈 수 있어요)", "Spend points on items (your rank can drop if your score does)"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))
         ui.info?.let { Text(it, color = Ui.accent, fontWeight = FontWeight.Bold) }
         ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
@@ -892,23 +898,23 @@ private fun ShopScreen(vm: AppViewModel) {
 
         // 부활물약
         ShopCard(
-            title = "💖 부활물약",
-            desc = "내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 ${Shop.MAX_REVIVES_PER_GAME}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용",
+            title = tr("💖 부활물약", "💖 Revive Potion"),
+            desc = tr("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 ${Shop.MAX_REVIVES_PER_GAME}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용", "On your turn, bring a popped (empty) bubble back with 1 critter.\nUp to ${Shop.MAX_REVIVES_PER_GAME} per game · 1 used each time · online only"),
             price = Shop.POTION_PRICE,
-            owned = "보유 ${p.potions}개",
+            owned = tr("보유 ${p.potions}개", "Owned: ${p.potions}"),
             art = { PotionArt(Modifier.size(84.dp)) },
         ) {
             Button(
-                onClick = { confirm = Triple("POTION", "부활물약", Shop.POTION_PRICE) },
+                onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion"), Shop.POTION_PRICE) },
                 enabled = !ui.shopBusy && p.score >= Shop.POTION_PRICE,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-            ) { Text("${Shop.POTION_PRICE}점에 사기", fontWeight = FontWeight.Bold) }
+            ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts"), fontWeight = FontWeight.Bold) }
         }
 
         Spacer(Modifier.height(6.dp))
-        Text("🐾 동물 친구들", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.text, modifier = Modifier.fillMaxWidth())
-        Text("장착하면 내 캐릭터가 바뀌고, 상대의 턴 시간이 줄어들어요 (다음 판부터)", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
+        Text(tr("🐾 동물 친구들", "🐾 Animal Friends"), fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.text, modifier = Modifier.fillMaxWidth())
+        Text(tr("장착하면 내 캐릭터가 바뀌고, 상대의 턴 시간이 줄어들어요 (다음 판부터)", "Equip to change your character and shorten your opponent’s turn (from the next game)"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(6.dp))
 
         Animal.entries.forEach { a ->
@@ -916,29 +922,29 @@ private fun ShopScreen(vm: AppViewModel) {
             val on = p.equipped == a
             ShopCard(
                 title = a.label,
-                desc = "⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초",
+                desc = tr("⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초", "⏱ Opponent turn ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s"),
                 price = a.price,
                 owned = when {
-                    on -> "✅ 장착 중"
-                    have -> "보유 중"
+                    on -> tr("✅ 장착 중", "✅ Equipped")
+                    have -> tr("보유 중", "Owned")
                     else -> null
                 },
                 art = { Critter(Side.CAT, Modifier.size(84.dp), skin = a, happy = on) },
             ) {
                 when {
                     on -> OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
-                        Text("장착 해제", color = Ui.text)
+                        Text(tr("장착 해제", "Unequip"), color = Ui.text)
                     }
                     have -> Button(
                         onClick = { vm.equip(a) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
-                    ) { Text("장착하기", fontWeight = FontWeight.Bold) }
+                    ) { Text(tr("장착하기", "Equip"), fontWeight = FontWeight.Bold) }
                     else -> Button(
                         onClick = { confirm = Triple(a.name, a.label, a.price) },
                         enabled = !ui.shopBusy && p.score >= a.price,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                    ) { Text("${a.price}점에 사기", fontWeight = FontWeight.Bold) }
+                    ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts"), fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -948,18 +954,18 @@ private fun ShopScreen(vm: AppViewModel) {
         val after = (p?.score ?: 0) - price
         AlertDialog(
             onDismissRequest = { confirm = null },
-            title = { Text("$label 살까요?", fontWeight = FontWeight.Black) },
+            title = { Text(tr("$label 살까요?", "Buy $label?"), fontWeight = FontWeight.Black) },
             text = {
                 Column {
-                    Text("${price}점을 써요. 남는 점수: ${after}점", fontWeight = FontWeight.Bold)
+                    Text(tr("${price}점을 써요. 남는 점수: ${after}점", "Costs ${price} pts. You’ll have ${after} pts left."), fontWeight = FontWeight.Bold)
                     if (p != null && Rank.of(after) != p.rank) {
                         Spacer(Modifier.height(6.dp))
-                        Text("⚠️ 계급이 ${p.rank.label} → ${Rank.of(after).label}(으)로 내려가요", color = Ui.danger, fontWeight = FontWeight.Bold)
+                        Text(tr("⚠️ 계급이 ${p.rank.label} → ${Rank.of(after).label}(으)로 내려가요", "⚠️ Your rank will drop from ${p.rank.label} to ${Rank.of(after).label}"), color = Ui.danger, fontWeight = FontWeight.Bold)
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { vm.buy(item, label); confirm = null }) { Text("살게요") } },
-            dismissButton = { TextButton(onClick = { confirm = null }) { Text("취소") } },
+            confirmButton = { TextButton(onClick = { vm.buy(item, label); confirm = null }) { Text(tr("살게요", "Buy")) } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("취소", "Cancel")) } },
         )
     }
 }
@@ -984,7 +990,7 @@ private fun ShopCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(title, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text)
                     Spacer(Modifier.width(6.dp))
-                    Text("${price}점", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
+                    Text(tr("${price}점", "${price} pts"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
                 }
                 Text(desc, fontSize = 13.sp, color = Ui.text.copy(alpha = 0.8f), lineHeight = 18.sp)
                 if (owned != null) Text(owned, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
@@ -1051,16 +1057,16 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
     val next = Rank.entries.getOrNull(mine.ordinal + 1)
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("닫기", fontWeight = FontWeight.Bold) } },
-        title = { Text("🏅 계급표", fontWeight = FontWeight.Black, fontSize = 24.sp) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close"), fontWeight = FontWeight.Bold) } },
+        title = { Text(tr("🏅 계급표", "🏅 Ranks"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
             Column {
                 Rank.entries.reversed().forEach { r ->
                     val isMine = r == mine
                     val range = when (r) {
-                        Rank.DIRT -> "1000점 이하"
-                        Rank.DIAMOND -> "${r.minScore}점 이상"
-                        else -> "${r.minScore} ~ ${Rank.entries[r.ordinal + 1].minScore - 1}점"
+                        Rank.DIRT -> tr("1000점 이하", "Up to 1000 pts")
+                        Rank.DIAMOND -> tr("${r.minScore}점 이상", "${r.minScore}+ pts")
+                        else -> tr("${r.minScore} ~ ${Rank.entries[r.ordinal + 1].minScore - 1}점", "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} pts")
                     }
                     Row(
                         Modifier
@@ -1080,28 +1086,28 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
                         Column(Modifier.weight(1f)) {
                             Text(range, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ui.text)
                             Text(
-                                if (r.bonusPercent > 0) "🎁 얻는 점수 +${r.bonusPercent}% 추가" else "보너스 없음",
+                                if (r.bonusPercent > 0) tr("🎁 얻는 점수 +${r.bonusPercent}% 추가", "🎁 +${r.bonusPercent}% bonus on points earned") else tr("보너스 없음", "No bonus"),
                                 fontSize = 13.sp, fontWeight = FontWeight.Bold,
                                 color = if (r.bonusPercent > 0) Color(0xFFD08A00) else Ui.text.copy(alpha = 0.5f),
                             )
-                            if (isMine) Text("👈 지금 내 계급", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
+                            if (isMine) Text(tr("👈 지금 내 계급", "👈 Your rank"), fontSize = 12.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
                     if (next != null) {
-                        "내 점수 ${myScore}점 · ${next.label}까지 ${next.minScore - myScore}점 남았어요!"
+                        tr("내 점수 ${myScore}점 · ${next.label}까지 ${next.minScore - myScore}점 남았어요!", "Your score ${myScore} · ${next.minScore - myScore} pts to ${next.label}!")
                     } else {
-                        "내 점수 ${myScore}점 · 최고 계급이에요! 💎"
+                        tr("내 점수 ${myScore}점 · 최고 계급이에요! 💎", "Your score ${myScore} · Top rank! 💎")
                     },
                     fontWeight = FontWeight.Black, fontSize = 15.sp, color = Ui.accent,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "🎁 계급 보너스: 이겨서 얻는 점수(랜덤 매칭·AI 대전)에 계급만큼 점수를 더 받아요. " +
-                        "예) 다이아가 랜덤 매칭에서 이기면 25점 + 20%(5점) = 30점",
+                    tr("🎁 계급 보너스: 이겨서 얻는 점수(랜덤 매칭·AI 대전)에 계급만큼 점수를 더 받아요. ", "🎁 Rank bonus: wins (random match & AI battle) earn extra points based on your rank. ") +
+                        tr("예) 다이아가 랜덤 매칭에서 이기면 25점 + 20%(5점) = 30점", "e.g. a Diamond player winning a random match gets 25 + 20% (5) = 30 pts"),
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ui.text,
                     lineHeight = 19.sp,
                     modifier = Modifier
@@ -1111,11 +1117,47 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "높은 계급일수록 배지가 더 반짝여요 ✨",
+                    tr("높은 계급일수록 배지가 더 반짝여요 ✨", "Higher ranks get sparklier badges ✨"),
                     fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
     )
+}
+
+/** 로비 왼쪽 위의 작은 언어 선택 메뉴 (🌐 한국어 / English). */
+@Composable
+private fun LanguageMenu() {
+    val context = LocalContext.current
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Text(
+            "🌐 ${Lang.current.label} ▾",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = Ui.text,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Color.White.copy(alpha = 0.7f))
+                .clickable { open = true }
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Lang.Code.entries.forEach { code ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            (if (code == Lang.current) "✓ " else "   ") + code.label,
+                            fontWeight = if (code == Lang.current) FontWeight.Bold else FontWeight.Normal,
+                        )
+                    },
+                    onClick = {
+                        Lang.set(context, code)
+                        open = false
+                    },
+                )
+            }
+        }
+    }
 }

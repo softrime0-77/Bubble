@@ -23,6 +23,9 @@ import java.io.File
 class ScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
+    @org.junit.Before
+    fun korean() = com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.KO)
+
     /** 다이얼로그는 별도 창이라, 가장 위에 떠 있는 창을 찍습니다. */
     private fun topWindowView(): android.view.View? = runCatching {
         val wmg = Class.forName("android.view.WindowManagerGlobal")
@@ -84,6 +87,34 @@ class ScreenshotTest {
             org.robolectric.shadows.ShadowLooper.idleMainLooper()
         }
         shot("ranks", 300)
+    }
+
+    @Test
+    fun lobbyEnglish() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.EN)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_en", 900)
+    }
+
+    @Test
+    fun gameEnglish() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.EN)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.HARD)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(4, 0), ham = listOf(2, 3), catSplits = 1, hamSplits = 3),
+                mySide = Side.CAT, turn = Side.CAT, busy = false,
+                log = listOf("Hamster: Set 2 (3) attacks their Set 2 → 💥 POP!"),
+            )
+        }
+        shot("game_en", 1200)
     }
 
     @Test

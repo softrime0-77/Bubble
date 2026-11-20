@@ -1,5 +1,8 @@
 package com.bubble.game.data
 
+import com.bubble.game.i18n.Lang
+import com.bubble.game.i18n.tr
+
 import android.content.Context
 import com.bubble.game.game.AiLevel
 import com.bubble.game.game.Animal
@@ -196,7 +199,7 @@ class OnlineRepository(context: Context) {
     /** 점수가 걸린 AI 대전 시작 (판과 AI의 수는 서버가 처리). */
     suspend fun startAiGame(level: AiLevel): String =
         call("startAiGame", mapOf("level" to level.name))["gameId"] as? String
-            ?: throw ServerException("AI 대전을 시작하지 못했어요")
+            ?: throw ServerException(tr("AI 대전을 시작하지 못했어요", "Could not start the AI battle"))
 
     /** 상점 구매: "POTION" 또는 동물 이름(SHEEP/DOG/GIRAFFE). 점수 차감은 서버가 함. */
     suspend fun buyItem(item: String) {
@@ -213,13 +216,16 @@ class OnlineRepository(context: Context) {
             val result = functions.getHttpsCallable(name).call(data).await()
             return result.getData() as? Map<*, *> ?: emptyMap<String, Any?>()
         } catch (e: FirebaseFunctionsException) {
-            throw ServerException(e.message ?: "서버 오류 (${e.code})")
+            // 서버는 오류 문구를 한국어(message)와 영어(details.en)로 함께 보냄
+            val en = (e.details as? Map<*, *>)?.get("en") as? String
+            val msg = if (Lang.isKo || en == null) e.message else en
+            throw ServerException(msg ?: tr("서버 오류 (${e.code})", "Server error (${e.code})"))
         }
     }
 
     private fun DocumentSnapshot.toProfile() = Profile(
         uid = id,
-        name = getString("name") ?: "익명",
+        name = getString("name") ?: tr("익명", "Anonymous"),
         score = (getLong("score") ?: START_SCORE.toLong()).toInt(),
         wins = (getLong("wins") ?: 0).toInt(),
         losses = (getLong("losses") ?: 0).toInt(),
@@ -235,8 +241,8 @@ class OnlineRepository(context: Context) {
             id = id,
             catUid = getString("catUid") ?: "",
             hamUid = getString("hamUid") ?: "",
-            catName = getString("catName") ?: "고양이",
-            hamName = getString("hamName") ?: "햄스터",
+            catName = getString("catName") ?: tr("고양이", "Cat"),
+            hamName = getString("hamName") ?: tr("햄스터", "Hamster"),
             catScore = (getLong("catScore") ?: 0).toInt(),
             hamScore = (getLong("hamScore") ?: 0).toInt(),
             board = Board(
@@ -251,7 +257,7 @@ class OnlineRepository(context: Context) {
             finished = getString("status") == "finished",
             winner = getString("winner")?.let { Side.valueOf(it) },
             reason = getString("reason") ?: "",
-            lastDesc = getString("lastDesc") ?: "",
+            lastDesc = (getString("lastDesc") ?: "").let { ko -> tr(ko, getString("lastDescEn") ?: ko) },
             explodedSide = getString("explodedSide")?.let { Side.valueOf(it) },
             explodedIndex = (getLong("explodedIndex") ?: -1).toInt(),
             moveNo = (getLong("moveNo") ?: 0).toInt(),
@@ -282,8 +288,12 @@ class OnlineRepository(context: Context) {
 
         private val adjectives = listOf("말랑", "몽글", "졸린", "배고픈", "용감한", "수줍은", "통통", "보송", "새침한", "씩씩한")
         private val animals = listOf("고양이", "햄스터", "냥이", "햄찌", "치즈냥", "골든햄")
+        private val adjectivesEn = listOf("Fluffy", "Sleepy", "Hungry", "Brave", "Shy", "Chubby", "Bouncy", "Sassy", "Cozy", "Zippy")
+        private val animalsEn = listOf("Cat", "Hammy", "Kitty", "Paws", "Whisker", "Nibbles")
 
+        /** 첫 로그인 닉네임 (화면 언어에 맞춰 한국어/영어) */
         fun randomNickname(): String =
-            adjectives.random() + animals.random() + Random.nextInt(10, 100)
+            if (Lang.isKo) adjectives.random() + animals.random() + Random.nextInt(10, 100)
+            else adjectivesEn.random() + animalsEn.random() + Random.nextInt(10, 100)
     }
 }

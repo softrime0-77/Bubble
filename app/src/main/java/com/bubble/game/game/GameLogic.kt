@@ -1,11 +1,15 @@
 package com.bubble.game.game
 
+import com.bubble.game.i18n.tr
+
 /** 진영: 고양이 또는 햄스터. 고양이가 항상 먼저 둡니다. */
 enum class Side {
     CAT, HAMSTER;
 
     val opponent: Side get() = if (this == CAT) HAMSTER else CAT
-    val label: String get() = if (this == CAT) "고양이" else "햄스터"
+    val label: String get() = if (this == CAT) tr("고양이", "Cat") else tr("햄스터", "Hamster")
+    val labelKo: String get() = if (this == CAT) "고양이" else "햄스터"
+    val labelEn: String get() = if (this == CAT) "Cat" else "Hamster"
 }
 
 /**
@@ -43,8 +47,14 @@ sealed class Move {
 data class MoveResult(
     val board: Board,
     val exploded: Pair<Side, Int>?,
+    /** 한국어 설명 */
     val description: String,
-)
+    /** 영어 설명 */
+    val descriptionEn: String = description,
+) {
+    /** 현재 화면 언어의 설명 */
+    val localized: String get() = tr(description, descriptionEn)
+}
 
 /** 판 상태. 각 진영은 세트 2개(인덱스 0, 1)와 남은 분할 횟수를 가집니다. */
 data class Board(
@@ -88,7 +98,9 @@ object GameLogic {
     /** 한 게임에서 한 사람이 쓸 수 있는 분할 횟수. */
     const val MAX_SPLITS = 3
 
-    fun setName(i: Int) = "${i + 1}번 세트"
+    fun setName(i: Int) = tr("${i + 1}번 세트", "Set ${i + 1}")
+    private fun setKo(i: Int) = "${i + 1}번 세트"
+    private fun setEn(i: Int) = "Set ${i + 1}"
 
     /** 분할 모양 조건: 세트가 짝수(2 이상)이고 다른 세트가 0일 때. (횟수는 따지지 않음) */
     fun splitShapeOk(board: Board, side: Side, from: Int): Boolean {
@@ -143,7 +155,8 @@ object GameLogic {
     /** 수를 적용합니다. 규칙에 어긋난 수면 IllegalArgumentException. */
     fun apply(board: Board, side: Side, move: Move): MoveResult {
         require(isLegal(board, side, move)) { "규칙에 맞지 않는 수: $move" }
-        val who = side.label
+        val who = side.labelKo
+        val whoEn = side.labelEn
         return when (move) {
             is Move.Add -> {
                 val power = board.sets(side)[move.from]
@@ -152,14 +165,19 @@ object GameLogic {
                 val sum = target[move.to] + power
                 val boom = sum >= EXPLODE_AT
                 target[move.to] = if (boom) 0 else sum
-                val targetName = (if (move.toOpponent) "상대 " else "내 ") + setName(move.to)
-                val verb = if (move.toOpponent) "공격" else "강화"
-                val desc = "$who: ${setName(move.from)}(${power})로 $targetName $verb" +
+                val targetKo = (if (move.toOpponent) "상대 " else "내 ") + setKo(move.to)
+                val verbKo = if (move.toOpponent) "공격" else "강화"
+                val desc = "$who: ${setKo(move.from)}(${power})로 $targetKo $verbKo" +
                     if (boom) " → 💥 펑!" else " → ${sum}마리"
+                val targetEn = (if (move.toOpponent) "their " else "own ") + setEn(move.to)
+                val verbEn = if (move.toOpponent) "attacks" else "boosts"
+                val descEn = "$whoEn: ${setEn(move.from)} (${power}) $verbEn $targetEn" +
+                    if (boom) " → 💥 POP!" else " → ${sum}"
                 MoveResult(
                     board = board.with(targetSide, target),
                     exploded = if (boom) targetSide to move.to else null,
                     description = desc,
+                    descriptionEn = descEn,
                 )
             }
             is Move.Revive -> {
@@ -168,7 +186,8 @@ object GameLogic {
                 MoveResult(
                     board = board.with(side, sets).withRevivesLeft(side, board.revivesLeft(side) - 1),
                     exploded = null,
-                    description = "$who: 💖 부활물약으로 ${setName(move.index)} 부활!",
+                    description = "$who: 💖 부활물약으로 ${setKo(move.index)} 부활!",
+                    descriptionEn = "$whoEn: 💖 revived ${setEn(move.index)} with a potion!",
                 )
             }
             is Move.Split -> {
@@ -177,7 +196,8 @@ object GameLogic {
                 MoveResult(
                     board = board.with(side, listOf(half, half)).withSplitsLeft(side, left),
                     exploded = null,
-                    description = "$who: ${setName(move.from)} 분할 → ${half}마리, ${half}마리 ✂️ (분할 -1, 남은 ${left}회)",
+                    description = "$who: ${setKo(move.from)} 분할 → ${half}마리, ${half}마리 ✂️ (분할 -1, 남은 ${left}회)",
+                    descriptionEn = "$whoEn: split ${setEn(move.from)} → $half, $half ✂️ (split -1, $left left)",
                 )
             }
         }

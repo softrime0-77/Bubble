@@ -1,12 +1,24 @@
 package com.bubble.game.game
 
+import com.bubble.game.i18n.tr
+
 import kotlin.random.Random
 
 /** [winPoints]/[losePoints]: 로그인 상태의 AI 대전 점수 (functions/src/index.ts의 AI_POINTS와 같게). */
-enum class AiLevel(val label: String, val depth: Int, val mistakeRate: Double, val winPoints: Int, val losePoints: Int) {
-    EASY("쉬움", 1, 0.45, 1, 0),
-    NORMAL("보통", 4, 0.12, 5, -3),
-    HARD("어려움", 9, 0.0, 10, -5),
+enum class AiLevel(
+    private val ko: String,
+    private val en: String,
+    val depth: Int,
+    val mistakeRate: Double,
+    val winPoints: Int,
+    val losePoints: Int,
+) {
+    EASY("쉬움", "Easy", 1, 0.45, 1, 0),
+    NORMAL("보통", "Normal", 4, 0.12, 5, -3),
+    HARD("어려움", "Hard", 9, 0.0, 10, -5),
+    ;
+
+    val label: String get() = tr(ko, en)
 }
 
 /** 알파-베타 미니맥스 AI. 판이 작아서 깊게 읽어도 순식간에 끝납니다. */

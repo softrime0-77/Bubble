@@ -15,6 +15,11 @@ import { applyMove, Board, decodeMove, isLegal, MAX_SPLITS, opponent, Side, winn
 initializeApp();
 const db = getFirestore();
 
+/** 오류: message는 한국어, details.en은 영어 (앱이 화면 언어에 맞춰 고름) */
+function err(code: ConstructorParameters<typeof HttpsError>[0], ko: string, en: string): HttpsError {
+  return new HttpsError(code, ko, { en });
+}
+
 setGlobalOptions({ region: "asia-northeast3", maxInstances: 10 });
 
 const START_SCORE = 1000;
@@ -42,16 +47,16 @@ const REWARDED_AD_UNIT = "6715010091";
 /** 구글로 로그인한 사용자만 허용합니다. */
 function requireUser(req: CallableRequest): string {
   const uid = req.auth?.uid;
-  if (!uid) throw new HttpsError("unauthenticated", "로그인이 필요해요");
+  if (!uid) throw err("unauthenticated", "로그인이 필요해요", "Please sign in");
   const provider = req.auth?.token.firebase?.sign_in_provider;
-  if (provider !== "google.com") throw new HttpsError("permission-denied", "구글 계정으로 로그인해 주세요");
+  if (provider !== "google.com") throw err("permission-denied", "구글 계정으로 로그인해 주세요", "Please sign in with Google");
   return uid;
 }
 
 function requireGameId(data: unknown): string {
   const id = (data as { gameId?: unknown } | null)?.gameId;
   if (typeof id !== "string" || !/^[A-Za-z0-9]{1,40}$/.test(id)) {
-    throw new HttpsError("invalid-argument", "잘못된 게임이에요");
+    throw err("invalid-argument", "잘못된 게임이에요", "Invalid game");
   }
   return id;
 }
@@ -86,10 +91,10 @@ function sideOf(g: Game, uid: string): Side | null {
 async function loadGame(tx: Transaction, gameId: string, uid: string) {
   const ref = db.collection("games").doc(gameId);
   const snap = await tx.get(ref);
-  if (!snap.exists) throw new HttpsError("not-found", "게임을 찾을 수 없어요");
+  if (!snap.exists) throw err("not-found", "게임을 찾을 수 없어요", "Game not found");
   const game = snap.data() as Game;
   const side = sideOf(game, uid);
-  if (!side) throw new HttpsError("permission-denied", "내 게임이 아니에요");
+  if (!side) throw err("permission-denied", "내 게임이 아니에요", "This is not your game");
   return { ref, game, side };
 }
 
@@ -170,7 +175,7 @@ export const matchmake = onCall(async (req) => {
     }
 
     const myProfile = await tx.get(db.collection("users").doc(uid));
-    if (!myProfile.exists) throw new HttpsError("failed-precondition", "프로필이 없어요");
+    if (!myProfile.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
 
     const waiting = await tx.get(db.collection("queue").where("status", "==", "waiting").limit(50));
     const candidates = waiting.docs
@@ -244,12 +249,12 @@ export const submitMove = onCall(async (req) => {
   const uid = requireUser(req);
   const gameId = requireGameId(req.data);
   const move = decodeMove((req.data as { move?: unknown }).move);
-  if (!move) throw new HttpsError("invalid-argument", "잘못된 수예요");
+  if (!move) throw err("invalid-argument", "잘못된 수예요", "Invalid move");
 
   await db.runTransaction(async (tx) => {
     const { ref, game, side } = await loadGame(tx, gameId, uid);
-    if (game.status !== "playing") throw new HttpsError("failed-precondition", "이미 끝난 게임이에요");
-    if (game.turn !== side) throw new HttpsError("failed-precondition", "내 차례가 아니에요");
+    if (game.status !== "playing") throw err("failed-precondition", "이미 끝난 게임이에요", "This game is already over");
+    if (game.turn !== side) throw err("failed-precondition", "내 차례가 아니에요", "It's not your turn");
     const board: Board = {
       cat: game.cat,
       ham: game.ham,
@@ -258,14 +263,14 @@ export const submitMove = onCall(async (req) => {
       catRevives: game.catRevives ?? 0,
       hamRevives: game.hamRevives ?? 0,
     };
-    if (!isLegal(board, side, move)) throw new HttpsError("invalid-argument", "규칙에 맞지 않는 수예요");
+    if (!isLegal(board, side, move)) throw err("invalid-argument", "규칙에 맞지 않는 수예요", "That move breaks the rules");
 
     // 부활물약은 실제로 가진 물약을 하나 소모 (읽기는 쓰기보다 먼저)
     const myRef = db.collection("users").doc(uid);
     if (move.kind === "revive") {
       const mine = await tx.get(myRef);
       if (((mine.get("potions") as number | undefined) ?? 0) < 1) {
-        throw new HttpsError("failed-precondition", "부활물약이 없어요");
+        throw err("failed-precondition", "부활물약이 없어요", "You have no revive potions");
       }
     }
     const r = applyMove(board, side, move);
@@ -278,6 +283,7 @@ export const submitMove = onCall(async (req) => {
       hamRevives: r.board.hamRevives ?? 0,
       turn: opponent(side),
       lastDesc: r.description,
+      lastDescEn: r.descriptionEn,
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
       moveNo: game.moveNo + 1,
@@ -323,6 +329,7 @@ async function aiTurn(gameId: string) {
       catRevives: r.board.catRevives ?? 0, hamRevives: r.board.hamRevives ?? 0,
       turn: opponent(aiSide),
       lastDesc: r.description,
+      lastDescEn: r.descriptionEn,
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
       moveNo: game.moveNo + 1,
@@ -344,9 +351,9 @@ async function aiTurn(gameId: string) {
 export const startAiGame = onCall(async (req) => {
   const uid = requireUser(req);
   const level = (req.data as { level?: unknown } | null)?.level;
-  if (!isAiLevel(level)) throw new HttpsError("invalid-argument", "난이도를 골라 주세요");
+  if (!isAiLevel(level)) throw err("invalid-argument", "난이도를 골라 주세요", "Please choose a difficulty");
   const me = await db.collection("users").doc(uid).get();
-  if (!me.exists) throw new HttpsError("failed-precondition", "프로필이 없어요");
+  if (!me.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
   const humanIsCat = Math.random() < 0.5;
   const now = Date.now();
   const gameRef = db.collection("games").doc();
@@ -490,17 +497,17 @@ export const buyItem = onCall(async (req) => {
   const uid = requireUser(req);
   const item = (req.data as { item?: unknown } | null)?.item;
   if (typeof item !== "string" || (item !== "POTION" && !ANIMALS[item])) {
-    throw new HttpsError("invalid-argument", "없는 상품이에요");
+    throw err("invalid-argument", "없는 상품이에요", "No such item");
   }
   const price = item === "POTION" ? POTION_PRICE : ANIMALS[item].price;
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
     const u = await tx.get(userRef);
-    if (!u.exists) throw new HttpsError("failed-precondition", "프로필이 없어요");
+    if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
     const score = (u.get("score") as number | undefined) ?? START_SCORE;
-    if (score < price) throw new HttpsError("failed-precondition", `점수가 부족해요 (${price}점 필요)`);
+    if (score < price) throw err("failed-precondition", `점수가 부족해요 (${price}점 필요)`, `Not enough points (${price} needed)`);
     const owned = (u.get("owned") as string[] | undefined) ?? [];
-    if (item !== "POTION" && owned.includes(item)) throw new HttpsError("already-exists", "이미 가지고 있어요");
+    if (item !== "POTION" && owned.includes(item)) throw err("already-exists", "이미 가지고 있어요", "You already own this");
     tx.update(
       userRef,
       item === "POTION"
@@ -516,14 +523,14 @@ export const equipAnimal = onCall(async (req) => {
   const uid = requireUser(req);
   const animal = (req.data as { animal?: unknown } | null)?.animal ?? null;
   if (animal !== null && (typeof animal !== "string" || !ANIMALS[animal])) {
-    throw new HttpsError("invalid-argument", "없는 캐릭터예요");
+    throw err("invalid-argument", "없는 캐릭터예요", "No such character");
   }
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
     const u = await tx.get(userRef);
     const owned = (u.get("owned") as string[] | undefined) ?? [];
     if (animal !== null && !owned.includes(animal as string)) {
-      throw new HttpsError("failed-precondition", "아직 없는 캐릭터예요");
+      throw err("failed-precondition", "아직 없는 캐릭터예요", "You don't own this character yet");
     }
     tx.update(userRef, { equipped: animal });
   });

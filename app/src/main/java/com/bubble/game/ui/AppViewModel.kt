@@ -1,5 +1,7 @@
 package com.bubble.game.ui
 
+import com.bubble.game.i18n.tr
+
 import android.app.Application
 import android.content.Context
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -42,8 +44,8 @@ data class GameUi(
     val board: Board = Board(),
     val mySide: Side = Side.CAT,
     val turn: Side = Side.CAT,
-    val myName: String = "나",
-    val opponentName: String = "상대",
+    val myName: String = tr("나", "Me"),
+    val opponentName: String = tr("상대", "Opponent"),
     val opponentScore: Int? = null,
     val finished: Boolean = false,
     val winner: Side? = null,
@@ -119,9 +121,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
-    fun buy(item: String, label: String) = shopAction("$label 구매 완료! 🎉") { repo.buyItem(item) }
+    fun buy(item: String, label: String) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉")) { repo.buyItem(item) }
 
-    fun equip(animal: Animal?) = shopAction(if (animal == null) "기본 캐릭터로 바꿨어요" else "${animal.label} 장착!") {
+    fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character") else tr("${animal.label} 장착!", "${animal.label} equipped!")) {
         repo.equipAnimal(animal)
     }
 
@@ -135,7 +137,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _lobby.update { it.copy(shopBusy = false, error = e.message ?: "실패했어요") }
+                _lobby.update { it.copy(shopBusy = false, error = e.message ?: tr("실패했어요", "Something went wrong")) }
             }
         }
     }
@@ -155,7 +157,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val clientId = GoogleSignIn.webClientId(getApplication())
         if (clientId == null) {
             _lobby.update {
-                it.copy(error = "Firebase 콘솔에서 Google 로그인을 켜고 google-services.json을 다시 받아 넣어야 해요.")
+                it.copy(error = tr("Firebase 콘솔에서 Google 로그인을 켜고 google-services.json을 다시 받아 넣어야 해요.", "Enable Google sign-in in the Firebase console and add a fresh google-services.json."))
             }
             return
         }
@@ -167,7 +169,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: GetCredentialCancellationException) {
                 _lobby.update { it.copy(loading = false) }
             } catch (e: Exception) {
-                _lobby.update { it.copy(loading = false, error = "구글 로그인에 실패했어요: ${e.message}") }
+                _lobby.update { it.copy(loading = false, error = tr("구글 로그인에 실패했어요: ${e.message}", "Google sign-in failed: ${e.message}")) }
             }
         }
     }
@@ -212,7 +214,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _lobby.update { it.copy(loading = false, error = "서버에 연결하지 못했어요: ${e.message}") }
+                _lobby.update { it.copy(loading = false, error = tr("서버에 연결하지 못했어요: ${e.message}", "Could not connect to the server: ${e.message}")) }
             }
         }
     }
@@ -236,7 +238,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _lobby.update { it.copy(error = "매칭 중 문제가 생겼어요: ${e.message}") }
+                _lobby.update { it.copy(error = tr("매칭 중 문제가 생겼어요: ${e.message}", "Matching failed: ${e.message}")) }
                 _screen.value = Screen.Lobby
             }
         }
@@ -291,7 +293,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             mySide = side,
             turn = og.turn,
             myName = if (side == Side.CAT) og.catName else og.hamName,
-            opponentName = if (side == Side.CAT) og.hamName else og.catName,
+            opponentName = og.vsAi?.let { tr("AI 친구 (${it.label})", "AI Buddy (${it.label})") }
+                ?: if (side == Side.CAT) og.hamName else og.catName,
             opponentScore = if (side == Side.CAT) og.hamScore else og.catScore,
             finished = og.finished,
             winner = og.winner,
@@ -320,7 +323,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (repo.available && uid != null && _lobby.value.profile != null) {
             gameJob?.cancel()
             onlineGameId = null
-            _game.value = GameUi(online = true, busy = true, aiLevel = level, opponentName = "AI 친구 (${level.label})")
+            _game.value = GameUi(online = true, busy = true, aiLevel = level, opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})"))
             _screen.value = Screen.Game
             gameJob = viewModelScope.launch {
                 try {
@@ -331,7 +334,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     // 서버에 연결할 수 없으면 점수 없는 연습으로라도 계속 플레이
                     startLocalAiGame(level)
                     _game.update {
-                        it.copy(notice = "서버에 연결할 수 없어 점수 없는 연습으로 진행해요 (${e.message ?: "오류"})")
+                        it.copy(
+                            notice = tr(
+                                "서버에 연결할 수 없어 점수 없는 연습으로 진행해요",
+                                "Can't reach the server, so this is an unscored practice game",
+                            ) + " (${e.message ?: "error"})",
+                        )
                     }
                 }
             }
@@ -348,8 +356,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _game.value = GameUi(
             online = false,
             mySide = mySide,
-            myName = _lobby.value.profile?.name ?: "나",
-            opponentName = "AI 친구 (${level.label})",
+            myName = _lobby.value.profile?.name ?: tr("나", "Me"),
+            opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})"),
             mySkin = _lobby.value.profile?.equipped,
             aiLevel = level,
         )
@@ -378,7 +386,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             finished = w != null,
             winner = w,
             reason = if (w != null) "normal" else "",
-            log = (listOf(r.description) + g.log).take(30),
+            log = (listOf(r.localized) + g.log).take(30),
             explosion = r.exploded?.let { Explosion(it.first, it.second, id) } ?: g.explosion,
             busy = false,
         )
@@ -396,7 +404,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** 광고를 끝까지 봤을 때 (점수는 서버가 AdMob 확인 후 반영). */
     fun onAdRewardEarned() {
-        _lobby.update { it.copy(info = "📺 광고 보상 확인 중… 곧 점수가 돌아와요") }
+        _lobby.update { it.copy(info = tr("📺 광고 보상 확인 중… 곧 점수가 돌아와요", "📺 Checking your ad reward… points coming soon")) }
         viewModelScope.launch {
             delay(15_000)
             _lobby.update { it.copy(info = null) }

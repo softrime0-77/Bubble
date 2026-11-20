@@ -25,6 +25,8 @@ export const MAX_SPLITS = 3;
 export const opponent = (s: Side): Side => (s === "CAT" ? "HAMSTER" : "CAT");
 export const label = (s: Side) => (s === "CAT" ? "고양이" : "햄스터");
 const setName = (i: number) => `${i + 1}번 세트`;
+const setNameEn = (i: number) => `Set ${i + 1}`;
+const labelEn = (s: Side) => (s === "CAT" ? "Cat" : "Hamster");
 
 export function sets(b: Board, s: Side): Sets {
   return s === "CAT" ? b.cat : b.ham;
@@ -95,11 +97,13 @@ export interface MoveResult {
   board: Board;
   exploded: { side: Side; index: number } | null;
   description: string;
+  descriptionEn: string;
 }
 
 export function applyMove(b: Board, side: Side, m: Move): MoveResult {
   if (!isLegal(b, side, m)) throw new Error("illegal move");
   const who = label(side);
+  const whoEn = labelEn(side);
   if (m.kind === "revive") {
     const v = [...sets(b, side)] as Sets;
     v[m.index] = 1;
@@ -109,6 +113,7 @@ export function applyMove(b: Board, side: Side, m: Move): MoveResult {
       board: side === "CAT" ? { ...revived, catRevives: left } : { ...revived, hamRevives: left },
       exploded: null,
       description: `${who}: 💖 부활물약으로 ${setName(m.index)} 부활!`,
+      descriptionEn: `${whoEn}: 💖 revived ${setNameEn(m.index)} with a potion!`,
     };
   }
   if (m.kind === "split") {
@@ -119,6 +124,7 @@ export function applyMove(b: Board, side: Side, m: Move): MoveResult {
       board: side === "CAT" ? { ...split, catSplits: left } : { ...split, hamSplits: left },
       exploded: null,
       description: `${who}: ${setName(m.from)} 분할 → ${half}마리, ${half}마리 ✂️ (분할 -1, 남은 ${left}회)`,
+      descriptionEn: `${whoEn}: split ${setNameEn(m.from)} → ${half}, ${half} ✂️ (split -1, ${left} left)`,
     };
   }
   const power = sets(b, side)[m.from];
@@ -133,5 +139,8 @@ export function applyMove(b: Board, side: Side, m: Move): MoveResult {
     board: withSets(b, targetSide, target),
     exploded: boom ? { side: targetSide, index: m.to } : null,
     description: `${who}: ${setName(m.from)}(${power})로 ${targetName} ${verb}` + (boom ? " → 💥 펑!" : ` → ${sum}마리`),
+    descriptionEn:
+      `${whoEn}: ${setNameEn(m.from)} (${power}) ${m.toOpponent ? "attacks their" : "boosts own"} ${setNameEn(m.to)}` +
+      (boom ? " → 💥 POP!" : ` → ${sum}`),
   };
 }

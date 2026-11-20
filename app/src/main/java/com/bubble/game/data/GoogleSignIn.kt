@@ -1,5 +1,7 @@
 package com.bubble.game.data
 
+import com.bubble.game.i18n.tr
+
 import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -32,6 +34,6 @@ object GoogleSignIn {
         ) {
             return GoogleIdTokenCredential.createFrom(credential.data).idToken
         }
-        error("구글 계정 정보를 받지 못했어요")
+        error(tr("구글 계정 정보를 받지 못했어요", "Could not get your Google account"))
     }
 }

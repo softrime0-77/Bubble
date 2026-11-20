@@ -1,5 +1,7 @@
 package com.bubble.game.ui
 
+import com.bubble.game.i18n.tr
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -239,7 +241,7 @@ fun SetBubble(
                 }
             }
         } else {
-            Text("텅…", color = Ui.text.copy(alpha = 0.45f), fontSize = 14.sp)
+            Text(tr("텅…", "Empty…"), color = Ui.text.copy(alpha = 0.45f), fontSize = 14.sp)
         }
 
         // 펑!
@@ -261,7 +263,7 @@ fun SetBubble(
                 }
             }
             Text(
-                "펑!", fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.danger,
+                tr("펑!", "POP!"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.danger,
                 modifier = Modifier.scale(0.6f + p * 1.0f).alpha(1f - p),
             )
         }
@@ -276,12 +278,12 @@ fun SetBubble(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .offset(y = (-6).dp)
-                    .background(if (preview.contains("펑")) Ui.danger else Ui.accent, RoundedCornerShape(50))
+                    .background(if (preview.contains("💥")) Ui.danger else Ui.accent, RoundedCornerShape(50))
                     .padding(horizontal = 10.dp, vertical = 3.dp),
             )
         }
         Text(
-            if (dead) "$title 💀" else "$title · ${count}마리",
+            if (dead) "$title 💀" else tr("$title · ${count}마리", "$title · ${count}"),
             color = if (danger) Ui.danger else Ui.text,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
@@ -443,15 +445,15 @@ fun RankUpCelebration(score: Int, onDismiss: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.scale(pop.value),
         ) {
-            Text("🎉 승급! 🎉", fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White)
+            Text(tr("🎉 승급! 🎉", "🎉 Rank up! 🎉"), fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White)
             androidx.compose.foundation.layout.Spacer(Modifier.size(14.dp))
             RankBadge(score, large = true, modifier = Modifier.scale(1.6f))
             androidx.compose.foundation.layout.Spacer(Modifier.size(22.dp))
             Text(
-                "${rank.label} 계급이 되었어요!",
+                tr("${rank.label} 계급이 되었어요!", "You reached ${rank.label}!"),
                 fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White,
             )
-            Text("화면을 누르면 닫혀요", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+            Text(tr("화면을 누르면 닫혀요", "Tap anywhere to close"), fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
         }
     }
 }

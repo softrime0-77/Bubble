@@ -7,7 +7,7 @@ enum class Side {
     CAT, HAMSTER;
 
     val opponent: Side get() = if (this == CAT) HAMSTER else CAT
-    val label: String get() = if (this == CAT) tr("고양이", "Cat") else tr("햄스터", "Hamster")
+    val label: String get() = if (this == CAT) tr("고양이", "Cat", zh = "猫咪", hi = "बिल्ली", es = "Gato", fr = "Chat", ar = "قطة", de = "Katze", pt = "Gato", ru = "Котик", ja = "ネコ") else tr("햄스터", "Hamster", zh = "仓鼠", hi = "हैम्स्टर", es = "Hámster", fr = "Hamster", ar = "هامستر", de = "Hamster", pt = "Hamster", ru = "Хомяк", ja = "ハムスター")
     val labelKo: String get() = if (this == CAT) "고양이" else "햄스터"
     val labelEn: String get() = if (this == CAT) "Cat" else "Hamster"
 }
@@ -51,9 +51,11 @@ data class MoveResult(
     val description: String,
     /** 영어 설명 */
     val descriptionEn: String = description,
+    /** 화면 언어로 설명을 만들 정보 */
+    val info: MoveInfo? = null,
 ) {
     /** 현재 화면 언어의 설명 */
-    val localized: String get() = tr(description, descriptionEn)
+    val localized: String get() = info?.let { MoveText.describe(it) } ?: tr(description, descriptionEn)
 }
 
 /** 판 상태. 각 진영은 세트 2개(인덱스 0, 1)와 남은 분할 횟수를 가집니다. */
@@ -98,7 +100,7 @@ object GameLogic {
     /** 한 게임에서 한 사람이 쓸 수 있는 분할 횟수. */
     const val MAX_SPLITS = 3
 
-    fun setName(i: Int) = tr("${i + 1}번 세트", "Set ${i + 1}")
+    fun setName(i: Int) = tr("${i + 1}번 세트", "Set ${i + 1}", zh = "第 ${i + 1} 组", hi = "सेट ${i + 1}", es = "Grupo ${i + 1}", fr = "Groupe ${i + 1}", ar = "المجموعة ${i + 1}", de = "Gruppe ${i + 1}", pt = "Grupo ${i + 1}", ru = "Группа ${i + 1}", ja = "${i + 1}番セット")
     private fun setKo(i: Int) = "${i + 1}번 세트"
     private fun setEn(i: Int) = "Set ${i + 1}"
 
@@ -178,6 +180,7 @@ object GameLogic {
                     exploded = if (boom) targetSide to move.to else null,
                     description = desc,
                     descriptionEn = descEn,
+                    info = MoveInfo(side, move, power, sum, boom, board.splitsLeft(side)),
                 )
             }
             is Move.Revive -> {
@@ -188,6 +191,7 @@ object GameLogic {
                     exploded = null,
                     description = "$who: 💖 부활물약으로 ${setKo(move.index)} 부활!",
                     descriptionEn = "$whoEn: 💖 revived ${setEn(move.index)} with a potion!",
+                    info = MoveInfo(side, move, 0, 0, false, board.splitsLeft(side)),
                 )
             }
             is Move.Split -> {
@@ -198,6 +202,7 @@ object GameLogic {
                     exploded = null,
                     description = "$who: ${setKo(move.from)} 분할 → ${half}마리, ${half}마리 ✂️ (분할 -1, 남은 ${left}회)",
                     descriptionEn = "$whoEn: split ${setEn(move.from)} → $half, $half ✂️ (split -1, $left left)",
+                    info = MoveInfo(side, move, half * 2, half, false, left),
                 )
             }
         }

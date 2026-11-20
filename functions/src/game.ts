@@ -98,6 +98,8 @@ export interface MoveResult {
   exploded: { side: Side; index: number } | null;
   description: string;
   descriptionEn: string;
+  /** 앱이 화면 언어로 설명을 만들 정보 */
+  info: { power: number; sum: number; boom: boolean; splitsLeft: number };
 }
 
 export function applyMove(b: Board, side: Side, m: Move): MoveResult {
@@ -114,6 +116,7 @@ export function applyMove(b: Board, side: Side, m: Move): MoveResult {
       exploded: null,
       description: `${who}: 💖 부활물약으로 ${setName(m.index)} 부활!`,
       descriptionEn: `${whoEn}: 💖 revived ${setNameEn(m.index)} with a potion!`,
+      info: { power: 0, sum: 0, boom: false, splitsLeft: side === "CAT" ? b.catSplits : b.hamSplits },
     };
   }
   if (m.kind === "split") {
@@ -125,6 +128,7 @@ export function applyMove(b: Board, side: Side, m: Move): MoveResult {
       exploded: null,
       description: `${who}: ${setName(m.from)} 분할 → ${half}마리, ${half}마리 ✂️ (분할 -1, 남은 ${left}회)`,
       descriptionEn: `${whoEn}: split ${setNameEn(m.from)} → ${half}, ${half} ✂️ (split -1, ${left} left)`,
+      info: { power: half * 2, sum: half, boom: false, splitsLeft: left },
     };
   }
   const power = sets(b, side)[m.from];
@@ -142,5 +146,13 @@ export function applyMove(b: Board, side: Side, m: Move): MoveResult {
     descriptionEn:
       `${whoEn}: ${setNameEn(m.from)} (${power}) ${m.toOpponent ? "attacks their" : "boosts own"} ${setNameEn(m.to)}` +
       (boom ? " → 💥 POP!" : ` → ${sum}`),
+    info: { power, sum, boom, splitsLeft: side === "CAT" ? b.catSplits : b.hamSplits },
   };
+}
+
+/** 앱과 같은 형식으로 수를 문자열로 */
+export function encodeMove(m: Move): string {
+  if (m.kind === "add") return `A:${m.from}:${m.toOpponent ? 1 : 0}:${m.to}`;
+  if (m.kind === "split") return `S:${m.from}`;
+  return `R:${m.index}`;
 }

@@ -9,6 +9,8 @@ import com.bubble.game.game.Animal
 import com.bubble.game.game.Board
 import com.bubble.game.game.GameLogic
 import com.bubble.game.game.Move
+import com.bubble.game.game.MoveInfo
+import com.bubble.game.game.MoveText
 import com.bubble.game.game.Rank
 import com.bubble.game.game.Side
 import com.google.firebase.FirebaseApp
@@ -205,7 +207,7 @@ class OnlineRepository(context: Context) {
     /** 점수가 걸린 AI 대전 시작 (판과 AI의 수는 서버가 처리). */
     suspend fun startAiGame(level: AiLevel): String =
         call("startAiGame", mapOf("level" to level.name))["gameId"] as? String
-            ?: throw ServerException(tr("AI 대전을 시작하지 못했어요", "Could not start the AI battle"))
+            ?: throw ServerException(tr("AI 대전을 시작하지 못했어요", "Could not start the AI battle", zh = "无法开始 AI 对战", hi = "AI मुकाबला शुरू नहीं हो सका", es = "No se pudo iniciar la batalla contra la IA", fr = "Impossible de lancer le combat contre l’IA", ar = "تعذّر بدء معركة الذكاء الاصطناعي", de = "KI-Duell konnte nicht gestartet werden", pt = "Não foi possível iniciar a batalha contra a IA", ru = "Не удалось начать бой с ИИ", ja = "AI対戦を開始できませんでした"))
 
     /** 상점 구매: "POTION" 또는 동물 이름(SHEEP/DOG/GIRAFFE). 점수 차감은 서버가 함. */
     suspend fun buyItem(item: String) {
@@ -225,13 +227,13 @@ class OnlineRepository(context: Context) {
             // 서버는 오류 문구를 한국어(message)와 영어(details.en)로 함께 보냄
             val en = (e.details as? Map<*, *>)?.get("en") as? String
             val msg = if (Lang.isKo || en == null) e.message else en
-            throw ServerException(msg ?: tr("서버 오류 (${e.code})", "Server error (${e.code})"))
+            throw ServerException(msg ?: tr("서버 오류 (${e.code})", "Server error (${e.code})", zh = "服务器错误（${e.code}）", hi = "सर्वर त्रुटि (${e.code})", es = "Error del servidor (${e.code})", fr = "Erreur serveur (${e.code})", ar = "خطأ في الخادم (${e.code})", de = "Serverfehler (${e.code})", pt = "Erro do servidor (${e.code})", ru = "Ошибка сервера (${e.code})", ja = "サーバーエラー（${e.code}）"))
         }
     }
 
     private fun DocumentSnapshot.toProfile() = Profile(
         uid = id,
-        name = getString("name") ?: tr("익명", "Anonymous"),
+        name = getString("name") ?: tr("익명", "Anonymous", zh = "匿名", hi = "गुमनाम", es = "Anónimo", fr = "Anonyme", ar = "مجهول", de = "Anonym", pt = "Anônimo", ru = "Аноним", ja = "匿名"),
         score = (getLong("score") ?: START_SCORE.toLong()).toInt(),
         wins = (getLong("wins") ?: 0).toInt(),
         losses = (getLong("losses") ?: 0).toInt(),
@@ -240,6 +242,26 @@ class OnlineRepository(context: Context) {
         equipped = Animal.of(getString("equipped")),
     )
 
+    /** 서버가 보낸 수 정보로 화면 언어의 설명을 만듭니다. 정보가 없으면 서버 문구(한/영). */
+    private fun DocumentSnapshot.lastMoveText(): String {
+        val move = getString("lastMove")?.let { Move.decode(it) }
+        val by = getString("lastBy")?.let { runCatching { Side.valueOf(it) }.getOrNull() }
+        if (move != null && by != null) {
+            return MoveText.describe(
+                MoveInfo(
+                    side = by,
+                    move = move,
+                    power = (getLong("lastPower") ?: 0).toInt(),
+                    sum = (getLong("lastSum") ?: 0).toInt(),
+                    boom = getBoolean("lastBoom") ?: false,
+                    splitsLeft = (getLong("lastLeft") ?: 0).toInt(),
+                ),
+            )
+        }
+        val ko = getString("lastDesc") ?: ""
+        return if (Lang.isKo) ko else getString("lastDescEn") ?: ko
+    }
+
     private fun DocumentSnapshot.toGame(): OnlineGame {
         fun sets(field: String): List<Int> =
             (get(field) as? List<*>)?.map { (it as Number).toInt() } ?: listOf(1, 1)
@@ -247,8 +269,8 @@ class OnlineRepository(context: Context) {
             id = id,
             catUid = getString("catUid") ?: "",
             hamUid = getString("hamUid") ?: "",
-            catName = getString("catName") ?: tr("고양이", "Cat"),
-            hamName = getString("hamName") ?: tr("햄스터", "Hamster"),
+            catName = getString("catName") ?: tr("고양이", "Cat", zh = "猫咪", hi = "बिल्ली", es = "Gato", fr = "Chat", ar = "قطة", de = "Katze", pt = "Gato", ru = "Котик", ja = "ネコ"),
+            hamName = getString("hamName") ?: tr("햄스터", "Hamster", zh = "仓鼠", hi = "हैम्स्टर", es = "Hámster", fr = "Hamster", ar = "هامستر", de = "Hamster", pt = "Hamster", ru = "Хомяк", ja = "ハムスター"),
             catScore = (getLong("catScore") ?: 0).toInt(),
             hamScore = (getLong("hamScore") ?: 0).toInt(),
             board = Board(
@@ -263,7 +285,7 @@ class OnlineRepository(context: Context) {
             finished = getString("status") == "finished",
             winner = getString("winner")?.let { Side.valueOf(it) },
             reason = getString("reason") ?: "",
-            lastDesc = (getString("lastDesc") ?: "").let { ko -> tr(ko, getString("lastDescEn") ?: ko) },
+            lastDesc = lastMoveText(),
             explodedSide = getString("explodedSide")?.let { Side.valueOf(it) },
             explodedIndex = (getLong("explodedIndex") ?: -1).toInt(),
             moveNo = (getLong("moveNo") ?: 0).toInt(),

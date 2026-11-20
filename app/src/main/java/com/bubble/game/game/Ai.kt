@@ -1,6 +1,6 @@
 package com.bubble.game.game
 
-import com.bubble.game.i18n.tr
+import com.bubble.game.i18n.Lang
 
 import kotlin.random.Random
 
@@ -18,7 +18,15 @@ enum class AiLevel(
     HARD("어려움", "Hard", 9, 0.0, 10, -5),
     ;
 
-    val label: String get() = tr(ko, en)
+    /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */
+    private val others: List<String>
+        get() = when (this) {
+            EASY -> listOf("简单", "आसान", "Fácil", "Facile", "سهل", "Leicht", "Fácil", "Легко", "かんたん")
+            NORMAL -> listOf("普通", "सामान्य", "Normal", "Normal", "عادي", "Normal", "Normal", "Нормально", "ふつう")
+            HARD -> listOf("困难", "कठिन", "Difícil", "Difficile", "صعب", "Schwer", "Difícil", "Сложно", "むずかしい")
+        }
+
+    val label: String get() = Lang.pick(listOf(ko, en) + others)
 }
 
 /** 알파-베타 미니맥스 AI. 판이 작아서 깊게 읽어도 순식간에 끝납니다. */

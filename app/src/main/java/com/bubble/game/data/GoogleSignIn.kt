@@ -34,6 +34,6 @@ object GoogleSignIn {
         ) {
             return GoogleIdTokenCredential.createFrom(credential.data).idToken
         }
-        error(tr("구글 계정 정보를 받지 못했어요", "Could not get your Google account"))
+        error(tr("구글 계정 정보를 받지 못했어요", "Could not get your Google account", zh = "无法获取你的 Google 账号", hi = "आपका Google खाता नहीं मिल सका", es = "No se pudo obtener tu cuenta de Google", fr = "Impossible de récupérer ton compte Google", ar = "تعذّر الحصول على حسابك في Google", de = "Dein Google-Konto konnte nicht abgerufen werden", pt = "Não foi possível obter sua conta Google", ru = "Не удалось получить аккаунт Google", ja = "Googleアカウントを取得できませんでした"))
     }
 }

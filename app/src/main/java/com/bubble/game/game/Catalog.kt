@@ -1,6 +1,6 @@
 package com.bubble.game.game
 
-import com.bubble.game.i18n.tr
+import com.bubble.game.i18n.Lang
 
 /**
  * 계급. 1000점 이하는 흙, 이후 100점마다 한 단계씩 올라갑니다.
@@ -21,7 +21,17 @@ enum class Rank(
     GOLD("금", "Gold", "🥇", 1201, 3, 15),
     DIAMOND("다이아", "Diamond", "💎", 1301, 4, 20);
 
-    val label: String get() = tr(ko, en)
+    /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */
+    private val others: List<String>
+        get() = when (this) {
+            DIRT -> listOf("泥土", "मिट्टी", "Tierra", "Terre", "تراب", "Erde", "Terra", "Земля", "土")
+            COPPER -> listOf("铜", "कॉपर", "Cobre", "Cuivre", "نحاس", "Kupfer", "Cobre", "Медь", "銅")
+            SILVER -> listOf("银", "सिल्वर", "Plata", "Argent", "فضة", "Silber", "Prata", "Серебро", "銀")
+            GOLD -> listOf("金", "गोल्ड", "Oro", "Or", "ذهب", "Gold", "Ouro", "Золото", "金")
+            DIAMOND -> listOf("钻石", "डायमंड", "Diamante", "Diamant", "ماس", "Diamant", "Diamante", "Алмаз", "ダイヤ")
+        }
+
+    val label: String get() = Lang.pick(listOf(ko, en) + others)
 
     /** 이겨서 얻는 점수 [base]에 붙는 보너스 (반올림). functions/src/catalog.ts의 rankBonus와 같게. */
     fun bonusFor(base: Int): Int = if (base > 0) Math.round(base * bonusPercent / 100.0).toInt() else 0
@@ -41,7 +51,15 @@ enum class Animal(private val ko: String, private val en: String, val price: Int
     GIRAFFE("기린", "Giraffe", 1000, 10),
     ;
 
-    val label: String get() = tr(ko, en)
+    /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */
+    private val others: List<String>
+        get() = when (this) {
+            SHEEP -> listOf("绵羊", "भेड़", "Oveja", "Mouton", "خروف", "Schaf", "Ovelha", "Овечка", "ヒツジ")
+            DOG -> listOf("小狗", "पिल्ला", "Perrito", "Chiot", "جرو", "Welpe", "Cachorrinho", "Щенок", "子イヌ")
+            GIRAFFE -> listOf("长颈鹿", "जिराफ़", "Jirafa", "Girafe", "زرافة", "Giraffe", "Girafa", "Жираф", "キリン")
+        }
+
+    val label: String get() = Lang.pick(listOf(ko, en) + others)
 
     companion object {
         fun of(id: String?): Animal? = entries.firstOrNull { it.name == id }

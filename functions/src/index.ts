@@ -11,7 +11,7 @@ import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
 import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, turnLimitAgainst } from "./catalog";
-import { applyMove, Board, decodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
+import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
 const db = getFirestore();
@@ -285,6 +285,12 @@ export const submitMove = onCall(async (req) => {
       turn: opponent(side),
       lastDesc: r.description,
       lastDescEn: r.descriptionEn,
+      lastBy: side,
+      lastMove: encodeMove(move),
+      lastPower: r.info.power,
+      lastSum: r.info.sum,
+      lastBoom: r.info.boom,
+      lastLeft: r.info.splitsLeft,
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
       moveNo: game.moveNo + 1,
@@ -323,7 +329,8 @@ async function aiTurn(gameId: string) {
       catSplits: game.catSplits ?? MAX_SPLITS, hamSplits: game.hamSplits ?? MAX_SPLITS,
       catRevives: game.catRevives ?? 0, hamRevives: game.hamRevives ?? 0,
     };
-    const r = applyMove(board, aiSide, chooseMove(board, aiSide, game.vsAi));
+    const aiMove = chooseMove(board, aiSide, game.vsAi);
+    const r = applyMove(board, aiSide, aiMove);
     const update = {
       cat: r.board.cat, ham: r.board.ham,
       catSplits: r.board.catSplits, hamSplits: r.board.hamSplits,
@@ -331,6 +338,12 @@ async function aiTurn(gameId: string) {
       turn: opponent(aiSide),
       lastDesc: r.description,
       lastDescEn: r.descriptionEn,
+      lastBy: aiSide,
+      lastMove: encodeMove(aiMove),
+      lastPower: r.info.power,
+      lastSum: r.info.sum,
+      lastBoom: r.info.boom,
+      lastLeft: r.info.splitsLeft,
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
       moveNo: game.moveNo + 1,

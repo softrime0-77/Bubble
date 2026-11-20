@@ -1,6 +1,11 @@
 package com.bubble.game.ui
 
 import com.bubble.game.i18n.tr
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
@@ -86,6 +91,9 @@ import kotlinx.coroutines.delay
 @Composable
 fun BubbleApp(vm: AppViewModel) {
     val screen by vm.screen.collectAsState()
+    // 아랍어는 오른쪽에서 왼쪽으로
+    val direction = if (Lang.current.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+    CompositionLocalProvider(LocalLayoutDirection provides direction) {
     BubbleBackground {
         AnimatedContent(
             targetState = screen,
@@ -103,6 +111,7 @@ fun BubbleApp(vm: AppViewModel) {
         val lobby by vm.lobby.collectAsState()
         val rankUp = lobby.rankUpScore
         if (rankUp != null && screen == Screen.Lobby) RankUpCelebration(rankUp, onDismiss = vm::dismissRankUp)
+    }
     }
 }
 
@@ -143,9 +152,17 @@ private fun LobbyScreen(vm: AppViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(tr("구글 계정으로 로그인하면\n점수와 전적이 계정에 저장돼요", "Sign in with Google to save\nyour score and record"), color = Ui.text, textAlign = TextAlign.Center)
+                    Text(tr(
+"구글 계정으로 로그인하면\n점수와 전적이 계정에 저장돼요",
+"Sign in with Google to save\nyour score and record",
+zh = "用 Google 登录，\n保存你的分数和战绩", hi = "Google से साइन इन करें और\nअपना स्कोर व रिकॉर्ड सेव करें", es = "Inicia sesión con Google para guardar\ntu puntuación y récord", fr = "Connecte-toi avec Google pour sauvegarder\nton score et ton palmarès", ar = "سجّل الدخول عبر Google لحفظ\nنقاطك وسجلّك", de = "Melde dich mit Google an, um\nPunkte und Bilanz zu speichern", pt = "Entre com o Google para salvar\nsua pontuação e histórico", ru = "Войдите через Google, чтобы сохранить\nсчёт и статистику", ja = "Google でログインすると\nスコアと戦績が保存されます",
+), color = Ui.text, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(4.dp))
-                    Text(tr("상대에게는 구글 이름 대신 닉네임만 보여요", "Opponents only see your nickname, not your Google name"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f))
+                    Text(tr(
+"상대에게는 구글 이름 대신 닉네임만 보여요",
+"Opponents only see your nickname, not your Google name",
+zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विरोधियों को सिर्फ़ आपका निकनेम दिखेगा, Google नाम नहीं", es = "Los rivales solo ven tu apodo, no tu nombre de Google", fr = "Les adversaires ne voient que ton pseudo, pas ton nom Google", ar = "يرى الخصوم لقبك فقط وليس اسمك في Google", de = "Gegner sehen nur deinen Spitznamen, nicht deinen Google-Namen", pt = "Os rivais só veem seu apelido, não seu nome do Google", ru = "Соперники видят только ваш ник, а не имя в Google", ja = "相手にはGoogleの名前ではなくニックネームだけが表示されます",
+), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f))
                     Spacer(Modifier.height(12.dp))
                     val activity = LocalContext.current
                     Button(
@@ -157,7 +174,7 @@ private fun LobbyScreen(vm: AppViewModel) {
                     ) {
                         Text("G", fontWeight = FontWeight.Black, fontSize = 20.sp, color = Color(0xFF4285F4))
                         Spacer(Modifier.width(10.dp))
-                        Text(tr("Google로 시작하기", "Continue with Google"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(tr("Google로 시작하기", "Continue with Google", zh = "使用 Google 继续", hi = "Google के साथ जारी रखें", es = "Continuar con Google", fr = "Continuer avec Google", ar = "المتابعة باستخدام Google", de = "Mit Google fortfahren", pt = "Continuar com o Google", ru = "Продолжить с Google", ja = "Google で続ける"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     if (ui.error != null) {
                         Spacer(Modifier.height(8.dp))
@@ -167,7 +184,7 @@ private fun LobbyScreen(vm: AppViewModel) {
                 ui.loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(22.dp), color = Ui.primary, strokeWidth = 3.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text(tr("서버에 접속하는 중…", "Connecting to server…"), color = Ui.text)
+                    Text(tr("서버에 접속하는 중…", "Connecting to server…", zh = "正在连接服务器…", hi = "सर्वर से जुड़ रहे हैं…", es = "Conectando con el servidor…", fr = "Connexion au serveur…", ar = "جارٍ الاتصال بالخادم…", de = "Verbinde mit dem Server…", pt = "Conectando ao servidor…", ru = "Подключение к серверу…", ja = "サーバーに接続中…"), color = Ui.text)
                 }
                 ui.profile != null -> {
                     val p = ui.profile!!
@@ -182,27 +199,31 @@ private fun LobbyScreen(vm: AppViewModel) {
                                 modifier = Modifier.clickable { showRanks = true },
                             ) {
                                 RankBadge(p.score)
-                                Text(tr("  계급표 ›", "  Ranks ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
+                                Text(tr("  계급표 ›", "  Ranks ›", zh = "  等级表 ›", hi = "  रैंक ›", es = "  Rangos ›", fr = "  Rangs ›", ar = "  الرتب ›", de = "  Ränge ›", pt = "  Ranks ›", ru = "  Ранги ›", ja = "  ランク表 ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                tr("${p.wins}승 ${p.losses}패 · 💖 부활물약 ${p.potions}개", "${p.wins}W ${p.losses}L · 💖 Potions ${p.potions}"),
+                                tr(
+"${p.wins}승 ${p.losses}패 · 💖 부활물약 ${p.potions}개",
+"${p.wins}W ${p.losses}L · 💖 Potions ${p.potions}",
+zh = "${p.wins}胜 ${p.losses}负 · 💖 药水 ${p.potions}", hi = "${p.wins}जीत ${p.losses}हार · 💖 पोशन ${p.potions}", es = "${p.wins}V ${p.losses}D · 💖 Pociones ${p.potions}", fr = "${p.wins}V ${p.losses}D · 💖 Potions ${p.potions}", ar = "${p.wins} فوز ${p.losses} خسارة · 💖 جرعات ${p.potions}", de = "${p.wins}S ${p.losses}N · 💖 Tränke ${p.potions}", pt = "${p.wins}V ${p.losses}D · 💖 Poções ${p.potions}", ru = "${p.wins}П ${p.losses}Пр · 💖 Зелья ${p.potions}", ja = "${p.wins}勝 ${p.losses}敗 · 💖 復活薬 ${p.potions}個",
+),
                                 fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
                             )
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("${p.score}", fontWeight = FontWeight.Black, fontSize = 26.sp, color = Ui.primaryDark)
-                            Text(tr("점", "pts"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f))
+                            Text(tr("점", "pts", zh = "分", hi = "अंक", es = "pts", fr = "pts", ar = "نقطة", de = "Pkt", pt = "pts", ru = "очк.", ja = "点"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f))
                         }
                     }
                     Row {
-                        TextButton(onClick = { renaming = true }) { Text(tr("✏️ 닉네임 바꾸기", "✏️ Change nickname"), color = Ui.accent) }
+                        TextButton(onClick = { renaming = true }) { Text(tr("✏️ 닉네임 바꾸기", "✏️ Change nickname", zh = "✏️ 修改昵称", hi = "✏️ निकनेम बदलें", es = "✏️ Cambiar apodo", fr = "✏️ Changer de pseudo", ar = "✏️ تغيير اللقب", de = "✏️ Spitznamen ändern", pt = "✏️ Mudar apelido", ru = "✏️ Сменить ник", ja = "✏️ ニックネーム変更"), color = Ui.accent) }
                         Spacer(Modifier.weight(1f))
-                        TextButton(onClick = vm::signOut) { Text(tr("로그아웃", "Sign out"), color = Ui.text.copy(alpha = 0.6f)) }
+                        TextButton(onClick = vm::signOut) { Text(tr("로그아웃", "Sign out", zh = "退出登录", hi = "साइन आउट", es = "Cerrar sesión", fr = "Se déconnecter", ar = "تسجيل الخروج", de = "Abmelden", pt = "Sair", ru = "Выйти", ja = "ログアウト"), color = Ui.text.copy(alpha = 0.6f)) }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         Text(
-                            tr("계정 삭제", "Delete account"),
+                            tr("계정 삭제", "Delete account", zh = "删除账号", hi = "खाता हटाएँ", es = "Eliminar cuenta", fr = "Supprimer le compte", ar = "حذف الحساب", de = "Konto löschen", pt = "Excluir conta", ru = "Удалить аккаунт", ja = "アカウント削除"),
                             fontSize = 12.sp,
                             color = Ui.danger.copy(alpha = 0.7f),
                             modifier = Modifier
@@ -213,8 +234,8 @@ private fun LobbyScreen(vm: AppViewModel) {
                     }
                 }
                 else -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(ui.error ?: tr("접속하지 못했어요", "Could not connect"), color = Ui.danger, textAlign = TextAlign.Center)
-                    TextButton(onClick = vm::connect) { Text(tr("다시 시도", "Retry")) }
+                    Text(ui.error ?: tr("접속하지 못했어요", "Could not connect", zh = "无法连接", hi = "कनेक्ट नहीं हो सका", es = "No se pudo conectar", fr = "Connexion impossible", ar = "تعذّر الاتصال", de = "Verbindung fehlgeschlagen", pt = "Não foi possível conectar", ru = "Не удалось подключиться", ja = "接続できませんでした"), color = Ui.danger, textAlign = TextAlign.Center)
+                    TextButton(onClick = vm::connect) { Text(tr("다시 시도", "Retry", zh = "重试", hi = "फिर कोशिश करें", es = "Reintentar", fr = "Réessayer", ar = "إعادة المحاولة", de = "Erneut versuchen", pt = "Tentar de novo", ru = "Повторить", ja = "再試行")) }
                 }
             }
             if (ui.error != null && ui.profile != null) {
@@ -224,14 +245,18 @@ private fun LobbyScreen(vm: AppViewModel) {
 
         Spacer(Modifier.height(16.dp))
         BigButton(
-            text = tr("🎲  랜덤 매칭", "🎲  Random Match"),
-            sub = tr("익명의 상대와 1:1 대결 · 승리 +${OnlineRepository.WIN_POINTS}점", "1:1 vs an anonymous player · Win +${OnlineRepository.WIN_POINTS} pts"),
+            text = tr("🎲  랜덤 매칭", "🎲  Random Match", zh = "🎲  随机匹配", hi = "🎲  रैंडम मैच", es = "🎲  Partida aleatoria", fr = "🎲  Match aléatoire", ar = "🎲  مباراة عشوائية", de = "🎲  Zufallsmatch", pt = "🎲  Partida aleatória", ru = "🎲  Случайный матч", ja = "🎲  ランダムマッチ"),
+            sub = tr(
+"익명의 상대와 1:1 대결 · 승리 +${OnlineRepository.WIN_POINTS}점",
+"1:1 vs an anonymous player · Win +${OnlineRepository.WIN_POINTS} pts",
+zh = "与匿名玩家 1:1 对战 · 胜利 +${OnlineRepository.WIN_POINTS} 分", hi = "गुमनाम खिलाड़ी से 1:1 · जीत +${OnlineRepository.WIN_POINTS} अंक", es = "1:1 contra un jugador anónimo · Victoria +${OnlineRepository.WIN_POINTS} pts", fr = "1:1 contre un joueur anonyme · Victoire +${OnlineRepository.WIN_POINTS} pts", ar = "1:1 ضد لاعب مجهول · الفوز +${OnlineRepository.WIN_POINTS} نقطة", de = "1:1 gegen anonyme Gegner · Sieg +${OnlineRepository.WIN_POINTS} Pkt", pt = "1:1 contra um jogador anônimo · Vitória +${OnlineRepository.WIN_POINTS} pts", ru = "1:1 с анонимным игроком · Победа +${OnlineRepository.WIN_POINTS} очк.", ja = "匿名の相手と1対1 · 勝利 +${OnlineRepository.WIN_POINTS}点",
+),
             enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
             onClick = vm::startMatching,
         )
         Spacer(Modifier.height(12.dp))
         SoftCard {
-            Text(if (ui.profile != null) tr("🤖 AI 대전", "🤖 AI Battle") else tr("🤖 AI와 연습하기", "🤖 Practice with AI"), fontWeight = FontWeight.Bold, color = Ui.text)
+            Text(if (ui.profile != null) tr("🤖 AI 대전", "🤖 AI Battle", zh = "🤖 AI 对战", hi = "🤖 AI मुकाबला", es = "🤖 Batalla contra IA", fr = "🤖 Combat contre l’IA", ar = "🤖 معركة ضد الذكاء الاصطناعي", de = "🤖 KI-Duell", pt = "🤖 Batalha contra IA", ru = "🤖 Бой с ИИ", ja = "🤖 AI対戦") else tr("🤖 AI와 연습하기", "🤖 Practice with AI", zh = "🤖 与 AI 练习", hi = "🤖 AI के साथ अभ्यास", es = "🤖 Practicar con IA", fr = "🤖 S’entraîner contre l’IA", ar = "🤖 تدرّب مع الذكاء الاصطناعي", de = "🤖 Gegen KI üben", pt = "🤖 Treinar com IA", ru = "🤖 Тренировка с ИИ", ja = "🤖 AIと練習"), fontWeight = FontWeight.Bold, color = Ui.text)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AiLevel.entries.forEach { lv ->
@@ -239,21 +264,30 @@ private fun LobbyScreen(vm: AppViewModel) {
                         onClick = { vm.startAiGame(lv) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
-                    ) { Text(lv.label, color = Ui.accent) }
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    ) { Text(lv.label, color = Ui.accent, maxLines = 1, softWrap = false, fontSize = 14.sp) }
                 }
             }
             Spacer(Modifier.height(6.dp))
             Text(
                 if (ui.profile != null) {
-                    AiLevel.entries.joinToString("  ·  ") { tr("${it.label} 승 +${it.winPoints} / 패 ${it.losePoints}", "${it.label} W +${it.winPoints} / L ${it.losePoints}") }
+                    AiLevel.entries.joinToString("  ·  ") { tr(
+"${it.label} 승 +${it.winPoints} / 패 ${it.losePoints}",
+"${it.label} W +${it.winPoints} / L ${it.losePoints}",
+zh = "${it.label} 胜 +${it.winPoints} / 负 ${it.losePoints}", hi = "${it.label} जीत +${it.winPoints} / हार ${it.losePoints}", es = "${it.label} V +${it.winPoints} / D ${it.losePoints}", fr = "${it.label} V +${it.winPoints} / D ${it.losePoints}", ar = "${it.label} فوز +${it.winPoints} / خسارة ${it.losePoints}", de = "${it.label} S +${it.winPoints} / N ${it.losePoints}", pt = "${it.label} V +${it.winPoints} / D ${it.losePoints}", ru = "${it.label} П +${it.winPoints} / Пр ${it.losePoints}", ja = "${it.label} 勝 +${it.winPoints} / 敗 ${it.losePoints}",
+) }
                 } else {
-                    tr("로그인하면 AI 대전도 점수가 걸려요", "Sign in to earn points in AI battles too")
+                    tr(
+"로그인하면 AI 대전도 점수가 걸려요",
+"Sign in to earn points in AI battles too",
+zh = "登录后 AI 对战也能得分", hi = "साइन इन करें, AI मुकाबलों में भी अंक मिलेंगे", es = "Inicia sesión para ganar puntos también contra la IA", fr = "Connecte-toi pour gagner des points contre l’IA aussi", ar = "سجّل الدخول لتكسب نقاطًا في معارك الذكاء الاصطناعي أيضًا", de = "Melde dich an, um auch gegen die KI Punkte zu sammeln", pt = "Entre para ganhar pontos também contra a IA", ru = "Войдите, чтобы получать очки и в боях с ИИ", ja = "ログインするとAI対戦でもポイントがもらえます",
+)
                 },
                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Ui.text.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
             )
         }
-        TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play"), color = Ui.text) }
+        TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
         ui.info?.let {
             Text(it, color = Ui.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
         }
@@ -261,13 +295,13 @@ private fun LobbyScreen(vm: AppViewModel) {
         if (privacyRequired) {
             val activity = LocalContext.current as Activity
             TextButton(onClick = { AdManager.showPrivacyOptions(activity) }) {
-                Text(tr("🔒 광고 개인정보 설정", "🔒 Ad privacy settings"), color = Ui.text.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text(tr("🔒 광고 개인정보 설정", "🔒 Ad privacy settings", zh = "🔒 广告隐私设置", hi = "🔒 विज्ञापन गोपनीयता सेटिंग", es = "🔒 Privacidad de anuncios", fr = "🔒 Confidentialité des pubs", ar = "🔒 إعدادات خصوصية الإعلانات", de = "🔒 Werbe-Datenschutz", pt = "🔒 Privacidade de anúncios", ru = "🔒 Настройки рекламы", ja = "🔒 広告のプライバシー設定"), color = Ui.text.copy(alpha = 0.7f), fontSize = 13.sp)
             }
         }
 
         if (ui.leaderboard.isNotEmpty()) {
             SoftCard {
-                Text(tr("🏆 랭킹", "🏆 Leaderboard"), fontWeight = FontWeight.Bold, color = Ui.text)
+                Text(tr("🏆 랭킹", "🏆 Leaderboard", zh = "🏆 排行榜", hi = "🏆 लीडरबोर्ड", es = "🏆 Clasificación", fr = "🏆 Classement", ar = "🏆 لوحة المتصدرين", de = "🏆 Bestenliste", pt = "🏆 Ranking", ru = "🏆 Рейтинг", ja = "🏆 ランキング"), fontWeight = FontWeight.Bold, color = Ui.text)
                 Spacer(Modifier.height(6.dp))
                 ui.leaderboard.forEachIndexed { i, p ->
                     val me = p.uid == ui.profile?.uid
@@ -282,10 +316,10 @@ private fun LobbyScreen(vm: AppViewModel) {
                             when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "${i + 1}" },
                             modifier = Modifier.width(32.dp), color = Ui.text, fontWeight = FontWeight.Bold,
                         )
-                        Text(p.name + if (me) tr(" (나)", " (me)") else "", modifier = Modifier.weight(1f), color = Ui.text)
+                        Text(p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else "", modifier = Modifier.weight(1f), color = Ui.text)
                         RankBadge(p.score)
                         Spacer(Modifier.width(8.dp))
-                        Text(tr("${p.score}점", "${p.score} pts"), color = Ui.primaryDark, fontWeight = FontWeight.Bold)
+                        Text(tr("${p.score}점", "${p.score} pts", zh = "${p.score} 分", hi = "${p.score} अंक", es = "${p.score} pts", fr = "${p.score} pts", ar = "${p.score} نقطة", de = "${p.score} Pkt", pt = "${p.score} pts", ru = "${p.score} очк.", ja = "${p.score}点"), color = Ui.primaryDark, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -297,7 +331,7 @@ private fun LobbyScreen(vm: AppViewModel) {
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text(tr("정말 계정을 삭제할까요?", "Delete your account?"), fontWeight = FontWeight.Black) },
+            title = { Text(tr("정말 계정을 삭제할까요?", "Delete your account?", zh = "确定要删除账号吗？", hi = "क्या खाता हटाना है?", es = "¿Eliminar tu cuenta?", fr = "Supprimer ton compte ?", ar = "هل تريد حذف حسابك؟", de = "Konto wirklich löschen?", pt = "Excluir sua conta?", ru = "Удалить аккаунт?", ja = "アカウントを削除しますか？"), fontWeight = FontWeight.Black) },
             text = {
                 Text(
                     tr(
@@ -305,28 +339,37 @@ private fun LobbyScreen(vm: AppViewModel) {
                             "진행 중인 대전은 기권 처리돼요.\n\n같은 구글 계정으로 다시 로그인하면 1000점부터 새로 시작해요.",
                         "Your score, rank, record, potions and animal friends will be gone for good.\n" +
                             "Any game in progress counts as a forfeit.\n\nSigning in again with the same Google account starts fresh at 1000 pts.",
+                        zh = "分数、等级、战绩、药水和动物伙伴都会永久消失。\n进行中的对战将判为弃权。\n\n用同一个 Google 账号重新登录会从 1000 分重新开始。",
+                        hi = "आपका स्कोर, रैंक, रिकॉर्ड, पोशन और जानवर दोस्त हमेशा के लिए चले जाएँगे।\nचल रहा गेम हार माना जाएगा।\n\nउसी Google खाते से फिर साइन इन करने पर 1000 अंक से नई शुरुआत होगी।",
+                        es = "Tu puntuación, rango, récord, pociones y amigos animales desaparecerán para siempre.\nLa partida en curso contará como abandono.\n\nSi vuelves a entrar con la misma cuenta de Google, empezarás de nuevo con 1000 pts.",
+                        fr = "Ton score, ton rang, ton palmarès, tes potions et tes amis animaux disparaîtront pour toujours.\nUne partie en cours compte comme un abandon.\n\nEn te reconnectant avec le même compte Google, tu repars à 1000 pts.",
+                        ar = "ستختفي نقاطك ورتبتك وسجلّك وجرعاتك وأصدقاؤك الحيوانات نهائيًا.\nأي مباراة جارية تُحتسب انسحابًا.\n\nإذا سجّلت الدخول مجددًا بنفس حساب Google ستبدأ من جديد بـ 1000 نقطة.",
+                        de = "Punkte, Rang, Bilanz, Tränke und Tierfreunde sind dann für immer weg.\nEine laufende Partie zählt als Aufgabe.\n\nMeldest du dich mit demselben Google-Konto wieder an, startest du neu mit 1000 Pkt.",
+                        pt = "Sua pontuação, rank, histórico, poções e amigos animais vão sumir para sempre.\nUma partida em andamento conta como desistência.\n\nSe entrar de novo com a mesma conta Google, você recomeça com 1000 pts.",
+                        ru = "Счёт, ранг, статистика, зелья и друзья-зверята исчезнут навсегда.\nТекущая партия засчитается как поражение.\n\nПри новом входе с тем же аккаунтом Google вы начнёте заново с 1000 очк.",
+                        ja = "スコア・ランク・戦績・復活薬・どうぶつの仲間がすべて消え、元に戻せません。\n対戦中のゲームは棄権になります。\n\n同じGoogleアカウントで再ログインすると1000点からやり直しです。",
                     ),
                     lineHeight = 21.sp,
                 )
             },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; vm.deleteAccount() }) {
-                    Text(tr("삭제", "Delete"), color = Ui.danger, fontWeight = FontWeight.Black)
+                    Text(tr("삭제", "Delete", zh = "删除", hi = "हटाएँ", es = "Eliminar", fr = "Supprimer", ar = "حذف", de = "Löschen", pt = "Excluir", ru = "Удалить", ja = "削除"), color = Ui.danger, fontWeight = FontWeight.Black)
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("취소", "Cancel")) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
     }
     if (renaming) {
         var name by remember { mutableStateOf(ui.profile?.name ?: "") }
         AlertDialog(
             onDismissRequest = { renaming = false },
-            title = { Text(tr("닉네임", "Nickname")) },
+            title = { Text(tr("닉네임", "Nickname", zh = "昵称", hi = "निकनेम", es = "Apodo", fr = "Pseudo", ar = "اللقب", de = "Spitzname", pt = "Apelido", ru = "Ник", ja = "ニックネーム")) },
             text = {
-                OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text(tr("최대 12자", "Up to 12 characters")) })
+                OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text(tr("최대 12자", "Up to 12 characters", zh = "最多 12 个字符", hi = "अधिकतम 12 अक्षर", es = "Hasta 12 caracteres", fr = "12 caractères max.", ar = "حتى 12 حرفًا", de = "Bis zu 12 Zeichen", pt = "Até 12 caracteres", ru = "До 12 символов", ja = "12文字まで")) })
             },
-            confirmButton = { TextButton(onClick = { vm.rename(name); renaming = false }) { Text(tr("저장", "Save")) } },
-            dismissButton = { TextButton(onClick = { renaming = false }) { Text(tr("취소", "Cancel")) } },
+            confirmButton = { TextButton(onClick = { vm.rename(name); renaming = false }) { Text(tr("저장", "Save", zh = "保存", hi = "सेव करें", es = "Guardar", fr = "Enregistrer", ar = "حفظ", de = "Speichern", pt = "Salvar", ru = "Сохранить", ja = "保存")) } },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
     }
 }
@@ -339,7 +382,7 @@ private fun TitleBanner() {
         Critter(Side.CAT, Modifier.size(64.dp).offset(y = (-hop * 10).dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 6.dp)) {
             Text("Bubble", fontSize = 44.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
-            Text(tr("냥냥 vs 햄햄 방울 대전", "Cats vs Hamsters bubble battle"), fontSize = 14.sp, color = Ui.text)
+            Text(tr("냥냥 vs 햄햄 방울 대전", "Cats vs Hamsters bubble battle", zh = "猫咪 vs 仓鼠 泡泡大战", hi = "बिल्ली बनाम हैम्स्टर बबल बैटल", es = "Gatos vs Hámsteres: batalla de burbujas", fr = "Chats contre hamsters : la bataille des bulles", ar = "قطط ضد هامستر: معركة الفقاعات", de = "Katzen gegen Hamster: Blasen-Duell", pt = "Gatos vs Hamsters: batalha de bolhas", ru = "Котики против хомяков: битва пузырей", ja = "ネコ vs ハムスター バブル対決"), fontSize = 14.sp, color = Ui.text)
         }
         Critter(Side.HAMSTER, Modifier.size(64.dp).offset(y = (-(1 - hop) * 10).dp))
     }
@@ -379,23 +422,71 @@ private fun BigButton(text: String, sub: String, enabled: Boolean, onClick: () -
 private fun RulesDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("알겠어요!", "Got it!")) } },
-        title = { Text(tr("게임 규칙", "How to play"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("알겠어요!", "Got it!", zh = "知道了！", hi = "समझ गया!", es = "¡Entendido!", fr = "Compris !", ar = "فهمت!", de = "Alles klar!", pt = "Entendi!", ru = "Понятно!", ja = "わかった！")) } },
+        title = { Text(tr("게임 규칙", "How to play", zh = "游戏规则", hi = "कैसे खेलें", es = "Cómo jugar", fr = "Règles du jeu", ar = "طريقة اللعب", de = "Spielregeln", pt = "Como jogar", ru = "Как играть", ja = "遊び方"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
             Text(
-                tr("• 고양이와 햄스터가 각자 방울(세트) 2개에 1마리씩 들고 시작해요. 고양이가 먼저!\n\n", "• Cats and hamsters each start with 2 bubbles (sets) holding 1 critter. Cats go first!\n\n") +
-                    tr("• 내 차례에는 내 방울 하나를 골라요. 그 방울의 마리 수만큼\n", "• On your turn, pick one of your bubbles. Add its critter count\n") +
-                    tr("   ⚔️ 상대 방울에 더하거나 (공격)\n", "   ⚔️ to an opponent bubble (attack)\n") +
-                    tr("   💪 내 다른 방울에 더할 수 있어요 (강화)\n\n", "   💪 or to your other bubble (boost)\n\n") +
-                    tr("• 방울이 5마리 이상이 되면 💥 펑! 터져서 0마리가 돼요.\n\n", "• A bubble with 5 or more critters goes 💥 POP! and drops to 0.\n\n") +
-                    tr("• 0마리 방울은 공격도 강화도 못 해요. 살리는 방법은 분할뿐!\n", "• An empty bubble can’t be attacked or boosted. Only a split revives it!\n") +
-                    tr("   ✂️ 분할: 한 방울이 짝수(2·4마리)이고 다른 방울이 0일 때 반씩 나눠요.\n", "   ✂️ Split: if one bubble has an even count (2 or 4) and the other is empty, halve it.\n") +
-                    tr("   ✂️ 분할은 한 게임에 한 사람당 최대 ${GameLogic.MAX_SPLITS}번까지!\n\n", "   ✂️ Up to ${GameLogic.MAX_SPLITS} splits per player per game!\n\n") +
-                    tr("• 내 방울 2개가 모두 터지면 져요.\n\n", "• Lose both bubbles and you lose.\n\n") +
-                    tr("• 💖 부활물약(상점)이 있으면 터진 방울을 1마리로 살릴 수 있어요. 한 판에 최대 3번!\n\n", "• 💖 Revive potions (shop) bring a popped bubble back with 1 critter. Up to 3 per game!\n\n") +
-                    tr("• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.\n", "• Online turns last ${OnlineRepository.TURN_LIMIT_MS / 1000}s. Run out of time and you lose.\n") +
-                    tr("   상대가 양·강아지·기린을 장착했다면 내 턴이 20·15·10초로 줄어요.\n\n", "   If your opponent equips a sheep, puppy or giraffe, your turn drops to 20, 15 or 10s.\n\n") +
-                    tr("• 계급: 1000점 이하 흙, 이후 100점마다 구리 → 은 → 금 → 다이아", "• Ranks: Dirt up to 1000 pts, then every 100 pts Copper → Silver → Gold → Diamond"),
+                tr(
+"• 고양이와 햄스터가 각자 방울(세트) 2개에 1마리씩 들고 시작해요. 고양이가 먼저!\n\n",
+"• Cats and hamsters each start with 2 bubbles (sets) holding 1 critter. Cats go first!\n\n",
+zh = "• 猫咪和仓鼠各有 2 个泡泡（组），每个里有 1 只。猫咪先手！\n\n", hi = "• बिल्लियाँ और हैम्स्टर 2-2 बबल (सेट) से शुरू करते हैं, हर एक में 1 जीव। बिल्लियाँ पहले!\n\n", es = "• Gatos y hámsteres empiezan con 2 burbujas (grupos) de 1 bichito cada una. ¡Los gatos van primero!\n\n", fr = "• Chats et hamsters commencent avec 2 bulles (groupes) d’1 bestiole chacune. Les chats commencent !\n\n", ar = "• يبدأ كل من القطط والهامستر بفقاعتين (مجموعتين) في كل منهما مخلوق واحد. القطط تبدأ أولًا!\n\n", de = "• Katzen und Hamster starten mit je 2 Blasen (Gruppen) mit 1 Tierchen. Katzen beginnen!\n\n", pt = "• Gatos e hamsters começam com 2 bolhas (grupos) com 1 bichinho cada. Os gatos começam!\n\n", ru = "• Котики и хомяки начинают с 2 пузырями (группами) по 1 зверьку. Котики ходят первыми!\n\n", ja = "• ネコとハムスターはそれぞれ1匹入りのバブル（セット）2つから始めます。ネコが先攻！\n\n",
+) +
+                    tr(
+"• 내 차례에는 내 방울 하나를 골라요. 그 방울의 마리 수만큼\n",
+"• On your turn, pick one of your bubbles. Add its critter count\n",
+zh = "• 轮到你时，选一个自己的泡泡，把它的数量\n", hi = "• अपनी बारी में अपना एक बबल चुनें। उसकी गिनती जोड़ें\n", es = "• En tu turno, elige una de tus burbujas. Suma su número\n", fr = "• À ton tour, choisis une de tes bulles. Ajoute son nombre\n", ar = "• في دورك، اختر إحدى فقاعاتك وأضِف عددها\n", de = "• Wähle in deinem Zug eine deiner Blasen. Addiere ihre Anzahl\n", pt = "• Na sua vez, escolha uma de suas bolhas. Some o número dela\n", ru = "• В свой ход выберите свой пузырь. Прибавьте его число\n", ja = "• 自分の番に自分のバブルを1つ選び、その数を\n",
+) +
+                    tr("   ⚔️ 상대 방울에 더하거나 (공격)\n", "   ⚔️ to an opponent bubble (attack)\n", zh = "   ⚔️ 加到对手的泡泡上（攻击）\n", hi = "   ⚔️ विरोधी के बबल में (हमला)\n", es = "   ⚔️ a una burbuja rival (ataque)\n", fr = "   ⚔️ à une bulle adverse (attaque)\n", ar = "   ⚔️ إلى فقاعة الخصم (هجوم)\n", de = "   ⚔️ zu einer gegnerischen Blase (Angriff)\n", pt = "   ⚔️ a uma bolha rival (ataque)\n", ru = "   ⚔️ к пузырю соперника (атака)\n", ja = "   ⚔️ 相手のバブルに足す（攻撃）\n") +
+                    tr(
+"   💪 내 다른 방울에 더할 수 있어요 (강화)\n\n",
+"   💪 or to your other bubble (boost)\n\n",
+zh = "   💪 或加到自己的另一个泡泡上（强化）\n\n", hi = "   💪 या अपने दूसरे बबल में (बूस्ट)\n\n", es = "   💪 o a tu otra burbuja (refuerzo)\n\n", fr = "   💪 ou à ton autre bulle (renfort)\n\n", ar = "   💪 أو إلى فقاعتك الأخرى (تقوية)\n\n", de = "   💪 oder zu deiner anderen Blase (Stärkung)\n\n", pt = "   💪 ou à sua outra bolha (reforço)\n\n", ru = "   💪 или к своему другому пузырю (усиление)\n\n", ja = "   💪 または自分のもう1つのバブルに足す（強化）\n\n",
+) +
+                    tr(
+"• 방울이 5마리 이상이 되면 💥 펑! 터져서 0마리가 돼요.\n\n",
+"• A bubble with 5 or more critters goes 💥 POP! and drops to 0.\n\n",
+zh = "• 泡泡达到 5 只以上就会 💥 啪！破掉，变成 0。\n\n", hi = "• 5 या ज़्यादा होते ही बबल 💥 फट! जाता है और 0 हो जाता है।\n\n", es = "• Una burbuja con 5 o más hace 💥 ¡PUM! y vuelve a 0.\n\n", fr = "• Une bulle à 5 ou plus fait 💥 POP ! et retombe à 0.\n\n", ar = "• الفقاعة التي يصل عددها إلى 5 أو أكثر تنفجر 💥 بوب! وتصبح 0.\n\n", de = "• Eine Blase mit 5 oder mehr macht 💥 PLOPP! und fällt auf 0.\n\n", pt = "• Uma bolha com 5 ou mais faz 💥 POP! e volta a 0.\n\n", ru = "• Пузырь с 5 и больше — 💥 ХЛОП! и становится 0.\n\n", ja = "• 5匹以上になったバブルは 💥 パン！と割れて0になります。\n\n",
+) +
+                    tr(
+"• 0마리 방울은 공격도 강화도 못 해요. 살리는 방법은 분할뿐!\n",
+"• An empty bubble can’t be attacked or boosted. Only a split revives it!\n",
+zh = "• 空泡泡不能被攻击或强化，只有分裂能救回它！\n", hi = "• खाली बबल पर हमला या बूस्ट नहीं हो सकता। उसे सिर्फ़ स्प्लिट ही बचा सकता है!\n", es = "• Una burbuja vacía no se puede atacar ni reforzar. ¡Solo una división la revive!\n", fr = "• Une bulle vide ne peut être ni attaquée ni renforcée. Seule une division la ranime !\n", ar = "• لا يمكن مهاجمة الفقاعة الفارغة أو تقويتها. وحده التقسيم يعيدها!\n", de = "• Eine leere Blase kann weder angegriffen noch gestärkt werden. Nur Teilen belebt sie wieder!\n", pt = "• Uma bolha vazia não pode ser atacada nem reforçada. Só uma divisão a revive!\n", ru = "• Пустой пузырь нельзя атаковать или усилить. Оживить его может только деление!\n", ja = "• 空のバブルは攻撃も強化もできません。復活は分割だけ！\n",
+) +
+                    tr(
+"   ✂️ 분할: 한 방울이 짝수(2·4마리)이고 다른 방울이 0일 때 반씩 나눠요.\n",
+"   ✂️ Split: if one bubble has an even count (2 or 4) and the other is empty, halve it.\n",
+zh = "   ✂️ 分裂：一个泡泡是偶数（2 或 4）且另一个为空时，平分成两半。\n", hi = "   ✂️ स्प्लिट: अगर एक बबल में सम संख्या (2 या 4) हो और दूसरा खाली हो, तो आधा-आधा बाँटें।\n", es = "   ✂️ División: si una burbuja tiene un número par (2 o 4) y la otra está vacía, pártela a la mitad.\n", fr = "   ✂️ Division : si une bulle a un nombre pair (2 ou 4) et que l’autre est vide, coupe-la en deux.\n", ar = "   ✂️ التقسيم: إذا كان في فقاعة عدد زوجي (2 أو 4) والأخرى فارغة، اقسمها نصفين.\n", de = "   ✂️ Teilen: Hat eine Blase eine gerade Zahl (2 oder 4) und die andere ist leer, halbiere sie.\n", pt = "   ✂️ Divisão: se uma bolha tem número par (2 ou 4) e a outra está vazia, divida ao meio.\n", ru = "   ✂️ Деление: если в одном пузыре чётное число (2 или 4), а другой пуст — разделите пополам.\n", ja = "   ✂️ 分割：片方が偶数（2か4）でもう片方が空なら、半分に分けます。\n",
+) +
+                    tr(
+"   ✂️ 분할은 한 게임에 한 사람당 최대 ${GameLogic.MAX_SPLITS}번까지!\n\n",
+"   ✂️ Up to ${GameLogic.MAX_SPLITS} splits per player per game!\n\n",
+zh = "   ✂️ 每人每局最多分裂 ${GameLogic.MAX_SPLITS} 次！\n\n", hi = "   ✂️ हर खिलाड़ी हर गेम में अधिकतम ${GameLogic.MAX_SPLITS} बार स्प्लिट!\n\n", es = "   ✂️ ¡Hasta ${GameLogic.MAX_SPLITS} divisiones por jugador y partida!\n\n", fr = "   ✂️ Jusqu’à ${GameLogic.MAX_SPLITS} divisions par joueur et par partie !\n\n", ar = "   ✂️ حتى ${GameLogic.MAX_SPLITS} تقسيمات لكل لاعب في كل مباراة!\n\n", de = "   ✂️ Bis zu ${GameLogic.MAX_SPLITS} Teilungen pro Spieler und Partie!\n\n", pt = "   ✂️ Até ${GameLogic.MAX_SPLITS} divisões por jogador por partida!\n\n", ru = "   ✂️ До ${GameLogic.MAX_SPLITS} делений на игрока за партию!\n\n", ja = "   ✂️ 分割は1人1ゲーム最大${GameLogic.MAX_SPLITS}回まで！\n\n",
+) +
+                    tr(
+"• 내 방울 2개가 모두 터지면 져요.\n\n",
+"• Lose both bubbles and you lose.\n\n",
+zh = "• 两个泡泡都破掉就输了。\n\n", hi = "• दोनों बबल फट गए तो आप हार जाते हैं।\n\n", es = "• Si pierdes las dos burbujas, pierdes.\n\n", fr = "• Perds tes deux bulles et tu as perdu.\n\n", ar = "• إذا خسرت فقاعتيك تخسر المباراة.\n\n", de = "• Verlierst du beide Blasen, hast du verloren.\n\n", pt = "• Perdeu as duas bolhas, perdeu o jogo.\n\n", ru = "• Потеряли оба пузыря — проиграли.\n\n", ja = "• 2つのバブルが両方割れたら負けです。\n\n",
+) +
+                    tr(
+"• 💖 부활물약(상점)이 있으면 터진 방울을 1마리로 살릴 수 있어요. 한 판에 최대 3번!\n\n",
+"• 💖 Revive potions (shop) bring a popped bubble back with 1 critter. Up to 3 per game!\n\n",
+zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活。每局最多 3 次！\n\n", hi = "• 💖 रिवाइव पोशन (दुकान) फटे बबल को 1 जीव के साथ वापस लाता है। हर गेम में अधिकतम 3!\n\n", es = "• 💖 Las pociones de revivir (tienda) devuelven una burbuja reventada con 1 bichito. ¡Hasta 3 por partida!\n\n", fr = "• 💖 Les potions de résurrection (boutique) font revenir une bulle éclatée avec 1 bestiole. Jusqu’à 3 par partie !\n\n", ar = "• 💖 جرعات الإحياء (المتجر) تعيد الفقاعة المنفجرة بمخلوق واحد. حتى 3 في كل مباراة!\n\n", de = "• 💖 Wiederbelebungstränke (Shop) holen eine geplatzte Blase mit 1 Tierchen zurück. Bis zu 3 pro Partie!\n\n", pt = "• 💖 Poções de reviver (loja) trazem de volta uma bolha estourada com 1 bichinho. Até 3 por partida!\n\n", ru = "• 💖 Зелья оживления (магазин) возвращают лопнувший пузырь с 1 зверьком. До 3 за партию!\n\n", ja = "• 💖 復活薬（ショップ）で割れたバブルを1匹で復活できます。1ゲーム最大3回！\n\n",
+) +
+                    tr(
+"• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.\n",
+"• Online turns last ${OnlineRepository.TURN_LIMIT_MS / 1000}s. Run out of time and you lose.\n",
+zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，超时即判负。\n", hi = "• ऑनलाइन हर चाल ${OnlineRepository.TURN_LIMIT_MS / 1000} सेकंड। समय खत्म तो हार।\n", es = "• En línea cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Si se acaba el tiempo, pierdes.\n", fr = "• En ligne, chaque tour dure ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Temps écoulé = défaite.\n", ar = "• مدة الدور عبر الإنترنت ${OnlineRepository.TURN_LIMIT_MS / 1000} ثانية. إذا انتهى الوقت تخسر.\n", de = "• Online dauert ein Zug ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Zeit abgelaufen = verloren.\n", pt = "• Online, cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Se o tempo acabar, você perde.\n", ru = "• Онлайн ход длится ${OnlineRepository.TURN_LIMIT_MS / 1000} с. Время вышло — поражение.\n", ja = "• オンラインの1ターンは${OnlineRepository.TURN_LIMIT_MS / 1000}秒。時間切れで負けです。\n",
+) +
+                    tr(
+"   상대가 양·강아지·기린을 장착했다면 내 턴이 20·15·10초로 줄어요.\n\n",
+"   If your opponent equips a sheep, puppy or giraffe, your turn drops to 20, 15 or 10s.\n\n",
+zh = "   如果对手装备了绵羊、小狗或长颈鹿，你的回合会缩短为 20、15 或 10 秒。\n\n", hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ लगाया है, तो आपकी बारी 20, 15 या 10 सेकंड की होगी।\n\n", es = "   Si tu rival equipa una oveja, un perrito o una jirafa, tu turno baja a 20, 15 o 10 s.\n\n", fr = "   Si ton adversaire équipe un mouton, un chiot ou une girafe, ton tour passe à 20, 15 ou 10 s.\n\n", ar = "   إذا جهّز خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 20 أو 15 أو 10 ثوانٍ.\n\n", de = "   Rüstet dein Gegner Schaf, Welpe oder Giraffe aus, sinkt dein Zug auf 20, 15 oder 10 s.\n\n", pt = "   Se o rival equipar ovelha, cachorrinho ou girafa, seu turno cai para 20, 15 ou 10 s.\n\n", ru = "   Если соперник надел овечку, щенка или жирафа, ваш ход сокращается до 20, 15 или 10 с.\n\n", ja = "   相手がヒツジ・子イヌ・キリンを装備していると、自分のターンが20・15・10秒になります。\n\n",
+) +
+                    tr(
+"• 계급: 1000점 이하 흙, 이후 100점마다 구리 → 은 → 금 → 다이아",
+"• Ranks: Dirt up to 1000 pts, then every 100 pts Copper → Silver → Gold → Diamond",
+zh = "• 等级：1000 分以下为泥土，之后每 100 分：铜 → 银 → 金 → 钻石", hi = "• रैंक: 1000 अंक तक मिट्टी, फिर हर 100 अंक पर कॉपर → सिल्वर → गोल्ड → डायमंड", es = "• Rangos: Tierra hasta 1000 pts, luego cada 100 pts Cobre → Plata → Oro → Diamante", fr = "• Rangs : Terre jusqu’à 1000 pts, puis tous les 100 pts Cuivre → Argent → Or → Diamant", ar = "• الرتب: تراب حتى 1000 نقطة، ثم كل 100 نقطة نحاس ← فضة ← ذهب ← ماس", de = "• Ränge: Erde bis 1000 Pkt, dann alle 100 Pkt Kupfer → Silber → Gold → Diamant", pt = "• Ranks: Terra até 1000 pts, depois a cada 100 pts Cobre → Prata → Ouro → Diamante", ru = "• Ранги: Земля до 1000 очк., затем каждые 100 очк. Медь → Серебро → Золото → Алмаз", ja = "• ランク：1000点以下は土、以降100点ごとに 銅 → 銀 → 金 → ダイヤ",
+),
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -427,11 +518,11 @@ private fun MatchingScreen(startedAt: Long, onCancel: () -> Unit) {
             Critter(Side.HAMSTER, Modifier.size(110.dp).offset(x = (-swing * 14).dp, y = (-kotlin.math.abs(swing) * 12).dp))
         }
         Spacer(Modifier.height(28.dp))
-        Text(tr("상대를 찾고 있어요", "Looking for an opponent") + ".".repeat(sec % 4), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ui.text)
+        Text(tr("상대를 찾고 있어요", "Looking for an opponent", zh = "正在寻找对手", hi = "विरोधी ढूँढ रहे हैं", es = "Buscando rival", fr = "Recherche d’un adversaire", ar = "جارٍ البحث عن خصم", de = "Suche Gegner", pt = "Procurando um rival", ru = "Ищем соперника", ja = "相手を探しています") + ".".repeat(sec % 4), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ui.text)
         Spacer(Modifier.height(6.dp))
         Text("%d:%02d".format(sec / 60, sec % 60), fontSize = 16.sp, color = Ui.text.copy(alpha = 0.7f))
         Spacer(Modifier.height(32.dp))
-        OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(20.dp)) { Text(tr("매칭 취소", "Cancel"), color = Ui.text) }
+        OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(20.dp)) { Text(tr("매칭 취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル"), color = Ui.text) }
     }
 }
 
@@ -461,7 +552,7 @@ private fun GameScreen(vm: AppViewModel) {
     val sel = selected
     val power = sel?.let { mine[it] } ?: 0
 
-    fun previewFor(target: Int) = if (target + power >= GameLogic.EXPLODE_AT) tr("💥 펑!", "💥 POP!") else "→ ${target + power}"
+    fun previewFor(target: Int) = if (target + power >= GameLogic.EXPLODE_AT) tr("💥 펑!", "💥 POP!", zh = "💥 啪！", hi = "💥 फट!", es = "💥 ¡PUM!", fr = "💥 POP !", ar = "💥 بوب!", de = "💥 PLOPP!", pt = "💥 POP!", ru = "💥 ХЛОП!", ja = "💥 パン！") else "→ ${target + power}"
 
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -471,19 +562,19 @@ private fun GameScreen(vm: AppViewModel) {
             // 상단 바
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { if (g.finished) vm.leaveGame() else confirmLeave = true }) {
-                    Text(tr("← 나가기", "← Leave"), color = Ui.text)
+                    Text(tr("← 나가기", "← Leave", zh = "← 离开", hi = "← छोड़ें", es = "← Salir", fr = "← Quitter", ar = "→ خروج", de = "← Verlassen", pt = "← Sair", ru = "← Выйти", ja = "← 退出"), color = Ui.text)
                 }
                 Spacer(Modifier.weight(1f))
                 if (remain != null && !g.finished) {
                     Text(
-                        tr("⏱ ${remain}초", "⏱ ${remain}s"),
+                        tr("⏱ ${remain}초", "⏱ ${remain}s", zh = "⏱ ${remain}秒", hi = "⏱ ${remain}से", es = "⏱ ${remain}s", fr = "⏱ ${remain}s", ar = "⏱ ${remain}ث", de = "⏱ ${remain}s", pt = "⏱ ${remain}s", ru = "⏱ ${remain}с", ja = "⏱ ${remain}秒"),
                         color = if (remain <= 10) Ui.danger else Ui.text,
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(opp, g.opponentName, g.opponentScore?.let { tr("${it}점", "${it} pts") }, active = g.turn == opp && !g.finished, skin = g.opponentSkin)
+                PlayerTag(opp, g.opponentName, g.opponentScore?.let { tr("${it}점", "${it} pts", zh = "${it} 分", hi = "${it} अंक", es = "${it} pts", fr = "${it} pts", ar = "${it} نقطة", de = "${it} Pkt", pt = "${it} pts", ru = "${it} очк.", ja = "${it}点") }, active = g.turn == opp && !g.finished, skin = g.opponentSkin, modifier = Modifier.weight(1f, fill = false))
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(opp))
                 ReviveCounter(g.board.revivesLeft(opp))
@@ -539,7 +630,7 @@ private fun GameScreen(vm: AppViewModel) {
             }
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlayerTag(me, if (g.myName == tr("나", "Me")) tr("나", "Me") else g.myName + tr(" (나)", " (me)"), null, active = g.myTurn, skin = g.mySkin)
+                PlayerTag(me, if (g.myName == tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分")) tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分") else g.myName + tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)"), null, active = g.myTurn, skin = g.mySkin, modifier = Modifier.weight(1f, fill = false))
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(me))
                 ReviveCounter(g.board.revivesLeft(me))
@@ -557,8 +648,12 @@ private fun GameScreen(vm: AppViewModel) {
                     modifier = Modifier.padding(top = 10.dp),
                 ) {
                     Text(
-                        if (splitsLeft > 0) tr("✂️ 분할하기 (${power / 2} + ${power / 2}) · 남은 ${splitsLeft}회", "✂️ Split (${power / 2} + ${power / 2}) · ${splitsLeft} left")
-                        else tr("✂️ 분할 횟수를 모두 썼어요", "✂️ No splits left"),
+                        if (splitsLeft > 0) tr(
+"✂️ 분할하기 (${power / 2} + ${power / 2}) · 남은 ${splitsLeft}회",
+"✂️ Split (${power / 2} + ${power / 2}) · ${splitsLeft} left",
+zh = "✂️ 分裂 (${power / 2} + ${power / 2}) · 剩 ${splitsLeft} 次", hi = "✂️ स्प्लिट (${power / 2} + ${power / 2}) · ${splitsLeft} बाकी", es = "✂️ Dividir (${power / 2} + ${power / 2}) · quedan ${splitsLeft}", fr = "✂️ Diviser (${power / 2} + ${power / 2}) · ${splitsLeft} restantes", ar = "✂️ تقسيم (${power / 2} + ${power / 2}) · متبقٍ ${splitsLeft}", de = "✂️ Teilen (${power / 2} + ${power / 2}) · noch ${splitsLeft}", pt = "✂️ Dividir (${power / 2} + ${power / 2}) · restam ${splitsLeft}", ru = "✂️ Разделить (${power / 2} + ${power / 2}) · осталось ${splitsLeft}", ja = "✂️ 分割 (${power / 2} + ${power / 2}) · 残り${splitsLeft}回",
+)
+                        else tr("✂️ 분할 횟수를 모두 썼어요", "✂️ No splits left", zh = "✂️ 分裂次数已用完", hi = "✂️ स्प्लिट खत्म", es = "✂️ No quedan divisiones", fr = "✂️ Plus de divisions", ar = "✂️ لا تقسيمات متبقية", de = "✂️ Keine Teilungen mehr", pt = "✂️ Sem divisões restantes", ru = "✂️ Деления закончились", ja = "✂️ 分割回数を使い切りました"),
                         fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     )
                 }
@@ -573,7 +668,11 @@ private fun GameScreen(vm: AppViewModel) {
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
                     Text(
-                        tr("💖 부활물약으로 ${GameLogic.setName(reviveTarget ?: 0)} 살리기 · 남은 ${g.board.revivesLeft(me)}개", "💖 Revive ${GameLogic.setName(reviveTarget ?: 0)} · ${g.board.revivesLeft(me)} left"),
+                        tr(
+"💖 부활물약으로 ${GameLogic.setName(reviveTarget ?: 0)} 살리기 · 남은 ${g.board.revivesLeft(me)}개",
+"💖 Revive ${GameLogic.setName(reviveTarget ?: 0)} · ${g.board.revivesLeft(me)} left",
+zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revivesLeft(me)} 瓶", hi = "💖 ${GameLogic.setName(reviveTarget ?: 0)} वापस लाएँ · ${g.board.revivesLeft(me)} बाकी", es = "💖 Revivir ${GameLogic.setName(reviveTarget ?: 0)} · quedan ${g.board.revivesLeft(me)}", fr = "💖 Ranimer ${GameLogic.setName(reviveTarget ?: 0)} · ${g.board.revivesLeft(me)} restantes", ar = "💖 إحياء ${GameLogic.setName(reviveTarget ?: 0)} · متبقٍ ${g.board.revivesLeft(me)}", de = "💖 ${GameLogic.setName(reviveTarget ?: 0)} wiederbeleben · noch ${g.board.revivesLeft(me)}", pt = "💖 Reviver ${GameLogic.setName(reviveTarget ?: 0)} · restam ${g.board.revivesLeft(me)}", ru = "💖 Оживить ${GameLogic.setName(reviveTarget ?: 0)} · осталось ${g.board.revivesLeft(me)}", ja = "💖 ${GameLogic.setName(reviveTarget ?: 0)}を復活 · 残り${g.board.revivesLeft(me)}個",
+),
                         fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     )
                 }
@@ -640,28 +739,43 @@ private fun GameScreen(vm: AppViewModel) {
     if (confirmLeave) {
         AlertDialog(
             onDismissRequest = { confirmLeave = false },
-            title = { Text(tr("게임에서 나갈까요?", "Leave the game?")) },
+            title = { Text(tr("게임에서 나갈까요?", "Leave the game?", zh = "要离开游戏吗？", hi = "गेम छोड़ना है?", es = "¿Salir de la partida?", fr = "Quitter la partie ?", ar = "هل تريد مغادرة المباراة؟", de = "Spiel verlassen?", pt = "Sair da partida?", ru = "Выйти из игры?", ja = "ゲームを退出しますか？")) },
             text = {
                 Text(
                     when {
-                        g.scoredAi -> tr("지금 나가면 패배로 처리돼요 (${g.aiLevel!!.losePoints}점).", "Leaving now counts as a loss (${g.aiLevel!!.losePoints} pts).")
-                        g.online -> tr("지금 나가면 기권패로 처리돼요 (-${OnlineRepository.LOSE_POINTS}점).", "Leaving now counts as a forfeit (-${OnlineRepository.LOSE_POINTS} pts).")
-                        else -> tr("연습 게임이 끝나요.", "This practice game will end.")
+                        g.scoredAi -> tr(
+"지금 나가면 패배로 처리돼요 (${g.aiLevel!!.losePoints}점).",
+"Leaving now counts as a loss (${g.aiLevel!!.losePoints} pts).",
+zh = "现在离开将判负（${g.aiLevel!!.losePoints} 分）。", hi = "अभी छोड़ने पर हार मानी जाएगी (${g.aiLevel!!.losePoints} अंक)।", es = "Salir ahora cuenta como derrota (${g.aiLevel!!.losePoints} pts).", fr = "Partir maintenant compte comme une défaite (${g.aiLevel!!.losePoints} pts).", ar = "المغادرة الآن تُحتسب خسارة (${g.aiLevel!!.losePoints} نقطة).", de = "Jetzt zu gehen zählt als Niederlage (${g.aiLevel!!.losePoints} Pkt).", pt = "Sair agora conta como derrota (${g.aiLevel!!.losePoints} pts).", ru = "Выход сейчас — поражение (${g.aiLevel!!.losePoints} очк.).", ja = "今退出すると負けになります（${g.aiLevel!!.losePoints}点）。",
+)
+                        g.online -> tr(
+"지금 나가면 기권패로 처리돼요 (-${OnlineRepository.LOSE_POINTS}점).",
+"Leaving now counts as a forfeit (-${OnlineRepository.LOSE_POINTS} pts).",
+zh = "现在离开将判为弃权（-${OnlineRepository.LOSE_POINTS} 分）。", hi = "अभी छोड़ने पर हार मानी जाएगी (-${OnlineRepository.LOSE_POINTS} अंक)।", es = "Salir ahora cuenta como abandono (-${OnlineRepository.LOSE_POINTS} pts).", fr = "Partir maintenant compte comme un abandon (-${OnlineRepository.LOSE_POINTS} pts).", ar = "المغادرة الآن تُحتسب انسحابًا (-${OnlineRepository.LOSE_POINTS} نقطة).", de = "Jetzt zu gehen zählt als Aufgabe (-${OnlineRepository.LOSE_POINTS} Pkt).", pt = "Sair agora conta como desistência (-${OnlineRepository.LOSE_POINTS} pts).", ru = "Выход сейчас — техническое поражение (-${OnlineRepository.LOSE_POINTS} очк.).", ja = "今退出すると棄権負けになります（-${OnlineRepository.LOSE_POINTS}点）。",
+)
+                        else -> tr("연습 게임이 끝나요.", "This practice game will end.", zh = "这局练习将结束。", hi = "यह अभ्यास गेम खत्म हो जाएगा।", es = "Esta partida de práctica terminará.", fr = "Cette partie d’entraînement va se terminer.", ar = "ستنتهي مباراة التدريب هذه.", de = "Diese Übungspartie wird beendet.", pt = "Esta partida de treino vai terminar.", ru = "Тренировочная партия завершится.", ja = "この練習ゲームは終了します。")
                     },
                 )
             },
-            confirmButton = { TextButton(onClick = { confirmLeave = false; vm.leaveGame() }) { Text(tr("나가기", "Leave"), color = Ui.danger) } },
-            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(tr("계속하기", "Keep playing")) } },
+            confirmButton = { TextButton(onClick = { confirmLeave = false; vm.leaveGame() }) { Text(tr("나가기", "Leave", zh = "离开", hi = "छोड़ें", es = "Salir", fr = "Quitter", ar = "مغادرة", de = "Verlassen", pt = "Sair", ru = "Выйти", ja = "退出"), color = Ui.danger) } },
+            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(tr("계속하기", "Keep playing", zh = "继续玩", hi = "खेलते रहें", es = "Seguir jugando", fr = "Continuer", ar = "متابعة اللعب", de = "Weiterspielen", pt = "Continuar jogando", ru = "Продолжить", ja = "続ける")) } },
         )
     }
 }
 
 @Composable
-private fun PlayerTag(side: Side, name: String, extra: String?, active: Boolean, skin: Animal? = null) {
+private fun PlayerTag(
+    side: Side,
+    name: String,
+    extra: String?,
+    active: Boolean,
+    skin: Animal? = null,
+    modifier: Modifier = Modifier,
+) {
     val t = rememberInfiniteTransition(label = "tag")
     val glow by t.animateFloat(0.3f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "glow")
     Row(
-        Modifier
+        modifier
             .background(
                 if (active) Ui.gold.copy(alpha = 0.35f + glow * 0.4f) else Color.White.copy(alpha = 0.6f),
                 RoundedCornerShape(50),
@@ -671,7 +785,12 @@ private fun PlayerTag(side: Side, name: String, extra: String?, active: Boolean,
     ) {
         Critter(side, Modifier.size(26.dp), skin = skin)
         Spacer(Modifier.width(6.dp))
-        Text("${skin?.label ?: side.label} · $name", color = Ui.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        // 이름이 길면 말줄임 (옆의 분할·물약 표시가 찌그러지지 않게)
+        Text(
+            "${skin?.label ?: side.label} · $name",
+            color = Ui.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+        )
         if (extra != null) Text("  $extra", color = Ui.primaryDark, fontSize = 13.sp)
     }
 }
@@ -679,11 +798,11 @@ private fun PlayerTag(side: Side, name: String, extra: String?, active: Boolean,
 @Composable
 private fun TurnBanner(g: GameUi, selecting: Boolean) {
     val text = when {
-        g.finished -> tr("게임 끝!", "Game over!")
-        g.busy && g.turn == g.mySide -> tr("보내는 중…", "Sending…")
-        g.turn != g.mySide -> if (g.aiLevel != null) tr("AI가 생각 중… 🤔", "AI is thinking… 🤔") else tr("상대가 고민 중이에요…", "Opponent is thinking…")
-        selecting -> tr("어디에 더할까요? 반짝이는 방울을 눌러요", "Where to add? Tap a glowing bubble")
-        else -> tr("내 차례! 내 방울을 하나 골라요", "Your turn! Pick one of your bubbles")
+        g.finished -> tr("게임 끝!", "Game over!", zh = "游戏结束！", hi = "गेम खत्म!", es = "¡Fin de la partida!", fr = "Partie terminée !", ar = "انتهت المباراة!", de = "Spiel vorbei!", pt = "Fim de jogo!", ru = "Игра окончена!", ja = "ゲーム終了！")
+        g.busy && g.turn == g.mySide -> tr("보내는 중…", "Sending…", zh = "发送中…", hi = "भेज रहे हैं…", es = "Enviando…", fr = "Envoi…", ar = "جارٍ الإرسال…", de = "Sende…", pt = "Enviando…", ru = "Отправка…", ja = "送信中…")
+        g.turn != g.mySide -> if (g.aiLevel != null) tr("AI가 생각 중… 🤔", "AI is thinking… 🤔", zh = "AI 正在思考… 🤔", hi = "AI सोच रहा है… 🤔", es = "La IA está pensando… 🤔", fr = "L’IA réfléchit… 🤔", ar = "الذكاء الاصطناعي يفكّر… 🤔", de = "Die KI denkt nach… 🤔", pt = "A IA está pensando… 🤔", ru = "ИИ думает… 🤔", ja = "AIが考え中… 🤔") else tr("상대가 고민 중이에요…", "Opponent is thinking…", zh = "对手正在思考…", hi = "विरोधी सोच रहा है…", es = "El rival está pensando…", fr = "L’adversaire réfléchit…", ar = "الخصم يفكّر…", de = "Der Gegner denkt nach…", pt = "O rival está pensando…", ru = "Соперник думает…", ja = "相手が考え中…")
+        selecting -> tr("어디에 더할까요? 반짝이는 방울을 눌러요", "Where to add? Tap a glowing bubble", zh = "加到哪里？点一下闪光的泡泡", hi = "कहाँ जोड़ें? चमकते बबल पर टैप करें", es = "¿Dónde sumar? Toca una burbuja brillante", fr = "Où ajouter ? Touche une bulle qui brille", ar = "أين تضيف؟ اضغط على فقاعة متوهجة", de = "Wohin addieren? Tippe auf eine leuchtende Blase", pt = "Onde somar? Toque numa bolha brilhante", ru = "Куда добавить? Нажмите на светящийся пузырь", ja = "どこに足す？光っているバブルをタップ")
+        else -> tr("내 차례! 내 방울을 하나 골라요", "Your turn! Pick one of your bubbles", zh = "轮到你了！选一个你的泡泡", hi = "आपकी बारी! अपना एक बबल चुनें", es = "¡Tu turno! Elige una de tus burbujas", fr = "À toi ! Choisis une de tes bulles", ar = "دورك! اختر إحدى فقاعاتك", de = "Du bist dran! Wähle eine deiner Blasen", pt = "Sua vez! Escolha uma de suas bolhas", ru = "Ваш ход! Выберите свой пузырь", ja = "あなたの番！自分のバブルを1つ選んで")
     }
     AnimatedContent(text, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.8f)) togetherWith fadeOut() }, label = "turn") {
         Text(
@@ -717,14 +836,14 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                     happy = won,
                 )
                 Text(
-                    if (won) tr("승리! 🎉", "You win! 🎉") else tr("아쉬운 패배…", "So close…"),
+                    if (won) tr("승리! 🎉", "You win! 🎉", zh = "你赢了！🎉", hi = "आप जीत गए! 🎉", es = "¡Ganaste! 🎉", fr = "Victoire ! 🎉", ar = "لقد فزت! 🎉", de = "Gewonnen! 🎉", pt = "Você venceu! 🎉", ru = "Победа! 🎉", ja = "勝利！🎉") else tr("아쉬운 패배…", "So close…", zh = "差一点…", hi = "बस थोड़ा सा रह गया…", es = "Casi…", fr = "Presque…", ar = "كدت تفوز…", de = "Knapp daneben…", pt = "Quase…", ru = "Почти…", ja = "惜しい…"),
                     fontSize = 32.sp, fontWeight = FontWeight.Black,
                     color = if (won) Ui.primaryDark else Ui.text,
                 )
                 val reason = when (g.reason) {
-                    "forfeit" -> if (won) tr("상대가 나갔어요", "Your opponent left") else tr("기권했어요", "You forfeited")
-                    "timeout" -> if (won) tr("상대가 시간을 넘겼어요", "Your opponent ran out of time") else tr("시간을 넘겼어요", "You ran out of time")
-                    else -> if (won) tr("상대 방울을 모두 터뜨렸어요!", "You popped all their bubbles!") else tr("내 방울이 모두 터졌어요", "All your bubbles popped")
+                    "forfeit" -> if (won) tr("상대가 나갔어요", "Your opponent left", zh = "对手离开了", hi = "विरोधी चला गया", es = "Tu rival se fue", fr = "Ton adversaire est parti", ar = "غادر خصمك", de = "Dein Gegner hat das Spiel verlassen", pt = "Seu rival saiu", ru = "Соперник вышел", ja = "相手が退出しました") else tr("기권했어요", "You forfeited", zh = "你弃权了", hi = "आपने हार मान ली", es = "Abandonaste", fr = "Tu as abandonné", ar = "لقد انسحبت", de = "Du hast aufgegeben", pt = "Você desistiu", ru = "Вы сдались", ja = "棄権しました")
+                    "timeout" -> if (won) tr("상대가 시간을 넘겼어요", "Your opponent ran out of time", zh = "对手超时了", hi = "विरोधी का समय खत्म हो गया", es = "A tu rival se le acabó el tiempo", fr = "Ton adversaire a dépassé le temps", ar = "انتهى وقت خصمك", de = "Deinem Gegner lief die Zeit ab", pt = "O tempo do rival acabou", ru = "У соперника кончилось время", ja = "相手が時間切れになりました") else tr("시간을 넘겼어요", "You ran out of time", zh = "你超时了", hi = "आपका समय खत्म हो गया", es = "Se te acabó el tiempo", fr = "Tu as dépassé le temps", ar = "انتهى وقتك", de = "Deine Zeit ist abgelaufen", pt = "Seu tempo acabou", ru = "У вас кончилось время", ja = "時間切れになりました")
+                    else -> if (won) tr("상대 방울을 모두 터뜨렸어요!", "You popped all their bubbles!", zh = "你戳破了对方所有泡泡！", hi = "आपने उनके सारे बबल फोड़ दिए!", es = "¡Reventaste todas sus burbujas!", fr = "Tu as éclaté toutes ses bulles !", ar = "فجّرت كل فقاعاته!", de = "Du hast alle seine Blasen platzen lassen!", pt = "Você estourou todas as bolhas dele!", ru = "Вы лопнули все его пузыри!", ja = "相手のバブルを全部割りました！") else tr("내 방울이 모두 터졌어요", "All your bubbles popped", zh = "你的泡泡全破了", hi = "आपके सारे बबल फट गए", es = "Todas tus burbujas reventaron", fr = "Toutes tes bulles ont éclaté", ar = "انفجرت كل فقاعاتك", de = "Alle deine Blasen sind geplatzt", pt = "Todas as suas bolhas estouraram", ru = "Все ваши пузыри лопнули", ja = "自分のバブルが全部割れました")
                 }
                 Text(reason, color = Ui.text.copy(alpha = 0.7f))
                 if (g.online) {
@@ -732,22 +851,26 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                     val d = g.scoreDelta
                     Text(
                         when {
-                            d == null -> tr("점수 계산 중…", "Calculating score…")
-                            d >= 0 -> tr("+$d 점", "+$d pts")
-                            else -> tr("$d 점", "$d pts")
+                            d == null -> tr("점수 계산 중…", "Calculating score…", zh = "正在计算分数…", hi = "स्कोर गिना जा रहा है…", es = "Calculando puntuación…", fr = "Calcul du score…", ar = "جارٍ حساب النقاط…", de = "Punkte werden berechnet…", pt = "Calculando pontuação…", ru = "Подсчёт очков…", ja = "スコア計算中…")
+                            d >= 0 -> tr("+$d 점", "+$d pts", zh = "+$d 分", hi = "+$d अंक", es = "+$d pts", fr = "+$d pts", ar = "+$d نقطة", de = "+$d Pkt", pt = "+$d pts", ru = "+$d очк.", ja = "+${d}点")
+                            else -> tr("$d 점", "$d pts", zh = "$d 分", hi = "$d अंक", es = "$d pts", fr = "$d pts", ar = "$d نقطة", de = "$d Pkt", pt = "$d pts", ru = "$d очк.", ja = "${d}点")
                         },
                         fontSize = 26.sp, fontWeight = FontWeight.Black,
                         color = if ((d ?: 0) >= 0) Ui.accent else Ui.danger,
                     )
                     if (g.scoreBonus > 0) {
                         Text(
-                            tr("✨ 계급 보너스 +${g.scoreBonus}점 포함", "✨ Includes rank bonus +${g.scoreBonus}"),
+                            tr("✨ 계급 보너스 +${g.scoreBonus}점 포함", "✨ Includes rank bonus +${g.scoreBonus}", zh = "✨ 含等级奖励 +${g.scoreBonus}", hi = "✨ रैंक बोनस +${g.scoreBonus} शामिल", es = "✨ Incluye bonus de rango +${g.scoreBonus}", fr = "✨ Bonus de rang inclus +${g.scoreBonus}", ar = "✨ يشمل مكافأة الرتبة +${g.scoreBonus}", de = "✨ Inkl. Rangbonus +${g.scoreBonus}", pt = "✨ Inclui bônus de rank +${g.scoreBonus}", ru = "✨ С бонусом ранга +${g.scoreBonus}", ja = "✨ ランクボーナス +${g.scoreBonus} 込み"),
                             fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ui.gold.copy(red = 0.85f, green = 0.6f, blue = 0f),
                         )
                     }
                     if (rewardOffer != null) {
                         Text(
-                            tr("📺 로비로 갈 때 광고를 보면 ${rewardOffer}점을 돌려받아요", "📺 Watch an ad on the way out to get ${rewardOffer} pts back"),
+                            tr(
+"📺 로비로 갈 때 광고를 보면 ${rewardOffer}점을 돌려받아요",
+"📺 Watch an ad on the way out to get ${rewardOffer} pts back",
+zh = "📺 离开时看个广告，可拿回 ${rewardOffer} 分", hi = "📺 बाहर जाते समय विज्ञापन देखें, ${rewardOffer} अंक वापस पाएँ", es = "📺 Mira un anuncio al salir y recupera ${rewardOffer} pts", fr = "📺 Regarde une pub en sortant pour récupérer ${rewardOffer} pts", ar = "📺 شاهد إعلانًا عند الخروج لتستعيد ${rewardOffer} نقطة", de = "📺 Sieh beim Verlassen eine Werbung und hol dir ${rewardOffer} Pkt zurück", pt = "📺 Assista a um anúncio ao sair e recupere ${rewardOffer} pts", ru = "📺 Посмотрите рекламу при выходе и верните ${rewardOffer} очк.", ja = "📺 退出時に広告を見ると ${rewardOffer}点が戻ります",
+),
                             fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
                             textAlign = TextAlign.Center,
                         )
@@ -756,12 +879,12 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (g.aiLevel != null) {
-                        OutlinedButton(onClick = onAgain, shape = RoundedCornerShape(18.dp)) { Text(tr("한 판 더", "Play again")) }
+                        OutlinedButton(onClick = onAgain, shape = RoundedCornerShape(18.dp)) { Text(tr("한 판 더", "Play again", zh = "再来一局", hi = "फिर से खेलें", es = "Jugar de nuevo", fr = "Rejouer", ar = "العب مجددًا", de = "Nochmal spielen", pt = "Jogar de novo", ru = "Ещё раз", ja = "もう一回")) }
                     }
                     Button(
                         onClick = onLobby, shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                    ) { Text(tr("로비로", "Lobby")) }
+                    ) { Text(tr("로비로", "Lobby", zh = "大厅", hi = "लॉबी", es = "Sala", fr = "Accueil", ar = "الردهة", de = "Lobby", pt = "Lobby", ru = "Лобби", ja = "ロビー")) }
                 }
             }
         }
@@ -811,6 +934,7 @@ private fun SplitCounter(left: Int) {
             Spacer(Modifier.width(5.dp))
             Text(
                 "$left/${GameLogic.MAX_SPLITS}",
+                maxLines = 1, softWrap = false,
                 fontWeight = FontWeight.Black, fontSize = 14.sp,
                 color = if (left == 0) Color(0xFF9E9E9E) else Ui.accent,
             )
@@ -856,28 +980,32 @@ private fun RewardIntro(points: Int, onSkip: () -> Unit, onWatch: () -> Unit) {
                 Text("📺", fontSize = 44.sp)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    tr("광고를 보면\n잃은 점수 중 ${points}점을 돌려드려요", "Watch an ad to get\n${points} of your lost points back"),
+                    tr(
+"광고를 보면\n잃은 점수 중 ${points}점을 돌려드려요",
+"Watch an ad to get\n${points} of your lost points back",
+zh = "看广告可拿回\n你损失的 ${points} 分", hi = "विज्ञापन देखें और\nखोए हुए ${points} अंक वापस पाएँ", es = "Mira un anuncio y recupera\n${points} de los puntos perdidos", fr = "Regarde une pub pour récupérer\n${points} de tes points perdus", ar = "شاهد إعلانًا لتستعيد\n${points} من نقاطك المفقودة", de = "Sieh eine Werbung und hol dir\n${points} verlorene Punkte zurück", pt = "Assista a um anúncio e recupere\n${points} dos pontos perdidos", ru = "Посмотрите рекламу и верните\n${points} потерянных очков", ja = "広告を見ると\n失った点数のうち${points}点が戻ります",
+),
                     fontSize = 20.sp, fontWeight = FontWeight.Black, color = Ui.text,
                     textAlign = TextAlign.Center, lineHeight = 28.sp,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    tr("${remain}초 후 광고가 시작돼요", "Ad starts in ${remain}s"),
+                    tr("${remain}초 후 광고가 시작돼요", "Ad starts in ${remain}s", zh = "广告将在 ${remain} 秒后开始", hi = "विज्ञापन ${remain} सेकंड में शुरू होगा", es = "El anuncio empieza en ${remain} s", fr = "La pub commence dans ${remain} s", ar = "يبدأ الإعلان خلال ${remain} ث", de = "Werbung startet in ${remain} s", pt = "O anúncio começa em ${remain} s", ru = "Реклама через ${remain} с", ja = "${remain}秒後に広告が始まります"),
                     fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Ui.accent,
                 )
                 Text(
-                    tr("광고를 끝까지 봐야 점수가 돌아와요", "Watch to the end to get your points back"),
+                    tr("광고를 끝까지 봐야 점수가 돌아와요", "Watch to the end to get your points back", zh = "看完整个广告才能拿回分数", hi = "अंक वापस पाने के लिए पूरा विज्ञापन देखें", es = "Míralo hasta el final para recuperar tus puntos", fr = "Regarde jusqu’au bout pour récupérer tes points", ar = "شاهده حتى النهاية لتستعيد نقاطك", de = "Bis zum Ende ansehen, um die Punkte zu bekommen", pt = "Assista até o fim para recuperar seus pontos", ru = "Досмотрите до конца, чтобы вернуть очки", ja = "最後まで見ると点数が戻ります"),
                     fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),
                 )
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = onSkip, shape = RoundedCornerShape(18.dp)) {
-                        Text(tr("괜찮아요 (건너뛰기)", "No thanks (skip)"), color = Ui.text)
+                        Text(tr("괜찮아요 (건너뛰기)", "No thanks (skip)", zh = "不用了（跳过）", hi = "नहीं, धन्यवाद (छोड़ें)", es = "No, gracias (saltar)", fr = "Non merci (passer)", ar = "لا، شكرًا (تخطٍّ)", de = "Nein danke (überspringen)", pt = "Não, obrigado (pular)", ru = "Нет, спасибо (пропустить)", ja = "いいえ（スキップ）"), color = Ui.text)
                     }
                     Button(
                         onClick = onWatch, shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
-                    ) { Text(tr("지금 보기", "Watch now"), fontWeight = FontWeight.Bold) }
+                    ) { Text(tr("지금 보기", "Watch now", zh = "现在观看", hi = "अभी देखें", es = "Ver ahora", fr = "Regarder", ar = "شاهد الآن", de = "Jetzt ansehen", pt = "Assistir agora", ru = "Смотреть", ja = "今すぐ見る"), fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -896,7 +1024,7 @@ private fun ShopIconButton(onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = Ui.gold, contentColor = Ui.text),
         modifier = Modifier.offset(y = bob.dp),
     ) {
-        Text(tr("🛒 상점", "🛒 Shop"), fontWeight = FontWeight.Black, fontSize = 16.sp)
+        Text(tr("🛒 상점", "🛒 Shop", zh = "🛒 商店", hi = "🛒 दुकान", es = "🛒 Tienda", fr = "🛒 Boutique", ar = "🛒 المتجر", de = "🛒 Shop", pt = "🛒 Loja", ru = "🛒 Магазин", ja = "🛒 ショップ"), fontWeight = FontWeight.Black, fontSize = 16.sp)
     }
 }
 
@@ -917,15 +1045,19 @@ private fun ShopScreen(vm: AppViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = vm::closeShop) { Text(tr("← 로비", "← Lobby"), color = Ui.text) }
+            TextButton(onClick = vm::closeShop) { Text(tr("← 로비", "← Lobby", zh = "← 大厅", hi = "← लॉबी", es = "← Sala", fr = "← Accueil", ar = "→ الردهة", de = "← Lobby", pt = "← Lobby", ru = "← Лобби", ja = "← ロビー"), color = Ui.text) }
             Spacer(Modifier.weight(1f))
             if (p != null) {
-                Text(tr("내 점수 ", "My score "), color = Ui.text, fontSize = 14.sp)
-                Text(tr("${p.score}점", "${p.score} pts"), color = Ui.primaryDark, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                Text(tr("내 점수 ", "My score ", zh = "我的分数 ", hi = "मेरा स्कोर ", es = "Mi puntuación ", fr = "Mon score ", ar = "نقاطي ", de = "Mein Punktestand ", pt = "Minha pontuação ", ru = "Мой счёт ", ja = "自分のスコア "), color = Ui.text, fontSize = 14.sp)
+                Text(tr("${p.score}점", "${p.score} pts", zh = "${p.score} 分", hi = "${p.score} अंक", es = "${p.score} pts", fr = "${p.score} pts", ar = "${p.score} نقطة", de = "${p.score} Pkt", pt = "${p.score} pts", ru = "${p.score} очк.", ja = "${p.score}点"), color = Ui.primaryDark, fontWeight = FontWeight.Black, fontSize = 20.sp)
             }
         }
-        Text(tr("🛒 상점", "🛒 Shop"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
-        Text(tr("점수로 아이템을 살 수 있어요 (점수가 줄면 계급도 내려갈 수 있어요)", "Spend points on items (your rank can drop if your score does)"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+        Text(tr("🛒 상점", "🛒 Shop", zh = "🛒 商店", hi = "🛒 दुकान", es = "🛒 Tienda", fr = "🛒 Boutique", ar = "🛒 المتجر", de = "🛒 Shop", pt = "🛒 Loja", ru = "🛒 Магазин", ja = "🛒 ショップ"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
+        Text(tr(
+"점수로 아이템을 살 수 있어요 (점수가 줄면 계급도 내려갈 수 있어요)",
+"Spend points on items (your rank can drop if your score does)",
+zh = "用分数购买道具（分数减少时等级可能下降）", hi = "अंकों से आइटम खरीदें (स्कोर घटा तो रैंक भी घट सकती है)", es = "Gasta puntos en objetos (tu rango puede bajar si baja tu puntuación)", fr = "Dépense tes points en objets (ton rang peut baisser avec ton score)", ar = "أنفق نقاطك على العناصر (قد تنخفض رتبتك إذا انخفضت نقاطك)", de = "Gib Punkte für Items aus (dein Rang kann sinken, wenn deine Punkte sinken)", pt = "Gaste pontos em itens (seu rank pode cair se a pontuação cair)", ru = "Тратьте очки на предметы (ранг может упасть вместе со счётом)", ja = "点数でアイテムを買えます（点数が減るとランクが下がることも）",
+), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))
         ui.info?.let { Text(it, color = Ui.accent, fontWeight = FontWeight.Bold) }
         ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
@@ -933,23 +1065,31 @@ private fun ShopScreen(vm: AppViewModel) {
 
         // 부활물약
         ShopCard(
-            title = tr("💖 부활물약", "💖 Revive Potion"),
-            desc = tr("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 ${Shop.MAX_REVIVES_PER_GAME}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용", "On your turn, bring a popped (empty) bubble back with 1 critter.\nUp to ${Shop.MAX_REVIVES_PER_GAME} per game · 1 used each time · online only"),
+            title = tr("💖 부활물약", "💖 Revive Potion", zh = "💖 复活药水", hi = "💖 रिवाइव पोशन", es = "💖 Poción de revivir", fr = "💖 Potion de résurrection", ar = "💖 جرعة الإحياء", de = "💖 Wiederbelebungstrank", pt = "💖 Poção de reviver", ru = "💖 Зелье оживления", ja = "💖 復活薬"),
+            desc = tr(
+"내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 ${Shop.MAX_REVIVES_PER_GAME}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용",
+"On your turn, bring a popped (empty) bubble back with 1 critter.\nUp to ${Shop.MAX_REVIVES_PER_GAME} per game · 1 used each time · online only",
+zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n每局最多 ${Shop.MAX_REVIVES_PER_GAME} 次 · 每次消耗 1 瓶 · 仅限在线对战", hi = "अपनी बारी में फटे (खाली) बबल को 1 जीव के साथ वापस लाएँ।\nहर गेम में अधिकतम ${Shop.MAX_REVIVES_PER_GAME} · हर बार 1 खर्च · सिर्फ़ ऑनलाइन", es = "En tu turno, revive una burbuja reventada (vacía) con 1 bichito.\nHasta ${Shop.MAX_REVIVES_PER_GAME} por partida · gasta 1 cada vez · solo en línea", fr = "À ton tour, ranime une bulle éclatée (vide) avec 1 bestiole.\nJusqu’à ${Shop.MAX_REVIVES_PER_GAME} par partie · 1 utilisée à chaque fois · en ligne uniquement", ar = "في دورك، أعِد فقاعة منفجرة (فارغة) بمخلوق واحد.\nحتى ${Shop.MAX_REVIVES_PER_GAME} في كل مباراة · تُستهلك واحدة كل مرة · عبر الإنترنت فقط", de = "Hol in deinem Zug eine geplatzte (leere) Blase mit 1 Tierchen zurück.\nBis zu ${Shop.MAX_REVIVES_PER_GAME} pro Partie · 1 pro Einsatz · nur online", pt = "Na sua vez, reviva uma bolha estourada (vazia) com 1 bichinho.\nAté ${Shop.MAX_REVIVES_PER_GAME} por partida · gasta 1 por uso · só online", ru = "В свой ход верните лопнувший (пустой) пузырь с 1 зверьком.\nДо ${Shop.MAX_REVIVES_PER_GAME} за партию · 1 за раз · только онлайн", ja = "自分の番に、割れた（空の）バブルを1匹で復活させます。\n1ゲーム最大${Shop.MAX_REVIVES_PER_GAME}回 · 使うたびに1個消費 · オンライン対戦のみ",
+),
             price = Shop.POTION_PRICE,
-            owned = tr("보유 ${p.potions}개", "Owned: ${p.potions}"),
+            owned = tr("보유 ${p.potions}개", "Owned: ${p.potions}", zh = "拥有：${p.potions}", hi = "पास में: ${p.potions}", es = "Tienes: ${p.potions}", fr = "Possédées : ${p.potions}", ar = "لديك: ${p.potions}", de = "Im Besitz: ${p.potions}", pt = "Você tem: ${p.potions}", ru = "Есть: ${p.potions}", ja = "所持：${p.potions}個"),
             art = { PotionArt(Modifier.size(84.dp)) },
         ) {
             Button(
-                onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion"), Shop.POTION_PRICE) },
+                onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬"), Shop.POTION_PRICE) },
                 enabled = !ui.shopBusy && p.score >= Shop.POTION_PRICE,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-            ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts"), fontWeight = FontWeight.Bold) }
+            ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts", zh = "${Shop.POTION_PRICE} 分购买", hi = "${Shop.POTION_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.POTION_PRICE} pts", fr = "Acheter pour ${Shop.POTION_PRICE} pts", ar = "اشترِ مقابل ${Shop.POTION_PRICE} نقطة", de = "Für ${Shop.POTION_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.POTION_PRICE} pts", ru = "Купить за ${Shop.POTION_PRICE} очк.", ja = "${Shop.POTION_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
         }
 
         Spacer(Modifier.height(6.dp))
-        Text(tr("🐾 동물 친구들", "🐾 Animal Friends"), fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.text, modifier = Modifier.fillMaxWidth())
-        Text(tr("장착하면 내 캐릭터가 바뀌고, 상대의 턴 시간이 줄어들어요 (다음 판부터)", "Equip to change your character and shorten your opponent’s turn (from the next game)"), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
+        Text(tr("🐾 동물 친구들", "🐾 Animal Friends", zh = "🐾 动物伙伴", hi = "🐾 जानवर दोस्त", es = "🐾 Amigos animales", fr = "🐾 Amis animaux", ar = "🐾 أصدقاء الحيوانات", de = "🐾 Tierfreunde", pt = "🐾 Amigos animais", ru = "🐾 Друзья-зверята", ja = "🐾 どうぶつの仲間"), fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.text, modifier = Modifier.fillMaxWidth())
+        Text(tr(
+"장착하면 내 캐릭터가 바뀌고, 상대의 턴 시간이 줄어들어요 (다음 판부터)",
+"Equip to change your character and shorten your opponent’s turn (from the next game)",
+zh = "装备后会改变你的角色，并缩短对手的回合时间（下一局起生效）", hi = "लगाने पर आपका किरदार बदलेगा और विरोधी की बारी छोटी होगी (अगले गेम से)", es = "Equípalo para cambiar tu personaje y acortar el turno del rival (desde la próxima partida)", fr = "Équipe-le pour changer ton perso et raccourcir le tour adverse (dès la prochaine partie)", ar = "جهّزه لتغيير شخصيتك وتقصير دور خصمك (من المباراة التالية)", de = "Ausrüsten ändert deine Figur und verkürzt den Zug des Gegners (ab der nächsten Partie)", pt = "Equipe para mudar seu personagem e encurtar o turno do rival (a partir da próxima partida)", ru = "Наденьте, чтобы сменить персонажа и сократить ход соперника (со следующей партии)", ja = "装備するとキャラが変わり、相手のターン時間が短くなります（次のゲームから）",
+), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(6.dp))
 
         Animal.entries.forEach { a ->
@@ -957,29 +1097,33 @@ private fun ShopScreen(vm: AppViewModel) {
             val on = p.equipped == a
             ShopCard(
                 title = a.label,
-                desc = tr("⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초", "⏱ Opponent turn ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s"),
+                desc = tr(
+"⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초",
+"⏱ Opponent turn ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s",
+zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒", hi = "⏱ विरोधी की बारी ${Shop.DEFAULT_TURN_SEC}से → ${a.opponentTurnSec}से", es = "⏱ Turno del rival ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", fr = "⏱ Tour adverse ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", ar = "⏱ دور الخصم ${Shop.DEFAULT_TURN_SEC}ث ← ${a.opponentTurnSec}ث", de = "⏱ Gegnerzug ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", pt = "⏱ Turno do rival ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", ru = "⏱ Ход соперника ${Shop.DEFAULT_TURN_SEC}с → ${a.opponentTurnSec}с", ja = "⏱ 相手のターン ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
+),
                 price = a.price,
                 owned = when {
-                    on -> tr("✅ 장착 중", "✅ Equipped")
-                    have -> tr("보유 중", "Owned")
+                    on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", hi = "✅ लगाया हुआ", es = "✅ Equipado", fr = "✅ Équipé", ar = "✅ مُجهَّز", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
+                    have -> tr("보유 중", "Owned", zh = "已拥有", hi = "पास में है", es = "Lo tienes", fr = "Possédé", ar = "تملكه", de = "Im Besitz", pt = "Você tem", ru = "Есть", ja = "所持中")
                     else -> null
                 },
                 art = { Critter(Side.CAT, Modifier.size(84.dp), skin = a, happy = on) },
             ) {
                 when {
                     on -> OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
-                        Text(tr("장착 해제", "Unequip"), color = Ui.text)
+                        Text(tr("장착 해제", "Unequip", zh = "卸下", hi = "हटाएँ", es = "Quitar", fr = "Retirer", ar = "إزالة", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
                     }
                     have -> Button(
                         onClick = { vm.equip(a) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
-                    ) { Text(tr("장착하기", "Equip"), fontWeight = FontWeight.Bold) }
+                    ) { Text(tr("장착하기", "Equip", zh = "装备", hi = "लगाएँ", es = "Equipar", fr = "Équiper", ar = "تجهيز", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する"), fontWeight = FontWeight.Bold) }
                     else -> Button(
                         onClick = { confirm = Triple(a.name, a.label, a.price) },
                         enabled = !ui.shopBusy && p.score >= a.price,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                    ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts"), fontWeight = FontWeight.Bold) }
+                    ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -989,18 +1133,26 @@ private fun ShopScreen(vm: AppViewModel) {
         val after = (p?.score ?: 0) - price
         AlertDialog(
             onDismissRequest = { confirm = null },
-            title = { Text(tr("$label 살까요?", "Buy $label?"), fontWeight = FontWeight.Black) },
+            title = { Text(tr("$label 살까요?", "Buy $label?", zh = "购买 ${label}？", hi = "$label खरीदें?", es = "¿Comprar $label?", fr = "Acheter $label ?", ar = "شراء ${label}؟", de = "$label kaufen?", pt = "Comprar $label?", ru = "Купить $label?", ja = "${label}を買いますか？"), fontWeight = FontWeight.Black) },
             text = {
                 Column {
-                    Text(tr("${price}점을 써요. 남는 점수: ${after}점", "Costs ${price} pts. You’ll have ${after} pts left."), fontWeight = FontWeight.Bold)
+                    Text(tr(
+"${price}점을 써요. 남는 점수: ${after}점",
+"Costs ${price} pts. You’ll have ${after} pts left.",
+zh = "花费 ${price} 分，剩余 ${after} 分。", hi = "${price} अंक लगेंगे। बचेंगे ${after} अंक।", es = "Cuesta ${price} pts. Te quedarán ${after} pts.", fr = "Coûte ${price} pts. Il te restera ${after} pts.", ar = "التكلفة ${price} نقطة. سيتبقى لك ${after} نقطة.", de = "Kostet ${price} Pkt. Danach hast du ${after} Pkt.", pt = "Custa ${price} pts. Vão sobrar ${after} pts.", ru = "Стоит ${price} очк. Останется ${after} очк.", ja = "${price}点を使います。残り${after}点。",
+), fontWeight = FontWeight.Bold)
                     if (p != null && Rank.of(after) != p.rank) {
                         Spacer(Modifier.height(6.dp))
-                        Text(tr("⚠️ 계급이 ${p.rank.label} → ${Rank.of(after).label}(으)로 내려가요", "⚠️ Your rank will drop from ${p.rank.label} to ${Rank.of(after).label}"), color = Ui.danger, fontWeight = FontWeight.Bold)
+                        Text(tr(
+"⚠️ 계급이 ${p.rank.label} → ${Rank.of(after).label}(으)로 내려가요",
+"⚠️ Your rank will drop from ${p.rank.label} to ${Rank.of(after).label}",
+zh = "⚠️ 你的等级会从${p.rank.label}降到${Rank.of(after).label}", hi = "⚠️ आपकी रैंक ${p.rank.label} से ${Rank.of(after).label} हो जाएगी", es = "⚠️ Tu rango bajará de ${p.rank.label} a ${Rank.of(after).label}", fr = "⚠️ Ton rang passera de ${p.rank.label} à ${Rank.of(after).label}", ar = "⚠️ ستنخفض رتبتك من ${p.rank.label} إلى ${Rank.of(after).label}", de = "⚠️ Dein Rang sinkt von ${p.rank.label} auf ${Rank.of(after).label}", pt = "⚠️ Seu rank vai cair de ${p.rank.label} para ${Rank.of(after).label}", ru = "⚠️ Ранг понизится: ${p.rank.label} → ${Rank.of(after).label}", ja = "⚠️ ランクが${p.rank.label}から${Rank.of(after).label}に下がります",
+), color = Ui.danger, fontWeight = FontWeight.Bold)
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { vm.buy(item, label); confirm = null }) { Text(tr("살게요", "Buy")) } },
-            dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("취소", "Cancel")) } },
+            confirmButton = { TextButton(onClick = { vm.buy(item, label); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
     }
 }
@@ -1025,7 +1177,7 @@ private fun ShopCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(title, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text)
                     Spacer(Modifier.width(6.dp))
-                    Text(tr("${price}점", "${price} pts"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
+                    Text(tr("${price}점", "${price} pts", zh = "${price} 分", hi = "${price} अंक", es = "${price} pts", fr = "${price} pts", ar = "${price} نقطة", de = "${price} Pkt", pt = "${price} pts", ru = "${price} очк.", ja = "${price}点"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
                 }
                 Text(desc, fontSize = 13.sp, color = Ui.text.copy(alpha = 0.8f), lineHeight = 18.sp)
                 if (owned != null) Text(owned, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
@@ -1092,16 +1244,20 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
     val next = Rank.entries.getOrNull(mine.ordinal + 1)
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close"), fontWeight = FontWeight.Bold) } },
-        title = { Text(tr("🏅 계급표", "🏅 Ranks"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", zh = "关闭", hi = "बंद करें", es = "Cerrar", fr = "Fermer", ar = "إغلاق", de = "Schließen", pt = "Fechar", ru = "Закрыть", ja = "閉じる"), fontWeight = FontWeight.Bold) } },
+        title = { Text(tr("🏅 계급표", "🏅 Ranks", zh = "🏅 等级表", hi = "🏅 रैंक", es = "🏅 Rangos", fr = "🏅 Rangs", ar = "🏅 الرتب", de = "🏅 Ränge", pt = "🏅 Ranks", ru = "🏅 Ранги", ja = "🏅 ランク表"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
             Column {
                 Rank.entries.reversed().forEach { r ->
                     val isMine = r == mine
                     val range = when (r) {
-                        Rank.DIRT -> tr("1000점 이하", "Up to 1000 pts")
-                        Rank.DIAMOND -> tr("${r.minScore}점 이상", "${r.minScore}+ pts")
-                        else -> tr("${r.minScore} ~ ${Rank.entries[r.ordinal + 1].minScore - 1}점", "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} pts")
+                        Rank.DIRT -> tr("1000점 이하", "Up to 1000 pts", zh = "1000 分以下", hi = "1000 अंक तक", es = "Hasta 1000 pts", fr = "Jusqu’à 1000 pts", ar = "حتى 1000 نقطة", de = "Bis 1000 Pkt", pt = "Até 1000 pts", ru = "До 1000 очк.", ja = "1000点以下")
+                        Rank.DIAMOND -> tr("${r.minScore}점 이상", "${r.minScore}+ pts", zh = "${r.minScore} 分以上", hi = "${r.minScore}+ अंक", es = "${r.minScore}+ pts", fr = "${r.minScore}+ pts", ar = "${r.minScore}+ نقطة", de = "${r.minScore}+ Pkt", pt = "${r.minScore}+ pts", ru = "${r.minScore}+ очк.", ja = "${r.minScore}点以上")
+                        else -> tr(
+"${r.minScore} ~ ${Rank.entries[r.ordinal + 1].minScore - 1}점",
+"${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} pts",
+zh = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} 分", hi = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} अंक", es = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} pts", fr = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} pts", ar = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} نقطة", de = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} Pkt", pt = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} pts", ru = "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} очк.", ja = "${r.minScore}〜${Rank.entries[r.ordinal + 1].minScore - 1}点",
+)
                     }
                     Row(
                         Modifier
@@ -1121,28 +1277,44 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
                         Column(Modifier.weight(1f)) {
                             Text(range, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ui.text)
                             Text(
-                                if (r.bonusPercent > 0) tr("🎁 얻는 점수 +${r.bonusPercent}% 추가", "🎁 +${r.bonusPercent}% bonus on points earned") else tr("보너스 없음", "No bonus"),
+                                if (r.bonusPercent > 0) tr(
+"🎁 얻는 점수 +${r.bonusPercent}% 추가",
+"🎁 +${r.bonusPercent}% bonus on points earned",
+zh = "🎁 获得分数额外 +${r.bonusPercent}%", hi = "🎁 कमाए अंकों पर +${r.bonusPercent}% बोनस", es = "🎁 +${r.bonusPercent}% extra en los puntos ganados", fr = "🎁 +${r.bonusPercent}% de bonus sur les points gagnés", ar = "🎁 مكافأة +${r.bonusPercent}% على النقاط المكتسبة", de = "🎁 +${r.bonusPercent}% Bonus auf gewonnene Punkte", pt = "🎁 +${r.bonusPercent}% de bônus nos pontos ganhos", ru = "🎁 +${r.bonusPercent}% к заработанным очкам", ja = "🎁 獲得点数 +${r.bonusPercent}%",
+) else tr("보너스 없음", "No bonus", zh = "无奖励", hi = "कोई बोनस नहीं", es = "Sin bonus", fr = "Pas de bonus", ar = "بلا مكافأة", de = "Kein Bonus", pt = "Sem bônus", ru = "Без бонуса", ja = "ボーナスなし"),
                                 fontSize = 13.sp, fontWeight = FontWeight.Bold,
                                 color = if (r.bonusPercent > 0) Color(0xFFD08A00) else Ui.text.copy(alpha = 0.5f),
                             )
-                            if (isMine) Text(tr("👈 지금 내 계급", "👈 Your rank"), fontSize = 12.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
+                            if (isMine) Text(tr("👈 지금 내 계급", "👈 Your rank", zh = "👈 你的等级", hi = "👈 आपकी रैंक", es = "👈 Tu rango", fr = "👈 Ton rang", ar = "👈 رتبتك", de = "👈 Dein Rang", pt = "👈 Seu rank", ru = "👈 Ваш ранг", ja = "👈 今のランク"), fontSize = 12.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
                     if (next != null) {
-                        tr("내 점수 ${myScore}점 · ${next.label}까지 ${next.minScore - myScore}점 남았어요!", "Your score ${myScore} · ${next.minScore - myScore} pts to ${next.label}!")
+                        tr(
+"내 점수 ${myScore}점 · ${next.label}까지 ${next.minScore - myScore}점 남았어요!",
+"Your score ${myScore} · ${next.minScore - myScore} pts to ${next.label}!",
+zh = "我的分数 ${myScore} · 距离${next.label}还差 ${next.minScore - myScore} 分！", hi = "आपका स्कोर ${myScore} · ${next.label} तक ${next.minScore - myScore} अंक बाकी!", es = "Tu puntuación ${myScore} · ¡faltan ${next.minScore - myScore} pts para ${next.label}!", fr = "Ton score ${myScore} · encore ${next.minScore - myScore} pts avant ${next.label} !", ar = "نقاطك ${myScore} · تبقّى ${next.minScore - myScore} نقطة للوصول إلى ${next.label}!", de = "Dein Stand ${myScore} · noch ${next.minScore - myScore} Pkt bis ${next.label}!", pt = "Sua pontuação ${myScore} · faltam ${next.minScore - myScore} pts para ${next.label}!", ru = "Ваш счёт ${myScore} · до ранга ${next.label} ещё ${next.minScore - myScore} очк.!", ja = "スコア ${myScore} · ${next.label}まであと${next.minScore - myScore}点！",
+)
                     } else {
-                        tr("내 점수 ${myScore}점 · 최고 계급이에요! 💎", "Your score ${myScore} · Top rank! 💎")
+                        tr("내 점수 ${myScore}점 · 최고 계급이에요! 💎", "Your score ${myScore} · Top rank! 💎", zh = "我的分数 ${myScore} · 已是最高等级！💎", hi = "आपका स्कोर ${myScore} · सबसे ऊँची रैंक! 💎", es = "Tu puntuación ${myScore} · ¡rango máximo! 💎", fr = "Ton score ${myScore} · rang maximum ! 💎", ar = "نقاطك ${myScore} · أعلى رتبة! 💎", de = "Dein Stand ${myScore} · höchster Rang! 💎", pt = "Sua pontuação ${myScore} · rank máximo! 💎", ru = "Ваш счёт ${myScore} · высший ранг! 💎", ja = "スコア ${myScore} · 最高ランク！💎")
                     },
                     fontWeight = FontWeight.Black, fontSize = 15.sp, color = Ui.accent,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    tr("🎁 계급 보너스: 이겨서 얻는 점수(랜덤 매칭·AI 대전)에 계급만큼 점수를 더 받아요. ", "🎁 Rank bonus: wins (random match & AI battle) earn extra points based on your rank. ") +
-                        tr("예) 다이아가 랜덤 매칭에서 이기면 25점 + 20%(5점) = 30점", "e.g. a Diamond player winning a random match gets 25 + 20% (5) = 30 pts"),
+                    tr(
+"🎁 계급 보너스: 이겨서 얻는 점수(랜덤 매칭·AI 대전)에 계급만큼 점수를 더 받아요. ",
+"🎁 Rank bonus: wins (random match & AI battle) earn extra points based on your rank. ",
+zh = "🎁 等级奖励：获胜（随机匹配和 AI 对战）时根据等级额外加分。", hi = "🎁 रैंक बोनस: जीत (रैंडम मैच और AI मुकाबला) पर रैंक के हिसाब से अतिरिक्त अंक मिलते हैं। ", es = "🎁 Bonus de rango: las victorias (partida aleatoria y contra IA) dan puntos extra según tu rango. ", fr = "🎁 Bonus de rang : les victoires (match aléatoire et IA) rapportent des points en plus selon ton rang. ", ar = "🎁 مكافأة الرتبة: الانتصارات (المباراة العشوائية ومعارك الذكاء الاصطناعي) تمنح نقاطًا إضافية حسب رتبتك. ", de = "🎁 Rangbonus: Siege (Zufallsmatch und KI-Duell) bringen je nach Rang Extrapunkte. ", pt = "🎁 Bônus de rank: vitórias (partida aleatória e contra IA) dão pontos extras conforme seu rank. ", ru = "🎁 Бонус ранга: за победы (случайный матч и бой с ИИ) дают дополнительные очки в зависимости от ранга. ", ja = "🎁 ランクボーナス：勝利（ランダムマッチ・AI対戦）でランクに応じて点数が増えます。",
+) +
+                        tr(
+"예) 다이아가 랜덤 매칭에서 이기면 25점 + 20%(5점) = 30점",
+"e.g. a Diamond player winning a random match gets 25 + 20% (5) = 30 pts",
+zh = "例：钻石玩家赢得随机匹配可得 25 + 20%（5）= 30 分", hi = "उदा. डायमंड खिलाड़ी रैंडम मैच जीतने पर 25 + 20% (5) = 30 अंक पाता है", es = "p. ej. un jugador Diamante que gana una partida aleatoria recibe 25 + 20% (5) = 30 pts", fr = "ex. un joueur Diamant qui gagne un match aléatoire reçoit 25 + 20 % (5) = 30 pts", ar = "مثال: لاعب الماس الفائز في مباراة عشوائية يحصل على 25 + 20% (5) = 30 نقطة", de = "z. B. bekommt ein Diamant-Spieler für einen Zufallsmatch-Sieg 25 + 20 % (5) = 30 Pkt", pt = "ex.: um jogador Diamante que vence uma partida aleatória ganha 25 + 20% (5) = 30 pts", ru = "напр., игрок ранга Алмаз за победу в случайном матче получает 25 + 20% (5) = 30 очк.", ja = "例：ダイヤがランダムマッチで勝つと 25 + 20%（5）= 30点",
+),
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ui.text,
                     lineHeight = 19.sp,
                     modifier = Modifier
@@ -1152,7 +1324,11 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    tr("높은 계급일수록 배지가 더 반짝여요 ✨", "Higher ranks get sparklier badges ✨"),
+                    tr(
+"높은 계급일수록 배지가 더 반짝여요 ✨",
+"Higher ranks get sparklier badges ✨",
+zh = "等级越高，徽章越闪亮 ✨", hi = "रैंक जितनी ऊँची, बैज उतना चमकीला ✨", es = "Cuanto más alto el rango, más brilla la insignia ✨", fr = "Plus le rang est haut, plus le badge brille ✨", ar = "كلما ارتفعت الرتبة لمعت الشارة أكثر ✨", de = "Je höher der Rang, desto mehr funkelt das Abzeichen ✨", pt = "Quanto maior o rank, mais o emblema brilha ✨", ru = "Чем выше ранг, тем ярче значок ✨", ja = "ランクが高いほどバッジがキラキラ ✨",
+),
                     fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                 )

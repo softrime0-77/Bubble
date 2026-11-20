@@ -241,7 +241,7 @@ fun SetBubble(
                 }
             }
         } else {
-            Text(tr("텅…", "Empty…"), color = Ui.text.copy(alpha = 0.45f), fontSize = 14.sp)
+            Text(tr("텅…", "Empty…", zh = "空…", hi = "खाली…", es = "Vacía…", fr = "Vide…", ar = "فارغة…", de = "Leer…", pt = "Vazia…", ru = "Пусто…", ja = "からっぽ…"), color = Ui.text.copy(alpha = 0.45f), fontSize = 14.sp)
         }
 
         // 펑!
@@ -263,7 +263,7 @@ fun SetBubble(
                 }
             }
             Text(
-                tr("펑!", "POP!"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.danger,
+                tr("펑!", "POP!", zh = "啪！", hi = "फट!", es = "¡PUM!", fr = "POP !", ar = "بوب!", de = "PLOPP!", pt = "POP!", ru = "ХЛОП!", ja = "パン！"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.danger,
                 modifier = Modifier.scale(0.6f + p * 1.0f).alpha(1f - p),
             )
         }
@@ -283,7 +283,7 @@ fun SetBubble(
             )
         }
         Text(
-            if (dead) "$title 💀" else tr("$title · ${count}마리", "$title · ${count}"),
+            if (dead) "$title 💀" else tr("$title · ${count}마리", "$title · ${count}", zh = "$title · ${count}", hi = "$title · ${count}", es = "$title · ${count}", fr = "$title · ${count}", ar = "$title · ${count}", de = "$title · ${count}", pt = "$title · ${count}", ru = "$title · ${count}", ja = "$title · ${count}匹"),
             color = if (danger) Ui.danger else Ui.text,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
@@ -445,15 +445,15 @@ fun RankUpCelebration(score: Int, onDismiss: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.scale(pop.value),
         ) {
-            Text(tr("🎉 승급! 🎉", "🎉 Rank up! 🎉"), fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White)
+            Text(tr("🎉 승급! 🎉", "🎉 Rank up! 🎉", zh = "🎉 升级！🎉", hi = "🎉 रैंक अप! 🎉", es = "🎉 ¡Subes de rango! 🎉", fr = "🎉 Rang supérieur ! 🎉", ar = "🎉 ترقية! 🎉", de = "🎉 Aufgestiegen! 🎉", pt = "🎉 Subiu de rank! 🎉", ru = "🎉 Новый ранг! 🎉", ja = "🎉 昇格！🎉"), fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White)
             androidx.compose.foundation.layout.Spacer(Modifier.size(14.dp))
             RankBadge(score, large = true, modifier = Modifier.scale(1.6f))
             androidx.compose.foundation.layout.Spacer(Modifier.size(22.dp))
             Text(
-                tr("${rank.label} 계급이 되었어요!", "You reached ${rank.label}!"),
+                tr("${rank.label} 계급이 되었어요!", "You reached ${rank.label}!", zh = "你升到了${rank.label}！", hi = "आप ${rank.label} पर पहुँच गए!", es = "¡Llegaste a ${rank.label}!", fr = "Tu as atteint ${rank.label} !", ar = "وصلت إلى ${rank.label}!", de = "Du hast ${rank.label} erreicht!", pt = "Você chegou a ${rank.label}!", ru = "Вы достигли ранга ${rank.label}!", ja = "${rank.label}ランクになりました！"),
                 fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White,
             )
-            Text(tr("화면을 누르면 닫혀요", "Tap anywhere to close"), fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+            Text(tr("화면을 누르면 닫혀요", "Tap anywhere to close", zh = "点击任意处关闭", hi = "बंद करने के लिए कहीं भी टैप करें", es = "Toca en cualquier lugar para cerrar", fr = "Touche n’importe où pour fermer", ar = "اضغط في أي مكان للإغلاق", de = "Zum Schließen irgendwo tippen", pt = "Toque em qualquer lugar para fechar", ru = "Нажмите в любом месте, чтобы закрыть", ja = "画面をタップすると閉じます"), fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
         }
     }
 }

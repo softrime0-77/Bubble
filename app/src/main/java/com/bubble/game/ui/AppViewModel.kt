@@ -44,8 +44,8 @@ data class GameUi(
     val board: Board = Board(),
     val mySide: Side = Side.CAT,
     val turn: Side = Side.CAT,
-    val myName: String = tr("나", "Me"),
-    val opponentName: String = tr("상대", "Opponent"),
+    val myName: String = tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分"),
+    val opponentName: String = tr("상대", "Opponent", zh = "对手", hi = "विरोधी", es = "Rival", fr = "Adversaire", ar = "الخصم", de = "Gegner", pt = "Rival", ru = "Соперник", ja = "相手"),
     val opponentScore: Int? = null,
     val finished: Boolean = false,
     val winner: Side? = null,
@@ -121,9 +121,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
-    fun buy(item: String, label: String) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉")) { repo.buyItem(item) }
+    fun buy(item: String, label: String) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉")) { repo.buyItem(item) }
 
-    fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character") else tr("${animal.label} 장착!", "${animal.label} equipped!")) {
+    fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character", zh = "已换回默认角色", hi = "डिफ़ॉल्ट किरदार पर वापस", es = "Volviste al personaje por defecto", fr = "Retour au personnage par défaut", ar = "تمت العودة إلى الشخصية الافتراضية", de = "Zurück zur Standardfigur", pt = "Voltou ao personagem padrão", ru = "Возвращён обычный персонаж", ja = "デフォルトのキャラに戻しました") else tr("${animal.label} 장착!", "${animal.label} equipped!", zh = "已装备${animal.label}！", hi = "${animal.label} लगा दिया!", es = "¡${animal.label} equipado!", fr = "${animal.label} équipé !", ar = "تم تجهيز ${animal.label}!", de = "${animal.label} ausgerüstet!", pt = "${animal.label} equipado!", ru = "${animal.label}: надето!", ja = "${animal.label}を装備しました！")) {
         repo.equipAnimal(animal)
     }
 
@@ -137,7 +137,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _lobby.update { it.copy(shopBusy = false, error = e.message ?: tr("실패했어요", "Something went wrong")) }
+                _lobby.update { it.copy(shopBusy = false, error = e.message ?: tr("실패했어요", "Something went wrong", zh = "出错了", hi = "कुछ गड़बड़ हो गई", es = "Algo salió mal", fr = "Un problème est survenu", ar = "حدث خطأ ما", de = "Etwas ist schiefgelaufen", pt = "Algo deu errado", ru = "Что-то пошло не так", ja = "問題が発生しました")) }
             }
         }
     }
@@ -169,7 +169,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: GetCredentialCancellationException) {
                 _lobby.update { it.copy(loading = false) }
             } catch (e: Exception) {
-                _lobby.update { it.copy(loading = false, error = tr("구글 로그인에 실패했어요: ${e.message}", "Google sign-in failed: ${e.message}")) }
+                _lobby.update { it.copy(loading = false, error = tr(
+"구글 로그인에 실패했어요: ${e.message}",
+"Google sign-in failed: ${e.message}",
+zh = "Google 登录失败：${e.message}", hi = "Google साइन-इन विफल: ${e.message}", es = "Error al iniciar sesión con Google: ${e.message}", fr = "Échec de la connexion Google : ${e.message}", ar = "فشل تسجيل الدخول عبر Google: ${e.message}", de = "Google-Anmeldung fehlgeschlagen: ${e.message}", pt = "Falha no login com Google: ${e.message}", ru = "Не удалось войти через Google: ${e.message}", ja = "Googleログインに失敗しました：${e.message}",
+)) }
             }
         }
     }
@@ -198,13 +202,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     onlineAvailable = true,
                     loading = false,
                     needsLogin = true,
-                    info = tr("계정이 삭제됐어요. 이용해 주셔서 고마워요 🐾", "Your account was deleted. Thanks for playing 🐾"),
+                    info = tr(
+"계정이 삭제됐어요. 이용해 주셔서 고마워요 🐾",
+"Your account was deleted. Thanks for playing 🐾",
+zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खाता हटा दिया गया। खेलने के लिए धन्यवाद 🐾", es = "Tu cuenta se eliminó. ¡Gracias por jugar! 🐾", fr = "Ton compte a été supprimé. Merci d’avoir joué 🐾", ar = "تم حذف حسابك. شكرًا للعب 🐾", de = "Dein Konto wurde gelöscht. Danke fürs Spielen 🐾", pt = "Sua conta foi excluída. Obrigado por jogar 🐾", ru = "Аккаунт удалён. Спасибо за игру 🐾", ja = "アカウントを削除しました。遊んでくれてありがとう 🐾",
+),
                 )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _lobby.update {
-                    it.copy(loading = false, error = e.message ?: tr("계정을 삭제하지 못했어요", "Could not delete your account"))
+                    it.copy(loading = false, error = e.message ?: tr("계정을 삭제하지 못했어요", "Could not delete your account", zh = "无法删除账号", hi = "खाता हटाया नहीं जा सका", es = "No se pudo eliminar tu cuenta", fr = "Impossible de supprimer ton compte", ar = "تعذّر حذف حسابك", de = "Konto konnte nicht gelöscht werden", pt = "Não foi possível excluir sua conta", ru = "Не удалось удалить аккаунт", ja = "アカウントを削除できませんでした"))
                 }
             }
         }
@@ -241,7 +249,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _lobby.update { it.copy(loading = false, error = tr("서버에 연결하지 못했어요: ${e.message}", "Could not connect to the server: ${e.message}")) }
+                _lobby.update { it.copy(loading = false, error = tr(
+"서버에 연결하지 못했어요: ${e.message}",
+"Could not connect to the server: ${e.message}",
+zh = "无法连接服务器：${e.message}", hi = "सर्वर से कनेक्ट नहीं हो सका: ${e.message}", es = "No se pudo conectar con el servidor: ${e.message}", fr = "Connexion au serveur impossible : ${e.message}", ar = "تعذّر الاتصال بالخادم: ${e.message}", de = "Keine Verbindung zum Server: ${e.message}", pt = "Não foi possível conectar ao servidor: ${e.message}", ru = "Не удалось подключиться к серверу: ${e.message}", ja = "サーバーに接続できませんでした：${e.message}",
+)) }
             }
         }
     }
@@ -265,7 +277,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _lobby.update { it.copy(error = tr("매칭 중 문제가 생겼어요: ${e.message}", "Matching failed: ${e.message}")) }
+                _lobby.update { it.copy(error = tr("매칭 중 문제가 생겼어요: ${e.message}", "Matching failed: ${e.message}", zh = "匹配失败：${e.message}", hi = "मैचिंग विफल: ${e.message}", es = "Error al emparejar: ${e.message}", fr = "Échec du matchmaking : ${e.message}", ar = "فشلت المطابقة: ${e.message}", de = "Matchmaking fehlgeschlagen: ${e.message}", pt = "Falha no pareamento: ${e.message}", ru = "Ошибка подбора: ${e.message}", ja = "マッチングに失敗しました：${e.message}")) }
                 _screen.value = Screen.Lobby
             }
         }
@@ -320,7 +332,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             mySide = side,
             turn = og.turn,
             myName = if (side == Side.CAT) og.catName else og.hamName,
-            opponentName = og.vsAi?.let { tr("AI 친구 (${it.label})", "AI Buddy (${it.label})") }
+            opponentName = og.vsAi?.let { tr("AI 친구 (${it.label})", "AI Buddy (${it.label})", zh = "AI 伙伴（${it.label}）", hi = "AI दोस्त (${it.label})", es = "Amigo IA (${it.label})", fr = "Copain IA (${it.label})", ar = "رفيق الذكاء الاصطناعي (${it.label})", de = "KI-Kumpel (${it.label})", pt = "Amigo IA (${it.label})", ru = "ИИ-друг (${it.label})", ja = "AIフレンド（${it.label}）") }
                 ?: if (side == Side.CAT) og.hamName else og.catName,
             opponentScore = if (side == Side.CAT) og.hamScore else og.catScore,
             finished = og.finished,
@@ -350,7 +362,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (repo.available && uid != null && _lobby.value.profile != null) {
             gameJob?.cancel()
             onlineGameId = null
-            _game.value = GameUi(online = true, busy = true, aiLevel = level, opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})"))
+            _game.value = GameUi(online = true, busy = true, aiLevel = level, opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})", zh = "AI 伙伴（${level.label}）", hi = "AI दोस्त (${level.label})", es = "Amigo IA (${level.label})", fr = "Copain IA (${level.label})", ar = "رفيق الذكاء الاصطناعي (${level.label})", de = "KI-Kumpel (${level.label})", pt = "Amigo IA (${level.label})", ru = "ИИ-друг (${level.label})", ja = "AIフレンド（${level.label}）"))
             _screen.value = Screen.Game
             gameJob = viewModelScope.launch {
                 try {
@@ -363,9 +375,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     _game.update {
                         it.copy(
                             notice = tr(
-                                "서버에 연결할 수 없어 점수 없는 연습으로 진행해요",
-                                "Can't reach the server, so this is an unscored practice game",
-                            ) + " (${e.message ?: "error"})",
+"서버에 연결할 수 없어 점수 없는 연습으로 진행해요",
+"Can't reach the server, so this is an unscored practice game",
+zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर तक नहीं पहुँच पाए, यह बिना अंकों का अभ्यास गेम है", es = "No hay conexión con el servidor; esta es una práctica sin puntos", fr = "Serveur injoignable : partie d’entraînement sans points", ar = "تعذّر الوصول إلى الخادم، هذه مباراة تدريب بلا نقاط", de = "Server nicht erreichbar, das ist eine Übungspartie ohne Punkte", pt = "Sem conexão com o servidor; esta é uma partida de treino sem pontos", ru = "Сервер недоступен, это тренировка без очков", ja = "サーバーに接続できないため、点数なしの練習になります",
+) + " (${e.message ?: "error"})",
                         )
                     }
                 }
@@ -383,8 +396,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _game.value = GameUi(
             online = false,
             mySide = mySide,
-            myName = _lobby.value.profile?.name ?: tr("나", "Me"),
-            opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})"),
+            myName = _lobby.value.profile?.name ?: tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分"),
+            opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})", zh = "AI 伙伴（${level.label}）", hi = "AI दोस्त (${level.label})", es = "Amigo IA (${level.label})", fr = "Copain IA (${level.label})", ar = "رفيق الذكاء الاصطناعي (${level.label})", de = "KI-Kumpel (${level.label})", pt = "Amigo IA (${level.label})", ru = "ИИ-друг (${level.label})", ja = "AIフレンド（${level.label}）"),
             mySkin = _lobby.value.profile?.equipped,
             aiLevel = level,
         )
@@ -431,7 +444,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** 광고를 끝까지 봤을 때 (점수는 서버가 AdMob 확인 후 반영). */
     fun onAdRewardEarned() {
-        _lobby.update { it.copy(info = tr("📺 광고 보상 확인 중… 곧 점수가 돌아와요", "📺 Checking your ad reward… points coming soon")) }
+        _lobby.update { it.copy(info = tr(
+"📺 광고 보상 확인 중… 곧 점수가 돌아와요",
+"📺 Checking your ad reward… points coming soon",
+zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज्ञापन इनाम जाँच रहे हैं… अंक जल्द मिलेंगे", es = "📺 Comprobando tu recompensa… los puntos llegan pronto", fr = "📺 Vérification de ta récompense… les points arrivent", ar = "📺 جارٍ التحقق من مكافأة الإعلان… ستصل النقاط قريبًا", de = "📺 Werbebelohnung wird geprüft… Punkte kommen gleich", pt = "📺 Verificando sua recompensa… os pontos chegam logo", ru = "📺 Проверяем награду за рекламу… очки скоро вернутся", ja = "📺 広告報酬を確認中… まもなく点数が戻ります",
+)) }
         viewModelScope.launch {
             delay(15_000)
             _lobby.update { it.copy(info = null) }

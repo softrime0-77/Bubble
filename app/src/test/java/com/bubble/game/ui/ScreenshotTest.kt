@@ -100,6 +100,30 @@ class ScreenshotTest {
     }
 
     @Test
+    fun lobbyJapanese() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.JA)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_ja", 900)
+    }
+
+    @Test
+    fun gameArabic() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.AR)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.HARD)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(4, 0), ham = listOf(2, 3), catSplits = 1, hamSplits = 3), mySide = Side.CAT, turn = Side.CAT, busy = false)
+        }
+        shot("game_ar", 1200)
+    }
+
+    @Test
     fun gameEnglish() {
         com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.EN)
         rule.mainClock.autoAdvance = false

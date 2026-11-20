@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
@@ -355,6 +356,8 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
             fontWeight = FontWeight.Black,
             color = textColor,
             modifier = Modifier
+                // 빛 줄기가 둥근 배지 밖으로 나가지 않게 모양대로 자름
+                .clip(RoundedCornerShape(50))
                 .background(
                     Brush.linearGradient(rankColors(rank, hue)),
                     RoundedCornerShape(50),

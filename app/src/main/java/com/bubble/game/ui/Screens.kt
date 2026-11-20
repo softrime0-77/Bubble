@@ -25,6 +25,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -106,6 +107,7 @@ private fun LobbyScreen(vm: AppViewModel) {
     val ui by vm.lobby.collectAsState()
     var showRules by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
+    var showRanks by remember { mutableStateOf(false) }
 
     Column(
         Modifier
@@ -168,7 +170,13 @@ private fun LobbyScreen(vm: AppViewModel) {
                         Column(Modifier.weight(1f)) {
                             Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
                             Spacer(Modifier.height(4.dp))
-                            RankBadge(p.score)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable { showRanks = true },
+                            ) {
+                                RankBadge(p.score)
+                                Text("  계급표 ›", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
+                            }
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 "${p.wins}승 ${p.losses}패 · 💖 부활물약 ${p.potions}개",
@@ -267,6 +275,7 @@ private fun LobbyScreen(vm: AppViewModel) {
     }
 
     if (showRules) RulesDialog { showRules = false }
+    if (showRanks) RanksDialog(ui.profile?.score ?: 0) { showRanks = false }
     if (renaming) {
         var name by remember { mutableStateOf(ui.profile?.name ?: "") }
         AlertDialog(
@@ -1026,5 +1035,64 @@ private fun ReviveCounter(left: Int) {
         modifier = Modifier
             .background(Color(0x33FF5C8A), RoundedCornerShape(50))
             .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+/** 계급표 팝업: 모든 계급과 점수 범위, 내 계급, 다음 계급까지 남은 점수. */
+@Composable
+private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
+    val mine = Rank.of(myScore)
+    val next = Rank.entries.getOrNull(mine.ordinal + 1)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("닫기", fontWeight = FontWeight.Bold) } },
+        title = { Text("🏅 계급표", fontWeight = FontWeight.Black, fontSize = 24.sp) },
+        text = {
+            Column {
+                Rank.entries.reversed().forEach { r ->
+                    val isMine = r == mine
+                    val range = when (r) {
+                        Rank.DIRT -> "1000점 이하"
+                        Rank.DIAMOND -> "${r.minScore}점 이상"
+                        else -> "${r.minScore} ~ ${Rank.entries[r.ordinal + 1].minScore - 1}점"
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .background(
+                                if (isMine) Ui.primary.copy(alpha = 0.15f) else Color.Transparent,
+                                RoundedCornerShape(14.dp),
+                            )
+                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // 배지 폭을 맞춰 표처럼 보이게
+                        Box(Modifier.width(112.dp), contentAlignment = Alignment.CenterStart) {
+                            RankBadge(if (r == Rank.DIRT) 1000 else r.minScore, large = true)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(range, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ui.text)
+                            if (isMine) Text("👈 지금 내 계급", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    if (next != null) {
+                        "내 점수 ${myScore}점 · ${next.label}까지 ${next.minScore - myScore}점 남았어요!"
+                    } else {
+                        "내 점수 ${myScore}점 · 최고 계급이에요! 💎"
+                    },
+                    fontWeight = FontWeight.Black, fontSize = 15.sp, color = Ui.accent,
+                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "높은 계급일수록 배지가 더 반짝여요 ✨",
+                    fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
     )
 }

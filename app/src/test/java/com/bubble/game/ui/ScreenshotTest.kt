@@ -3,6 +3,8 @@ package com.bubble.game.ui
 import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.bubble.game.game.Board
 import com.bubble.game.game.Side
@@ -21,10 +23,19 @@ import java.io.File
 class ScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
+    /** 다이얼로그는 별도 창이라, 가장 위에 떠 있는 창을 찍습니다. */
+    private fun topWindowView(): android.view.View? = runCatching {
+        val wmg = Class.forName("android.view.WindowManagerGlobal")
+        val inst = wmg.getMethod("getInstance").invoke(null)
+        val f = wmg.getDeclaredField("mViews").apply { isAccessible = true }
+        @Suppress("UNCHECKED_CAST")
+        (f.get(inst) as List<android.view.View>).lastOrNull { it.isShown && it.width > 0 }
+    }.getOrNull()
+
     private fun shot(name: String, advanceMs: Long = 600) {
         rule.mainClock.advanceTimeBy(advanceMs)
         val dir = System.getenv("SCREENSHOT_DIR") ?: return
-        val view = rule.activity.window.decorView.rootView
+        val view = topWindowView() ?: rule.activity.window.decorView.rootView
         val bmp = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         rule.runOnUiThread { view.draw(android.graphics.Canvas(bmp)) }
         File(dir).mkdirs()
@@ -58,6 +69,21 @@ class ScreenshotTest {
         }
         rule.setContent { BubbleApp(vm) }
         shot("lobby_ranks", 900)
+    }
+
+    @Test
+    fun ranksDialog() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1150)) }
+        rule.setContent { BubbleApp(vm) }
+        rule.mainClock.advanceTimeBy(600)
+        rule.onNodeWithText("  계급표 ›").performClick()
+        repeat(5) {
+            rule.mainClock.advanceTimeBy(200)
+            org.robolectric.shadows.ShadowLooper.idleMainLooper()
+        }
+        shot("ranks", 300)
     }
 
     @Test

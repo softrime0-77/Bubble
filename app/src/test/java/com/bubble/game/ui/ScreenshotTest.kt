@@ -40,6 +40,15 @@ class ScreenshotTest {
     }
 
     @Test
+    fun login() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, needsLogin = true) }
+        rule.setContent { BubbleApp(vm) }
+        shot("login")
+    }
+
+    @Test
     fun game() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

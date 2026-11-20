@@ -1,8 +1,11 @@
 package com.bubble.game.ui
 
 import android.app.Application
+import android.content.Context
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.bubble.game.data.GoogleSignIn
 import com.bubble.game.data.OnlineGame
 import com.bubble.game.data.OnlineRepository
 import com.bubble.game.data.Profile
@@ -54,6 +57,7 @@ data class GameUi(
 data class LobbyUi(
     val loading: Boolean = true,
     val onlineAvailable: Boolean = false,
+    val needsLogin: Boolean = false,
     val error: String? = null,
     val profile: Profile? = null,
     val leaderboard: List<Profile> = emptyList(),
@@ -77,19 +81,64 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var gameJob: Job? = null
     private var onlineGameId: String? = null
 
+    private var sessionJob: Job? = null
+
     init {
-        if (repo.available) connect() else _lobby.update { it.copy(loading = false) }
+        val id = if (repo.available) repo.currentUid else null
+        when {
+            !repo.available -> _lobby.update { it.copy(loading = false) }
+            id == null -> _lobby.update { it.copy(loading = false, needsLogin = true) }
+            else -> startSession(id)
+        }
     }
 
-    fun connect() {
+    /** 구글 계정으로 로그인. [activityContext]는 계정 선택 창을 띄울 Activity. */
+    fun signInWithGoogle(activityContext: Context) {
+        if (_lobby.value.loading) return
+        val clientId = GoogleSignIn.webClientId(getApplication())
+        if (clientId == null) {
+            _lobby.update {
+                it.copy(error = "Firebase 콘솔에서 Google 로그인을 켜고 google-services.json을 다시 받아 넣어야 해요.")
+            }
+            return
+        }
         _lobby.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                val id = repo.signIn()
-                uid = id
+                val token = GoogleSignIn.requestIdToken(activityContext, clientId)
+                startSession(repo.signInWithGoogle(token))
+            } catch (e: GetCredentialCancellationException) {
+                _lobby.update { it.copy(loading = false) }
+            } catch (e: Exception) {
+                _lobby.update { it.copy(loading = false, error = "구글 로그인에 실패했어요: ${e.message}") }
+            }
+        }
+    }
+
+    fun signOut() {
+        sessionJob?.cancel()
+        sessionJob = null
+        uid = null
+        repo.signOut()
+        _lobby.value = LobbyUi(onlineAvailable = true, loading = false, needsLogin = true)
+    }
+
+    /** 로그인된 상태에서 프로필/랭킹을 다시 불러옵니다. */
+    fun connect() {
+        uid?.let { startSession(it) }
+    }
+
+    private fun startSession(id: String) {
+        uid = id
+        sessionJob?.cancel()
+        _lobby.update { it.copy(loading = true, needsLogin = false, error = null) }
+        sessionJob = viewModelScope.launch {
+            try {
                 repo.ensureProfile(id)
                 launch { repo.profileFlow(id).collect { p -> _lobby.update { it.copy(profile = p, loading = false) } } }
                 launch { repo.leaderboardFlow().collect { l -> _lobby.update { it.copy(leaderboard = l) } } }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _lobby.update { it.copy(loading = false, error = "서버에 연결하지 못했어요: ${e.message}") }
             }
@@ -233,6 +282,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             busy = false,
         )
     }
+
+    /** 테스트(스크린샷)용: 로비 상태를 직접 바꿉니다. */
+    internal fun debugSetLobby(f: (LobbyUi) -> LobbyUi) = _lobby.update(f)
 
     /** 테스트(스크린샷)용: 게임 상태를 직접 바꿉니다. */
     internal fun debugSetGame(f: (GameUi) -> GameUi) {

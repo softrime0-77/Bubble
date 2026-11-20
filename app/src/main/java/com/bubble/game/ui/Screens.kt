@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -109,6 +111,31 @@ private fun LobbyScreen(vm: AppViewModel) {
                     "온라인 대전은 Firebase 설정(google-services.json)을 넣고 다시 빌드하면 열려요.\n지금은 AI 연습을 즐겨 주세요!",
                     color = Ui.text, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                 )
+                ui.needsLogin && !ui.loading -> Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("구글 계정으로 로그인하면\n점수와 전적이 계정에 저장돼요", color = Ui.text, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(4.dp))
+                    Text("상대에게는 구글 이름 대신 닉네임만 보여요", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f))
+                    Spacer(Modifier.height(12.dp))
+                    val activity = LocalContext.current
+                    Button(
+                        onClick = { vm.signInWithGoogle(activity) },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Ui.text),
+                        border = BorderStroke(1.dp, Color(0xFFDADCE0)),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                    ) {
+                        Text("G", fontWeight = FontWeight.Black, fontSize = 20.sp, color = Color(0xFF4285F4))
+                        Spacer(Modifier.width(10.dp))
+                        Text("Google로 시작하기", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                    if (ui.error != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(ui.error!!, color = Ui.danger, fontSize = 12.sp, textAlign = TextAlign.Center)
+                    }
+                }
                 ui.loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(22.dp), color = Ui.primary, strokeWidth = 3.dp)
                     Spacer(Modifier.width(12.dp))
@@ -128,7 +155,11 @@ private fun LobbyScreen(vm: AppViewModel) {
                             Text("점", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f))
                         }
                     }
-                    TextButton(onClick = { renaming = true }) { Text("✏️ 닉네임 바꾸기", color = Ui.accent) }
+                    Row {
+                        TextButton(onClick = { renaming = true }) { Text("✏️ 닉네임 바꾸기", color = Ui.accent) }
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = vm::signOut) { Text("로그아웃", color = Ui.text.copy(alpha = 0.6f)) }
+                    }
                 }
                 else -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text(ui.error ?: "접속하지 못했어요", color = Ui.danger, textAlign = TextAlign.Center)
@@ -144,7 +175,7 @@ private fun LobbyScreen(vm: AppViewModel) {
         BigButton(
             text = "🎲  랜덤 매칭",
             sub = "익명의 상대와 1:1 대결 · 승리 +${OnlineRepository.WIN_POINTS}점",
-            enabled = ui.onlineAvailable && ui.profile != null,
+            enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
             onClick = vm::startMatching,
         )
         Spacer(Modifier.height(12.dp))

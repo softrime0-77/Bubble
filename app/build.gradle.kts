@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -9,6 +11,14 @@ plugins {
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
+
+// 고정 서명 키 (구글 로그인은 Firebase에 등록한 SHA-1과 서명이 같아야 동작함)
+// keystore/bubble.jks 는 저장소에 올리지 않고, 비밀번호는 local.properties 또는 환경변수로 받습니다.
+val bubbleKeystore = rootProject.file("keystore/bubble.jks")
+val bubbleKeystorePassword: String? = System.getenv("BUBBLE_KEYSTORE_PASSWORD")
+    ?: rootProject.file("local.properties").takeIf { it.exists() }?.let { f ->
+        Properties().apply { f.inputStream().use { load(it) } }.getProperty("bubbleKeystorePassword")
+    }
 
 android {
     namespace = "com.bubble.game"
@@ -22,8 +32,23 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        if (bubbleKeystore.exists() && bubbleKeystorePassword != null) {
+            create("bubble") {
+                storeFile = bubbleKeystore
+                storePassword = bubbleKeystorePassword
+                keyAlias = "bubble"
+                keyPassword = bubbleKeystorePassword
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfigs.findByName("bubble")?.let { signingConfig = it }
+        }
         release {
+            signingConfigs.findByName("bubble")?.let { signingConfig = it }
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -62,6 +87,9 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")

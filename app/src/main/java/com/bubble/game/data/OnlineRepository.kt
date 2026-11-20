@@ -7,6 +7,7 @@ import com.bubble.game.game.Move
 import com.bubble.game.game.Side
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -74,10 +75,16 @@ class OnlineRepository(context: Context) {
     private val queue get() = db.collection("queue")
     private val games get() = db.collection("games")
 
-    suspend fun signIn(): String {
-        auth.currentUser?.let { return it.uid }
-        return auth.signInAnonymously().await().user!!.uid
+    /** 구글로 로그인된 사용자 uid. 로그인 전(또는 예전 익명 계정)이면 null. */
+    val currentUid: String?
+        get() = auth.currentUser?.takeUnless { it.isAnonymous }?.uid
+
+    suspend fun signInWithGoogle(idToken: String): String {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        return auth.signInWithCredential(credential).await().user!!.uid
     }
+
+    fun signOut() = auth.signOut()
 
     suspend fun ensureProfile(uid: String) {
         val ref = users.document(uid)

@@ -3,13 +3,17 @@ package com.bubble.game.game
 /**
  * 계급. 1000점 이하는 흙, 이후 100점마다 한 단계씩 올라갑니다.
  * [sparkle]이 클수록 배지의 반짝임 효과가 화려해집니다.
+ * [bonusPercent]: 이겨서 얻는 점수에 추가로 붙는 비율.
  */
-enum class Rank(val label: String, val emoji: String, val minScore: Int, val sparkle: Int) {
-    DIRT("흙", "🟫", Int.MIN_VALUE, 0),
-    COPPER("구리", "🥉", 1001, 1),
-    SILVER("은", "🥈", 1101, 2),
-    GOLD("금", "🥇", 1201, 3),
-    DIAMOND("다이아", "💎", 1301, 4);
+enum class Rank(val label: String, val emoji: String, val minScore: Int, val sparkle: Int, val bonusPercent: Int) {
+    DIRT("흙", "🟫", Int.MIN_VALUE, 0, 0),
+    COPPER("구리", "🥉", 1001, 1, 5),
+    SILVER("은", "🥈", 1101, 2, 10),
+    GOLD("금", "🥇", 1201, 3, 15),
+    DIAMOND("다이아", "💎", 1301, 4, 20);
+
+    /** 이겨서 얻는 점수 [base]에 붙는 보너스 (반올림). functions/src/catalog.ts의 rankBonus와 같게. */
+    fun bonusFor(base: Int): Int = if (base > 0) Math.round(base * bonusPercent / 100.0).toInt() else 0
 
     companion object {
         fun of(score: Int): Rank = entries.last { score >= it.minScore }

@@ -25,3 +25,20 @@ export function turnLimitAgainst(opponentEquipped: unknown): number {
     ? ANIMALS[opponentEquipped].opponentTurnMs
     : DEFAULT_TURN_MS;
 }
+
+/**
+ * 계급 보너스: 이겨서 얻는 점수에 추가로 붙는 비율(%).
+ * 흙(1000점 이하) 0%, 구리(1001~) 5%, 은(1101~) 10%, 금(1201~) 15%, 다이아(1301~) 20%.
+ */
+export function rankBonusPercent(score: number): number {
+  if (score >= 1301) return 20;
+  if (score >= 1201) return 15;
+  if (score >= 1101) return 10;
+  if (score >= 1001) return 5;
+  return 0;
+}
+
+/** 얻는 점수 [base]에 붙는 보너스 점수 (반올림). */
+export function rankBonus(base: number, score: number): number {
+  return base > 0 ? Math.round((base * rankBonusPercent(score)) / 100) : 0;
+}

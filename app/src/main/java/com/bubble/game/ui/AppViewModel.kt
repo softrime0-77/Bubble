@@ -52,6 +52,8 @@ data class GameUi(
     val explosion: Explosion? = null,
     val turnDeadline: Long? = null,
     val scoreDelta: Int? = null,
+    /** scoreDelta 중 계급 보너스 */
+    val scoreBonus: Int = 0,
     /** 서버가 수를 거절했을 때 등 잠깐 보여줄 안내 문구. */
     val notice: String? = null,
     val busy: Boolean = false,
@@ -303,6 +305,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             mySkin = og.skinOf(side),
             opponentSkin = og.skinOf(side.opponent),
             scoreDelta = og.deltaFor(side),
+            scoreBonus = og.bonusFor(side),
             notice = if (newMove) null else notice,
             busy = false,
         )

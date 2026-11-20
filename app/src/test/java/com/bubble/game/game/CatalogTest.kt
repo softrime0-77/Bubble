@@ -18,6 +18,18 @@ class CatalogTest {
     }
 
     @Test
+    fun rankBonusMatchesServer() {
+        assertEquals(listOf(0, 5, 10, 15, 20), Rank.entries.map { it.bonusPercent })
+        assertEquals(0, Rank.DIRT.bonusFor(25))
+        assertEquals(1, Rank.COPPER.bonusFor(25))
+        assertEquals(3, Rank.SILVER.bonusFor(25))
+        assertEquals(4, Rank.GOLD.bonusFor(25))
+        assertEquals(5, Rank.DIAMOND.bonusFor(25))
+        assertEquals(0, Rank.DIAMOND.bonusFor(1))
+        assertEquals(0, Rank.DIAMOND.bonusFor(-15))
+    }
+
+    @Test
     fun animalsMatchServerCatalog() {
         assertEquals(listOf(500, 750, 1000), Animal.entries.map { it.price })
         assertEquals(listOf(20, 15, 10), Animal.entries.map { it.opponentTurnSec })

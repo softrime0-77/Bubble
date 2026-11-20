@@ -698,6 +698,12 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                         fontSize = 26.sp, fontWeight = FontWeight.Black,
                         color = if ((d ?: 0) >= 0) Ui.accent else Ui.danger,
                     )
+                    if (g.scoreBonus > 0) {
+                        Text(
+                            "✨ 계급 보너스 +${g.scoreBonus}점 포함",
+                            fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ui.gold.copy(red = 0.85f, green = 0.6f, blue = 0f),
+                        )
+                    }
                     if (rewardOffer != null) {
                         Text(
                             "📺 로비로 갈 때 광고를 보면 ${rewardOffer}점을 돌려받아요",
@@ -1073,6 +1079,11 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
                         }
                         Column(Modifier.weight(1f)) {
                             Text(range, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ui.text)
+                            Text(
+                                if (r.bonusPercent > 0) "🎁 얻는 점수 +${r.bonusPercent}% 추가" else "보너스 없음",
+                                fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                                color = if (r.bonusPercent > 0) Color(0xFFD08A00) else Ui.text.copy(alpha = 0.5f),
+                            )
                             if (isMine) Text("👈 지금 내 계급", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
                         }
                     }
@@ -1087,6 +1098,18 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
                     fontWeight = FontWeight.Black, fontSize = 15.sp, color = Ui.accent,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "🎁 계급 보너스: 이겨서 얻는 점수(랜덤 매칭·AI 대전)에 계급만큼 점수를 더 받아요. " +
+                        "예) 다이아가 랜덤 매칭에서 이기면 25점 + 20%(5점) = 30점",
+                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Ui.text,
+                    lineHeight = 19.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0x22FFC94D), RoundedCornerShape(12.dp))
+                        .padding(10.dp),
+                )
+                Spacer(Modifier.height(6.dp))
                 Text(
                     "높은 계급일수록 배지가 더 반짝여요 ✨",
                     fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),

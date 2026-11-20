@@ -62,6 +62,9 @@ data class OnlineGame(
     val turnStartedAt: Long,
     val catDelta: Int?,
     val hamDelta: Int?,
+    /** 이긴 쪽이 받은 계급 보너스 점수 (catDelta/hamDelta에 포함됨) */
+    val catBonus: Int,
+    val hamBonus: Int,
     val catSkin: Animal?,
     val hamSkin: Animal?,
     /** 각자 자기 차례에 쓸 수 있는 시간 */
@@ -81,6 +84,8 @@ data class OnlineGame(
     }
 
     fun deltaFor(side: Side): Int? = if (side == Side.CAT) catDelta else hamDelta
+
+    fun bonusFor(side: Side): Int = if (side == Side.CAT) catBonus else hamBonus
 }
 
 /** 서버가 거절한 요청. [message]는 사용자에게 그대로 보여줘도 되는 한국어 문장입니다. */
@@ -253,6 +258,8 @@ class OnlineRepository(context: Context) {
             turnStartedAt = getLong("turnStartedAt") ?: System.currentTimeMillis(),
             catDelta = getLong("catDelta")?.toInt(),
             hamDelta = getLong("hamDelta")?.toInt(),
+            catBonus = (getLong("catBonus") ?: 0).toInt(),
+            hamBonus = (getLong("hamBonus") ?: 0).toInt(),
             catSkin = Animal.of(getString("catSkin")),
             hamSkin = Animal.of(getString("hamSkin")),
             catTurnMs = getLong("catTurnMs") ?: TURN_LIMIT_MS,

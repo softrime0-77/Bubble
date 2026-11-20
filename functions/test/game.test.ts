@@ -66,7 +66,7 @@ test("revive potion brings back a dead set once", () => {
   assert.deepEqual(decodeMove("R:1"), { kind: "revive", index: 1 });
 });
 
-import { revivesForGame, turnLimitAgainst } from "../src/catalog";
+import { rankBonus, rankBonusPercent, revivesForGame, turnLimitAgainst } from "../src/catalog";
 
 test("revives per game are capped at three and follow potions owned", () => {
   assert.equal(revivesForGame(0), 0);
@@ -81,4 +81,16 @@ test("opponent animal shortens my turn", () => {
   assert.equal(turnLimitAgainst("DOG"), 15_000);
   assert.equal(turnLimitAgainst("GIRAFFE"), 10_000);
   assert.equal(turnLimitAgainst("DRAGON"), 30_000);
+});
+
+test("rank bonus adds 0/5/10/15/20 percent to earned points", () => {
+  assert.deepEqual([1000, 1001, 1101, 1201, 1301].map(rankBonusPercent), [0, 5, 10, 15, 20]);
+  assert.equal(rankBonus(25, 1000), 0);
+  assert.equal(rankBonus(25, 1050), 1); // 1.25 -> 1
+  assert.equal(rankBonus(25, 1150), 3); // 2.5 -> 3
+  assert.equal(rankBonus(25, 1250), 4); // 3.75 -> 4
+  assert.equal(rankBonus(25, 1400), 5);
+  assert.equal(rankBonus(10, 1400), 2);
+  assert.equal(rankBonus(1, 1400), 0); // 0.2 -> 0
+  assert.equal(rankBonus(-15, 1400), 0); // 잃는 점수엔 없음
 });

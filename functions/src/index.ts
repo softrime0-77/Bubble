@@ -9,7 +9,7 @@ import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functio
 import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, revivesForGame, turnLimitAgainst } from "./catalog";
+import { ANIMALS, DEFAULT_TURN_MS, POTION_PRICE, rankBonus, revivesForGame, turnLimitAgainst } from "./catalog";
 import { applyMove, Board, decodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
@@ -113,17 +113,22 @@ function finishGame(
     const human: Side = game.catUid === AI_UID ? "HAMSTER" : "CAT";
     const humanSnap = human === "CAT" ? users.cat : users.ham;
     const pts = AI_POINTS[game.vsAi];
-    const delta = win === human ? pts.win : -Math.min(-pts.lose, score(humanSnap));
+    const bonus = win === human ? rankBonus(pts.win, score(humanSnap)) : 0;
+    const delta = win === human ? pts.win + bonus : -Math.min(-pts.lose, score(humanSnap));
     tx.update(gameRef, {
       ...extra, status: "finished", winner: win, reason,
       [human === "CAT" ? "catDelta" : "hamDelta"]: delta,
+      [human === "CAT" ? "catBonus" : "hamBonus"]: bonus,
     });
     if (delta !== 0) tx.update(humanSnap.ref, { score: FieldValue.increment(delta) });
     return;
   }
-  const catDelta = catWon ? WIN_POINTS : -Math.min(LOSE_POINTS, score(users.cat));
-  const hamDelta = catWon ? -Math.min(LOSE_POINTS, score(users.ham)) : WIN_POINTS;
-  tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta });
+  // 이긴 쪽은 계급 보너스(구리 5% ~ 다이아 20%)를 더 받음
+  const catBonus = catWon ? rankBonus(WIN_POINTS, score(users.cat)) : 0;
+  const hamBonus = catWon ? 0 : rankBonus(WIN_POINTS, score(users.ham));
+  const catDelta = catWon ? WIN_POINTS + catBonus : -Math.min(LOSE_POINTS, score(users.cat));
+  const hamDelta = catWon ? -Math.min(LOSE_POINTS, score(users.ham)) : WIN_POINTS + hamBonus;
+  tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus, hamBonus });
   tx.update(users.cat.ref, {
     score: FieldValue.increment(catDelta),
     [catWon ? "wins" : "losses"]: FieldValue.increment(1),

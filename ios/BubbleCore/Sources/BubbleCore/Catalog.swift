@@ -39,6 +39,11 @@ public enum Animal: String, CaseIterable, Sendable {
     case giraffe = "GIRAFFE"
     /// 무료 캐릭터: 모습만 햄스터로, 효과 없음·소모되지 않음
     case hamster = "HAMSTER"
+    // 유료 스킨 (한 번 사면 계속, 효과 없음). 서버 COSMETIC_SKINS와 같은 가격
+    case pinkCat = "PINK_CAT"
+    case blackCat = "BLACK_CAT"
+    case snowHamster = "SNOW_HAMSTER"
+    case goldHamster = "GOLD_HAMSTER"
 
     public var price: Int {
         switch self {
@@ -46,6 +51,8 @@ public enum Animal: String, CaseIterable, Sendable {
         case .dog: return 50
         case .giraffe: return 100
         case .hamster: return 0
+        case .pinkCat, .blackCat, .snowHamster: return 300
+        case .goldHamster: return 500
         }
     }
     public var opponentTurnSec: Int {
@@ -53,9 +60,15 @@ public enum Animal: String, CaseIterable, Sendable {
         case .sheep: return 15
         case .dog: return 10
         case .giraffe: return 5
-        case .hamster: return Shop.defaultTurnSec
+        case .hamster, .pinkCat, .blackCat, .snowHamster, .goldHamster: return Shop.defaultTurnSec
         }
     }
+    /// 유료 스킨 (한 번 사면 계속, 모습만)
+    public var cosmetic: Bool { [.pinkCat, .blackCat, .snowHamster, .goldHamster].contains(self) }
+    /// 소모품 동물 (랜덤 매칭 1판에 1개)
+    public var consumable: Bool { !free && !cosmetic }
+    /// 그릴 때 고양이 모양인지 햄스터 모양인지 (상점 미리보기용)
+    public var looksLikeCat: Bool { self == .pinkCat || self == .blackCat }
     /// 무료 캐릭터 (사지 않고 바로 장착, 효과 없음)
     public var free: Bool { price == 0 }
 }

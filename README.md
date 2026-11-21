@@ -70,6 +70,20 @@
 
 구매·장착·물약 사용은 모두 서버(Cloud Functions)가 점수와 보유 여부를 검사합니다.
 
+## 보상 · 수익
+
+| 기능 | 내용 |
+|---|---|
+| 📅 출석 체크 | 하루 한 번(한국 시간), 7일 주기 💰 20·20·30·30·50·50·100, 7일째 💖 부활물약 +1. 하루 빠지면 1일부터 |
+| 🎯 일일 미션 | 대전 3판(💰20) · 2판 이기기(💰30) · 랜덤 매칭 1판(💰20). AI 대전·점수 걸린 친구 대전도 셈 |
+| 🏆 주간 랭킹 보상 | 매주 월요일 0시 5분(한국 시간) TOP 100에게 💰: 1위 1000 · 2위 700 · 3위 500 · 4~10위 300 · 11~100위 100 (`weeklyRankingRewards`, Cloud Scheduler) |
+| 🚫 광고 제거 | `remove_ads` ₩3,000, 한 번 사면 게임 사이 전면 광고가 안 나옴 (원할 때 보는 보상형 광고는 그대로) |
+| 🎁 첫 구매 2배 | 계정의 첫 포인트 충전은 2배 지급 |
+| ✨ 유료 스킨 | 핑크 고양이·까망 고양이·눈송이 햄스터 300, 황금 햄스터 500 (점수/상점 포인트, 영구, 효과 없음) |
+| 📺 광고 보고 부활물약 | 상점에서 보상형 광고를 보면 💖 +1, 하루 3번 (AdMob 서버 확인 `customData=potion`) |
+
+보상은 모두 💰 상점 포인트라 계급·랭킹 점수에는 영향이 없습니다.
+
 ## 기능
 
 - 구글 로그인: 점수·전적이 구글 계정에 저장 (상대에게는 닉네임만 보임)
@@ -164,6 +178,7 @@ firebase deploy --only functions,firestore:rules
      | `points_1000` | 포인트 1000 | ₩1,000 |
      | `points_2000` | 포인트 2000 | ₩2,000 |
      | `points_5000` | 포인트 5000 | ₩5,000 |
+     | `remove_ads` | 광고 제거 | ₩3,000 (**한 번 사면 계속**: Play는 일반 인앱 상품으로 만들면 앱이 소모하지 않고 확인만 함) |
    - 다른 나라 가격은 자동 환산 → 각각 **활성화**
 4. [Google Cloud 콘솔](https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project=bubble-422ef)에서 **Google Play Android Developer API** 사용 설정
 5. Play Console → **사용자 및 권한 → 새 사용자 초대**
@@ -226,6 +241,7 @@ Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 
    | `points_1000` | 1000 | ₩1,000 단계 |
    | `points_2000` | 2000 | ₩2,000 단계 |
    | `points_5000` | 5000 | ₩5,000 단계 |
+   | `remove_ads` | 광고 제거 | ₩3,000 단계 · **비소모품**으로 만듦 (상점에 "구매 복원" 버튼 있음) |
    서버(`verifyApplePurchase`)는 Apple 서명을 직접 확인하므로 별도 API 키가 필요 없습니다. 테스트는 App Store Connect의 **샌드박스 테스터** 계정으로 합니다.
 3. **광고**: AdMob에 iOS 앱을 추가하고, 전면 광고·보상형 전면 광고 단위를 만든 뒤
    - `ios/project.yml`의 `GADApplicationIdentifier`, `BubbleInterstitialId`, `BubbleRewardedId`를 실제 ID로 교체 (지금은 구글 테스트 광고)

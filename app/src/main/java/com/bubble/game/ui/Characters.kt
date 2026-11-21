@@ -70,6 +70,10 @@ fun Critter(
                 Animal.DOG -> drawDog(eyesClosed, happy)
                 Animal.GIRAFFE -> drawGiraffe(eyesClosed, happy)
                 Animal.HAMSTER -> drawHamster(eyesClosed, happy)
+                Animal.PINK_CAT -> drawCat(eyesClosed, happy, fur = Color(0xFFF8A5C2), stripe = Color(0xFFE2558F), muzzle = Color(0xFFFFE3EF))
+                Animal.BLACK_CAT -> drawCat(eyesClosed, happy, fur = Color(0xFF5B5662), stripe = Color(0xFF38343E), muzzle = Color(0xFFCFC8D6))
+                Animal.SNOW_HAMSTER -> drawHamster(eyesClosed, happy, fur = Color(0xFFF4F6FB), belly = Color.White, inner = Color(0xFFBFD8FF), sparkles = Color(0xFFBFE6FF))
+                Animal.GOLD_HAMSTER -> drawHamster(eyesClosed, happy, fur = Color(0xFFFFC94D), belly = Color(0xFFFFF3C4), inner = Color(0xFFFFB38A), sparkles = Color(0xFFFFF59D))
                 null -> if (side == Side.CAT) drawCat(eyesClosed, happy) else drawHamster(eyesClosed, happy)
             }
         }
@@ -100,7 +104,13 @@ private fun DrawScope.drawMouth(cx: Float, cy: Float, w: Float) {
     drawPath(p, Palette.ink, style = Stroke(width = w * 0.28f, cap = StrokeCap.Round))
 }
 
-private fun DrawScope.drawCat(closed: Boolean, happy: Boolean) {
+private fun DrawScope.drawCat(
+    closed: Boolean,
+    happy: Boolean,
+    fur: Color = Palette.catFur,
+    stripe: Color = Palette.catStripe,
+    muzzle: Color = Palette.catInner,
+) {
     val w = size.width
     val h = size.height
     val cx = w / 2
@@ -114,7 +124,7 @@ private fun DrawScope.drawCat(closed: Boolean, happy: Boolean) {
             lineTo(cx + s * r * 0.2f, cy - r * 0.85f)
             close()
         }
-        drawPath(ear, Palette.catFur)
+        drawPath(ear, fur)
         val inner = Path().apply {
             moveTo(cx + s * r * 0.8f, cy - r * 0.55f)
             lineTo(cx + s * r * 0.78f, cy - r * 1.1f)
@@ -124,17 +134,17 @@ private fun DrawScope.drawCat(closed: Boolean, happy: Boolean) {
         drawPath(inner, Palette.hamInner)
     }
     // 얼굴
-    drawOval(Palette.catFur, Offset(cx - r * 1.05f, cy - r * 0.95f), Size(r * 2.1f, r * 1.85f))
+    drawOval(fur, Offset(cx - r * 1.05f, cy - r * 0.95f), Size(r * 2.1f, r * 1.85f))
     // 줄무늬
     for (i in -1..1) {
         drawLine(
-            Palette.catStripe,
+            stripe,
             Offset(cx + i * r * 0.28f, cy - r * 0.92f),
             Offset(cx + i * r * 0.22f, cy - r * 0.6f),
             strokeWidth = r * 0.12f, cap = StrokeCap.Round,
         )
     }
-    drawOval(Palette.catInner, Offset(cx - r * 0.55f, cy + r * 0.05f), Size(r * 1.1f, r * 0.7f))
+    drawOval(muzzle, Offset(cx - r * 0.55f, cy + r * 0.05f), Size(r * 1.1f, r * 0.7f))
     drawEyes(cx, cy - r * 0.12f, r * 0.42f, r * 0.15f, closed, happy)
     drawCircle(Palette.blush, r * 0.17f, Offset(cx - r * 0.7f, cy + r * 0.18f))
     drawCircle(Palette.blush, r * 0.17f, Offset(cx + r * 0.7f, cy + r * 0.18f))
@@ -151,7 +161,15 @@ private fun DrawScope.drawCat(closed: Boolean, happy: Boolean) {
     }
 }
 
-private fun DrawScope.drawHamster(closed: Boolean, happy: Boolean) {
+private fun DrawScope.drawHamster(
+    closed: Boolean,
+    happy: Boolean,
+    fur: Color = Palette.hamFur,
+    belly: Color = Palette.hamBelly,
+    inner: Color = Palette.hamInner,
+    /** 유료 스킨: 머리 위 반짝이 색 (null이면 없음) */
+    sparkles: Color? = null,
+) {
     val w = size.width
     val h = size.height
     val cx = w / 2
@@ -159,14 +177,14 @@ private fun DrawScope.drawHamster(closed: Boolean, happy: Boolean) {
     val r = w * 0.38f
     // 동그란 귀
     for (s in listOf(-1f, 1f)) {
-        drawCircle(Palette.hamFur, r * 0.32f, Offset(cx + s * r * 0.7f, cy - r * 0.8f))
-        drawCircle(Palette.hamInner, r * 0.18f, Offset(cx + s * r * 0.7f, cy - r * 0.78f))
+        drawCircle(fur, r * 0.32f, Offset(cx + s * r * 0.7f, cy - r * 0.8f))
+        drawCircle(inner, r * 0.18f, Offset(cx + s * r * 0.7f, cy - r * 0.78f))
     }
     // 통통한 몸/얼굴
-    drawOval(Palette.hamFur, Offset(cx - r * 1.1f, cy - r * 0.95f), Size(r * 2.2f, r * 1.9f))
+    drawOval(fur, Offset(cx - r * 1.1f, cy - r * 0.95f), Size(r * 2.2f, r * 1.9f))
     // 하얀 배/볼
-    drawOval(Palette.hamBelly, Offset(cx - r * 0.75f, cy - r * 0.1f), Size(r * 1.5f, r * 0.95f))
-    drawOval(Palette.hamBelly, Offset(cx - r * 0.25f, cy - r * 0.75f), Size(r * 0.5f, r * 0.8f))
+    drawOval(belly, Offset(cx - r * 0.75f, cy - r * 0.1f), Size(r * 1.5f, r * 0.95f))
+    drawOval(belly, Offset(cx - r * 0.25f, cy - r * 0.75f), Size(r * 0.5f, r * 0.8f))
     drawEyes(cx, cy - r * 0.15f, r * 0.45f, r * 0.14f, closed, happy)
     drawCircle(Palette.blush, r * 0.2f, Offset(cx - r * 0.72f, cy + r * 0.15f))
     drawCircle(Palette.blush, r * 0.2f, Offset(cx + r * 0.72f, cy + r * 0.15f))
@@ -174,7 +192,12 @@ private fun DrawScope.drawHamster(closed: Boolean, happy: Boolean) {
     drawMouth(cx, cy + r * 0.2f, r * 0.14f)
     // 작은 앞발
     for (s in listOf(-1f, 1f)) {
-        drawOval(Palette.hamInner, Offset(cx + s * r * 0.32f - r * 0.12f, cy + r * 0.55f), Size(r * 0.24f, r * 0.18f))
+        drawOval(inner, Offset(cx + s * r * 0.32f - r * 0.12f, cy + r * 0.55f), Size(r * 0.24f, r * 0.18f))
+    }
+    sparkles?.let { c ->
+        sparkle(Offset(cx - r * 1.0f, cy - r * 1.05f), r * 0.2f, c)
+        sparkle(Offset(cx + r * 1.05f, cy - r * 0.75f), r * 0.14f, Color.White)
+        sparkle(Offset(cx + r * 0.25f, cy - r * 1.25f), r * 0.11f, c)
     }
 }
 

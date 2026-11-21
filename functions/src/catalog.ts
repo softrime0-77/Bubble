@@ -32,6 +32,25 @@ export function isFreeSkin(id: unknown): id is string {
   return typeof id === "string" && FREE_SKINS.includes(id);
 }
 
+/** 유료 스킨 (점수/상점 포인트로 한 번 사면 계속 씀). 모습만 바뀌고 효과 없음 */
+export const COSMETIC_SKINS: Record<string, number> = {
+  PINK_CAT: 300,
+  BLACK_CAT: 300,
+  SNOW_HAMSTER: 300,
+  GOLD_HAMSTER: 500,
+};
+
+export function isCosmetic(id: unknown): id is string {
+  return typeof id === "string" && COSMETIC_SKINS[id] !== undefined;
+}
+
+/** 장착한 캐릭터가 "모습만" 스킨이면 그 ID (무료 햄스터 또는 가진 유료 스킨), 아니면 null */
+export function lookSkin(equipped: unknown, ownedSkins: unknown): string | null {
+  if (isFreeSkin(equipped)) return equipped;
+  if (isCosmetic(equipped) && Array.isArray(ownedSkins) && ownedSkins.includes(equipped)) return equipped;
+  return null;
+}
+
 /** 기본 턴 시간 (상대가 동물을 쓰면 더 짧아짐) */
 export const DEFAULT_TURN_MS = 20_000;
 

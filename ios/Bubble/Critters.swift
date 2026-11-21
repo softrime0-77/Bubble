@@ -66,6 +66,10 @@ struct Critter: View {
                 case .dog: drawDog(&ctx, size, closed, happy)
                 case .giraffe: drawGiraffe(&ctx, size, closed, happy)
                 case .hamster: drawHamster(&ctx, size, closed, happy)
+                case .pinkCat: drawCat(&ctx, size, closed, happy, fur: Color(hex: 0xF8A5C2), stripe: Color(hex: 0xE2558F), muzzle: Color(hex: 0xFFE3EF))
+                case .blackCat: drawCat(&ctx, size, closed, happy, fur: Color(hex: 0x5B5662), stripe: Color(hex: 0x38343E), muzzle: Color(hex: 0xCFC8D6))
+                case .snowHamster: drawHamster(&ctx, size, closed, happy, fur: Color(hex: 0xF4F6FB), belly: .white, inner: Color(hex: 0xBFD8FF), sparkles: Color(hex: 0xBFE6FF))
+                case .goldHamster: drawHamster(&ctx, size, closed, happy, fur: Color(hex: 0xFFC94D), belly: Color(hex: 0xFFF3C4), inner: Color(hex: 0xFFB38A), sparkles: Color(hex: 0xFFF59D))
                 case nil: side == .cat ? drawCat(&ctx, size, closed, happy) : drawHamster(&ctx, size, closed, happy)
                 }
             }
@@ -115,7 +119,8 @@ private func line(_ ctx: inout GraphicsContext, _ a: CGPoint, _ b: CGPoint, _ co
 
 // MARK: - 캐릭터
 
-private func drawCat(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool) {
+private func drawCat(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool,
+                     fur: Color = Palette.catFur, stripe: Color = Palette.catStripe, muzzle: Color = Palette.catInner) {
     let cx = size.width / 2, cy = size.height * 0.58, r = size.width * 0.36
     for s: CGFloat in [-1, 1] {
         var ear = Path()
@@ -123,7 +128,7 @@ private func drawCat(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Boo
         ear.addLine(to: CGPoint(x: cx + s * r * 0.85, y: cy - r * 1.35))
         ear.addLine(to: CGPoint(x: cx + s * r * 0.2, y: cy - r * 0.85))
         ear.closeSubpath()
-        ctx.fill(ear, with: .color(Palette.catFur))
+        ctx.fill(ear, with: .color(fur))
         var inner = Path()
         inner.move(to: CGPoint(x: cx + s * r * 0.8, y: cy - r * 0.55))
         inner.addLine(to: CGPoint(x: cx + s * r * 0.78, y: cy - r * 1.1))
@@ -131,11 +136,11 @@ private func drawCat(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Boo
         inner.closeSubpath()
         ctx.fill(inner, with: .color(Palette.hamInner))
     }
-    ctx.fill(oval(cx - r * 1.05, cy - r * 0.95, r * 2.1, r * 1.85), with: .color(Palette.catFur))
+    ctx.fill(oval(cx - r * 1.05, cy - r * 0.95, r * 2.1, r * 1.85), with: .color(fur))
     for i: CGFloat in [-1, 0, 1] {
-        line(&ctx, CGPoint(x: cx + i * r * 0.28, y: cy - r * 0.92), CGPoint(x: cx + i * r * 0.22, y: cy - r * 0.6), Palette.catStripe, r * 0.12)
+        line(&ctx, CGPoint(x: cx + i * r * 0.28, y: cy - r * 0.92), CGPoint(x: cx + i * r * 0.22, y: cy - r * 0.6), stripe, r * 0.12)
     }
-    ctx.fill(oval(cx - r * 0.55, cy + r * 0.05, r * 1.1, r * 0.7), with: .color(Palette.catInner))
+    ctx.fill(oval(cx - r * 0.55, cy + r * 0.05, r * 1.1, r * 0.7), with: .color(muzzle))
     drawEyes(&ctx, cx, cy - r * 0.12, r * 0.42, r * 0.15, closed, happy)
     ctx.fill(circle(CGPoint(x: cx - r * 0.7, y: cy + r * 0.18), r * 0.17), with: .color(Palette.blush))
     ctx.fill(circle(CGPoint(x: cx + r * 0.7, y: cy + r * 0.18), r * 0.17), with: .color(Palette.blush))
@@ -149,22 +154,29 @@ private func drawCat(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Boo
     }
 }
 
-private func drawHamster(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool) {
+private func drawHamster(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool,
+                         fur: Color = Palette.hamFur, belly: Color = Palette.hamBelly, inner: Color = Palette.hamInner,
+                         sparkles: Color? = nil) {
     let cx = size.width / 2, cy = size.height * 0.58, r = size.width * 0.38
     for s: CGFloat in [-1, 1] {
-        ctx.fill(circle(CGPoint(x: cx + s * r * 0.7, y: cy - r * 0.8), r * 0.32), with: .color(Palette.hamFur))
-        ctx.fill(circle(CGPoint(x: cx + s * r * 0.7, y: cy - r * 0.78), r * 0.18), with: .color(Palette.hamInner))
+        ctx.fill(circle(CGPoint(x: cx + s * r * 0.7, y: cy - r * 0.8), r * 0.32), with: .color(fur))
+        ctx.fill(circle(CGPoint(x: cx + s * r * 0.7, y: cy - r * 0.78), r * 0.18), with: .color(inner))
     }
-    ctx.fill(oval(cx - r * 1.1, cy - r * 0.95, r * 2.2, r * 1.9), with: .color(Palette.hamFur))
-    ctx.fill(oval(cx - r * 0.75, cy - r * 0.1, r * 1.5, r * 0.95), with: .color(Palette.hamBelly))
-    ctx.fill(oval(cx - r * 0.25, cy - r * 0.75, r * 0.5, r * 0.8), with: .color(Palette.hamBelly))
+    ctx.fill(oval(cx - r * 1.1, cy - r * 0.95, r * 2.2, r * 1.9), with: .color(fur))
+    ctx.fill(oval(cx - r * 0.75, cy - r * 0.1, r * 1.5, r * 0.95), with: .color(belly))
+    ctx.fill(oval(cx - r * 0.25, cy - r * 0.75, r * 0.5, r * 0.8), with: .color(belly))
     drawEyes(&ctx, cx, cy - r * 0.15, r * 0.45, r * 0.14, closed, happy)
     ctx.fill(circle(CGPoint(x: cx - r * 0.72, y: cy + r * 0.15), r * 0.2), with: .color(Palette.blush))
     ctx.fill(circle(CGPoint(x: cx + r * 0.72, y: cy + r * 0.15), r * 0.2), with: .color(Palette.blush))
     ctx.fill(oval(cx - r * 0.08, cy + r * 0.05, r * 0.16, r * 0.11), with: .color(Palette.nose))
     drawMouth(&ctx, cx, cy + r * 0.2, r * 0.14)
     for s: CGFloat in [-1, 1] {
-        ctx.fill(oval(cx + s * r * 0.32 - r * 0.12, cy + r * 0.55, r * 0.24, r * 0.18), with: .color(Palette.hamInner))
+        ctx.fill(oval(cx + s * r * 0.32 - r * 0.12, cy + r * 0.55, r * 0.24, r * 0.18), with: .color(inner))
+    }
+    if let c = sparkles {
+        ctx.fill(sparklePath(CGPoint(x: cx - r * 1.0, y: cy - r * 1.05), r * 0.2), with: .color(c))
+        ctx.fill(sparklePath(CGPoint(x: cx + r * 1.05, y: cy - r * 0.75), r * 0.14), with: .color(.white))
+        ctx.fill(sparklePath(CGPoint(x: cx + r * 0.25, y: cy - r * 1.25), r * 0.11), with: .color(c))
     }
 }
 

@@ -5,6 +5,7 @@ import com.bubble.game.i18n.tr
 
 import android.content.Context
 import com.bubble.game.game.AiLevel
+import com.bubble.game.billing.BillingManager
 import com.bubble.game.game.Animal
 import com.bubble.game.game.Board
 import com.bubble.game.game.GameLogic
@@ -58,6 +59,26 @@ data class Profile(
     val boostOn: Boolean = false,
     /** 나라 (ISO 2글자, 랭킹 국기용. 모르면 null) */
     val country: String? = null,
+    /** 산 유료 스킨들 */
+    val skins: Set<Animal> = emptySet(),
+    /** 광고 제거 상품을 샀는지 (전면 광고 안 나옴) */
+    val noAds: Boolean = false,
+    /** 첫 포인트 구매를 했는지 (안 했으면 첫 구매 2배) */
+    val firstBuyDone: Boolean = false,
+    /** 출석: 마지막으로 받은 날(한국 시간)과 연속 일수 */
+    val checkinDay: String? = null,
+    val checkinStreak: Int = 0,
+    /** 일일 미션 진행도 (missionDay가 오늘일 때만 유효) */
+    val missionDay: String? = null,
+    val mPlay: Int = 0,
+    val mWin: Int = 0,
+    val mRandom: Int = 0,
+    val mClaimed: Set<String> = emptySet(),
+    /** 광고로 받은 부활물약 (오늘 몇 번) */
+    val potionAdDay: String? = null,
+    val potionAds: Int = 0,
+    /** 주간 랭킹 보상 (아직 안 봤으면 팝업) */
+    val weeklyReward: WeeklyReward? = null,
 ) {
     val rank: Rank get() = Rank.of(score)
 
@@ -66,6 +87,9 @@ data class Profile(
 
     fun animalCount(a: Animal): Int = animals[a] ?: 0
 }
+
+/** 주간 랭킹 보상 안내 */
+data class WeeklyReward(val week: String, val rank: Int, val coins: Int, val seen: Boolean)
 
 /** 랭킹 한 줄 (내 주변 순위) */
 data class RankRow(val uid: String, val rank: Int, val name: String, val score: Int, val country: String?)
@@ -295,9 +319,13 @@ class OnlineRepository(context: Context) {
     }
 
     /** 인앱 결제 영수증을 서버가 확인하고 점수를 지급. 지급(또는 이미 지급됨)이면 true. */
-    suspend fun verifyPurchase(productId: String, token: String): Boolean {
+    /** 영수증 확인 → (처리됐는지, 새로 받은 포인트). 광고 제거는 포인트 0으로 처리됨 */
+    suspend fun verifyPurchase(productId: String, token: String): Pair<Boolean, Int> {
         val r = call("verifyPurchase", mapOf("productId" to productId, "token" to token))
-        return (r["granted"] as? Number)?.toInt()?.let { it > 0 } == true || r["already"] == true
+        val granted = (r["granted"] as? Number)?.toInt() ?: 0
+        // 광고 제거는 포인트가 없어도 처리 완료 (granted 0)
+        val ok = granted > 0 || r["already"] == true || productId == BillingManager.REMOVE_ADS
+        return ok to granted
     }
 
     /** 계정 삭제: 서버가 진행 중 대전 기권 → 프로필·아이템 삭제 → 로그인 계정 삭제. */
@@ -310,6 +338,20 @@ class OnlineRepository(context: Context) {
     suspend fun startAiGame(level: AiLevel, country: String?): String =
         call("startAiGame", mapOf("level" to level.name, "country" to country))["gameId"] as? String
             ?: throw ServerException(tr("AI 대전을 시작하지 못했어요", "Could not start the AI battle", zh = "无法开始 AI 对战", hi = "AI मुकाबला शुरू नहीं हो सका", es = "No se pudo iniciar la batalla contra la IA", fr = "Impossible de lancer le combat contre l’IA", ar = "تعذّر بدء معركة الذكاء الاصطناعي", de = "KI-Duell konnte nicht gestartet werden", pt = "Não foi possível iniciar a batalha contra a IA", ru = "Не удалось начать бой с ИИ", ja = "AI対戦を開始できませんでした"))
+
+    /** 오늘 출석 보상 받기 → (며칠째, 받은 💰, 물약 받았는지) */
+    suspend fun claimDaily(): Triple<Int, Int, Boolean> {
+        val r = call("claimDaily")
+        return Triple((r["day"] as? Number)?.toInt() ?: 1, (r["coins"] as? Number)?.toInt() ?: 0, r["potion"] == true)
+    }
+
+    /** 일일 미션 보상 받기 → 받은 💰 */
+    suspend fun claimMission(id: String): Int =
+        (call("claimMission", mapOf("id" to id))["coins"] as? Number)?.toInt() ?: 0
+
+    suspend fun ackWeeklyReward() {
+        runCatching { call("ackWeeklyReward") }
+    }
 
     /** 상점 구매: "POTION" 또는 동물 이름(SHEEP/DOG/GIRAFFE). 점수 차감은 서버가 함. */
     suspend fun buyItem(item: String) {
@@ -357,6 +399,26 @@ class OnlineRepository(context: Context) {
         boosts = (getLong("boosts") ?: 0).toInt(),
         boostOn = getBoolean("boostOn") ?: false,
         country = getString("country"),
+        skins = (get("skins") as? List<*>).orEmpty().mapNotNull { Animal.of(it as? String) }.toSet(),
+        noAds = getBoolean("noAds") ?: false,
+        firstBuyDone = getBoolean("firstBuyDone") ?: false,
+        checkinDay = getString("checkinDay"),
+        checkinStreak = (getLong("checkinStreak") ?: 0).toInt(),
+        missionDay = getString("missionDay"),
+        mPlay = (getLong("mPlay") ?: 0).toInt(),
+        mWin = (getLong("mWin") ?: 0).toInt(),
+        mRandom = (getLong("mRandom") ?: 0).toInt(),
+        mClaimed = (get("mClaimed") as? List<*>).orEmpty().mapNotNull { it as? String }.toSet(),
+        potionAdDay = getString("potionAdDay"),
+        potionAds = (getLong("potionAds") ?: 0).toInt(),
+        weeklyReward = (get("weeklyReward") as? Map<*, *>)?.let { w ->
+            WeeklyReward(
+                week = w["week"] as? String ?: "",
+                rank = (w["rank"] as? Number)?.toInt() ?: 0,
+                coins = (w["coins"] as? Number)?.toInt() ?: 0,
+                seen = w["seen"] == true,
+            )
+        },
     )
 
     /** 서버가 보낸 수 정보로 화면 언어의 설명을 만듭니다. 정보가 없으면 서버 문구(한/영). */
@@ -447,6 +509,16 @@ class OnlineRepository(context: Context) {
         const val FRIEND_RATED_PER_DAY = 5
         /** 친구를 기다리는 최대 시간 (서버 FRIEND_ROOM_TTL_MS와 같게) */
         const val FRIEND_WAIT_MS = 10 * 60_000L
+        /** 출석 7일 보상 💰 (functions/src/rewards.ts CHECKIN_COINS와 같게). 7일째는 💖도 */
+        val CHECKIN_COINS = listOf(20, 20, 30, 30, 50, 50, 100)
+        /** 광고 보고 물약: 하루 최대 */
+        const val POTION_ADS_PER_DAY = 3
+
+        /** 한국 시간 오늘 (서버 dayKey와 같게) */
+        fun today(now: Long = System.currentTimeMillis()): String =
+            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul") }
+                .format(java.util.Date(now))
 
         private val adjectives = listOf("말랑", "몽글", "졸린", "배고픈", "용감한", "수줍은", "통통", "보송", "새침한", "씩씩한")
         private val animals = listOf("고양이", "햄스터", "냥이", "햄찌", "치즈냥", "골든햄")

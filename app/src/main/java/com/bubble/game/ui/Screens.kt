@@ -351,6 +351,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
                 )
             }
         }
+        ui.profile?.let { p -> DailyCard(vm, p, ui.shopBusy) }
         ui.profile?.let { p -> InviteCard(vm, p, ui.shopBusy) }
         ui.info?.let {
             Text(it, color = Ui.accent, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
@@ -366,6 +367,18 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
         if (ui.leaderboard.isNotEmpty()) {
             SoftCard {
                 Text(tr("🏆 랭킹", "🏆 Leaderboard", zh = "🏆 排行榜", hi = "🏆 लीडरबोर्ड", es = "🏆 Clasificación", fr = "🏆 Classement", ar = "🏆 لوحة المتصدرين", de = "🏆 Bestenliste", pt = "🏆 Ranking", ru = "🏆 Рейтинг", ja = "🏆 ランキング"), fontWeight = FontWeight.Bold, color = Ui.text)
+                Text(
+                    tr("🎁 매주 월요일 0시 TOP 100 보상 · 1위 💰1000 · 2위 700 · 3위 500 · 4~10위 300 · 11~100위 100",
+                        "🎁 Every Monday 00:00 (KST), TOP 100 get 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                        zh = "🎁 每周一 0 点（韩国时间）TOP 100 奖励 💰：第1名 1000 · 第2名 700 · 第3名 500 · 4–10名 300 · 11–100名 100",
+                        es = "🎁 Cada lunes 00:00 (KST) el TOP 100 recibe 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                        fr = "🎁 Chaque lundi 00h (KST), le TOP 100 reçoit 💰 : #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                        de = "🎁 Jeden Montag 0 Uhr (KST) bekommt die TOP 100 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                        pt = "🎁 Toda segunda 00h (KST) o TOP 100 ganha 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                        ru = "🎁 Каждый понедельник 00:00 (KST) ТОП-100 получают 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                        ja = "🎁 毎週月曜0時（韓国時間）TOP100に 💰：1位1000 · 2位700 · 3位500 · 4〜10位300 · 11〜100位100"),
+                    fontSize = 11.sp, color = Ui.text.copy(alpha = 0.7f), lineHeight = 15.sp,
+                )
                 Spacer(Modifier.height(6.dp))
                 ui.leaderboard.forEachIndexed { i, p ->
                     LeaderRow(i + 1, p.name, p.country, p.score, me = p.uid == ui.profile?.uid)
@@ -387,6 +400,24 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
     }
 
     ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
+    ui.profile?.weeklyReward?.takeIf { !it.seen }?.let { w ->
+        AlertDialog(
+            onDismissRequest = vm::ackWeeklyReward,
+            title = { Text(tr("🏆 주간 랭킹 보상!", "🏆 Weekly ranking reward!", zh = "🏆 每周排行奖励！", hi = "🏆 साप्ताहिक रैंकिंग इनाम!", es = "🏆 ¡Premio semanal!", fr = "🏆 Récompense hebdo !", ar = "🏆 مكافأة الترتيب الأسبوعية!", de = "🏆 Wochenbelohnung!", pt = "🏆 Prêmio semanal!", ru = "🏆 Недельная награда!", ja = "🏆 週間ランキング報酬！"), fontWeight = FontWeight.Black) },
+            text = {
+                Text(
+                    tr("지난주 ${w.rank}위! 💰 상점 포인트 ${w.coins}점을 드렸어요 🎉", "You were #${w.rank} last week! Here are 💰 ${w.coins} shop points 🎉",
+                        zh = "上周第 ${w.rank} 名！获得 💰 ${w.coins} 商店积分 🎉", hi = "पिछले हफ़्ते #${w.rank}! 💰 ${w.coins} शॉप पॉइंट 🎉",
+                        es = "¡Quedaste #${w.rank} la semana pasada! Toma 💰 ${w.coins} puntos 🎉", fr = "Tu étais #${w.rank} la semaine dernière ! 💰 ${w.coins} points 🎉",
+                        ar = "كنت #${w.rank} الأسبوع الماضي! 💰 ${w.coins} نقطة 🎉", de = "Letzte Woche Platz ${w.rank}! 💰 ${w.coins} Shop-Punkte 🎉",
+                        pt = "Você foi #${w.rank} na semana passada! 💰 ${w.coins} pontos 🎉", ru = "На прошлой неделе #${w.rank}! 💰 ${w.coins} очков 🎉",
+                        ja = "先週は${w.rank}位！💰 ショップポイント ${w.coins} をプレゼント 🎉"),
+                    fontSize = 16.sp,
+                )
+            },
+            confirmButton = { TextButton(onClick = vm::ackWeeklyReward) { Text(tr("받았어요!", "Got it!", zh = "收到！", hi = "मिल गया!", es = "¡Genial!", fr = "Super !", ar = "تم!", de = "Danke!", pt = "Valeu!", ru = "Ура!", ja = "受け取った！"), fontWeight = FontWeight.Black) } },
+        )
+    }
     if (showRules) RulesDialog { showRules = false }
     if (showRanks) RanksDialog(ui.profile?.score ?: 0) { showRanks = false }
     if (confirmDelete) {
@@ -1409,12 +1440,15 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             owned = tr("보유 ${p.potions}개", "Owned: ${p.potions}", zh = "拥有：${p.potions}", hi = "पास में: ${p.potions}", es = "Tienes: ${p.potions}", fr = "Possédées : ${p.potions}", ar = "لديك: ${p.potions}", de = "Im Besitz: ${p.potions}", pt = "Você tem: ${p.potions}", ru = "Есть: ${p.potions}", ja = "所持：${p.potions}個"),
             art = { PotionArt(Modifier.size(84.dp)) },
         ) {
-            Button(
-                onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬"), Shop.POTION_PRICE) },
-                enabled = !ui.shopBusy && p.score + p.coins >= Shop.POTION_PRICE,
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-            ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts", zh = "${Shop.POTION_PRICE} 分购买", hi = "${Shop.POTION_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.POTION_PRICE} pts", fr = "Acheter pour ${Shop.POTION_PRICE} pts", ar = "اشترِ مقابل ${Shop.POTION_PRICE} نقطة", de = "Für ${Shop.POTION_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.POTION_PRICE} pts", ru = "Купить за ${Shop.POTION_PRICE} очк.", ja = "${Shop.POTION_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬"), Shop.POTION_PRICE) },
+                    enabled = !ui.shopBusy && p.score + p.coins >= Shop.POTION_PRICE,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts", zh = "${Shop.POTION_PRICE} 分购买", hi = "${Shop.POTION_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.POTION_PRICE} pts", fr = "Acheter pour ${Shop.POTION_PRICE} pts", ar = "اشترِ مقابل ${Shop.POTION_PRICE} نقطة", de = "Für ${Shop.POTION_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.POTION_PRICE} pts", ru = "Купить за ${Shop.POTION_PRICE} очк.", ja = "${Shop.POTION_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
+                PotionAdButton(vm, p)
+            }
         }
 
         // ×3 점수 부스터
@@ -1523,7 +1557,62 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             }
         }
 
-        Animal.entries.filterNot { it.free }.forEach { a ->
+        // ✨ 유료 스킨: 한 번 사면 계속, 모습만 바뀜
+        Spacer(Modifier.height(6.dp))
+        Text(
+            tr("✨ 스킨 (한 번 사면 계속)", "✨ Skins (yours forever)", zh = "✨ 皮肤（买一次永久拥有）", hi = "✨ स्किन (हमेशा के लिए)",
+                es = "✨ Aspectos (para siempre)", fr = "✨ Skins (à vie)", ar = "✨ الأشكال (لك للأبد)", de = "✨ Skins (für immer)",
+                pt = "✨ Skins (para sempre)", ru = "✨ Скины (навсегда)", ja = "✨ スキン（買い切り）"),
+            fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text, modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            tr("모습만 바뀌고 효과는 없어요. 모든 대전에서 보여요", "Look only, no effect. Shown in every battle",
+                zh = "只改变外观，没有效果。所有对战都会显示", es = "Solo aspecto, sin efecto. Se ve en todas las batallas",
+                fr = "Look seulement, aucun effet. Visible dans tous les combats", de = "Nur Look, kein Effekt. In jedem Duell sichtbar",
+                pt = "Só visual, sem efeito. Aparece em todas as batalhas", ru = "Только вид, без эффекта. Виден в любом бою",
+                ja = "見た目だけで効果なし。すべての対戦で表示"),
+            fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(6.dp))
+        Animal.entries.filter { it.cosmetic }.forEach { a ->
+            val have = a in p.skins
+            val on = p.equipped == a
+            val side = if (a == Animal.PINK_CAT || a == Animal.BLACK_CAT) Side.CAT else Side.HAMSTER
+            ShopCard(
+                title = a.label,
+                desc = tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh = "✨ 永久皮肤 · 无效果", es = "✨ Aspecto permanente · sin efecto",
+                    fr = "✨ Skin permanent · aucun effet", de = "✨ Dauerhafter Skin · kein Effekt", pt = "✨ Skin permanente · sem efeito",
+                    ru = "✨ Навсегда · без эффекта", ja = "✨ 永久スキン · 効果なし"),
+                price = if (have) null else a.price,
+                owned = when {
+                    on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", hi = "✅ लगाया हुआ", es = "✅ Equipado", fr = "✅ Équipé", ar = "✅ مُجهَّز", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
+                    have -> tr("💎 보유 중", "💎 Owned", zh = "💎 已拥有", es = "💎 Tuyo", fr = "💎 Possédé", de = "💎 Im Besitz", pt = "💎 Seu", ru = "💎 Есть", ja = "💎 所持中")
+                    else -> null
+                },
+                art = { Critter(side, Modifier.size(84.dp), skin = a, happy = on) },
+            ) {
+                when {
+                    on -> OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
+                        Text(tr("장착 해제", "Unequip", zh = "卸下", hi = "हटाएँ", es = "Quitar", fr = "Retirer", ar = "إزالة", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
+                    }
+                    have -> Button(
+                        onClick = { vm.equip(a) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                    ) { Text(tr("장착하기", "Equip", zh = "装备", hi = "लगाएँ", es = "Equipar", fr = "Équiper", ar = "تجهيز", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する"), fontWeight = FontWeight.Bold) }
+                    else -> Button(
+                        onClick = { confirm = Triple(a.name, a.label, a.price) },
+                        enabled = !ui.shopBusy && p.score + p.coins >= a.price,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                    ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+
+        Text(tr("🐾 소모품 동물", "🐾 Consumable animals", zh = "🐾 消耗品动物", es = "🐾 Animales consumibles", fr = "🐾 Animaux consommables",
+            de = "🐾 Verbrauchs-Tiere", pt = "🐾 Animais consumíveis", ru = "🐾 Расходные зверята", ja = "🐾 消耗品どうぶつ"),
+            fontWeight = FontWeight.Black, fontSize = 17.sp, color = Ui.text, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        Animal.entries.filter { it.consumable }.forEach { a ->
             val count = p.animalCount(a)
             val have = count > 0
             val on = p.equipped == a && have
@@ -1834,6 +1923,110 @@ private fun LanguageMenu() {
 }
 
 /** 친구 초대 카드: 내 추천 코드 공유 + 친구 코드 입력. */
+/** 로비: 📅 출석 체크(7일 주기) + 🎯 오늘의 미션 3개 */
+@Composable
+private fun DailyCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: Boolean) {
+    val today = OnlineRepository.today()
+    val yesterday = OnlineRepository.today(System.currentTimeMillis() - 86_400_000L)
+    val checkedToday = p.checkinDay == today
+    val streak = if (checkedToday || p.checkinDay == yesterday) p.checkinStreak else 0
+    // 오늘 받으면 며칠째인지
+    val nextDay = if (checkedToday) null else (streak % 7) + 1
+    SoftCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(tr("📅 출석 체크", "📅 Daily check-in", zh = "📅 每日签到", hi = "📅 रोज़ की हाज़िरी", es = "📅 Asistencia diaria", fr = "📅 Présence du jour", ar = "📅 تسجيل الحضور", de = "📅 Täglicher Check-in", pt = "📅 Presença diária", ru = "📅 Ежедневный вход", ja = "📅 出席チェック"),
+                fontWeight = FontWeight.Black, color = Ui.text, modifier = Modifier.weight(1f))
+            Button(
+                onClick = vm::claimDaily,
+                enabled = !busy && nextDay != null,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    if (nextDay == null) tr("✅ 내일 또!", "✅ See you tomorrow!", zh = "✅ 明天见！", es = "✅ ¡Hasta mañana!", fr = "✅ À demain !", de = "✅ Bis morgen!", pt = "✅ Até amanhã!", ru = "✅ До завтра!", ja = "✅ また明日！")
+                    else tr("받기 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", "Claim 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", zh = "领取 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", es = "Recoger 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", fr = "Prendre 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", de = "Holen 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", pt = "Pegar 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", ru = "Забрать 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}", ja = "受け取る 💰+${OnlineRepository.CHECKIN_COINS[nextDay - 1]}"),
+                    fontWeight = FontWeight.Bold, fontSize = 13.sp,
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            OnlineRepository.CHECKIN_COINS.forEachIndexed { i, coins ->
+                val d = i + 1
+                val done = d <= streak
+                val isNext = d == nextDay
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .background(
+                            when {
+                                done -> Ui.primary.copy(alpha = 0.25f)
+                                isNext -> Ui.gold.copy(alpha = 0.35f)
+                                else -> Ui.text.copy(alpha = 0.06f)
+                            },
+                            RoundedCornerShape(10.dp),
+                        )
+                        .padding(vertical = 5.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(tr("${d}일", "D$d", zh = "第${d}天", ja = "${d}日目"), fontSize = 10.sp, color = Ui.text.copy(alpha = 0.7f), maxLines = 1)
+                    Text(if (done) "✅" else if (d == 7) "💖" else "💰", fontSize = 14.sp)
+                    Text("$coins", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Ui.text, maxLines = 1)
+                }
+            }
+        }
+        Text(
+            tr("하루라도 빠지면 1일부터 다시 시작해요 · 7일째는 💖 부활물약도!", "Miss a day and it restarts at day 1 · Day 7 adds a 💖 potion!",
+                zh = "中断一天就从第 1 天重新开始 · 第 7 天还送 💖 复活药水！", es = "Si fallas un día, vuelves al día 1 · ¡El día 7 trae una 💖 poción!",
+                fr = "Un jour manqué et tout recommence au jour 1 · Le jour 7 donne une 💖 potion !", de = "Ein Tag verpasst – zurück zu Tag 1 · Tag 7 gibt einen 💖 Trank!",
+                pt = "Perdeu um dia, volta ao dia 1 · O dia 7 dá uma 💖 poção!", ru = "Пропустите день — начнёте с 1-го · На 7-й день ещё 💖 зелье!",
+                ja = "1日でも休むと1日目から · 7日目は 💖 復活薬も！"),
+            fontSize = 11.sp, color = Ui.text.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp),
+        )
+
+        Spacer(Modifier.height(12.dp))
+        Text(tr("🎯 오늘의 미션", "🎯 Today's missions", zh = "🎯 今日任务", hi = "🎯 आज के मिशन", es = "🎯 Misiones de hoy", fr = "🎯 Missions du jour", ar = "🎯 مهام اليوم", de = "🎯 Heutige Missionen", pt = "🎯 Missões de hoje", ru = "🎯 Задания дня", ja = "🎯 今日のミッション"),
+            fontWeight = FontWeight.Black, color = Ui.text)
+        val sameDay = p.missionDay == today
+        val missions = listOf(
+            Triple("PLAY3", tr("아무 대전 3판 하기", "Play 3 battles", zh = "进行 3 场对战", hi = "3 मुकाबले खेलें", es = "Juega 3 batallas", fr = "Joue 3 combats", ar = "العب 3 معارك", de = "Spiele 3 Duelle", pt = "Jogue 3 batalhas", ru = "Сыграйте 3 боя", ja = "対戦を3回する"), Triple(if (sameDay) p.mPlay else 0, 3, 20)),
+            Triple("WIN2", tr("2판 이기기", "Win 2 battles", zh = "赢 2 场", hi = "2 मुकाबले जीतें", es = "Gana 2 batallas", fr = "Gagne 2 combats", ar = "اربح معركتين", de = "Gewinne 2 Duelle", pt = "Vença 2 batalhas", ru = "Выиграйте 2 боя", ja = "2回勝つ"), Triple(if (sameDay) p.mWin else 0, 2, 30)),
+            Triple("RANDOM1", tr("랜덤 매칭 1판 하기", "Play 1 random match", zh = "进行 1 场随机匹配", hi = "1 रैंडम मैच खेलें", es = "Juega 1 partida aleatoria", fr = "Joue 1 match aléatoire", ar = "العب مباراة عشوائية واحدة", de = "Spiele 1 Zufallsmatch", pt = "Jogue 1 partida aleatória", ru = "Сыграйте 1 случайный матч", ja = "ランダムマッチを1回する"), Triple(if (sameDay) p.mRandom else 0, 1, 20)),
+        )
+        missions.forEach { (id, label, prog) ->
+            val (now, goal, coins) = prog
+            val claimed = sameDay && id in p.mClaimed
+            val ready = now >= goal && !claimed
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ui.text)
+                    Text("${now.coerceAtMost(goal)}/$goal · 💰 +$coins", fontSize = 12.sp, color = Ui.text.copy(alpha = 0.65f))
+                }
+                if (claimed) {
+                    Text("✅", fontSize = 18.sp)
+                } else {
+                    Button(
+                        onClick = { vm.claimMission(id) },
+                        enabled = !busy && ready,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    ) { Text(tr("받기", "Claim", zh = "领取", hi = "लें", es = "Recoger", fr = "Prendre", ar = "استلام", de = "Holen", pt = "Pegar", ru = "Забрать", ja = "受け取る"), fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+        Text(
+            tr("AI 대전·친구 대전(점수 걸린 판)도 들어가요 · 매일 0시에 새로 시작", "AI and scored friend battles count too · resets daily at 00:00 (KST)",
+                zh = "AI 对战和计分好友对战也算 · 每天 0 点（韩国时间）重置", es = "Cuentan la IA y los duelos con puntos · se reinicia a las 00:00 (KST)",
+                fr = "L’IA et les duels notés comptent aussi · remise à zéro à 00h (KST)", de = "KI- und gewertete Freundesduelle zählen · Neustart um 0 Uhr (KST)",
+                pt = "IA e duelos valendo pontos contam · reinicia às 00h (KST)", ru = "Бои с ИИ и с друзьями на очки тоже считаются · сброс в 00:00 (KST)",
+                ja = "AI対戦・点数付きの友だち対戦も対象 · 毎日0時（韓国時間）にリセット"),
+            fontSize = 11.sp, color = Ui.text.copy(alpha = 0.6f), modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
 @Composable
 private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: Boolean) {
     val context = LocalContext.current
@@ -1961,6 +2154,8 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
 @Composable
 private fun PointsCard(vm: AppViewModel) {
     val prices by vm.billing.prices.collectAsState()
+    val lobby by vm.lobby.collectAsState()
+    val firstBuy = lobby.profile?.firstBuyDone == false
     val activity = LocalContext.current as Activity
     SoftCard {
         Text(
@@ -1983,6 +2178,19 @@ private fun PointsCard(vm: AppViewModel) {
                 ja = "購入したポイントは 💰 ショップポイントになります。ショップ専用で、ランクやランキングのスコアには入りません。"),
             fontSize = 12.sp, color = Ui.text.copy(alpha = 0.75f), lineHeight = 17.sp,
         )
+        if (firstBuy) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                tr("🎁 첫 구매 2배! 처음 충전하는 포인트는 두 배로 드려요", "🎁 First purchase x2! Your first top-up is doubled",
+                    zh = "🎁 首充双倍！第一次充值的积分翻倍", hi = "🎁 पहली खरीद ×2! पहली बार के अंक दोगुने",
+                    es = "🎁 ¡Primera compra x2! Tu primera recarga vale el doble", fr = "🎁 Premier achat x2 ! Ta première recharge est doublée",
+                    ar = "🎁 الشراء الأول ×2! أول شحن يُضاعف", de = "🎁 Erster Kauf x2! Deine erste Aufladung wird verdoppelt",
+                    pt = "🎁 Primeira compra x2! Sua primeira recarga vale em dobro", ru = "🎁 Первая покупка x2! Первое пополнение удваивается",
+                    ja = "🎁 初回購入2倍！最初のチャージは2倍になります"),
+                fontWeight = FontWeight.Black, fontSize = 14.sp, color = Ui.danger,
+                modifier = Modifier.fillMaxWidth().background(Ui.danger.copy(alpha = 0.08f), RoundedCornerShape(12.dp)).padding(8.dp),
+            )
+        }
         Spacer(Modifier.height(8.dp))
         BillingManager.PRODUCTS.entries.chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
@@ -2000,11 +2208,76 @@ private fun PointsCard(vm: AppViewModel) {
                                 fontWeight = FontWeight.Black, fontSize = 17.sp,
                             )
                             Text(prices[id] ?: "₩$points", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            if (firstBuy) Text("🎁 → 💰 ${points * 2}", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Ui.danger)
                         }
                     }
                 }
             }
         }
+        Spacer(Modifier.height(8.dp))
+        // 🚫 광고 제거 (한 번 사면 계속)
+        if (lobby.profile?.noAds == true) {
+            Text(
+                tr("✅ 광고 제거됨 · 전면 광고가 나오지 않아요", "✅ Ads removed · no full-screen ads", zh = "✅ 已去除广告 · 不再显示全屏广告",
+                    hi = "✅ विज्ञापन हटाए गए", es = "✅ Anuncios eliminados", fr = "✅ Pubs supprimées", ar = "✅ تمت إزالة الإعلانات",
+                    de = "✅ Werbung entfernt", pt = "✅ Anúncios removidos", ru = "✅ Реклама отключена", ja = "✅ 広告削除済み"),
+                fontWeight = FontWeight.Bold, color = Ui.accent, fontSize = 13.sp,
+            )
+        } else {
+            OutlinedButton(
+                onClick = { vm.buyPoints(activity, BillingManager.REMOVE_ADS) },
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        tr("🚫 광고 제거", "🚫 Remove ads", zh = "🚫 去除广告", hi = "🚫 विज्ञापन हटाएँ", es = "🚫 Quitar anuncios", fr = "🚫 Supprimer les pubs",
+                            ar = "🚫 إزالة الإعلانات", de = "🚫 Werbung entfernen", pt = "🚫 Remover anúncios", ru = "🚫 Убрать рекламу", ja = "🚫 広告を削除") +
+                            "  " + (prices[BillingManager.REMOVE_ADS] ?: "₩3,000"),
+                        fontWeight = FontWeight.Black, color = Ui.text,
+                    )
+                    Text(
+                        tr("한 번 사면 계속 · 게임 사이 전면 광고 없음 (원할 때 보는 보상 광고는 그대로)",
+                            "One-time · no ads between games (optional reward ads stay)",
+                            zh = "一次购买永久有效 · 对局间不再有全屏广告（自愿观看的奖励广告保留）",
+                            es = "Pago único · sin anuncios entre partidas (los anuncios con recompensa opcionales siguen)",
+                            fr = "Achat unique · plus de pubs entre les parties (les pubs récompensées facultatives restent)",
+                            de = "Einmalig · keine Werbung zwischen Partien (freiwillige Belohnungs-Werbung bleibt)",
+                            pt = "Compra única · sem anúncios entre partidas (anúncios opcionais com recompensa continuam)",
+                            ru = "Один раз · без рекламы между играми (добровольная реклама за награду остаётся)",
+                            ja = "買い切り · 対戦の合間の広告なし（任意のリワード広告は残ります）"),
+                        fontSize = 11.sp, color = Ui.text.copy(alpha = 0.7f), textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 상점 부활물약 카드: 광고 보고 1개 받기 (하루 [OnlineRepository.POTION_ADS_PER_DAY]번) */
+@Composable
+private fun PotionAdButton(vm: AppViewModel, p: com.bubble.game.data.Profile) {
+    val activity = LocalContext.current as Activity
+    val ready by AdManager.rewardedReady.collectAsState()
+    val used = if (p.potionAdDay == OnlineRepository.today()) p.potionAds else 0
+    val left = (OnlineRepository.POTION_ADS_PER_DAY - used).coerceAtLeast(0)
+    OutlinedButton(
+        onClick = { vm.watchAdForPotion(activity) },
+        enabled = ready && left > 0,
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        Text(
+            if (left > 0) tr("📺 광고 보고 1개 받기 ($left/${OnlineRepository.POTION_ADS_PER_DAY})", "📺 Watch ad for 1 ($left/${OnlineRepository.POTION_ADS_PER_DAY})",
+                zh = "📺 看广告领 1 个（$left/${OnlineRepository.POTION_ADS_PER_DAY}）", es = "📺 Mira un anuncio: 1 gratis ($left/${OnlineRepository.POTION_ADS_PER_DAY})",
+                fr = "📺 Pub = 1 gratuite ($left/${OnlineRepository.POTION_ADS_PER_DAY})", de = "📺 Werbung = 1 gratis ($left/${OnlineRepository.POTION_ADS_PER_DAY})",
+                pt = "📺 Anúncio = 1 grátis ($left/${OnlineRepository.POTION_ADS_PER_DAY})", ru = "📺 Реклама = 1 даром ($left/${OnlineRepository.POTION_ADS_PER_DAY})",
+                ja = "📺 広告を見て1個もらう（$left/${OnlineRepository.POTION_ADS_PER_DAY}）")
+            else tr("📺 오늘은 다 받았어요 (내일 또!)", "📺 All used today (more tomorrow!)", zh = "📺 今天已领完（明天再来！）", es = "📺 Hoy ya no quedan (¡mañana más!)",
+                fr = "📺 Plus rien aujourd’hui (demain !)", de = "📺 Heute aufgebraucht (morgen wieder!)", pt = "📺 Acabou por hoje (amanhã tem mais!)",
+                ru = "📺 На сегодня всё (завтра ещё!)", ja = "📺 今日はもう受け取りました（また明日！）"),
+            color = Ui.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+        )
     }
 }
 

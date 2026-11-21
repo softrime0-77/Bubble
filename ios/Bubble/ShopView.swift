@@ -5,6 +5,7 @@ import SwiftUI
 struct ShopView: View {
     @ObservedObject var online = OnlineService.shared
     @ObservedObject var store = PointStore.shared
+    @ObservedObject var ads = Ads.shared
     let onClose: () -> Void
 
     @State private var confirm: (item: String, label: String, price: Int)? = nil
@@ -36,7 +37,10 @@ struct ShopView: View {
                     shopCard(title: t("💖 부활물약"),
                              desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
                              price: Shop.potionPrice, owned: tf("보유 {0}개", p.potions), art: AnyView(PotionArt().frame(width: 84, height: 84))) {
-                        buyButton("POTION", t("부활물약"), Shop.potionPrice, p)
+                        VStack(alignment: .leading, spacing: 6) {
+                            buyButton("POTION", t("부활물약"), Shop.potionPrice, p)
+                            potionAdButton(p)
+                        }
                     }
                     shopCard(title: t("×3 점수 부스터"),
                              desc: t("켜두면 다음 랜덤 매칭에서 1개를 쓰고, 이기면 얻는 점수가 3배! (AI 대전에는 쓰지 않아요)"),
@@ -82,7 +86,12 @@ struct ShopView: View {
                             .disabled(online.busy)
                         }
                     }
-                    ForEach(Animal.allCases.filter { !$0.free }, id: \.self) { a in
+                    skinsSection(p)
+                    Text(tr("🐾 소모품 동물", "🐾 Consumable animals", zh: "🐾 消耗品动物", es: "🐾 Animales consumibles", fr: "🐾 Animaux consommables",
+                            de: "🐾 Verbrauchs-Tiere", pt: "🐾 Animais consumíveis", ru: "🐾 Расходные зверята", ja: "🐾 消耗品どうぶつ"))
+                        .font(.system(size: 17, weight: .black)).foregroundColor(UiColor.text)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+                    ForEach(Animal.allCases.filter { $0.consumable }, id: \.self) { a in
                         let count = p.animalCount(a)
                         let on = p.equipped == a && count > 0
                         shopCard(title: a.label,
@@ -205,6 +214,16 @@ struct ShopView: View {
             Text(t("결제한 포인트는 💰 상점 포인트로 들어가요. 상점 전용이라 계급·랭킹 점수와는 별개예요."))
                 .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.75))
                 .frame(maxWidth: .infinity, alignment: .leading)
+            if firstBuy {
+                Text(tr("🎁 첫 구매 2배! 처음 충전하는 포인트는 두 배로 드려요", "🎁 First purchase x2! Your first top-up is doubled",
+                        zh: "🎁 首充双倍！第一次充值的积分翻倍", es: "🎁 ¡Primera compra x2! Tu primera recarga vale el doble",
+                        fr: "🎁 Premier achat x2 ! Ta première recharge est doublée", de: "🎁 Erster Kauf x2! Deine erste Aufladung wird verdoppelt",
+                        pt: "🎁 Primeira compra x2! Sua primeira recarga vale em dobro", ru: "🎁 Первая покупка x2! Первое пополнение удваивается",
+                        ja: "🎁 初回購入2倍！最初のチャージは2倍になります"))
+                    .font(.system(size: 14, weight: .black)).foregroundColor(UiColor.danger)
+                    .padding(8).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(UiColor.danger.opacity(0.08)))
+            }
             // 상품 4개: 2칸씩 2줄
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(PointStore.products, id: \.self) { prod in
@@ -216,6 +235,9 @@ struct ShopView: View {
                                 Text("💰 \(prod.points)").font(.system(size: 17, weight: .black))
                             }
                             Text(store.prices[prod.id] ?? "₩\(prod.points)").font(.system(size: 13, weight: .bold))
+                            if firstBuy {
+                                Text("🎁 → 💰 \(prod.points * 2)").font(.system(size: 11, weight: .black)).foregroundColor(UiColor.danger)
+                            }
                         }
                         .foregroundColor(UiColor.text)
                         .frame(maxWidth: .infinity, minHeight: 56)
@@ -223,6 +245,114 @@ struct ShopView: View {
                     }
                     .disabled(store.purchasing != nil)
                 }
+            }
+            removeAdsRow
+        }
+    }
+
+    private var firstBuy: Bool { online.profile?.firstBuyDone == false }
+
+    /// 🚫 광고 제거 (비소모품) + 구매 복원
+    @ViewBuilder
+    private var removeAdsRow: some View {
+        if online.profile?.noAds == true {
+            Text(tr("✅ 광고 제거됨 · 전면 광고가 나오지 않아요", "✅ Ads removed · no full-screen ads", zh: "✅ 已去除广告", es: "✅ Anuncios eliminados",
+                    fr: "✅ Pubs supprimées", de: "✅ Werbung entfernt", pt: "✅ Anúncios removidos", ru: "✅ Реклама отключена", ja: "✅ 広告削除済み"))
+                .font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.accent)
+                .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
+        } else {
+            Button { Task { await store.buy(PointStore.removeAds) } } label: {
+                VStack(spacing: 2) {
+                    Text(tr("🚫 광고 제거", "🚫 Remove ads", zh: "🚫 去除广告", es: "🚫 Quitar anuncios", fr: "🚫 Supprimer les pubs",
+                            de: "🚫 Werbung entfernen", pt: "🚫 Remover anúncios", ru: "🚫 Убрать рекламу", ja: "🚫 広告を削除")
+                         + "  " + (store.prices[PointStore.removeAds] ?? "₩3,000"))
+                        .font(.system(size: 15, weight: .black)).foregroundColor(UiColor.text)
+                    Text(tr("한 번 사면 계속 · 게임 사이 전면 광고 없음 (원할 때 보는 보상 광고는 그대로)",
+                            "One-time · no ads between games (optional reward ads stay)",
+                            zh: "一次购买永久有效 · 对局间不再有全屏广告（自愿观看的奖励广告保留）",
+                            es: "Pago único · sin anuncios entre partidas (los anuncios con recompensa opcionales siguen)",
+                            fr: "Achat unique · plus de pubs entre les parties (les pubs récompensées facultatives restent)",
+                            de: "Einmalig · keine Werbung zwischen Partien (freiwillige Belohnungs-Werbung bleibt)",
+                            pt: "Compra única · sem anúncios entre partidas (anúncios opcionais com recompensa continuam)",
+                            ru: "Один раз · без рекламы между играми (добровольная реклама за награду остаётся)",
+                            ja: "買い切り · 対戦の合間の広告なし（任意のリワード広告は残ります）"))
+                        .font(.system(size: 11)).foregroundColor(UiColor.text.opacity(0.7)).multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 8)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(UiColor.text.opacity(0.35)))
+            }
+            .disabled(store.purchasing != nil)
+            .padding(.top, 6)
+        }
+        Button(tr("구매 복원", "Restore purchases", zh: "恢复购买", es: "Restaurar compras", fr: "Restaurer les achats",
+                  de: "Käufe wiederherstellen", pt: "Restaurar compras", ru: "Восстановить покупки", ja: "購入を復元")) {
+            Task { await store.restore() }
+        }
+        .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.6))
+    }
+
+    /// 💖 부활물약: 광고 보고 1개 받기 (하루 3번). 시청 확인은 AdMob → 서버
+    private func potionAdButton(_ p: Profile) -> some View {
+        let used = p.potionAdDay == OnlineService.today() ? p.potionAds : 0
+        let left = max(0, OnlineService.potionAdsPerDay - used)
+        let total = OnlineService.potionAdsPerDay
+        let label = left > 0
+            ? tr("📺 광고 보고 1개 받기 (\(left)/\(total))", "📺 Watch ad for 1 (\(left)/\(total))", zh: "📺 看广告领 1 个（\(left)/\(total)）",
+                 es: "📺 Anuncio = 1 gratis (\(left)/\(total))", fr: "📺 Pub = 1 gratuite (\(left)/\(total))", de: "📺 Werbung = 1 gratis (\(left)/\(total))",
+                 pt: "📺 Anúncio = 1 grátis (\(left)/\(total))", ru: "📺 Реклама = 1 даром (\(left)/\(total))", ja: "📺 広告を見て1個もらう（\(left)/\(total)）")
+            : tr("📺 오늘은 다 받았어요 (내일 또!)", "📺 All used today (more tomorrow!)", zh: "📺 今天已领完（明天再来！）", es: "📺 Hoy ya no quedan",
+                 fr: "📺 Plus rien aujourd’hui", de: "📺 Heute aufgebraucht", pt: "📺 Acabou por hoje", ru: "📺 На сегодня всё", ja: "📺 今日はもう受け取りました")
+        return outlineButton(label) {
+            guard let uid = online.uid else { return }
+            ads.showRewarded(uid: uid, gameId: "potion", earned: {
+                online.show(tr("📺 확인 중… 곧 💖 부활물약이 들어와요", "📺 Checking… your 💖 potion arrives soon", zh: "📺 确认中… 💖 复活药水马上到账",
+                               es: "📺 Comprobando… tu 💖 poción llega pronto", fr: "📺 Vérification… ta 💖 potion arrive", de: "📺 Wird geprüft… dein 💖 Trank kommt gleich",
+                               pt: "📺 Verificando… sua 💖 poção chega logo", ru: "📺 Проверяем… 💖 зелье скоро придёт", ja: "📺 確認中… まもなく 💖 復活薬が届きます"))
+            }, done: {})
+        }
+        .disabled(!ads.rewardedReady || left == 0)
+    }
+
+    /// ✨ 유료 스킨 (한 번 사면 계속, 모습만)
+    @ViewBuilder
+    private func skinsSection(_ p: Profile) -> some View {
+        Text(tr("✨ 스킨 (한 번 사면 계속)", "✨ Skins (yours forever)", zh: "✨ 皮肤（买一次永久拥有）", es: "✨ Aspectos (para siempre)",
+                fr: "✨ Skins (à vie)", de: "✨ Skins (für immer)", pt: "✨ Skins (para sempre)", ru: "✨ Скины (навсегда)", ja: "✨ スキン（買い切り）"))
+            .font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
+            .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
+        Text(tr("모습만 바뀌고 효과는 없어요. 모든 대전에서 보여요", "Look only, no effect. Shown in every battle",
+                zh: "只改变外观，没有效果。所有对战都会显示", es: "Solo aspecto, sin efecto. Se ve en todas las batallas",
+                fr: "Look seulement, aucun effet", de: "Nur Look, kein Effekt", pt: "Só visual, sem efeito", ru: "Только вид, без эффекта",
+                ja: "見た目だけで効果なし。すべての対戦で表示"))
+            .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7))
+            .frame(maxWidth: .infinity, alignment: .leading)
+        ForEach(Animal.allCases.filter { $0.cosmetic }, id: \.self) { a in
+            skinCard(a, p)
+        }
+    }
+
+    private func skinCard(_ a: Animal, _ p: Profile) -> some View {
+        let have = p.skins.contains(a)
+        let on = p.equipped == a
+        let owned: String? = on ? tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", es: "✅ Equipado", fr: "✅ Équipé", de: "✅ Ausgerüstet", pt: "✅ Equipado", ru: "✅ Надето", ja: "✅ 装備中")
+            : have ? tr("💎 보유 중", "💎 Owned", zh: "💎 已拥有", es: "💎 Tuyo", fr: "💎 Possédé", de: "💎 Im Besitz", pt: "💎 Seu", ru: "💎 Есть", ja: "💎 所持中") : nil
+        return shopCard(title: a.label,
+                        desc: tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
+                                 fr: "✨ Skin permanent · aucun effet", de: "✨ Dauerhafter Skin · kein Effekt", pt: "✨ Skin permanente · sem efeito",
+                                 ru: "✨ Навсегда · без эффекта", ja: "✨ 永久スキン · 効果なし"),
+                        price: have ? nil : a.price, owned: owned,
+                        art: AnyView(Critter(side: a.looksLikeCat ? .cat : .hamster, skin: a, happy: on).frame(width: 84, height: 84))) {
+            if on {
+                outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
+            } else if have {
+                Button { Task { await online.equip(a) } } label: {
+                    Text(t("장착하기")).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Capsule().fill(UiColor.accent))
+                }
+                .disabled(online.busy)
+            } else {
+                buyButton(a.rawValue, a.label, a.price, p)
             }
         }
     }

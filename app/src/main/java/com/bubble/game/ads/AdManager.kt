@@ -45,6 +45,9 @@ object AdManager {
     private var rewarded: RewardedInterstitialAd? = null
     private var loadingRewarded = false
 
+    /** 광고 제거를 산 계정이면 true (전면 광고를 띄우지 않음. 보상형 광고는 원할 때만 봄) */
+    @Volatile var noAds = false
+
     private var gamesSinceInterstitial = 0
     private var lastFullScreenAdAt = 0L
 
@@ -137,6 +140,10 @@ object AdManager {
      * 광고가 닫힌 뒤(또는 띄우지 않으면 바로) [onDone]을 부릅니다.
      */
     fun maybeShowInterstitial(activity: Activity, onDone: () -> Unit) {
+        if (noAds) {
+            onDone()
+            return
+        }
         gamesSinceInterstitial++
         val ad = interstitial
         val now = SystemClock.elapsedRealtime()

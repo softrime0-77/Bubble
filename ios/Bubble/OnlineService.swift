@@ -27,8 +27,36 @@ struct Profile: Equatable {
     var referred: Bool = false
     /// 나라 (ISO 2글자, 랭킹 국기용)
     var country: String? = nil
+    /// 산 유료 스킨들
+    var skins: Set<Animal> = []
+    /// 광고 제거를 샀는지 (전면 광고 안 나옴)
+    var noAds = false
+    /// 첫 포인트 구매를 했는지 (안 했으면 첫 구매 2배)
+    var firstBuyDone = false
+    /// 출석: 마지막으로 받은 날(한국 시간)과 연속 일수
+    var checkinDay: String? = nil
+    var checkinStreak = 0
+    /// 일일 미션 진행도 (missionDay가 오늘일 때만 유효)
+    var missionDay: String? = nil
+    var mPlay = 0
+    var mWin = 0
+    var mRandom = 0
+    var mClaimed: Set<String> = []
+    /// 광고로 받은 부활물약 (오늘 몇 번)
+    var potionAdDay: String? = nil
+    var potionAds = 0
+    /// 주간 랭킹 보상 (아직 안 봤으면 팝업)
+    var weeklyReward: WeeklyReward? = nil
     var rank: Rank { Rank.of(score) }
     func animalCount(_ a: Animal) -> Int { animals[a] ?? 0 }
+}
+
+/// 주간 랭킹 보상 안내
+struct WeeklyReward: Equatable {
+    var week: String
+    var rank: Int
+    var coins: Int
+    var seen: Bool
 }
 
 /// 랭킹 한 줄 (내 주변 순위)
@@ -277,7 +305,7 @@ final class OnlineService: ObservableObject {
         defer { busy = false }
         do {
             try await action()
-            show(success)
+            if !success.isEmpty { show(success) }
         } catch {
             self.error = error.localizedDescription
         }
@@ -378,6 +406,46 @@ final class OnlineService: ObservableObject {
         }
     }
 
+    // MARK: 출석 · 일일 미션 · 주간 보상
+
+    /// 출석 7일 보상 💰 (functions/src/rewards.ts CHECKIN_COINS와 같게). 7일째는 💖도
+    static let checkinCoins = [20, 20, 30, 30, 50, 50, 100]
+    static let potionAdsPerDay = 3
+
+    /// 한국 시간 날짜 (서버 dayKey와 같게)
+    static func today(_ date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Asia/Seoul")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+
+    func claimDaily() async {
+        await shopAction("") {
+            let r = try await call("claimDaily")
+            let day = Self.int(r["day"]) ?? 1, coins = Self.int(r["coins"]) ?? 0
+            let potion = r["potion"] as? Bool ?? false
+            show(tr("📅 \(day)일째 출석! 💰 +\(coins)", "📅 Day \(day) check-in! 💰 +\(coins)", zh: "📅 第 \(day) 天签到！💰 +\(coins)",
+                    es: "📅 ¡Día \(day)! 💰 +\(coins)", fr: "📅 Jour \(day) ! 💰 +\(coins)", de: "📅 Tag \(day)! 💰 +\(coins)",
+                    pt: "📅 Dia \(day)! 💰 +\(coins)", ru: "📅 День \(day)! 💰 +\(coins)", ja: "📅 \(day)日目の出席！💰 +\(coins)") + (potion ? " · 💖 +1" : ""))
+        }
+    }
+
+    func claimMission(_ id: String) async {
+        await shopAction("") {
+            let r = try await call("claimMission", ["id": id])
+            let coins = Self.int(r["coins"]) ?? 0
+            show(tr("🎯 미션 완료! 💰 +\(coins)", "🎯 Mission complete! 💰 +\(coins)", zh: "🎯 任务完成！💰 +\(coins)", es: "🎯 ¡Misión cumplida! 💰 +\(coins)",
+                    fr: "🎯 Mission réussie ! 💰 +\(coins)", de: "🎯 Mission geschafft! 💰 +\(coins)", pt: "🎯 Missão cumprida! 💰 +\(coins)",
+                    ru: "🎯 Задание выполнено! 💰 +\(coins)", ja: "🎯 ミッション達成！💰 +\(coins)"))
+        }
+    }
+
+    func ackWeeklyReward() {
+        Task { _ = try? await call("ackWeeklyReward") }
+    }
+
     // MARK: 친구 대전
 
     func createFriendRoom() async throws -> String {
@@ -470,6 +538,7 @@ final class OnlineService: ObservableObject {
         let old = profile
         profile = p
         guard let p else { return }
+        Ads.shared.noAds = p.noAds
         // 같은 계정에서 계급이 올라가면 축하 화면
         if let old, old.uid == p.uid, p.rank.rawValue > old.rank.rawValue { rankUpScore = p.score }
         if old == nil { redeemPendingInvite(p) }
@@ -556,7 +625,22 @@ final class OnlineService: ObservableObject {
             refCode: d["refCode"] as? String,
             referrals: int(d["referrals"]) ?? 0,
             referred: d["referredBy"] != nil,
-            country: d["country"] as? String
+            country: d["country"] as? String,
+            skins: Set(((d["skins"] as? [Any]) ?? []).compactMap { ($0 as? String).flatMap(Animal.init(rawValue:)) }),
+            noAds: d["noAds"] as? Bool ?? false,
+            firstBuyDone: d["firstBuyDone"] as? Bool ?? false,
+            checkinDay: d["checkinDay"] as? String,
+            checkinStreak: int(d["checkinStreak"]) ?? 0,
+            missionDay: d["missionDay"] as? String,
+            mPlay: int(d["mPlay"]) ?? 0,
+            mWin: int(d["mWin"]) ?? 0,
+            mRandom: int(d["mRandom"]) ?? 0,
+            mClaimed: Set(((d["mClaimed"] as? [Any]) ?? []).compactMap { $0 as? String }),
+            potionAdDay: d["potionAdDay"] as? String,
+            potionAds: int(d["potionAds"]) ?? 0,
+            weeklyReward: (d["weeklyReward"] as? [String: Any]).map { w in
+                WeeklyReward(week: w["week"] as? String ?? "", rank: int(w["rank"]) ?? 0, coins: int(w["coins"]) ?? 0, seen: w["seen"] as? Bool ?? false)
+            }
         )
     }
 

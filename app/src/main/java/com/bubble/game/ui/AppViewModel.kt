@@ -7,6 +7,7 @@ import android.content.Context
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.bubble.game.ads.AdManager
 import com.bubble.game.billing.BillingManager
 import com.bubble.game.data.Country
 import com.bubble.game.data.GoogleSignIn
@@ -150,9 +151,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** 포인트 상품 결제. 서버가 영수증을 확인한 뒤에 점수가 들어옵니다. */
     val billing = BillingManager(app, viewModelScope) { productId, token ->
-        val ok = repo.verifyPurchase(productId, token)
-        val amount = BillingManager.PRODUCTS[productId] ?: 0
-        if (ok) {
+        val (ok, amount) = repo.verifyPurchase(productId, token)
+        if (ok && productId == BillingManager.REMOVE_ADS) {
+            _lobby.update {
+                it.copy(info = tr("광고 제거 완료! 이제 전면 광고가 나오지 않아요 🎉", "Ads removed! No more full-screen ads 🎉",
+                    zh = "已去除广告！不再显示全屏广告 🎉", hi = "विज्ञापन हटाए गए! अब फ़ुल-स्क्रीन विज्ञापन नहीं 🎉",
+                    es = "¡Anuncios eliminados! Ya no verás anuncios a pantalla completa 🎉", fr = "Pubs supprimées ! Plus de pubs plein écran 🎉",
+                    ar = "تمت إزالة الإعلانات! لا مزيد من الإعلانات بملء الشاشة 🎉", de = "Werbung entfernt! Keine Vollbild-Werbung mehr 🎉",
+                    pt = "Anúncios removidos! Sem mais anúncios em tela cheia 🎉", ru = "Реклама отключена! Больше никаких полноэкранных объявлений 🎉",
+                    ja = "広告を削除しました！全画面広告は表示されません 🎉"))
+            }
+        } else if (ok && amount > 0) {
             _lobby.update {
                 it.copy(
                     info = tr(
@@ -402,6 +411,7 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                 }
                 launch {
                     repo.profileFlow(id).collect { p ->
+                        AdManager.noAds = p?.noAds == true
                         val rank = p?.rank
                         val prev = lastRank
                         val rankedUp = rank != null && prev != null && rank.ordinal > prev.ordinal
@@ -751,6 +761,56 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
         val id = onlineGameId ?: return null
         if (g.scoredAi) return null
         return if (g.online && g.finished && g.winner != null && g.winner != g.mySide) me to id else null
+    }
+
+    // ---------- 출석 · 일일 미션 · 주간 보상 · 광고 보고 물약 ----------
+
+    fun claimDaily() = rewardAction { 
+        val (day, coins, potion) = repo.claimDaily()
+        tr("📅 ${day}일째 출석! 💰 +$coins" + if (potion) " · 💖 +1" else "", "📅 Day $day check-in! 💰 +$coins" + if (potion) " · 💖 +1" else "",
+            zh = "📅 第 $day 天签到！💰 +$coins" + if (potion) " · 💖 +1" else "", es = "📅 ¡Día $day! 💰 +$coins" + if (potion) " · 💖 +1" else "",
+            fr = "📅 Jour $day ! 💰 +$coins" + if (potion) " · 💖 +1" else "", de = "📅 Tag $day! 💰 +$coins" + if (potion) " · 💖 +1" else "",
+            pt = "📅 Dia $day! 💰 +$coins" + if (potion) " · 💖 +1" else "", ru = "📅 День $day! 💰 +$coins" + if (potion) " · 💖 +1" else "",
+            ja = "📅 ${day}日目の出席！💰 +$coins" + if (potion) " · 💖 +1" else "")
+    }
+
+    fun claimMission(id: String) = rewardAction {
+        val coins = repo.claimMission(id)
+        tr("🎯 미션 완료! 💰 +$coins", "🎯 Mission complete! 💰 +$coins", zh = "🎯 任务完成！💰 +$coins", es = "🎯 ¡Misión cumplida! 💰 +$coins",
+            fr = "🎯 Mission réussie ! 💰 +$coins", de = "🎯 Mission geschafft! 💰 +$coins", pt = "🎯 Missão cumprida! 💰 +$coins",
+            ru = "🎯 Задание выполнено! 💰 +$coins", ja = "🎯 ミッション達成！💰 +$coins")
+    }
+
+    fun ackWeeklyReward() {
+        viewModelScope.launch { repo.ackWeeklyReward() }
+    }
+
+    private fun rewardAction(action: suspend () -> String) {
+        if (_lobby.value.shopBusy) return
+        _lobby.update { it.copy(shopBusy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val msg = action()
+                _lobby.update { it.copy(shopBusy = false, info = msg) }
+                delay(4_000)
+                _lobby.update { if (it.info == msg) it.copy(info = null) else it }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lobby.update { it.copy(shopBusy = false, error = e.message) }
+            }
+        }
+    }
+
+    /** 상점: 광고 보고 💖 부활물약 받기 → AdMob이 서버에 알려주면 물약이 들어옴 */
+    fun watchAdForPotion(activity: android.app.Activity) {
+        val me = uid ?: return
+        AdManager.showRewarded(activity, me, "potion", onEarned = {
+            _lobby.update { it.copy(info = tr("📺 확인 중… 곧 💖 부활물약이 들어와요", "📺 Checking… your 💖 potion arrives soon",
+                zh = "📺 确认中… 💖 复活药水马上到账", es = "📺 Comprobando… tu 💖 poción llega pronto", fr = "📺 Vérification… ta 💖 potion arrive",
+                de = "📺 Wird geprüft… dein 💖 Trank kommt gleich", pt = "📺 Verificando… sua 💖 poção chega logo", ru = "📺 Проверяем… 💖 зелье скоро придёт",
+                ja = "📺 確認中… まもなく 💖 復活薬が届きます")) }
+        }, onDone = {})
     }
 
     /** 광고를 끝까지 봤을 때 (점수는 서버가 AdMob 확인 후 반영). */

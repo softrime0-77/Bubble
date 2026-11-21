@@ -53,6 +53,9 @@ targets:
       path: Bubble/Info.plist
       properties:
         CFBundleDisplayName: Bubble
+        # XcodeGen 기본값은 버전 "1.0"·빌드 "1" 고정이라, 빌드 설정 값을 쓰게 함 (TestFlight는 빌드 번호가 매번 올라가야 함)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: ko
         CFBundleLocalizations: [ko, en, zh-Hans, hi, es, fr, ar, de, pt, ru, ja]
         CFBundleAllowMixedLocalizations: true

@@ -249,6 +249,8 @@ struct LobbyView: View {
                     Task { await online.finishAppleSignIn(result) }
                 }
                 .signInWithAppleButtonStyle(.black)
+                // 버튼 문구를 게임 언어에 맞춤 (안 되면 기기 언어)
+                .environment(\.locale, Locale(identifier: lang.code.rawValue))
                 .frame(height: 52)
                 .clipShape(Capsule())
                 Button { Task { await online.signInWithGoogle() } } label: {

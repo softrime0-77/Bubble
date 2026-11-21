@@ -53,6 +53,8 @@ struct RankBadge: View {
                 }
             }
         }
+        // 반짝이 Canvas가 남는 공간을 다 차지하지 않게 글자 크기에 맞춤
+        .fixedSize()
     }
 }
 

@@ -228,4 +228,8 @@ Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 
    ```bash
    firebase deploy --only functions,firestore:rules
    ```
-5. TestFlight: 서명 인증서와 프로비저닝을 설정한 뒤 업로드 (다음 단계)
+5. TestFlight 업로드: 저장소 Actions 탭 → **iOS TestFlight** → **Run workflow**
+   - 필요한 Secrets: `GOOGLE_SERVICE_INFO_PLIST`(com.softrime.bubble용), `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`(관리자 권한 API 키), `APPLE_TEAM_ID`
+   - 서명 인증서·프로파일은 API 키로 Xcode가 자동으로 만듦 (클라우드 서명). 계정에 등록된 기기가 없으면 자리표시 기기 1개를 등록함
+   - Xcode 26 이상으로 빌드 (App Store 요구 사항). 빌드 번호는 워크플로 실행 번호
+   - 버전을 올릴 때는 `ios/project.yml`의 `MARKETING_VERSION`을 App Store Connect 버전과 같게

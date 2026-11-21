@@ -615,33 +615,15 @@ private fun FriendWaitScreen(code: String?, startedAt: Long, onCancel: () -> Uni
     val swing by t.animateFloat(-1f, 1f, infiniteRepeatable(tween(650), RepeatMode.Reverse), label = "swing")
 
     fun shareText(c: String) = tr(
-        "Bubble 냥햄대전에서 나랑 한 판 붙자! ⚔️🐱🐹
-대전 코드: $c
-${Invite.battleLink(c)}",
-        "Battle me in Bubble: Cats vs Hamsters! ⚔️🐱🐹
-Battle code: $c
-${Invite.battleLink(c)}",
-        zh = "来 Bubble 猫咪大战仓鼠和我对战吧！⚔️🐱🐹
-对战码：$c
-${Invite.battleLink(c)}",
-        es = "¡Juega una partida conmigo en Bubble! ⚔️🐱🐹
-Código: $c
-${Invite.battleLink(c)}",
-        fr = "Viens m’affronter dans Bubble ! ⚔️🐱🐹
-Code : $c
-${Invite.battleLink(c)}",
-        de = "Spiel eine Runde Bubble gegen mich! ⚔️🐱🐹
-Code: $c
-${Invite.battleLink(c)}",
-        pt = "Jogue uma partida de Bubble comigo! ⚔️🐱🐹
-Código: $c
-${Invite.battleLink(c)}",
-        ru = "Сразись со мной в Bubble! ⚔️🐱🐹
-Код боя: $c
-${Invite.battleLink(c)}",
-        ja = "Bubble で一緒に対戦しよう！⚔️🐱🐹
-対戦コード：$c
-${Invite.battleLink(c)}",
+        "Bubble 냥햄대전에서 나랑 한 판 붙자! ⚔️🐱🐹\n대전 코드: $c\n${Invite.battleLink(c)}",
+        "Battle me in Bubble: Cats vs Hamsters! ⚔️🐱🐹\nBattle code: $c\n${Invite.battleLink(c)}",
+        zh = "来 Bubble 猫咪大战仓鼠和我对战吧！⚔️🐱🐹\n对战码：$c\n${Invite.battleLink(c)}",
+        es = "¡Juega una partida conmigo en Bubble! ⚔️🐱🐹\nCódigo: $c\n${Invite.battleLink(c)}",
+        fr = "Viens m’affronter dans Bubble ! ⚔️🐱🐹\nCode : $c\n${Invite.battleLink(c)}",
+        de = "Spiel eine Runde Bubble gegen mich! ⚔️🐱🐹\nCode: $c\n${Invite.battleLink(c)}",
+        pt = "Jogue uma partida de Bubble comigo! ⚔️🐱🐹\nCódigo: $c\n${Invite.battleLink(c)}",
+        ru = "Сразись со мной в Bubble! ⚔️🐱🐹\nКод боя: $c\n${Invite.battleLink(c)}",
+        ja = "Bubble で一緒に対戦しよう！⚔️🐱🐹\n対戦コード：$c\n${Invite.battleLink(c)}",
     )
 
     Column(

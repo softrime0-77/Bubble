@@ -118,7 +118,7 @@ struct ShopView: View {
                 .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.75))
                 .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 8) {
-                ForEach(PointStore.products, id: \.id) { prod in
+                ForEach(PointStore.products, id: \.self) { prod in
                     Button { Task { await store.buy(prod.id) } } label: {
                         VStack(spacing: 2) {
                             if store.purchasing == prod.id {

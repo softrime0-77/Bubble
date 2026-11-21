@@ -10,7 +10,11 @@ final class PointStore: ObservableObject {
     static let shared = PointStore()
 
     /// App Store Connect에 만들 소모성 상품 ID → 포인트 (안드로이드·서버와 같은 ID)
-    static let products: [(id: String, points: Int)] = [("points_500", 500), ("points_1000", 1000), ("points_2000", 2000)]
+    struct Pack: Hashable {
+        let id: String
+        let points: Int
+    }
+    static let products = [Pack(id: "points_500", points: 500), Pack(id: "points_1000", points: 1000), Pack(id: "points_2000", points: 2000)]
 
     @Published private(set) var prices: [String: String] = [:]
     @Published private(set) var purchasing: String? = nil
@@ -33,7 +37,7 @@ final class PointStore: ObservableObject {
     }
 
     func loadProducts() async {
-        guard let list = try? await Product.products(for: Self.products.map(\.id)) else { return }
+        guard let list = try? await Product.products(for: Self.products.map { $0.id }) else { return }
         for p in list {
             loaded[p.id] = p
             prices[p.id] = p.displayPrice

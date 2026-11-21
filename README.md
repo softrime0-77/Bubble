@@ -185,15 +185,45 @@ firebase deploy --only functions,firestore:rules
   - `BUBBLE_KEYSTORE_PASSWORD`: 서명 키 비밀번호
 - **직접 빌드**: Android Studio로 열어서 실행하거나 `./gradlew assembleDebug`.
 
-## iOS (진행 중)
+## iOS
 
-`ios/` 폴더에 SwiftUI로 만든 아이폰 앱이 있습니다. 서버(Firebase)는 안드로이드와 같은 것을 써서, 완성되면 아이폰·안드로이드 사용자가 서로 매칭됩니다.
+`ios/` 폴더에 SwiftUI로 만든 아이폰 앱이 있습니다. 서버(Firebase)는 안드로이드와 같은 것을 써서 아이폰·안드로이드 사용자가 서로 매칭됩니다.
 
 - `ios/BubbleCore`: 게임 규칙·AI·계급/상점 데이터 (Swift 패키지, 안드로이드·서버와 같은 규칙, 테스트 포함)
-- `ios/Bubble`: SwiftUI 화면 (캐릭터·방울·타이머·11개 언어). `Strings.swift`는 안드로이드 번역에서 자동 생성한 표
+- `ios/Bubble`: SwiftUI 화면 (캐릭터·방울·타이머·11개 언어)
+  - `Strings.swift`(고정 문장)와 `Templates.swift`(값이 들어가는 문장)는 안드로이드 번역에서 만든 표. `Templates.swift`는 `python3 ios/tools/gen_templates.py`로 다시 만듦
+  - `Store.swift`: App Store 결제(StoreKit 2) · `Ads.swift`: AdMob + 광고 동의(UMP) · `AppleSignIn.swift`: Apple 로그인
 - `ios/project.yml`: XcodeGen 설정 (`xcodegen generate`로 Xcode 프로젝트 생성)
 - 빌드 확인: GitHub Actions **iOS** 워크플로(Mac)에서 테스트 → 시뮬레이터 빌드 → 스크린샷. 스크린샷은 `ios-screenshots` 브랜치에 올라감
 
-진행 단계: ✅ 1단계 게임 화면·AI 연습 → ✅ 2단계 구글 로그인·온라인 대전 (Apple 로그인은 Apple Developer 가입 후) → 3단계 상점·결제(StoreKit)·광고 → 4단계 마무리·TestFlight
+진행 단계: ✅ 1단계 게임 화면·AI 연습 → ✅ 2단계 구글 로그인·온라인 대전 → ✅ 3단계 상점·결제·광고·친구 초대 → ✅ Apple 로그인·마무리 → TestFlight (Apple Developer 가입 후)
 
 Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 넣습니다 (파일은 저장소에 올리지 않음).
+
+### 아이폰 기능
+
+- 로그인: **Apple로 계속하기** 또는 **Google로 시작하기**. 계정 삭제 시 Apple 계정은 Apple 토큰도 취소합니다 (App Store 규정)
+- 상점: 💖 부활물약 · ×3 부스터 · 동물 친구들 (안드로이드와 같은 가격·규칙) + 💰 포인트 충전(App Store 결제)
+- 게임: 부활물약 버튼, 부스터 표시, 패배 후 보상형 광고로 최대 8점 돌려받기
+- 로비: 게임 규칙, 계급표, 닉네임 변경, 계정 삭제, 친구 초대(공유·링크 복사·코드 입력, `bubble://invite?code=…` 링크로 열면 자동 입력), 승급 축하 화면
+
+### Apple Developer 가입 후 할 일 (한 번만)
+
+1. **Apple 로그인 켜기**
+   - [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) → Identifiers → `com.bubble.game` → **Sign In with Apple** 체크
+   - Firebase 콘솔 → Authentication → 로그인 방법 → **Apple** 사용 설정 (아이폰 앱만 쓰면 서비스 ID·키 입력 없이 저장해도 됨)
+2. **결제 상품 만들기**: App Store Connect → 앱 → 인앱 구입 → **소모품** 3개 (ID는 정확히 이 이름)
+   | 상품 ID | 포인트 | 가격 예 |
+   |---|---|---|
+   | `points_500` | 500 | ₩500 단계 |
+   | `points_1000` | 1000 | ₩1,000 단계 |
+   | `points_2000` | 2000 | ₩2,000 단계 |
+   서버(`verifyApplePurchase`)는 Apple 서명을 직접 확인하므로 별도 API 키가 필요 없습니다. 테스트는 App Store Connect의 **샌드박스 테스터** 계정으로 합니다.
+3. **광고**: AdMob에 iOS 앱을 추가하고, 전면 광고·보상형 전면 광고 단위를 만든 뒤
+   - `ios/project.yml`의 `GADApplicationIdentifier`, `BubbleInterstitialId`, `BubbleRewardedId`를 실제 ID로 교체 (지금은 구글 테스트 광고)
+   - 보상형 광고 단위의 **서버 측 확인** URL에 안드로이드와 같은 `admobSsv` 주소를 넣고, 단위 번호(`/` 뒤 숫자)를 `functions/src/index.ts`의 `REWARDED_AD_UNITS`에 추가
+4. **서버 배포**: Apple 로그인·Apple 결제를 받도록 바뀐 서버와 보안 규칙을 배포
+   ```bash
+   firebase deploy --only functions,firestore:rules
+   ```
+5. TestFlight: 서명 인증서와 프로비저닝을 설정한 뒤 업로드 (다음 단계)

@@ -109,6 +109,11 @@ public struct MoveInfo: Equatable, Sendable {
 public struct Explosion: Equatable, Sendable {
     public let side: Side
     public let index: Int
+
+    public init(side: Side, index: Int) {
+        self.side = side
+        self.index = index
+    }
 }
 
 public struct MoveResult: Equatable, Sendable {

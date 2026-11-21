@@ -7,14 +7,20 @@ struct BubbleApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                // 구글 로그인 창에서 돌아올 때
-                .onOpenURL { url in _ = GIDSignIn.sharedInstance.handle(url) }
+                // 구글 로그인 창에서 돌아올 때, 또는 친구 초대 링크(bubble://invite?code=…)
+                .onOpenURL { url in
+                    if !GIDSignIn.sharedInstance.handle(url) { OnlineService.shared.receiveInvite(url) }
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    if let url = activity.webpageURL { OnlineService.shared.receiveInvite(url) }
+                }
         }
     }
 }
 
 enum AppScreen {
     case lobby
+    case shop
     case matching(Date)
     case local(LocalGame)
     case online(OnlineGame)
@@ -22,6 +28,7 @@ enum AppScreen {
     var key: String {
         switch self {
         case .lobby: return "lobby"
+        case .shop: return "shop"
         case .matching: return "matching"
         case let .local(g): return "local-\(ObjectIdentifier(g).hashValue)"
         case let .online(g): return "online-\(g.gameId)"
@@ -35,27 +42,52 @@ struct RootView: View {
     @State private var screen: AppScreen = .lobby
     @State private var matchTask: Task<Void, Never>? = nil
     @State private var showVs = false
+    @ObservedObject private var ads = Ads.shared
+    /// 보상형 광고 안내 중: (uid, gameId, 돌려받는 점수)
+    @State private var reward: (uid: String, gameId: String, points: Int)? = nil
+
+    /// 패배 후 보상형 광고로 돌려받는 최대 점수 (서버 AD_REFUND_POINTS와 같음)
+    static let adRefundPoints = 8
 
     var body: some View {
         BubbleBackground {
             switch screen {
             case .lobby:
-                LobbyView(onStartAi: startAi, onRandomMatch: startMatching).transition(.opacity)
+                LobbyView(onStartAi: startAi, onRandomMatch: startMatching, onShop: { screen = .shop }).transition(.opacity)
+            case .shop:
+                ShopView(onClose: { screen = .lobby }).transition(.move(edge: .trailing))
             case let .matching(started):
                 MatchingView(startedAt: started, onCancel: cancelMatching).transition(.opacity)
             case let .local(game):
                 GameView(game: game,
-                         onLeave: { game.stop(); screen = .lobby },
+                         onLeave: {
+                             let finished = game.finished
+                             game.stop()
+                             if finished { Ads.shared.maybeShowInterstitial { screen = .lobby } } else { screen = .lobby }
+                         },
                          onAgain: { game.stop(); screen = .local(LocalGame(level: game.level)) })
                     .transition(.opacity)
             case let .online(game):
                 ZStack {
                     GameView(game: game,
-                             onLeave: { game.leave(); screen = .lobby },
-                             onAgain: againAction(game))
+                             onLeave: { leaveOnline(game) },
+                             onAgain: againAction(game),
+                             rewardOffer: refundOffer(game))
                     if showVs { VsIntro(game: game) { showVs = false }.transition(.opacity) }
                 }
                 .transition(.opacity)
+            }
+        }
+        .overlay {
+            if let r = reward {
+                RewardIntro(points: r.points, onSkip: { reward = nil }, onWatch: {
+                    reward = nil
+                    Ads.shared.showRewarded(uid: r.uid, gameId: r.gameId, earned: {
+                        online.show(t("📺 광고 보상 확인 중… 곧 점수가 돌아와요"))
+                    }, done: {})
+                })
+            } else if let score = online.rankUpScore, screen.key == "lobby" {
+                RankUpCelebration(score: score) { online.rankUpScore = nil }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: screen.key)
@@ -66,6 +98,12 @@ struct RootView: View {
         .onAppear {
             online.start()
             applyDemoArguments()
+            Ads.shared.start()
+            if online.uid != nil { PointStore.shared.start() }
+        }
+        .onChange(of: online.uid) { id in
+            // 로그인하면 결제 상품·밀린 결제 처리
+            if id != nil { PointStore.shared.start() }
         }
     }
 
@@ -105,6 +143,26 @@ struct RootView: View {
         }
     }
 
+    /// 사람과의 대전에서 졌고 보상형 광고가 준비됐으면 돌려받을 점수
+    private func refundOffer(_ game: OnlineGame) -> Int? {
+        guard game.finished, !game.isAi, let w = game.winner, w != game.mySide, ads.rewardedReady,
+              let d = game.scoreDelta, d < 0 else { return nil }
+        return min(Self.adRefundPoints, -d)
+    }
+
+    /// 서버 대전에서 나가기: 진행 중이면 기권. 끝났으면 보상형 광고 안내 또는 전면 광고 후 로비로
+    private func leaveOnline(_ game: OnlineGame) {
+        let finished = game.finished
+        let offer = refundOffer(game)
+        game.leave()
+        screen = .lobby
+        if let offer, let uid = online.uid {
+            reward = (uid, game.gameId, offer)
+        } else if finished {
+            Ads.shared.maybeShowInterstitial {}
+        }
+    }
+
     /// AI 대전이 끝났을 때 "한 판 더" (사람 상대면 없음)
     private func againAction(_ game: OnlineGame) -> (() -> Void)? {
         guard let level = game.aiLevel else { return nil }
@@ -135,9 +193,29 @@ struct RootView: View {
         if let i = args.firstIndex(of: "-lang"), i + 1 < args.count, let code = LangCode(rawValue: args[i + 1]) {
             lang.code = code
         }
-        guard let i = args.firstIndex(of: "-demo"), i + 1 < args.count, args[i + 1] == "game" else { return }
-        let g = LocalGame(level: .easy, mySide: .cat)
-        g.setDemo(board: Board(cat: [4, 0], ham: [2, 3], catSplits: 1), log: [t("고양이") + ": " + setName(0) + " ✂️"])
-        screen = .local(g)
+        guard let i = args.firstIndex(of: "-demo"), i + 1 < args.count else { return }
+        let demo = args[i + 1]
+        let profile = Profile(uid: "demo", name: t("고양이") + "77", score: 1980, wins: 42, losses: 17, potions: 2, coins: 500,
+                              boosts: 1, boostOn: true, animals: [.dog: 2], equipped: .dog, refCode: "ABC234", referrals: 3)
+        switch demo {
+        case "game":
+            let g = LocalGame(level: .easy, mySide: .cat)
+            g.setDemo(board: Board(cat: [4, 0], ham: [2, 3], catSplits: 1), log: [t("고양이") + ": " + setName(0) + " ✂️"])
+            screen = .local(g)
+        case "revive":
+            let g = LocalGame(level: .easy, mySide: .cat)
+            g.setDemo(board: Board(cat: [0, 3], ham: [2, 4], catSplits: 0, catRevives: 2), log: [t("햄스터") + ": " + t("💥 펑!")])
+            screen = .local(g)
+        case "lobby":
+            online.setDemoProfile(profile)
+        case "shop":
+            online.setDemoProfile(profile)
+            screen = .shop
+        case "rankup":
+            online.setDemoProfile(profile)
+            online.rankUpScore = 2000
+        default:
+            break
+        }
     }
 }

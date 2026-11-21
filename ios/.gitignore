@@ -4,3 +4,4 @@ build/
 *.xcuserstate
 Bubble/GoogleService-Info.plist
 Bubble/Info.plist
+Bubble/Bubble.entitlements

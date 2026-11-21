@@ -1,0 +1,241 @@
+import BubbleCore
+import SwiftUI
+
+/// 상점: 💰 포인트 충전(App Store), 💖 부활물약, ×3 부스터, 동물 친구들 (안드로이드 ShopScreen과 같은 구성)
+struct ShopView: View {
+    @ObservedObject var online = OnlineService.shared
+    @ObservedObject var store = PointStore.shared
+    let onClose: () -> Void
+
+    @State private var confirm: (item: String, label: String, price: Int)? = nil
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                HStack {
+                    Button(t("← 로비"), action: onClose).foregroundColor(UiColor.text)
+                    Spacer()
+                    if let p = online.profile {
+                        Text(t("내 점수 ")).font(.system(size: 14)).foregroundColor(UiColor.text)
+                        Text(pts(p.score)).font(.system(size: 18, weight: .black)).foregroundColor(UiColor.primaryDark)
+                        Text("  💰 \(p.coins)").font(.system(size: 18, weight: .black)).foregroundColor(Color(hex: 0xC88A00))
+                    }
+                }
+                Text(t("🛒 상점")).font(.system(size: 34, weight: .black)).foregroundColor(UiColor.primaryDark)
+                Text(t("💰 상점 포인트를 먼저 쓰고, 모자라면 점수에서 써요 (점수가 줄면 계급이 내려갈 수 있어요)"))
+                    .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7)).multilineTextAlignment(.center)
+                if let i = online.info {
+                    Text(i).font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.accent).multilineTextAlignment(.center)
+                }
+                if let e = online.error {
+                    Text(e).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.danger).multilineTextAlignment(.center)
+                }
+                if let p = online.profile {
+                    pointsCard
+                    shopCard(title: t("💖 부활물약"),
+                             desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
+                             price: Shop.potionPrice, owned: tf("보유 {0}개", p.potions), art: AnyView(PotionArt().frame(width: 84, height: 84))) {
+                        buyButton("POTION", t("부활물약"), Shop.potionPrice, p)
+                    }
+                    shopCard(title: t("×3 점수 부스터"),
+                             desc: t("켜두면 다음 랜덤 매칭에서 1개를 쓰고, 이기면 얻는 점수가 3배! (AI 대전에는 쓰지 않아요)"),
+                             price: Shop.boostPrice,
+                             owned: p.boosts > 0 ? tf("보유 {0}개", p.boosts) + (p.boostOn ? t("  ·  🔥 사용 중") : "") : nil,
+                             art: AnyView(BoostArt())) {
+                        HStack(spacing: 6) {
+                            buyButton("BOOST", t("×3 부스터"), Shop.boostPrice, p)
+                            if p.boosts > 0 {
+                                outlineButton(p.boostOn ? t("끄기") : t("켜기")) { Task { await online.setBoost(!p.boostOn) } }
+                            }
+                        }
+                    }
+                    Text(t("🐾 동물 친구들")).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
+                    Text(t("소모품: 1개 = 랜덤 매칭 1판. 장착한 채 매칭되면 1개를 쓰고, 그 판에 내 캐릭터가 바뀌고 상대의 턴이 짧아져요"))
+                        .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(Animal.allCases, id: \.self) { a in
+                        let count = p.animalCount(a)
+                        let on = p.equipped == a && count > 0
+                        shopCard(title: a.label,
+                                 desc: tf("⏱ 상대 턴 시간 {0}초 → {1}초", Shop.defaultTurnSec, a.opponentTurnSec),
+                                 price: a.price,
+                                 owned: count > 0 ? tf("보유 {0}개", count) + (on ? t("  ·  ✅ 장착 중") : "") : nil,
+                                 art: AnyView(Critter(side: .cat, skin: a, happy: on).frame(width: 84, height: 84))) {
+                            HStack(spacing: 6) {
+                                buyButton(a.rawValue, a.label, a.price, p)
+                                if on {
+                                    outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
+                                } else if count > 0 {
+                                    Button { Task { await online.equip(a) } } label: {
+                                        Text(t("장착하기")).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                                            .padding(.horizontal, 12).padding(.vertical, 8)
+                                            .background(Capsule().fill(UiColor.accent))
+                                    }
+                                    .disabled(online.busy)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .onAppear {
+            online.error = nil
+            Task { await store.loadProducts() }
+        }
+        .alert(confirm.map { tf("{0} 살까요?", $0.label) } ?? "", isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
+            Button(t("취소"), role: .cancel) { confirm = nil }
+            Button(t("살게요")) {
+                if let c = confirm { Task { await online.buy(c.item, label: c.label) } }
+                confirm = nil
+            }
+        } message: {
+            Text(confirmText)
+        }
+    }
+
+    /// 상점 포인트 먼저, 모자라면 점수 (서버 splitPayment와 같은 규칙)
+    private var confirmText: String {
+        guard let c = confirm, let p = online.profile else { return "" }
+        let fromCoins = min(max(p.coins, 0), c.price)
+        let fromScore = c.price - fromCoins
+        let after = p.score - fromScore
+        var text = tf("💰 상점 포인트 {0} + 점수 {1} 사용\n남는 점수: {2}점", fromCoins, fromScore, after)
+        if Rank.of(after) != p.rank {
+            text += "\n\n" + tf("⚠️ 계급이 {0} → {1}(으)로 내려가요", p.rank.label, Rank.of(after).label)
+        }
+        return text
+    }
+
+    private var pointsCard: some View {
+        card {
+            Text(t("💰 포인트 충전")).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(t("결제한 포인트는 💰 상점 포인트로 들어가요. 상점 전용이라 계급·랭킹 점수와는 별개예요."))
+                .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.75))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                ForEach(PointStore.products, id: \.id) { prod in
+                    Button { Task { await store.buy(prod.id) } } label: {
+                        VStack(spacing: 2) {
+                            if store.purchasing == prod.id {
+                                ProgressView()
+                            } else {
+                                Text("💰 \(prod.points)").font(.system(size: 17, weight: .black))
+                            }
+                            Text(store.prices[prod.id] ?? "₩\(prod.points)").font(.system(size: 13, weight: .bold))
+                        }
+                        .foregroundColor(UiColor.text)
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                        .background(RoundedRectangle(cornerRadius: 16).fill(UiColor.gold))
+                    }
+                    .disabled(store.purchasing != nil)
+                }
+            }
+        }
+    }
+
+    private func buyButton(_ item: String, _ label: String, _ price: Int, _ p: Profile) -> some View {
+        Button { confirm = (item, label, price) } label: {
+            Text(tf("{0}점에 사기", price)).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                .lineLimit(1).minimumScaleFactor(0.7)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Capsule().fill(UiColor.primary.opacity(p.score + p.coins >= price ? 1 : 0.4)))
+        }
+        .disabled(online.busy || p.score + p.coins < price)
+    }
+
+    private func outlineButton(_ label: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(.system(size: 14)).foregroundColor(UiColor.text)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .overlay(Capsule().stroke(UiColor.text.opacity(0.4)))
+        }
+        .disabled(online.busy)
+    }
+
+    private func shopCard<A: View>(title: String, desc: String, price: Int, owned: String?, art: AnyView, @ViewBuilder action: () -> A) -> some View {
+        card {
+            HStack(alignment: .center, spacing: 12) {
+                art
+                    .frame(width: 96, height: 96)
+                    .background(RoundedRectangle(cornerRadius: 24).fill(UiColor.bgTop))
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(title).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text).lineLimit(1).minimumScaleFactor(0.7)
+                        Text(pts(price)).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                    }
+                    Text(desc).font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.8)).fixedSize(horizontal: false, vertical: true)
+                    if let owned {
+                        Text(owned).font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.accent)
+                    }
+                    action().padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+/// 둥근 카드 (로비·상점 공통)
+func card<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+    VStack(spacing: 8) { content() }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 24).fill(UiColor.card))
+        .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+}
+
+/// 하트 모양 병에 담긴 부활물약 (흔들흔들 + 반짝)
+struct PotionArt: View {
+    var body: some View {
+        TimelineView(.animation) { tl in
+            let time = tl.date.timeIntervalSinceReferenceDate
+            let wobble = sin(time * 2 * .pi / 1.8) * 5
+            let tw = (time / 1.2).truncatingRemainder(dividingBy: 1)
+            Canvas { ctx, size in
+                let w = size.width, h = size.height
+                let c = CGPoint(x: w / 2, y: h * 0.6)
+                let r = w * 0.3
+                ctx.fill(Path(CGRect(x: w * 0.42, y: h * 0.18, width: w * 0.16, height: h * 0.2)), with: .color(Color(hex: 0xE3F2FD)))
+                ctx.fill(Path(roundedRect: CGRect(x: w * 0.4, y: h * 0.1, width: w * 0.2, height: h * 0.1), cornerRadius: 3), with: .color(Color(hex: 0xB7794A)))
+                let bottle = Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+                ctx.fill(bottle, with: .color(Color(hex: 0xE3F2FD)))
+                var heart = Path()
+                let hx = c.x, hy = c.y - r * 0.15, k = r * 0.7
+                heart.move(to: CGPoint(x: hx, y: hy + k * 0.9))
+                heart.addCurve(to: CGPoint(x: hx, y: hy - k * 0.3), control1: CGPoint(x: hx - k * 1.3, y: hy), control2: CGPoint(x: hx - k * 0.6, y: hy - k * 0.9))
+                heart.addCurve(to: CGPoint(x: hx, y: hy + k * 0.9), control1: CGPoint(x: hx + k * 0.6, y: hy - k * 0.9), control2: CGPoint(x: hx + k * 1.3, y: hy))
+                ctx.fill(heart, with: .color(Color(hex: 0xFF5C8A)))
+                let shine = r * 0.14
+                ctx.fill(Path(ellipseIn: CGRect(x: c.x - r * 0.45 - shine, y: c.y - r * 0.45 - shine, width: shine * 2, height: shine * 2)), with: .color(.white.opacity(0.8)))
+                ctx.stroke(bottle, with: .color(.white), lineWidth: 2)
+                let a = sin(tw * .pi)
+                ctx.fill(sparklePath(CGPoint(x: c.x + r * 0.9, y: c.y - r * 0.9), 5 * a + 1), with: .color(UiColor.gold.opacity(a)))
+                ctx.fill(sparklePath(CGPoint(x: c.x - r, y: c.y + r * 0.2), 3.5 * (1 - a) + 1), with: .color(.white.opacity(1 - a)))
+            }
+            .rotationEffect(.degrees(wobble))
+        }
+    }
+}
+
+/// ×3 부스터 그림 (로켓 배지)
+struct BoostArt: View {
+    var body: some View {
+        TimelineView(.animation) { tl in
+            let bob = sin(tl.date.timeIntervalSinceReferenceDate * 2 * .pi / 1.2) * 4
+            ZStack {
+                Circle().fill(LinearGradient(colors: [Color(hex: 0xFFE082), Color(hex: 0xFFB300)], startPoint: .top, endPoint: .bottom))
+                    .frame(width: 70, height: 70)
+                VStack(spacing: -4) {
+                    Text("🚀").font(.system(size: 26))
+                    Text("×3").font(.system(size: 22, weight: .black)).foregroundColor(Color(hex: 0xB23C00))
+                }
+            }
+            .offset(y: bob)
+        }
+    }
+}

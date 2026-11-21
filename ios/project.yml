@@ -13,6 +13,13 @@ packages:
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS
     from: "8.0.0"
+  # 광고 (11.x 이름: GADMobileAds 등), 광고 동의 창 (2.x 이름: UMPConsentInformation 등)
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads
+    from: "11.0.0"
+  UserMessagingPlatform:
+    url: https://github.com/googleads/swift-package-manager-google-user-messaging-platform
+    from: "2.1.0"
 targets:
   Bubble:
     type: application
@@ -28,12 +35,34 @@ targets:
         product: FirebaseFunctions
       - package: GoogleSignIn
         product: GoogleSignIn
+      - package: GoogleMobileAds
+        product: GoogleMobileAds
+      - package: UserMessagingPlatform
+        product: UserMessagingPlatform
+      - sdk: StoreKit.framework
+      - sdk: AuthenticationServices.framework
     scheme: {}
+    # Sign in with Apple 권한 (실제 기기 서명은 Apple Developer 가입 후)
+    entitlements:
+      path: Bubble/Bubble.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
     # 구글 로그인 콜백용 URL scheme (REVERSED_CLIENT_ID, 비밀 아님)
     info:
       path: Bubble/Info.plist
       properties:
         CFBundleDisplayName: Bubble
+        CFBundleDevelopmentRegion: ko
+        CFBundleLocalizations: [ko, en, zh-Hans, hi, es, fr, ar, de, pt, ru, ja]
+        CFBundleAllowMixedLocalizations: true
+        # 표준 암호화(HTTPS)만 사용 → TestFlight 수출 규정 질문 생략
+        ITSAppUsesNonExemptEncryption: false
+        # AdMob: 지금은 구글 테스트 앱 ID·광고 단위. AdMob에 iOS 앱을 등록하면 바꾸기 (README iOS 항목)
+        GADApplicationIdentifier: ca-app-pub-3940256099942544~1458002511
+        BubbleInterstitialId: ca-app-pub-3940256099942544/4411468910
+        BubbleRewardedId: ca-app-pub-3940256099942544/6978759866
+        SKAdNetworkItems:
+          - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIApplicationSceneManifest:

@@ -271,3 +271,16 @@ struct TurnTimerView: View {
         }
     }
 }
+
+/// 이번 판에 남은 부활물약 (없으면 안 보임)
+struct ReviveCounter: View {
+    let left: Int
+    var body: some View {
+        if left > 0 {
+            Text("💖×\(left)").font(.system(size: 14, weight: .black)).foregroundColor(Color(hex: 0xE0457B))
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Capsule().fill(Color(hex: 0xFF5C8A, alpha: 0.2)))
+                .fixedSize()
+        }
+    }
+}

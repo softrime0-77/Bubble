@@ -32,6 +32,7 @@ final class LocalGame: GameModel {
     var scoreDelta: Int? { nil }
     var scoreBonus: Int { 0 }
     var notice: String? { nil }
+    var myBoost: Bool { false }
     var opponentName: String {
         tr("AI 친구 (\(level.label))", "AI Buddy (\(level.label))", zh: "AI 伙伴（\(level.label)）", hi: "AI दोस्त (\(level.label))",
            es: "Amigo IA (\(level.label))", fr: "Copain IA (\(level.label))", ar: "رفيق الذكاء الاصطناعي (\(level.label))",

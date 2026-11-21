@@ -34,6 +34,7 @@ final class OnlineGame: GameModel {
     @Published private(set) var myScore = 0
     @Published private(set) var opponentScore = 0
     @Published private(set) var loaded = false
+    @Published private(set) var myBoost = false
 
     private var lastMove = -1
     private var listener: ListenerRegistration?
@@ -89,6 +90,7 @@ final class OnlineGame: GameModel {
         opponentScore = g.score(side.opponent)
         scoreDelta = g.delta(side)
         scoreBonus = g.bonus(side)
+        myBoost = g.boost(side)
         // AI 대전은 내 차례에만 시간 제한
         let timed = !(g.vsAi != nil && g.turn != side)
         turnSec = g.turnMs(g.turn) / 1000

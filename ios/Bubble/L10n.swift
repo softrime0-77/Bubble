@@ -175,3 +175,29 @@ enum MoveText {
         }
     }
 }
+
+/// 값이 들어가는 문장 (Templates.swift 표, 안드로이드 번역에서 자동 생성).
+/// 예: tf("보유 {0}개", 3) → "Owned: 3". 표에 없으면 한국어 문장에 값을 넣어 돌려줌.
+func tf(_ ko: String, _ args: Any...) -> String {
+    let code = LangStore.shared.code
+    let row = templateStrings[ko]
+    let tpl = code == .ko ? ko : (row?[code.rawValue] ?? row?["en"] ?? ko)
+    var out = ""
+    var i = tpl.startIndex
+    while i < tpl.endIndex {
+        let c = tpl[i]
+        let next = tpl.index(after: i)
+        if c == "{", next < tpl.endIndex, tpl[next] == "{" {
+            out.append("{"); i = tpl.index(after: next); continue
+        }
+        if c == "}", next < tpl.endIndex, tpl[next] == "}" {
+            out.append("}"); i = tpl.index(after: next); continue
+        }
+        if c == "{", let close = tpl[next...].firstIndex(of: "}"), let n = Int(tpl[next..<close]), args.indices.contains(n) {
+            out.append("\(args[n])"); i = tpl.index(after: close); continue
+        }
+        out.append(c)
+        i = next
+    }
+    return out
+}

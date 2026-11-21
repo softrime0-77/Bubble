@@ -6,6 +6,8 @@ struct GameView<M: GameModel>: View {
     var onLeave: () -> Void
     /// AI 대전이면 "한 판 더"
     var onAgain: (() -> Void)?
+    /// 졌을 때 로비로 가며 광고를 보면 돌려받는 점수 (없으면 nil)
+    var rewardOffer: Int? = nil
 
     @State private var confirmLeave = false
 
@@ -25,6 +27,7 @@ struct GameView<M: GameModel>: View {
                 HStack(spacing: 8) {
                     PlayerTag(side: opp, name: game.opponentName, active: game.turn == opp && !game.finished, skin: game.opponentSkin)
                     SplitCounter(left: game.board.splitsLeft(opp))
+                    ReviveCounter(left: game.board.revivesLeft(opp))
                 }
                 .padding(.top, 6)
 
@@ -56,17 +59,25 @@ struct GameView<M: GameModel>: View {
                 HStack(spacing: 8) {
                     PlayerTag(side: me, name: game.myName, active: game.myTurn, skin: game.mySkin)
                     SplitCounter(left: game.board.splitsLeft(me))
+                    ReviveCounter(left: game.board.revivesLeft(me))
+                    if game.myBoost {
+                        Text("🚀×3").font(.system(size: 13, weight: .black)).foregroundColor(Color(hex: 0xB23C00))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Capsule().fill(UiColor.gold.opacity(0.6)))
+                    }
                 }
                 .padding(.top, 16)
 
                 splitButton
+                reviveButton
                 logView
             }
             .padding(.vertical, 12)
 
             if game.finished, let w = game.winner {
                 ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
-                              online: game.isOnline, bonus: game.scoreBonus, onLobby: onLeave, onAgain: onAgain)
+                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, rewardOffer: rewardOffer,
+                              onLobby: onLeave, onAgain: onAgain)
             }
         }
         .alert(t("게임에서 나갈까요?"), isPresented: $confirmLeave) {
@@ -174,6 +185,23 @@ struct GameView<M: GameModel>: View {
         }
     }
 
+    /// 💖 부활물약: 내 차례에 터진 방울이 있고 이번 판 물약이 남았으면
+    @ViewBuilder private var reviveButton: some View {
+        if game.myTurn, let target = (0..<GameLogic.setCount).first(where: { GameLogic.canRevive(game.board, me, $0) }) {
+            Button {
+                game.selected = nil
+                game.play(.revive(index: target))
+            } label: {
+                Text(tf("💖 부활물약으로 {0} 살리기 · 남은 {1}개", setName(target), game.board.revivesLeft(me)))
+                    .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(Capsule().fill(Color(hex: 0xE0457B)))
+            }
+            .padding(.top, 8)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
     private var logView: some View {
         VStack(spacing: 2) {
             if let n = game.notice {
@@ -198,6 +226,8 @@ struct ResultOverlay: View {
     var delta: Int? = nil
     var online = false
     var bonus = 0
+    var boosted = false
+    var rewardOffer: Int? = nil
     let onLobby: () -> Void
     let onAgain: (() -> Void)?
 
@@ -219,6 +249,13 @@ struct ResultOverlay: View {
                                 es: "✨ Incluye bonus de rango +\(bonus)", fr: "✨ Bonus de rang inclus +\(bonus)", de: "✨ Inkl. Rangbonus +\(bonus)",
                                 pt: "✨ Inclui bônus de rank +\(bonus)", ru: "✨ С бонусом ранга +\(bonus)", ja: "✨ ランクボーナス +\(bonus) 込み"))
                             .font(.system(size: 14, weight: .bold)).foregroundColor(Color(hex: 0xD08A00))
+                    }
+                    if boosted, (delta ?? 0) > 0 {
+                        Text(t("🚀 ×3 부스터 적용!")).font(.system(size: 16, weight: .black)).foregroundColor(UiColor.primaryDark)
+                    }
+                    if let r = rewardOffer {
+                        Text(tf("📺 로비로 갈 때 광고를 보면 {0}점을 돌려받아요", r))
+                            .font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.accent).multilineTextAlignment(.center)
                     }
                 }
                 HStack(spacing: 10) {

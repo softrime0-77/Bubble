@@ -29,5 +29,7 @@ protocol GameModel: ObservableObject {
     var scoreDelta: Int? { get }
     var scoreBonus: Int { get }
     var notice: String? { get }
+    /// 이번 판에 ×3 부스터를 썼는지 (서버 랜덤 매칭)
+    var myBoost: Bool { get }
     func play(_ move: Move)
 }

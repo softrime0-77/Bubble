@@ -1,3 +1,4 @@
+import AuthenticationServices
 import BubbleCore
 import FirebaseAuth
 import FirebaseCore
@@ -17,7 +18,15 @@ struct Profile: Equatable {
     var potions: Int = 0
     var coins: Int = 0
     var admin: Bool = false
+    var boosts: Int = 0
+    var boostOn: Bool = false
+    var animals: [Animal: Int] = [:]
+    var equipped: Animal? = nil
+    var refCode: String? = nil
+    var referrals: Int = 0
+    var referred: Bool = false
     var rank: Rank { Rank.of(score) }
+    func animalCount(_ a: Animal) -> Int { animals[a] ?? 0 }
 }
 
 /// 게임 문서 (games/{id}) — 안드로이드 OnlineRepository.toGame과 같은 필드
@@ -50,6 +59,8 @@ struct OnlineGameDoc {
     var catCountry: String?
     var hamCountry: String?
     var vsAi: AiLevel?
+    var catBoost: Bool
+    var hamBoost: Bool
 
     func side(of uid: String) -> Side? { uid == catUid ? .cat : uid == hamUid ? .hamster : nil }
     func name(_ s: Side) -> String { s == .cat ? catName : hamName }
@@ -59,6 +70,7 @@ struct OnlineGameDoc {
     func bonus(_ s: Side) -> Int { s == .cat ? catBonus : hamBonus }
     func skin(_ s: Side) -> Animal? { s == .cat ? catSkin : hamSkin }
     func country(_ s: Side) -> String? { s == .cat ? catCountry : hamCountry }
+    func boost(_ s: Side) -> Bool { s == .cat ? catBoost : hamBoost }
 }
 
 struct ServerError: LocalizedError {
@@ -87,6 +99,16 @@ final class OnlineService: ObservableObject {
     @Published var error: String? = nil
     @Published var welcome: (kind: String, score: Int)? = nil
     @Published private(set) var onlineCount: Int? = nil
+    /// 상점·초대 등 버튼 처리 중
+    @Published private(set) var busy = false
+    /// 잠깐 보여주는 안내 (구매 완료 등)
+    @Published var info: String? = nil
+    /// 승급 축하 화면 (새 점수)
+    @Published var rankUpScore: Int? = nil
+
+    private var appleNonce: String? = nil
+    private var infoTask: Task<Void, Never>? = nil
+    private static let pendingInviteKey = "pending_invite"
 
     private var listeners: [ListenerRegistration] = []
     private var sessionTasks: [Task<Void, Never>] = []
@@ -137,12 +159,175 @@ final class OnlineService: ObservableObject {
         }
     }
 
+    /// Sign in with Apple 버튼이 요청을 만들 때
+    func prepareAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
+        let nonce = AppleNonce.make()
+        appleNonce = nonce
+        request.requestedScopes = [.email]
+        request.nonce = AppleNonce.sha256(nonce)
+    }
+
+    /// Sign in with Apple 결과 → Firebase 로그인
+    func finishAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+        error = nil
+        switch result {
+        case let .failure(e):
+            if (e as? ASAuthorizationError)?.code != .canceled { self.error = appleFailed(e.localizedDescription) }
+        case let .success(auth):
+            guard available,
+                  let cred = auth.credential as? ASAuthorizationAppleIDCredential,
+                  let data = cred.identityToken, let token = String(data: data, encoding: .utf8),
+                  let nonce = appleNonce
+            else {
+                error = appleFailed("no token")
+                return
+            }
+            loading = true
+            do {
+                let credential = OAuthProvider.appleCredential(withIDToken: token, rawNonce: nonce, fullName: nil)
+                let r = try await Auth.auth().signIn(with: credential)
+                startSession(r.user.uid)
+            } catch {
+                loading = false
+                self.error = appleFailed(error.localizedDescription)
+            }
+        }
+    }
+
+    private func appleFailed(_ why: String) -> String {
+        tr("Apple 로그인에 실패했어요: \(why)", "Apple sign-in failed: \(why)", zh: "Apple 登录失败：\(why)",
+           es: "Error al iniciar sesión con Apple: \(why)", fr: "Échec de la connexion Apple : \(why)",
+           de: "Apple-Anmeldung fehlgeschlagen: \(why)", pt: "Falha ao entrar com a Apple: \(why)",
+           ru: "Не удалось войти через Apple: \(why)", ja: "Appleでのログインに失敗しました：\(why)")
+    }
+
+    /// Apple로 로그인한 계정인지 (계정 삭제 때 토큰 취소 필요)
+    var signedInWithApple: Bool {
+        Auth.auth().currentUser?.providerData.contains { $0.providerID == "apple.com" } ?? false
+    }
+
+    /// 계정 삭제: Apple 계정이면 Apple 토큰을 먼저 취소하고, 서버가 대전 기권·데이터·로그인 계정을 지움
+    func deleteAccount() async {
+        guard available, uid != nil, !busy else { return }
+        busy = true
+        defer { busy = false }
+        do {
+            if signedInWithApple {
+                let nonce = AppleNonce.make()
+                let cred = try await AppleAuthorizer().authorize(nonce: nonce)
+                if let data = cred.authorizationCode, let code = String(data: data, encoding: .utf8) {
+                    try await Auth.auth().revokeToken(withAuthorizationCode: code)
+                }
+            }
+            _ = try await call("deleteAccount")
+            signOut()
+            show(t("계정이 삭제됐어요. 이용해 주셔서 고마워요 🐾"))
+        } catch {
+            if (error as? ASAuthorizationError)?.code == .canceled { return }
+            self.error = t("계정을 삭제하지 못했어요") + ": " + error.localizedDescription
+        }
+    }
+
+    // MARK: 닉네임 · 상점 · 초대
+
+    func rename(_ raw: String) {
+        let name = String(raw.trimmingCharacters(in: .whitespacesAndNewlines).prefix(12))
+        guard let id = uid, !name.isEmpty else { return }
+        Task { try? await db.collection("users").document(id).updateData(["name": name]) }
+    }
+
+    /// 잠깐 보여주는 안내
+    func show(_ message: String) {
+        info = message
+        infoTask?.cancel()
+        infoTask = Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            if !Task.isCancelled { info = nil }
+        }
+    }
+
+    private func shopAction(_ success: String, _ action: () async throws -> Void) async {
+        guard !busy else { return }
+        busy = true
+        error = nil
+        defer { busy = false }
+        do {
+            try await action()
+            show(success)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func buy(_ item: String, label: String) async {
+        await shopAction(tf("{0} 구매 완료! 🎉", label)) { _ = try await call("buyItem", ["item": item]) }
+    }
+
+    func equip(_ animal: Animal?) async {
+        await shopAction(animal.map { tf("{0} 장착!", $0.label) } ?? t("기본 캐릭터로 바꿨어요")) {
+            _ = try await call("equipAnimal", ["animal": animal.map { $0.rawValue as Any } ?? NSNull()])
+        }
+    }
+
+    func setBoost(_ on: Bool) async {
+        await shopAction(on ? t("×3 부스터를 켰어요! 다음 게임에서 1개 써요") : t("×3 부스터를 껐어요")) {
+            _ = try await call("setBoost", ["on": on])
+        }
+    }
+
+    /// 내 추천 코드 만들기 (서버가 프로필 refCode에 저장)
+    func loadReferralCode() {
+        guard profile?.refCode == nil else { return }
+        Task { _ = try? await call("getReferralCode") }
+    }
+
+    func redeemReferral(_ raw: String) async {
+        guard let code = Self.normalizeCode(raw) else { return }
+        await shopAction(t("코드를 입력했어요! 친구에게 +30점이 들어갔어요 🎁")) {
+            _ = try await call("redeemReferral", ["code": code])
+        }
+    }
+
+    /// 초대 링크로 앱이 열렸을 때: bubble://invite?code=… 또는 https://softrime0-77.github.io/Bubble/invite.html?code=…
+    func receiveInvite(_ url: URL) {
+        guard let c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        let isApp = c.scheme == "bubble" && c.host == "invite"
+        let isWeb = c.scheme == "https" && c.host == "softrime0-77.github.io" && c.path.hasPrefix("/Bubble/invite")
+        guard isApp || isWeb, let code = Self.normalizeCode(c.queryItems?.first { $0.name == "code" }?.value) else { return }
+        UserDefaults.standard.set(code, forKey: Self.pendingInviteKey)
+        if let p = profile { redeemPendingInvite(p) }
+    }
+
+    /// 로그인 후 받아 둔 초대 코드를 자동으로 입력
+    private func redeemPendingInvite(_ p: Profile) {
+        guard let code = UserDefaults.standard.string(forKey: Self.pendingInviteKey) else { return }
+        UserDefaults.standard.removeObject(forKey: Self.pendingInviteKey)
+        guard !p.referred, code != p.refCode else { return }
+        Task {
+            do {
+                _ = try await call("redeemReferral", ["code": code])
+                show(tf("초대 코드 {0}가 입력됐어요! 친구에게 +30점이 들어갔어요 🎁", code))
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    static func normalizeCode(_ raw: String?) -> String? {
+        let c = (raw ?? "").uppercased().filter { $0.isASCII && ($0.isLetter || $0.isNumber) }
+        return c.count == 6 ? c : nil
+    }
+
+    static func inviteLink(_ code: String) -> String { "https://softrime0-77.github.io/Bubble/invite.html?code=\(code)" }
+
     func signOut() {
         stopSession()
         try? Auth.auth().signOut()
         GIDSignIn.sharedInstance.signOut()
         uid = nil
         profile = nil
+        leaderboard = []
+        onlineCount = nil
     }
 
     private func stopSession() {
@@ -168,7 +353,7 @@ final class OnlineService: ObservableObject {
             loading = false
         })
         listeners.append(db.collection("users").document(id).addSnapshotListener { [weak self] snap, _ in
-            Task { @MainActor in self?.profile = snap.flatMap(Self.profile(from:)) }
+            Task { @MainActor in self?.updateProfile(snap.flatMap(Self.profile(from:))) }
         })
         listeners.append(db.collection("users").order(by: "score", descending: true).limit(to: 30).addSnapshotListener { [weak self] snap, _ in
             let list = snap?.documents.compactMap(Self.profile(from:)) ?? []
@@ -189,6 +374,24 @@ final class OnlineService: ObservableObject {
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
             }
         })
+    }
+
+    private func updateProfile(_ p: Profile?) {
+        let old = profile
+        profile = p
+        guard let p else { return }
+        // 같은 계정에서 계급이 올라가면 축하 화면
+        if let old, old.uid == p.uid, p.rank.rawValue > old.rank.rawValue { rankUpScore = p.score }
+        if old == nil { redeemPendingInvite(p) }
+    }
+
+    /// CI 스크린샷용: 로그인한 것처럼 프로필만 채움 (서버에는 연결 안 함)
+    func setDemoProfile(_ p: Profile) {
+        uid = p.uid
+        profile = p
+        leaderboard = [p, Profile(uid: "b", name: "보송햄찌42", score: 2140, wins: 30, losses: 12),
+                       Profile(uid: "c", name: "SleepyCat17", score: 1320, wins: 11, losses: 9)]
+            .sorted { $0.score > $1.score }
     }
 
     // MARK: 서버 함수
@@ -252,7 +455,16 @@ final class OnlineService: ObservableObject {
             losses: int(d["losses"]) ?? 0,
             potions: int(d["potions"]) ?? 0,
             coins: int(d["coins"]) ?? 0,
-            admin: d["admin"] as? Bool ?? false
+            admin: d["admin"] as? Bool ?? false,
+            boosts: int(d["boosts"]) ?? 0,
+            boostOn: d["boostOn"] as? Bool ?? false,
+            animals: Dictionary(uniqueKeysWithValues: ((d["animals"] as? [String: Any]) ?? [:]).compactMap { pair in
+                Animal(rawValue: pair.key).map { ($0, int(pair.value) ?? 0) }
+            }),
+            equipped: (d["equipped"] as? String).flatMap(Animal.init(rawValue:)),
+            refCode: d["refCode"] as? String,
+            referrals: int(d["referrals"]) ?? 0,
+            referred: d["referredBy"] != nil
         )
     }
 
@@ -288,7 +500,9 @@ final class OnlineService: ObservableObject {
             catSkin: (d["catSkin"] as? String).flatMap(Animal.init(rawValue:)),
             hamSkin: (d["hamSkin"] as? String).flatMap(Animal.init(rawValue:)),
             catCountry: d["catCountry"] as? String, hamCountry: d["hamCountry"] as? String,
-            vsAi: (d["vsAi"] as? String).flatMap(AiLevel.init(rawValue:))
+            vsAi: (d["vsAi"] as? String).flatMap(AiLevel.init(rawValue:)),
+            catBoost: d["catBoost"] as? Bool ?? false,
+            hamBoost: d["hamBoost"] as? Bool ?? false
         )
     }
 

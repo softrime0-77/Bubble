@@ -192,7 +192,7 @@ class ScreenshotTest {
         shot("ranks_small_top", 300)
         // 위로 쓸어 올려 맨 아래(흙)까지 스크롤
         rule.onNodeWithText("보너스 없음").performTouchInput { swipeUp(startY = bottom, endY = top) }
-        rule.onNodeWithText("7000 ~ 9999점").performTouchInput { swipeUp(startY = bottom, endY = top - 2000f) }
+        rule.onNodeWithText("7001 ~ 10000점").performTouchInput { swipeUp(startY = bottom, endY = top - 2000f) }
         repeat(3) {
             rule.mainClock.advanceTimeBy(200)
             org.robolectric.shadows.ShadowLooper.idleMainLooper()

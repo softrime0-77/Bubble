@@ -69,6 +69,7 @@ fun Critter(
                 Animal.SHEEP -> drawSheep(eyesClosed, happy)
                 Animal.DOG -> drawDog(eyesClosed, happy)
                 Animal.GIRAFFE -> drawGiraffe(eyesClosed, happy)
+                Animal.HAMSTER -> drawHamster(eyesClosed, happy)
                 null -> if (side == Side.CAT) drawCat(eyesClosed, happy) else drawHamster(eyesClosed, happy)
             }
         }

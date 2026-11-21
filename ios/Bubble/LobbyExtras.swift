@@ -72,7 +72,7 @@ struct RanksSheet: View {
     private func range(_ r: Rank) -> String {
         switch r {
         case .dirt: return t("1000점 이하")
-        case .diamond: return tf("{0}점 이상", r.minScore)
+        case .pinkDiamond: return tf("{0}점 이상", r.minScore)
         default: return tf("{0} ~ {1}점", r.minScore, Rank(rawValue: r.rawValue + 1)!.minScore - 1)
         }
     }
@@ -193,6 +193,7 @@ struct RankUpCelebration: View {
                         let pos = CGPoint(x: center.x + cos(ang) * dist, y: center.y + sin(ang) * dist + ease * ease * 120)
                         let color: Color
                         switch rank {
+                        case .pinkDiamond: color = [Color(hex: 0xFF4FA8), Color(hex: 0xFFB3E0), .white, Color(hex: 0xE3A6FF), Color(hex: 0xFFD6EC)][i % 5]
                         case .diamond: color = Color(hue: Double(h), saturation: 0.55, brightness: 1)
                         case .gold: color = [UiColor.gold, Color(hex: 0xFFF4B0), .white][i % 3]
                         case .ruby: color = [Color(hex: 0xE0115F), Color(hex: 0xFF8FB0), .white][i % 3]
@@ -200,7 +201,7 @@ struct RankUpCelebration: View {
                         default: color = [Color(hex: 0xF0A36B), .white][i % 2]
                         }
                         let r = (1 - ease * 0.7) * (6 + Double(s) * (4 + Double(rank.sparkle) * 3))
-                        ctx.fill(sparklePath(pos, r), with: .color(color.opacity(1 - ease * 0.6)))
+                        ctx.fill(rank == .pinkDiamond && i % 3 == 0 ? heartPath(pos, r * 0.8) : sparklePath(pos, r), with: .color(color.opacity(1 - ease * 0.6)))
                     }
                 }
             }

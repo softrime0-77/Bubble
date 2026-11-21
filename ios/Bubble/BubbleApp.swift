@@ -126,7 +126,7 @@ struct RootView: View {
         Task {
             do {
                 let id = try await online.startAiGame(level)
-                openOnline(id, uid: uid, fallback: false)
+                openOnline(id, uid: uid, fallback: false, intro: false)
             } catch {
                 screen = .local(LocalGame(level: level))
             }
@@ -245,8 +245,10 @@ struct RootView: View {
         screen = .lobby
     }
 
-    private func openOnline(_ id: String, uid: String, fallback: Bool) {
+    /// intro: VS 소개 화면 (직접 고른 AI 대전은 바로 시작)
+    private func openOnline(_ id: String, uid: String, fallback: Bool, intro: Bool = true) {
         screen = .online(OnlineGame(gameId: id, uid: uid, fallbackAi: fallback))
+        guard intro else { showVs = false; return }
         showVs = true
         Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000)

@@ -65,6 +65,7 @@ struct Critter: View {
                 case .sheep: drawSheep(&ctx, size, closed, happy)
                 case .dog: drawDog(&ctx, size, closed, happy)
                 case .giraffe: drawGiraffe(&ctx, size, closed, happy)
+                case .hamster: drawHamster(&ctx, size, closed, happy)
                 case nil: side == .cat ? drawCat(&ctx, size, closed, happy) : drawHamster(&ctx, size, closed, happy)
                 }
             }
@@ -240,6 +241,18 @@ func sparklePath(_ c: CGPoint, _ r: CGFloat) -> Path {
     p.addQuadCurve(to: CGPoint(x: c.x, y: c.y + r), control: c)
     p.addQuadCurve(to: CGPoint(x: c.x - r, y: c.y), control: c)
     p.addQuadCurve(to: CGPoint(x: c.x, y: c.y - r), control: c)
+    p.closeSubpath()
+    return p
+}
+
+/// 작은 하트 (핑크다이아 반짝이)
+func heartPath(_ c: CGPoint, _ r: CGFloat) -> Path {
+    var p = Path()
+    p.move(to: CGPoint(x: c.x, y: c.y + r * 0.9))
+    p.addCurve(to: CGPoint(x: c.x, y: c.y - r * 0.45),
+               control1: CGPoint(x: c.x - r * 1.6, y: c.y - r * 0.2), control2: CGPoint(x: c.x - r * 0.6, y: c.y - r * 1.3))
+    p.addCurve(to: CGPoint(x: c.x, y: c.y + r * 0.9),
+               control1: CGPoint(x: c.x + r * 0.6, y: c.y - r * 1.3), control2: CGPoint(x: c.x + r * 1.6, y: c.y - r * 0.2))
     p.closeSubpath()
     return p
 }

@@ -32,6 +32,7 @@ struct ShopView: View {
                 }
                 if let p = online.profile {
                     pointsCard
+                    itemUsageCard
                     shopCard(title: t("💖 부활물약"),
                              desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
                              price: Shop.potionPrice, owned: tf("보유 {0}개", p.potions), art: AnyView(PotionArt().frame(width: 84, height: 84))) {
@@ -54,7 +55,34 @@ struct ShopView: View {
                     Text(t("소모품: 1개 = 랜덤 매칭 1판. 장착한 채 매칭되면 1개를 쓰고, 그 판에 내 캐릭터가 바뀌고 상대의 턴이 짧아져요"))
                         .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    ForEach(Animal.allCases, id: \.self) { a in
+                    // 무료 햄스터: 사지 않고 바로 장착 (모습만 바뀌고 효과 없음)
+                    let hamOn = p.equipped == .hamster
+                    shopCard(title: tr("🐹 햄스터", "🐹 Hamster", zh: "🐹 仓鼠", es: "🐹 Hámster", fr: "🐹 Hamster", de: "🐹 Hamster", pt: "🐹 Hamster", ru: "🐹 Хомяк", ja: "🐹 ハムスター"),
+                             desc: tr("🎁 무료! 내 캐릭터를 햄스터로 바꿔요.\n효과는 없고 몇 판을 해도 줄지 않아요 (모든 대전에서 모습만)",
+                                      "🎁 Free! Turn your character into a hamster.\nNo effect and never used up (look only, in every battle)",
+                                      zh: "🎁 免费！把你的角色换成仓鼠。\n没有效果，也不会消耗（所有对战中仅外观）",
+                                      es: "🎁 ¡Gratis! Convierte tu personaje en hámster.\nSin efecto y nunca se gasta (solo aspecto, en todas las batallas)",
+                                      fr: "🎁 Gratuit ! Transforme ton perso en hamster.\nAucun effet, jamais consommé (look seulement, dans tous les combats)",
+                                      de: "🎁 Gratis! Mach deine Figur zum Hamster.\nKein Effekt, wird nie verbraucht (nur Look, in jedem Duell)",
+                                      pt: "🎁 Grátis! Transforme seu personagem em hamster.\nSem efeito e nunca acaba (só visual, em todas as batalhas)",
+                                      ru: "🎁 Бесплатно! Превратите персонажа в хомяка.\nБез эффекта и не тратится (только вид, в любом бою)",
+                                      ja: "🎁 無料！自分のキャラをハムスターに。\n効果なし・減りません（どの対戦でも見た目だけ）"),
+                             price: nil,
+                             owned: hamOn ? tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", es: "✅ Equipado", fr: "✅ Équipé", de: "✅ Ausgerüstet", pt: "✅ Equipado", ru: "✅ Надето", ja: "✅ 装備中") : nil,
+                             art: AnyView(Critter(side: .hamster, skin: .hamster, happy: hamOn).frame(width: 84, height: 84))) {
+                        if hamOn {
+                            outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
+                        } else {
+                            Button { Task { await online.equip(.hamster) } } label: {
+                                Text(tr("무료로 장착", "Equip for free", zh: "免费装备", es: "Equipar gratis", fr: "Équiper gratuitement", de: "Gratis ausrüsten", pt: "Equipar grátis", ru: "Надеть бесплатно", ja: "無料で装備"))
+                                    .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                                    .padding(.horizontal, 12).padding(.vertical, 8)
+                                    .background(Capsule().fill(UiColor.accent))
+                            }
+                            .disabled(online.busy)
+                        }
+                    }
+                    ForEach(Animal.allCases.filter { !$0.free }, id: \.self) { a in
                         let count = p.animalCount(a)
                         let on = p.equipped == a && count > 0
                         shopCard(title: a.label,
@@ -110,6 +138,66 @@ struct ShopView: View {
         return text
     }
 
+    /// 아이템이 어떤 대전에서 효과가 있는지 한눈에 (안드로이드 ItemUsageCard와 같은 내용)
+    private var itemUsageCard: some View {
+        let yes = Color(hex: 0x2E9E5B)
+        let on = tr("✓ 효과", "✓ Works", zh: "✓ 有效", es: "✓ Sí", fr: "✓ Oui", de: "✓ Ja", pt: "✓ Sim", ru: "✓ Да", ja: "✓ 効果")
+        let off = tr("— 없음", "— None", zh: "— 无", es: "— No", fr: "— Non", de: "— Nein", pt: "— Não", ru: "— Нет", ja: "— なし")
+        let look = tr("👀 모습만", "👀 Look only", zh: "👀 仅外观", es: "👀 Solo look", fr: "👀 Look seul", de: "👀 Nur Look", pt: "👀 Só visual", ru: "👀 Только вид", ja: "👀 見た目だけ")
+        let rows: [(String, [Bool?])] = [
+            (tr("💖 부활물약", "💖 Potion", zh: "💖 药水", es: "💖 Poción", fr: "💖 Potion", de: "💖 Trank", pt: "💖 Poção", ru: "💖 Зелье", ja: "💖 復活薬"), [true, true, true]),
+            (tr("🚀 ×3 부스터", "🚀 x3 Booster", zh: "🚀 ×3 加成", es: "🚀 x3", fr: "🚀 Booster x3", de: "🚀 x3-Booster", pt: "🚀 x3", ru: "🚀 Бустер x3", ja: "🚀 ×3"), [true, false, false]),
+            (tr("🐾 동물 친구", "🐾 Animals", zh: "🐾 动物", es: "🐾 Animales", fr: "🐾 Animaux", de: "🐾 Tiere", pt: "🐾 Animais", ru: "🐾 Зверята", ja: "🐾 どうぶつ"), [true, nil, false]),
+        ]
+        let heads = [
+            tr("🎲 랜덤", "🎲 Random", zh: "🎲 随机", es: "🎲 Aleatoria", fr: "🎲 Aléatoire", de: "🎲 Zufall", pt: "🎲 Aleatória", ru: "🎲 Случайный", ja: "🎲 ランダム"),
+            tr("🤖 AI", "🤖 AI", es: "🤖 IA", fr: "🤖 IA", de: "🤖 KI", pt: "🤖 IA", ru: "🤖 ИИ"),
+            tr("👫 친구", "👫 Friend", zh: "👫 好友", es: "👫 Amigo", fr: "👫 Ami", de: "👫 Freund", pt: "👫 Amigo", ru: "👫 Друг", ja: "👫 友だち"),
+        ]
+        func cell(_ c: Bool?) -> some View {
+            let text = c == true ? on : c == false ? off : look
+            let fg = c == true ? yes : c == false ? UiColor.text.opacity(0.35) : UiColor.accent
+            let bg = c == true ? yes.opacity(0.13) : c == false ? UiColor.text.opacity(0.06) : UiColor.accent.opacity(0.12)
+            return Text(text).font(.system(size: 12, weight: .black)).foregroundColor(fg).lineLimit(1).minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity).padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 10).fill(bg))
+                .padding(.horizontal, 3)
+        }
+        return card {
+            Text(tr("✨ 아이템은 어디서 효과가 있나요?", "✨ Where do items work?", zh: "✨ 道具在哪里有效？", es: "✨ ¿Dónde funcionan los objetos?",
+                    fr: "✨ Où marchent les objets ?", de: "✨ Wo wirken Items?", pt: "✨ Onde os itens funcionam?", ru: "✨ Где работают предметы?",
+                    ja: "✨ アイテムはどこで効く？"))
+                .font(.system(size: 16, weight: .black)).foregroundColor(UiColor.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 0) {
+                Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
+                ForEach(heads, id: \.self) { h in
+                    Text(h).font(.system(size: 11, weight: .bold)).foregroundColor(UiColor.text.opacity(0.75))
+                        .lineLimit(1).minimumScaleFactor(0.7).frame(maxWidth: .infinity)
+                }
+            }
+            ForEach(0..<rows.count, id: \.self) { r in
+                let row = rows[r]
+                HStack(spacing: 0) {
+                    Text(row.0).font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.text)
+                        .lineLimit(1).minimumScaleFactor(0.7).frame(maxWidth: .infinity, alignment: .leading)
+                    ForEach(0..<3, id: \.self) { i in cell(row.1[i]) }
+                }
+            }
+            Text(tr("🤖 AI 대전과 👫 친구 대전에서는 부스터와 동물이 쓰이지 않아요. 개수도 줄지 않으니 안심하세요!",
+                    "🤖 AI and 👫 friend battles don't use boosters or animals, so you won't lose any!",
+                    zh: "🤖 AI 对战和 👫 好友对战不会使用加成和动物，数量也不会减少，放心吧！",
+                    es: "🤖 En batallas contra la IA y 👫 entre amigos no se usan potenciadores ni animales, ¡no pierdes ninguno!",
+                    fr: "🤖 Les combats contre l’IA et 👫 entre amis n’utilisent ni boosters ni animaux : tu n’en perds aucun !",
+                    de: "🤖 KI- und 👫 Freundesduelle verbrauchen keine Booster oder Tiere – du verlierst also nichts!",
+                    pt: "🤖 Batalhas contra a IA e 👫 entre amigos não usam impulsos nem animais, então você não perde nenhum!",
+                    ru: "🤖 В боях с ИИ и 👫 с друзьями бустеры и зверята не тратятся — ничего не потеряете!",
+                    ja: "🤖 AI対戦と 👫 友だち対戦ではブースターとどうぶつは使われません。数も減らないので安心！"))
+                .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.75))
+                .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 4)
+        }
+    }
+
     private var pointsCard: some View {
         card {
             Text(t("💰 포인트 충전")).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
@@ -157,7 +245,7 @@ struct ShopView: View {
         .disabled(online.busy)
     }
 
-    private func shopCard<A: View>(title: String, desc: String, price: Int, owned: String?, art: AnyView, @ViewBuilder action: () -> A) -> some View {
+    private func shopCard<A: View>(title: String, desc: String, price: Int?, owned: String?, art: AnyView, @ViewBuilder action: () -> A) -> some View {
         card {
             HStack(alignment: .center, spacing: 12) {
                 art
@@ -166,7 +254,9 @@ struct ShopView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(title).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text).lineLimit(1).minimumScaleFactor(0.7)
-                        Text(pts(price)).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                        if let price {
+                            Text(pts(price)).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                        }
                     }
                     Text(desc).font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.8)).fixedSize(horizontal: false, vertical: true)
                     if let owned {

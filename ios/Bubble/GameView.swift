@@ -11,6 +11,42 @@ struct GameView<M: GameModel>: View {
 
     @State private var confirmLeave = false
 
+    /// 승리 공유 카드 내용 (추천 코드 링크 포함 → 친구가 들어오면 둘 다 +30점)
+    private var winShare: WinShare {
+        let online = OnlineService.shared
+        let code = online.profile?.refCode
+        let rank = Rank.of(online.profile?.score ?? 0)
+        let gain: String = (game.isOnline ? game.scoreDelta : nil).flatMap { d in d > 0 ? "+" + pts(d) + " · " : nil } ?? ""
+        let link = code.map { OnlineService.inviteLink($0) } ?? "https://softrime0-77.github.io/Bubble/invite.html"
+        let opp = game.opponentName
+        let codeLine = code.map { c in
+            tr("\n내 추천 코드 \(c) 넣으면 우리 둘 다 +30점 🎁", "\nUse my code \(c) and we both get +30 pts 🎁",
+               zh: "\n输入我的邀请码 \(c)，我们各得 +30 分 🎁", es: "\nUsa mi código \(c) y ambos ganamos +30 pts 🎁",
+               fr: "\nAvec mon code \(c), on gagne +30 pts chacun 🎁", de: "\nMit meinem Code \(c) bekommen wir beide +30 Pkt 🎁",
+               pt: "\nUse meu código \(c) e nós dois ganhamos +30 pts 🎁", ru: "\nВведи мой код \(c) — получим по +30 очк. 🎁",
+               ja: "\n招待コード \(c) を入れると2人とも +30点 🎁")
+        } ?? ""
+        let message = tr("Bubble 냥햄대전에서 \(opp)을(를) 이겼어! 🏆 너도 한 판 해볼래?", "I beat \(opp) in Bubble: Cats vs Hamsters! 🏆 Wanna try?",
+                         zh: "我在 Bubble 猫咪大战仓鼠里赢了 \(opp)！🏆 你也来一局？", es: "¡Le gané a \(opp) en Bubble! 🏆 ¿Te animas?",
+                         fr: "J’ai battu \(opp) dans Bubble ! 🏆 Tu tentes ?", de: "Ich habe \(opp) in Bubble besiegt! 🏆 Probierst du’s?",
+                         pt: "Venci \(opp) no Bubble! 🏆 Bora jogar?", ru: "Я победил \(opp) в Bubble! 🏆 Сыграешь?",
+                         ja: "Bubble で \(opp) に勝ったよ！🏆 一緒にやろう？") + codeLine + "\n" + link
+        let footer = code.map { c in
+            tr("추천 코드 \(c) · 둘 다 +30점 🎁", "Code \(c) · we both get +30 🎁", zh: "邀请码 \(c) · 双方各 +30 🎁", es: "Código \(c) · ambos +30 🎁",
+               fr: "Code \(c) · +30 pour nous deux 🎁", de: "Code \(c) · beide +30 🎁", pt: "Código \(c) · os dois +30 🎁", ru: "Код \(c) · обоим +30 🎁",
+               ja: "招待コード \(c) · 2人とも+30 🎁")
+        } ?? tr("고양이 vs 햄스터 1:1 방울 대결", "Cats vs Hamsters 1:1 bubble battle", zh: "猫咪 vs 仓鼠 1:1 泡泡对决", es: "Gatos vs Hámsteres 1:1",
+                fr: "Chats contre Hamsters 1:1", de: "Katzen gegen Hamster 1:1", pt: "Gatos vs Hamsters 1:1", ru: "Котики против хомяков 1:1", ja: "ネコ vs ハムスター 1対1")
+        return WinShare(
+            title: tr("승리!", "Victory!", zh: "胜利！", es: "¡Victoria!", fr: "Victoire !", de: "Sieg!", pt: "Vitória!", ru: "Победа!", ja: "勝利！"),
+            matchLine: "\(game.myName) vs \(opp)",
+            scoreLine: gain + "\(rank.emoji) \(rank.label)",
+            side: game.mySide,
+            skin: game.mySkin,
+            footer: footer,
+            message: message)
+    }
+
     private var me: Side { game.mySide }
     private var opp: Side { game.mySide.opponent }
 
@@ -77,6 +113,7 @@ struct GameView<M: GameModel>: View {
             if game.finished, let w = game.winner {
                 ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
                               online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
+                              share: w == me ? winShare : nil,
                               onLobby: onLeave, onAgain: onAgain)
             }
         }
@@ -229,6 +266,8 @@ struct ResultOverlay: View {
     var boosted = false
     var friendly = false
     var rewardOffer: Int? = nil
+    /// 이겼으면 승리 공유 카드
+    var share: WinShare? = nil
     let onLobby: () -> Void
     let onAgain: (() -> Void)?
 
@@ -271,6 +310,7 @@ struct ResultOverlay: View {
                             .font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.accent).multilineTextAlignment(.center)
                     }
                 }
+                if let share { WinShareButton(share: share).padding(.top, 6) }
                 HStack(spacing: 10) {
                     if let onAgain {
                         Button(t("한 판 더"), action: onAgain)

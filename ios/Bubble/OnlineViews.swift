@@ -330,3 +330,73 @@ struct VsIntro: View {
         .background(RoundedRectangle(cornerRadius: 24).fill(.white))
     }
 }
+
+
+/// 승리 공유 카드 내용
+struct WinShare {
+    let title: String
+    let matchLine: String
+    let scoreLine: String
+    let side: Side
+    let skin: Animal?
+    let footer: String
+    let message: String
+}
+
+/// 공유할 승리 카드 그림 (1080×1080으로 렌더링)
+struct WinShareCardView: View {
+    let share: WinShare
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(hex: 0xFFD6EA), Color(hex: 0xD9D2FF)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            RoundedRectangle(cornerRadius: 72).fill(.white.opacity(0.95)).padding(.horizontal, 80).padding(.vertical, 110)
+            VStack(spacing: 18) {
+                HStack(spacing: 10) {
+                    Text("🏆").font(.system(size: 150))
+                    Critter(side: share.side, skin: share.skin, happy: true).frame(width: 190, height: 190)
+                }
+                Text(share.title).font(.system(size: 110, weight: .black)).foregroundColor(Color(hex: 0xE0518F))
+                Text(share.matchLine).font(.system(size: 50)).foregroundColor(Color(hex: 0x4A3B5C))
+                    .lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 130)
+                Text(share.scoreLine).font(.system(size: 72, weight: .black)).foregroundColor(Color(hex: 0x7C6CF2))
+                    .lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 130)
+                Text("Bubble 🐱🫧🐹").font(.system(size: 54, weight: .bold)).foregroundColor(Color(hex: 0x4A3B5C)).padding(.top, 30)
+                Text(share.footer).font(.system(size: 40, weight: .bold)).foregroundColor(Color(hex: 0xE0518F))
+                    .lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, 130)
+            }
+        }
+        .frame(width: 1080, height: 1080)
+    }
+}
+
+/// 결과 화면의 "📣 자랑하기": 승리 카드 이미지 + 추천 링크 메시지를 공유
+struct WinShareButton: View {
+    let share: WinShare
+    @State private var image: Image? = nil
+
+    var body: some View {
+        Group {
+            if let image {
+                ShareLink(item: image, message: Text(share.message), preview: SharePreview("Bubble", image: image)) { label }
+            } else {
+                ShareLink(item: share.message) { label }
+            }
+        }
+        .onAppear(perform: render)
+    }
+
+    private var label: some View {
+        Text(tr("📣 자랑하기", "📣 Share my win", zh: "📣 炫耀一下", es: "📣 Presumir", fr: "📣 Partager ma victoire",
+                de: "📣 Sieg teilen", pt: "📣 Compartilhar vitória", ru: "📣 Похвастаться", ja: "📣 自慢する"))
+            .font(.system(size: 16, weight: .black)).foregroundColor(.white)
+            .padding(.horizontal, 22).padding(.vertical, 11)
+            .background(Capsule().fill(UiColor.accent))
+    }
+
+    @MainActor private func render() {
+        let renderer = ImageRenderer(content: WinShareCardView(share: share))
+        renderer.scale = 1
+        if let ui = renderer.uiImage { image = Image(uiImage: ui) }
+    }
+}

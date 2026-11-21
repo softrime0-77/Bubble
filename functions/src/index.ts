@@ -55,9 +55,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * 우리 보상형 전면 광고 단위 번호. 테스트 광고 단위는 거절.
- * 안드로이드: ca-app-pub-…/6715010091. 아이폰 광고 단위를 AdMob에 만들면 그 번호를 여기에 추가 (README iOS 항목).
+ * 안드로이드: ca-app-pub-…/6715010091, 아이폰: ca-app-pub-…/9985608059 (보상형 전면).
  */
-const REWARDED_AD_UNITS = ["6715010091"];
+const REWARDED_AD_UNITS = ["6715010091", "9985608059"];
 
 /** 구글로 로그인한 사용자만 허용합니다. */
 function requireUser(req: CallableRequest): string {

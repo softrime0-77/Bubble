@@ -244,7 +244,7 @@ Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 
    | `remove_ads` | 광고 제거 | ₩3,000 단계 · **비소모품**으로 만듦 (상점에 "구매 복원" 버튼 있음) |
    서버(`verifyApplePurchase`)는 Apple 서명을 직접 확인하므로 별도 API 키가 필요 없습니다. 테스트는 App Store Connect의 **샌드박스 테스터** 계정으로 합니다.
 3. **광고**: AdMob에 iOS 앱을 추가하고, 전면 광고·보상형 전면 광고 단위를 만든 뒤
-   - `ios/project.yml`의 `GADApplicationIdentifier`, `BubbleInterstitialId`, `BubbleRewardedId`를 실제 ID로 교체 (지금은 구글 테스트 광고)
+   - `ios/project.yml`의 `GADApplicationIdentifier`, `BubbleInterstitialId`, `BubbleRewardedId`에 실제 ID가 들어가 있음 (앱 ca-app-pub-4615819907336992~5224683070)
    - 보상형 광고 단위의 **서버 측 확인** URL에 안드로이드와 같은 `admobSsv` 주소를 넣고, 단위 번호(`/` 뒤 숫자)를 `functions/src/index.ts`의 `REWARDED_AD_UNITS`에 추가
 4. **서버 배포**: Apple 로그인·Apple 결제를 받도록 바뀐 서버와 보안 규칙을 배포
    ```bash

@@ -70,6 +70,18 @@
 
 구매·장착·물약 사용은 모두 서버(Cloud Functions)가 점수와 보유 여부를 검사합니다.
 
+## 서버 배포 버튼 (PC 없이)
+
+저장소 **Actions → Deploy server → Run workflow** 한 번이면 서버(Functions + Firestore 규칙)가 배포됩니다. 휴대폰 GitHub 앱에서도 됩니다.
+
+처음 한 번만 설정:
+1. [Google Cloud 콘솔 → IAM → 서비스 계정](https://console.cloud.google.com/iam-admin/serviceaccounts?project=bubble-422ef) → **서비스 계정 만들기** (이름 예: `github-deploy`)
+2. 역할: **편집자(Editor)** 와 **서비스 계정 사용자(Service Account User)** 를 줍니다
+3. 만든 계정 → **키 → 키 추가 → 새 키 만들기 → JSON** → 파일이 내려받아짐
+4. GitHub 저장소 → Settings → Secrets and variables → Actions → **New repository secret**
+   - 이름 `FIREBASE_SERVICE_ACCOUNT`, 값: 받은 JSON 파일 내용 전체
+5. 받은 JSON 파일은 지우거나 안전한 곳에 보관 (이 키로 프로젝트를 바꿀 수 있음)
+
 ## 보상 · 수익
 
 | 기능 | 내용 |

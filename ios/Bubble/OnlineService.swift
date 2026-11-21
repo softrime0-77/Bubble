@@ -383,6 +383,18 @@ final class OnlineService: ObservableObject {
     /// 기기의 나라 (VS 화면·랭킹 국기)
     static var deviceCountry: String { Locale.current.region?.identifier ?? "" }
 
+    private var leaderboardAt = Date.distantPast
+
+    /// 랭킹 TOP 100 새로고침 (10초 안에 다시 부르면 건너뜀, force면 바로)
+    func refreshLeaderboard(force: Bool = false) async {
+        guard uid != nil, force || Date().timeIntervalSince(leaderboardAt) > 10 else { return }
+        leaderboardAt = Date()
+        guard let snap = try? await db.collection("users").order(by: "score", descending: true)
+            .limit(to: Self.leaderboardSize).getDocuments() else { return }
+        leaderboard = snap.documents.compactMap(Self.profile(from:))
+        refreshMyRanking()
+    }
+
     /// TOP 100 밖이면 내 순위와 위아래 10명을 서버에서 불러옴 (내 점수가 바뀔 때만)
     private func refreshMyRanking() {
         guard let p = profile else { return }
@@ -510,11 +522,12 @@ final class OnlineService: ObservableObject {
         listeners.append(db.collection("users").document(id).addSnapshotListener { [weak self] snap, _ in
             Task { @MainActor in self?.updateProfile(snap.flatMap(Self.profile(from:))) }
         })
-        listeners.append(db.collection("users").order(by: "score", descending: true).limit(to: Self.leaderboardSize).addSnapshotListener { [weak self] snap, _ in
-            let list = snap?.documents.compactMap(Self.profile(from:)) ?? []
-            Task { @MainActor in
-                self?.leaderboard = list
-                self?.refreshMyRanking()
+        // 랭킹: 실시간 구독 대신 1분마다 새로고침 (상위권 점수가 바뀔 때마다 모두에게 다시 보내지 않게, 비용 절약)
+        // 로비로 돌아올 때도 RootView가 refreshLeaderboard()를 부름
+        sessionTasks.append(Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refreshLeaderboard(force: true)
+                try? await Task.sleep(nanoseconds: 60_000_000_000)
             }
         })
         // 1분마다 접속 신호, 관리자는 30초마다 동시 접속자 수

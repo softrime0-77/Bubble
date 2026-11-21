@@ -121,6 +121,11 @@ data class LobbyUi(
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
+    private companion object {
+        /** 로비에 있을 때 랭킹 새로고침 간격 */
+        const val LEADERBOARD_REFRESH_MS = 60_000L
+    }
+
     private val repo = OnlineRepository(app)
 
     private val _screen = MutableStateFlow<Screen>(Screen.Lobby)
@@ -428,10 +433,12 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                         refreshMyRanking()
                     }
                 }
+                // 랭킹: 로비로 돌아올 때 + 로비에 있는 동안 1분마다 새로고침 (실시간 구독보다 훨씬 저렴)
+                launch { _screen.collect { if (it == Screen.Lobby) refreshLeaderboard() } }
                 launch {
-                    repo.leaderboardFlow().collect { l ->
-                        _lobby.update { it.copy(leaderboard = l) }
-                        refreshMyRanking()
+                    while (isActive) {
+                        delay(LEADERBOARD_REFRESH_MS)
+                        if (_screen.value == Screen.Lobby) refreshLeaderboard(force = true)
                     }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -442,6 +449,23 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
 "Could not connect to the server: ${e.message}",
 zh = "无法连接服务器：${e.message}", hi = "सर्वर से कनेक्ट नहीं हो सका: ${e.message}", es = "No se pudo conectar con el servidor: ${e.message}", fr = "Connexion au serveur impossible : ${e.message}", ar = "تعذّر الاتصال بالخادم: ${e.message}", de = "Keine Verbindung zum Server: ${e.message}", pt = "Não foi possível conectar ao servidor: ${e.message}", ru = "Не удалось подключиться к серверу: ${e.message}", ja = "サーバーに接続できませんでした：${e.message}",
 )) }
+            }
+        }
+    }
+
+    private var leaderboardAt = 0L
+    private var leaderboardJob: Job? = null
+
+    /** 랭킹 TOP 100 새로고침 (10초 안에 다시 부르면 건너뜀, [force]면 바로) */
+    private fun refreshLeaderboard(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - leaderboardAt < 10_000L) return
+        if (leaderboardJob?.isActive == true) return
+        leaderboardAt = now
+        leaderboardJob = viewModelScope.launch {
+            runCatching { repo.leaderboard() }.onSuccess { l ->
+                _lobby.update { it.copy(leaderboard = l) }
+                refreshMyRanking()
             }
         }
     }

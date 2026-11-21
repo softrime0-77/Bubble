@@ -219,13 +219,13 @@ class OnlineRepository(context: Context) {
         awaitClose { reg.remove() }
     }
 
-    fun leaderboardFlow(): Flow<List<Profile>> = callbackFlow {
-        val reg = users.orderBy("score", Query.Direction.DESCENDING).limit(LEADERBOARD_SIZE.toLong())
-            .addSnapshotListener { s, _ ->
-                if (s != null) trySend(s.documents.map { it.toProfile() })
-            }
-        awaitClose { reg.remove() }
-    }
+    /**
+     * 랭킹 TOP 100 한 번 불러오기. 실시간 구독은 상위권 점수가 바뀔 때마다 보고 있는 모두에게
+     * 다시 전송돼 사용자가 많아지면 읽기 비용이 크게 늘어서, 로비에서 1분마다 새로고침합니다.
+     */
+    suspend fun leaderboard(): List<Profile> =
+        users.orderBy("score", Query.Direction.DESCENDING).limit(LEADERBOARD_SIZE.toLong())
+            .get().await().documents.map { it.toProfile() }
 
     /** 내 순위와 내 위아래 10명 (TOP 100 밖일 때 보여줌) */
     suspend fun myRanking(): Pair<Int, List<RankRow>> {

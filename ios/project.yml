@@ -69,7 +69,7 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         CFBundleURLTypes:
-          - CFBundleURLSchemes: [com.googleusercontent.apps.92307501556-3agq5c7a1ihtfc8ssrckrmsr0hge71in]
+          - CFBundleURLSchemes: [com.googleusercontent.apps.92307501556-bmh8rfg8hbop569dak802h6teo2pqefa]
           - CFBundleURLSchemes: [bubble]
     settings:
       base:

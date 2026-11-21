@@ -36,6 +36,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // 친구 대전방과 하루 판 수 기록: 서버 전용
+    match /friendRooms/{code} {
+      allow read, write: if false;
+    }
+    match /friendPairs/{id} {
+      allow read, write: if false;
+    }
+
     // 대전: 참가자만 읽기, 쓰기는 서버 전용
     match /games/{gameId} {
       allow read: if signedInWithGoogle()

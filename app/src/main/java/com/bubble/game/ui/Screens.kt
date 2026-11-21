@@ -109,6 +109,7 @@ fun BubbleApp(vm: AppViewModel) {
             when (s) {
                 Screen.Lobby -> LobbyScreen(vm)
                 is Screen.Matching -> MatchingScreen(s.startedAt, onCancel = vm::cancelMatching)
+                is Screen.FriendWait -> FriendWaitScreen(s.code, s.startedAt, onCancel = vm::cancelFriendBattle)
                 Screen.Game -> GameScreen(vm)
                 Screen.Shop -> ShopScreen(vm)
             }
@@ -281,6 +282,32 @@ zh = "与匿名玩家 1:1 对战 · 胜利 +${OnlineRepository.WIN_POINTS} 分",
             enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
             onClick = vm::startMatching,
         )
+        Spacer(Modifier.height(10.dp))
+        Button(
+            onClick = vm::startFriendBattle,
+            enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(tr("👫  친구와 대전", "👫  Battle a Friend", zh = "👫  好友对战", hi = "👫  दोस्त से मुकाबला", es = "👫  Reta a un amigo", fr = "👫  Défier un ami", ar = "👫  تحدَّ صديقًا", de = "👫  Freund herausfordern", pt = "👫  Desafiar um amigo", ru = "👫  Бой с другом", ja = "👫  友だちと対戦"), fontSize = 19.sp, fontWeight = FontWeight.Black)
+                Text(
+                    tr(
+                        "링크를 보내 1:1 · 승리 +${OnlineRepository.FRIEND_WIN_POINTS} · 패배 -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        "Send a link, play 1:1 · Win +${OnlineRepository.FRIEND_WIN_POINTS} · Lose -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        zh = "发送链接 1:1 · 胜 +${OnlineRepository.FRIEND_WIN_POINTS} · 负 -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        es = "Envía un enlace, 1:1 · Gana +${OnlineRepository.FRIEND_WIN_POINTS} · Pierde -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        fr = "Envoie un lien, 1:1 · Victoire +${OnlineRepository.FRIEND_WIN_POINTS} · Défaite -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        de = "Link senden, 1:1 · Sieg +${OnlineRepository.FRIEND_WIN_POINTS} · Niederlage -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        pt = "Envie um link, 1:1 · Vitória +${OnlineRepository.FRIEND_WIN_POINTS} · Derrota -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        ru = "Отправьте ссылку, 1:1 · Победа +${OnlineRepository.FRIEND_WIN_POINTS} · Поражение -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        ja = "リンクを送って1対1 · 勝ち +${OnlineRepository.FRIEND_WIN_POINTS} · 負け -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                    ),
+                    fontSize = 12.sp,
+                )
+            }
+        }
         Spacer(Modifier.height(12.dp))
         SoftCard {
             Text(if (ui.profile != null) tr("🤖 AI 대전", "🤖 AI Battle", zh = "🤖 AI 对战", hi = "🤖 AI मुकाबला", es = "🤖 Batalla contra IA", fr = "🤖 Combat contre l’IA", ar = "🤖 معركة ضد الذكاء الاصطناعي", de = "🤖 KI-Duell", pt = "🤖 Batalha contra IA", ru = "🤖 Бой с ИИ", ja = "🤖 AI対戦") else tr("🤖 AI와 연습하기", "🤖 Practice with AI", zh = "🤖 与 AI 练习", hi = "🤖 AI के साथ अभ्यास", es = "🤖 Practicar con IA", fr = "🤖 S’entraîner contre l’IA", ar = "🤖 تدرّب مع الذكاء الاصطناعي", de = "🤖 Gegen KI üben", pt = "🤖 Treinar com IA", ru = "🤖 Тренировка с ИИ", ja = "🤖 AIと練習"), fontWeight = FontWeight.Bold, color = Ui.text)
@@ -341,22 +368,18 @@ zh = "与匿名玩家 1:1 对战 · 胜利 +${OnlineRepository.WIN_POINTS} 分",
                 Text(tr("🏆 랭킹", "🏆 Leaderboard", zh = "🏆 排行榜", hi = "🏆 लीडरबोर्ड", es = "🏆 Clasificación", fr = "🏆 Classement", ar = "🏆 لوحة المتصدرين", de = "🏆 Bestenliste", pt = "🏆 Ranking", ru = "🏆 Рейтинг", ja = "🏆 ランキング"), fontWeight = FontWeight.Bold, color = Ui.text)
                 Spacer(Modifier.height(6.dp))
                 ui.leaderboard.forEachIndexed { i, p ->
-                    val me = p.uid == ui.profile?.uid
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(if (me) Ui.primary.copy(alpha = 0.15f) else Color.Transparent, RoundedCornerShape(10.dp))
-                            .padding(horizontal = 8.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            when (i) { 0 -> "🥇"; 1 -> "🥈"; 2 -> "🥉"; else -> "${i + 1}" },
-                            modifier = Modifier.width(32.dp), color = Ui.text, fontWeight = FontWeight.Bold,
-                        )
-                        Text(p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else "", modifier = Modifier.weight(1f), color = Ui.text)
-                        RankBadge(p.score)
-                        Spacer(Modifier.width(8.dp))
-                        Text(tr("${p.score}점", "${p.score} pts", zh = "${p.score} 分", hi = "${p.score} अंक", es = "${p.score} pts", fr = "${p.score} pts", ar = "${p.score} نقطة", de = "${p.score} Pkt", pt = "${p.score} pts", ru = "${p.score} очк.", ja = "${p.score}点"), color = Ui.primaryDark, fontWeight = FontWeight.Bold)
+                    LeaderRow(i + 1, p.name, p.country, p.score, me = p.uid == ui.profile?.uid)
+                }
+                // TOP 100 밖이면 내 순위와 위아래 10명
+                if (ui.myRank != null && ui.aroundMe.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        tr("📍 내 순위: ${ui.myRank}위", "📍 My rank: #${ui.myRank}", zh = "📍 我的排名：第 ${ui.myRank} 名", hi = "📍 मेरी रैंक: #${ui.myRank}", es = "📍 Mi puesto: #${ui.myRank}", fr = "📍 Mon rang : #${ui.myRank}", ar = "📍 ترتيبي: #${ui.myRank}", de = "📍 Mein Platz: #${ui.myRank}", pt = "📍 Minha posição: #${ui.myRank}", ru = "📍 Моё место: #${ui.myRank}", ja = "📍 自分の順位：${ui.myRank}位"),
+                        fontWeight = FontWeight.Bold, color = Ui.text,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    ui.aroundMe.forEach { r ->
+                        LeaderRow(r.rank, r.name, r.country, r.score, me = r.uid == ui.profile?.uid)
                     }
                 }
             }
@@ -550,6 +573,142 @@ zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，�
             )
         },
     )
+}
+
+/** 랭킹 한 줄: 순위 · 국기 · 닉네임 · 계급 · 점수 */
+@Composable
+private fun LeaderRow(position: Int, name: String, country: String?, score: Int, me: Boolean) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(if (me) Ui.primary.copy(alpha = 0.15f) else Color.Transparent, RoundedCornerShape(10.dp))
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            when (position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "$position" },
+            modifier = Modifier.width(40.dp), color = Ui.text, fontWeight = FontWeight.Bold, maxLines = 1,
+        )
+        Text(Country.flag(country), fontSize = 16.sp, modifier = Modifier.width(26.dp))
+        Text(
+            name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else "",
+            modifier = Modifier.weight(1f), color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
+        RankBadge(score)
+        Spacer(Modifier.width(8.dp))
+        Text(tr("${score}점", "${score} pts", zh = "${score} 分", hi = "${score} अंक", es = "${score} pts", fr = "${score} pts", ar = "${score} نقطة", de = "${score} Pkt", pt = "${score} pts", ru = "${score} очк.", ja = "${score}点"), color = Ui.primaryDark, fontWeight = FontWeight.Bold)
+    }
+}
+
+// ======================= 친구 대전 기다리기 =======================
+
+@Composable
+private fun FriendWaitScreen(code: String?, startedAt: Long, onCancel: () -> Unit) {
+    BackHandler(onBack = onCancel)
+    val context = LocalContext.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) { while (true) { delay(1000); now = System.currentTimeMillis() } }
+    val left = ((OnlineRepository.FRIEND_WAIT_MS - (now - startedAt)) / 1000).coerceAtLeast(0)
+    val t = rememberInfiniteTransition(label = "friend")
+    val swing by t.animateFloat(-1f, 1f, infiniteRepeatable(tween(650), RepeatMode.Reverse), label = "swing")
+
+    fun shareText(c: String) = tr(
+        "Bubble 냥햄대전에서 나랑 한 판 붙자! ⚔️🐱🐹
+대전 코드: $c
+${Invite.battleLink(c)}",
+        "Battle me in Bubble: Cats vs Hamsters! ⚔️🐱🐹
+Battle code: $c
+${Invite.battleLink(c)}",
+        zh = "来 Bubble 猫咪大战仓鼠和我对战吧！⚔️🐱🐹
+对战码：$c
+${Invite.battleLink(c)}",
+        es = "¡Juega una partida conmigo en Bubble! ⚔️🐱🐹
+Código: $c
+${Invite.battleLink(c)}",
+        fr = "Viens m’affronter dans Bubble ! ⚔️🐱🐹
+Code : $c
+${Invite.battleLink(c)}",
+        de = "Spiel eine Runde Bubble gegen mich! ⚔️🐱🐹
+Code: $c
+${Invite.battleLink(c)}",
+        pt = "Jogue uma partida de Bubble comigo! ⚔️🐱🐹
+Código: $c
+${Invite.battleLink(c)}",
+        ru = "Сразись со мной в Bubble! ⚔️🐱🐹
+Код боя: $c
+${Invite.battleLink(c)}",
+        ja = "Bubble で一緒に対戦しよう！⚔️🐱🐹
+対戦コード：$c
+${Invite.battleLink(c)}",
+    )
+
+    Column(
+        Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Critter(Side.CAT, Modifier.size(96.dp).offset(x = (swing * 10).dp))
+            Text("👫", fontSize = 34.sp, modifier = Modifier.padding(horizontal = 10.dp))
+            Critter(Side.HAMSTER, Modifier.size(96.dp).offset(x = (-swing * 10).dp))
+        }
+        Spacer(Modifier.height(20.dp))
+        if (code == null) {
+            CircularProgressIndicator(color = Ui.accent)
+            Spacer(Modifier.height(10.dp))
+            Text(tr("대전방을 만드는 중…", "Creating a room…", zh = "正在创建房间…", es = "Creando sala…", fr = "Création de la salle…", de = "Raum wird erstellt…", pt = "Criando sala…", ru = "Создаём комнату…", ja = "ルームを作成中…"), color = Ui.text)
+        } else {
+            Text(tr("친구에게 링크를 보내 주세요", "Send this link to a friend", zh = "把链接发给朋友", es = "Envía este enlace a un amigo", fr = "Envoie ce lien à un ami", de = "Schick diesen Link an einen Freund", pt = "Envie este link para um amigo", ru = "Отправьте ссылку другу", ja = "友だちにリンクを送ってください"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ui.text, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                code, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark, letterSpacing = 4.sp,
+                modifier = Modifier.background(Color.White, RoundedCornerShape(14.dp)).padding(horizontal = 18.dp, vertical = 8.dp),
+            )
+            Spacer(Modifier.height(14.dp))
+            Button(
+                onClick = {
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, shareText(code))
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, null))
+                },
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+            ) { Text(tr("💬 링크 보내기", "💬 Send link", zh = "💬 发送链接", es = "💬 Enviar enlace", fr = "💬 Envoyer le lien", de = "💬 Link senden", pt = "💬 Enviar link", ru = "💬 Отправить ссылку", ja = "💬 リンクを送る"), fontWeight = FontWeight.Bold) }
+            TextButton(onClick = {
+                clipboard.setText(androidx.compose.ui.text.AnnotatedString(Invite.battleLink(code)))
+                copied = true
+            }) {
+                Text(
+                    if (copied) tr("✅ 링크를 복사했어요", "✅ Link copied", zh = "✅ 链接已复制", hi = "✅ लिंक कॉपी हो गया", es = "✅ Enlace copiado", fr = "✅ Lien copié", ar = "✅ تم نسخ الرابط", de = "✅ Link kopiert", pt = "✅ Link copiado", ru = "✅ Ссылка скопирована", ja = "✅ リンクをコピーしました")
+                    else tr("🔗 링크 복사", "🔗 Copy link", zh = "🔗 复制链接", es = "🔗 Copiar enlace", fr = "🔗 Copier le lien", de = "🔗 Link kopieren", pt = "🔗 Copiar link", ru = "🔗 Скопировать ссылку", ja = "🔗 リンクをコピー"),
+                    color = Ui.accent, fontWeight = FontWeight.Bold,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(tr("친구를 기다리는 중", "Waiting for your friend", zh = "正在等待朋友", es = "Esperando a tu amigo", fr = "En attente de ton ami", de = "Warte auf deinen Freund", pt = "Esperando seu amigo", ru = "Ждём друга", ja = "友だちを待っています") + ".".repeat(((now / 1000) % 4).toInt()) + "  %d:%02d".format(left / 60, left % 60), color = Ui.text.copy(alpha = 0.75f))
+            Spacer(Modifier.height(8.dp))
+            Text(
+                tr(
+                    "승리 +${OnlineRepository.FRIEND_WIN_POINTS}점 · 패배 -${OnlineRepository.FRIEND_LOSE_POINTS}점\n같은 친구와는 하루 ${OnlineRepository.FRIEND_RATED_PER_DAY}판까지 점수가 걸려요",
+                    "Win +${OnlineRepository.FRIEND_WIN_POINTS} · Lose -${OnlineRepository.FRIEND_LOSE_POINTS}\nOnly ${OnlineRepository.FRIEND_RATED_PER_DAY} scored games per friend per day",
+                    zh = "胜 +${OnlineRepository.FRIEND_WIN_POINTS} · 负 -${OnlineRepository.FRIEND_LOSE_POINTS}\n同一好友每天最多 ${OnlineRepository.FRIEND_RATED_PER_DAY} 局计分",
+                    es = "Gana +${OnlineRepository.FRIEND_WIN_POINTS} · Pierde -${OnlineRepository.FRIEND_LOSE_POINTS}\nSolo ${OnlineRepository.FRIEND_RATED_PER_DAY} partidas con puntos por amigo al día",
+                    fr = "Victoire +${OnlineRepository.FRIEND_WIN_POINTS} · Défaite -${OnlineRepository.FRIEND_LOSE_POINTS}\n${OnlineRepository.FRIEND_RATED_PER_DAY} parties notées max. par ami et par jour",
+                    de = "Sieg +${OnlineRepository.FRIEND_WIN_POINTS} · Niederlage -${OnlineRepository.FRIEND_LOSE_POINTS}\nNur ${OnlineRepository.FRIEND_RATED_PER_DAY} gewertete Partien pro Freund und Tag",
+                    pt = "Vitória +${OnlineRepository.FRIEND_WIN_POINTS} · Derrota -${OnlineRepository.FRIEND_LOSE_POINTS}\nSó ${OnlineRepository.FRIEND_RATED_PER_DAY} partidas valendo pontos por amigo por dia",
+                    ru = "Победа +${OnlineRepository.FRIEND_WIN_POINTS} · Поражение -${OnlineRepository.FRIEND_LOSE_POINTS}\nНе больше ${OnlineRepository.FRIEND_RATED_PER_DAY} игр на очки с одним другом в день",
+                    ja = "勝ち +${OnlineRepository.FRIEND_WIN_POINTS}点 · 負け -${OnlineRepository.FRIEND_LOSE_POINTS}点\n同じ友だちとは1日${OnlineRepository.FRIEND_RATED_PER_DAY}戦まで点数がかかります",
+                ),
+                fontSize = 13.sp, color = Ui.accent, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+            )
+        }
+        Spacer(Modifier.height(28.dp))
+        OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(20.dp)) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル"), color = Ui.text) }
+    }
 }
 
 // ======================= 매칭 중 =======================
@@ -778,7 +937,8 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             val activity = LocalContext.current as Activity
             val rewardedReady by AdManager.rewardedReady.collectAsState()
             var showRewardIntro by remember { mutableStateOf(false) }
-            val lostOnline = g.online && g.winner != g.mySide && (g.scoreDelta ?: 0) < 0
+            // 친구 대전은 광고로 점수를 돌려받을 수 없음 (서버도 거절)
+            val lostOnline = g.online && !g.friend && g.winner != g.mySide && (g.scoreDelta ?: 0) < 0
             val canOfferReward = lostOnline && rewardedReady && vm.rewardTarget() != null
             ResultOverlay(
                 g,
@@ -947,6 +1107,16 @@ private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onA
                         fontSize = 26.sp, fontWeight = FontWeight.Black,
                         color = if ((d ?: 0) >= 0) Ui.accent else Ui.danger,
                     )
+                    if (g.friend && !g.friendRated) {
+                        Text(
+                            tr("🤝 친선전 (오늘 이 친구와는 점수가 걸린 ${OnlineRepository.FRIEND_RATED_PER_DAY}판을 다 했어요)", "🤝 Friendly match (you've played today's ${OnlineRepository.FRIEND_RATED_PER_DAY} scored games with this friend)",
+                                zh = "🤝 友谊赛（今天与这位好友的 ${OnlineRepository.FRIEND_RATED_PER_DAY} 局计分赛已用完）", es = "🤝 Amistoso (ya jugaste las ${OnlineRepository.FRIEND_RATED_PER_DAY} partidas con puntos de hoy con este amigo)",
+                                fr = "🤝 Match amical (les ${OnlineRepository.FRIEND_RATED_PER_DAY} parties notées du jour avec cet ami sont jouées)", de = "🤝 Freundschaftsspiel (die ${OnlineRepository.FRIEND_RATED_PER_DAY} gewerteten Partien mit diesem Freund sind heute schon gespielt)",
+                                pt = "🤝 Amistoso (as ${OnlineRepository.FRIEND_RATED_PER_DAY} partidas com pontos de hoje com este amigo já foram jogadas)", ru = "🤝 Товарищеский матч (сегодняшние ${OnlineRepository.FRIEND_RATED_PER_DAY} игр на очки с этим другом сыграны)",
+                                ja = "🤝 フレンドリーマッチ（今日はこの友だちとの点数付き${OnlineRepository.FRIEND_RATED_PER_DAY}戦を終えました）"),
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.text.copy(alpha = 0.75f), textAlign = TextAlign.Center,
+                        )
+                    }
                     if (g.myBoost && (d ?: 0) > 0) {
                         Text(
                             tr("🚀 ×3 부스터 적용!", "🚀 x3 booster applied!", zh = "🚀 ×3 加成生效！", hi = "🚀 ×3 बूस्टर लगा!",
@@ -1842,6 +2012,8 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
                         ar = "لم يُعثر على خصم، لذا ستواجه 🤖 الذكاء الاصطناعي (صعب)", de = "Kein Gegner gefunden, du spielst gegen 🤖 KI (Schwer)",
                         pt = "Nenhum rival encontrado, você vai enfrentar 🤖 IA (Difícil)", ru = "Соперник не найден — играете с 🤖 ИИ (Сложно)",
                         ja = "相手が見つからなかったので 🤖 AI（むずかしい）と対戦します")
+                } else if (g.friend) {
+                    tr("👫 친구와 대전!", "👫 Friend battle!", zh = "👫 好友对战！", es = "👫 ¡Duelo entre amigos!", fr = "👫 Duel entre amis !", de = "👫 Freundesduell!", pt = "👫 Duelo entre amigos!", ru = "👫 Бой с другом!", ja = "👫 友だちと対戦！")
                 } else {
                     tr("⚔️ 매칭 완료!", "⚔️ Match found!", zh = "⚔️ 匹配成功！", hi = "⚔️ मैच मिल गया!", es = "⚔️ ¡Rival encontrado!",
                         fr = "⚔️ Adversaire trouvé !", ar = "⚔️ تم العثور على خصم!", de = "⚔️ Gegner gefunden!", pt = "⚔️ Rival encontrado!",

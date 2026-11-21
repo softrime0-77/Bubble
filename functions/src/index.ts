@@ -4,7 +4,7 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { DocumentReference, DocumentSnapshot, FieldValue, getFirestore, Transaction } from "firebase-admin/firestore";
+import { DocumentReference, DocumentSnapshot, FieldPath, FieldValue, getFirestore, Transaction } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
@@ -16,6 +16,7 @@ import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
 import { ANIMALS, BOOST_PRICE, cleanCountry, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
+import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
 initializeApp();
@@ -92,6 +93,10 @@ interface Game {
   status: "playing" | "finished";
   /** AI 대전이면 난이도 */
   vsAi?: AiLevel;
+  /** 친구 대전 (초대 링크) */
+  vsFriend?: boolean;
+  /** 친구 대전에서 점수가 걸린 판인지 (같은 친구와 하루 5판까지) */
+  rated?: boolean;
   /** 이번 판에 ✖️3 부스터를 쓴 사람 */
   catBoost?: boolean;
   hamBoost?: boolean;
@@ -144,6 +149,19 @@ function finishGame(
       [human === "CAT" ? "catBonus" : "hamBonus"]: bonus,
     });
     if (delta !== 0) tx.update(humanSnap.ref, { score: FieldValue.increment(delta) });
+    return;
+  }
+  if (game.vsFriend) {
+    // 친구 대전: 이기면 +30, 지면 -10 (계급 보너스·부스터 없음). 하루 제한을 넘긴 판은 점수 없음
+    const loserSnap = catWon ? users.ham : users.cat;
+    const d = friendDeltas(game.rated === true, score(loserSnap));
+    const catDelta = catWon ? d.win : d.lose;
+    const hamDelta = catWon ? d.lose : d.win;
+    tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus: 0, hamBonus: 0 });
+    if (game.rated) {
+      tx.update(users.cat.ref, { score: FieldValue.increment(catDelta), [catWon ? "wins" : "losses"]: FieldValue.increment(1) });
+      tx.update(users.ham.ref, { score: FieldValue.increment(hamDelta), [catWon ? "losses" : "wins"]: FieldValue.increment(1) });
+    }
     return;
   }
   // 이긴 쪽은 계급 보너스(구리 5% ~ 다이아 20%)를 더 받음
@@ -228,6 +246,8 @@ export const matchmake = onCall(async (req) => {
 
     const myProfile = await tx.get(db.collection("users").doc(uid));
     if (!myProfile.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    // 랭킹에 국기를 보여주려고 나라를 프로필에도 저장
+    if (myCountry && myProfile.get("country") !== myCountry) tx.update(myProfile.ref, { country: myCountry });
 
     const waiting = await tx.get(db.collection("queue").where("status", "==", "waiting").limit(100));
     const fresh = waiting.docs.filter((d) => d.id !== uid && now - ((d.get("heartbeat") as number) ?? 0) < QUEUE_STALE_MS);
@@ -443,6 +463,7 @@ export const startAiGame = onCall(async (req) => {
   // ×3 부스터는 랜덤 매칭 전용이라 AI 대전에서는 쓰지 않음
   const me = await db.collection("users").doc(uid).get();
   if (!me.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+  if (country && me.get("country") !== country) await me.ref.update({ country });
   const humanIsCat = Math.random() < 0.5;
   const now = Date.now();
   const gameRef = db.collection("games").doc();
@@ -567,6 +588,7 @@ export const admobSsv = onRequest(async (req, res) => {
     const side = sideOf(game, p.userId);
     if (!side || game.status !== "finished" || game.winner === side) return "not a loss";
     if (game.vsAi) return "ai game";
+    if (game.vsFriend) return "friend game";
     const refundField = side === "CAT" ? "catRefund" : "hamRefund";
     if ((game[refundField] ?? 0) > 0) return "already refunded";
     const lost = -((side === "CAT" ? game.catDelta : game.hamDelta) ?? 0);
@@ -855,6 +877,7 @@ export const ensureProfile = onCall(async (req) => {
   const admin = isAdmin(req);
   const rawName = (req.data as { name?: unknown } | null)?.name;
   const name = typeof rawName === "string" && rawName.trim() ? rawName.trim().slice(0, 12) : "Player";
+  const country = cleanCountry((req.data as { country?: unknown } | null)?.country);
   const email = req.auth?.token.email;
   const deletedBefore = typeof email === "string"
     ? (await db.collection("deletedAccounts").doc(emailHash(email)).get()).exists
@@ -863,6 +886,7 @@ export const ensureProfile = onCall(async (req) => {
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (snap.exists) {
+      if (country && snap.get("country") !== country) tx.update(ref, { country });
       // 관리자는 처음 한 번 5000점까지 채워줌
       if (admin && !snap.get("adminSeeded")) {
         const score = (snap.get("score") as number | undefined) ?? START_SCORE;
@@ -874,6 +898,7 @@ export const ensureProfile = onCall(async (req) => {
     const score = admin ? ADMIN_START_SCORE : deletedBefore ? RETURNING_START_SCORE : START_SCORE;
     tx.set(ref, {
       name, score, wins: 0, losses: 0, createdAt: Date.now(),
+      ...(country ? { country } : {}),
       ...(admin ? { admin: true, adminSeeded: true } : {}),
     });
     return { kind, score };
@@ -902,4 +927,167 @@ export const setBoost = onCall(async (req) => {
     tx.update(ref, { boostOn: on });
   });
   return { ok: true };
+});
+
+// ======================= 랭킹 (내 주변 순위) =======================
+
+/** 랭킹 TOP 100 밖일 때 보여줄 내 위아래 인원 */
+const AROUND_ME = 10;
+
+/**
+ * 내 순위와 내 위아래 10명씩. 순서는 점수 높은 순, 같은 점수면 문서 ID 역순
+ * (앱의 TOP 100 목록 orderBy("score", desc)와 같은 순서).
+ */
+export const myRanking = onCall(async (req) => {
+  const uid = requireUser(req);
+  const users = db.collection("users");
+  const me = await users.doc(uid).get();
+  if (!me.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+  const myScore = (me.get("score") as number | undefined) ?? START_SCORE;
+  const [higher, tiedAhead, aboveSnap, belowSnap] = await Promise.all([
+    users.where("score", ">", myScore).count().get(),
+    users.where("score", "==", myScore).where(FieldPath.documentId(), ">", uid).count().get(),
+    users.orderBy("score", "asc").orderBy(FieldPath.documentId(), "asc").startAfter(myScore, uid).limit(AROUND_ME).get(),
+    users.orderBy("score", "desc").orderBy(FieldPath.documentId(), "desc").startAfter(myScore, uid).limit(AROUND_ME).get(),
+  ]);
+  const rank = higher.data().count + tiedAhead.data().count + 1;
+  const row = (d: DocumentSnapshot, r: number) => ({
+    uid: d.id, rank: r, name: (d.get("name") as string | undefined) ?? "Player",
+    score: (d.get("score") as number | undefined) ?? START_SCORE, country: (d.get("country") as string | undefined) ?? null,
+  });
+  const above = aboveSnap.docs.reverse().map((d, i, arr) => row(d, rank - (arr.length - i)));
+  const below = belowSnap.docs.map((d, i) => row(d, rank + i + 1));
+  return { rank, rows: [...above, row(me, rank), ...below] };
+});
+
+// ======================= 친구 대전 (초대 링크) =======================
+
+function requireRoomCode(data: unknown): string {
+  const code = normalizeCode((data as { code?: unknown } | null)?.code);
+  if (!code) throw err("invalid-argument", "대전 코드가 맞지 않아요", "Invalid battle code");
+  return code;
+}
+
+/** 친구 대전방 만들기. 돌려준 코드를 링크로 친구에게 보냄 (10분 동안 유효). */
+export const createFriendRoom = onCall(async (req) => {
+  const uid = requireUser(req);
+  const country = cleanCountry((req.data as { country?: unknown } | null)?.country);
+  const me = await db.collection("users").doc(uid).get();
+  if (!me.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = randomCode();
+    const ref = db.collection("friendRooms").doc(code);
+    const made = await db.runTransaction(async (tx) => {
+      const r = await tx.get(ref);
+      if (r.exists && Date.now() - ((r.get("createdAt") as number | undefined) ?? 0) < FRIEND_ROOM_TTL_MS) return false;
+      const now = Date.now();
+      tx.set(ref, { host: uid, hostCountry: country, status: "waiting", gameId: null, createdAt: now, heartbeat: now });
+      return true;
+    });
+    if (made) return { code };
+  }
+  throw err("internal", "대전방을 만들지 못했어요. 다시 시도해 주세요", "Could not create a room. Please try again");
+});
+
+/** 방장이 몇 초마다 호출: 친구가 들어왔으면 gameId, 아니면 null. 만료되면 expired. */
+export const pollFriendRoom = onCall(async (req) => {
+  const uid = requireUser(req);
+  const code = requireRoomCode(req.data);
+  const ref = db.collection("friendRooms").doc(code);
+  return db.runTransaction(async (tx) => {
+    const r = await tx.get(ref);
+    if (!r.exists || r.get("host") !== uid) return { gameId: null, expired: true };
+    if (r.get("status") === "matched") return { gameId: r.get("gameId") as string, expired: false };
+    const now = Date.now();
+    if (now - ((r.get("createdAt") as number | undefined) ?? 0) >= FRIEND_ROOM_TTL_MS) {
+      tx.delete(ref);
+      return { gameId: null, expired: true };
+    }
+    tx.update(ref, { heartbeat: now });
+    return { gameId: null, expired: false };
+  });
+});
+
+/** 방장이 기다리기를 취소. */
+export const cancelFriendRoom = onCall(async (req) => {
+  const uid = requireUser(req);
+  const code = requireRoomCode(req.data);
+  const ref = db.collection("friendRooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const r = await tx.get(ref);
+    if (r.exists && r.get("host") === uid && r.get("status") === "waiting") tx.delete(ref);
+  });
+  return { ok: true };
+});
+
+/**
+ * 친구가 링크로 들어옴 → 바로 대전 시작.
+ * 점수: 이기면 +30, 지면 -10. 같은 두 사람은 하루(한국 시간) 5판까지만 점수가 걸리고, 그 뒤는 친선전.
+ * 동물·×3 부스터는 쓰지 않음 (턴 시간 20초). 부활물약은 랜덤 매칭처럼 가진 만큼 쓸 수 있음.
+ */
+export const joinFriendRoom = onCall(async (req) => {
+  const uid = requireUser(req);
+  const code = requireRoomCode(req.data);
+  const myCountry = cleanCountry((req.data as { country?: unknown } | null)?.country);
+  const roomRef = db.collection("friendRooms").doc(code);
+  return db.runTransaction(async (tx) => {
+    const now = Date.now();
+    const room = await tx.get(roomRef);
+    if (!room.exists) throw err("not-found", "대전방이 없거나 끝났어요", "This battle room is gone");
+    const host = room.get("host") as string;
+    if (host === uid) throw err("invalid-argument", "내가 만든 방이에요. 친구에게 링크를 보내 주세요", "That's your own room. Send the link to a friend");
+    if (room.get("status") === "matched") throw err("failed-precondition", "이미 다른 사람이 들어간 방이에요", "Someone already joined this room");
+    if (!roomJoinable(room.data() ?? {}, now)) throw err("failed-precondition", "친구가 기다리기를 끝냈어요. 다시 초대해 달라고 해 주세요", "Your friend stopped waiting. Ask them to invite you again");
+    const pairRef = db.collection("friendPairs").doc(`${pairKey(uid, host)}_${dayKey(now)}`);
+    const [hostProfile, myProfile, pair] = await Promise.all([
+      tx.get(db.collection("users").doc(host)),
+      tx.get(db.collection("users").doc(uid)),
+      tx.get(pairRef),
+    ]);
+    if (!myProfile.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    if (!hostProfile.exists) throw err("not-found", "대전방이 없거나 끝났어요", "This battle room is gone");
+    const rated = isRated((pair.get("rated") as number | undefined) ?? 0);
+    const hostCountry = cleanCountry(room.get("hostCountry"));
+    const gameRef = db.collection("games").doc();
+    const iAmCat = Math.random() < 0.5;
+    const [cat, ham] = iAmCat ? [myProfile, hostProfile] : [hostProfile, myProfile];
+    tx.set(gameRef, {
+      vsFriend: true,
+      rated,
+      catUid: cat.id,
+      hamUid: ham.id,
+      catName: cat.get("name") ?? "고양이",
+      hamName: ham.get("name") ?? "햄스터",
+      catScore: cat.get("score") ?? START_SCORE,
+      hamScore: ham.get("score") ?? START_SCORE,
+      cat: [1, 1],
+      ham: [1, 1],
+      catSplits: MAX_SPLITS,
+      hamSplits: MAX_SPLITS,
+      catRevives: revivesForGame(cat.get("potions")),
+      hamRevives: revivesForGame(ham.get("potions")),
+      catCountry: iAmCat ? myCountry : hostCountry,
+      hamCountry: iAmCat ? hostCountry : myCountry,
+      catSkin: null,
+      hamSkin: null,
+      catBoost: false,
+      hamBoost: false,
+      catTurnMs: TURN_LIMIT_MS,
+      hamTurnMs: TURN_LIMIT_MS,
+      turn: "CAT",
+      status: "playing",
+      winner: null,
+      reason: "",
+      lastDesc: "",
+      explodedSide: null,
+      explodedIndex: -1,
+      moveNo: 0,
+      turnStartedAt: now,
+      createdAt: now,
+    });
+    if (rated) tx.set(pairRef, { rated: FieldValue.increment(1), at: now }, { merge: true });
+    if (myCountry && myProfile.get("country") !== myCountry) tx.update(myProfile.ref, { country: myCountry });
+    tx.update(roomRef, { status: "matched", gameId: gameRef.id, guest: uid });
+    return { gameId: gameRef.id, rated };
+  });
 });

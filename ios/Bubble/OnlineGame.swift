@@ -35,6 +35,9 @@ final class OnlineGame: GameModel {
     @Published private(set) var opponentScore = 0
     @Published private(set) var loaded = false
     @Published private(set) var myBoost = false
+    /// 친구 대전 / 그중 점수가 걸린 판
+    @Published private(set) var isFriend = false
+    @Published private(set) var friendRated = false
 
     private var lastMove = -1
     private var listener: ListenerRegistration?
@@ -43,6 +46,7 @@ final class OnlineGame: GameModel {
     var myTurn: Bool { loaded && !finished && !busy && turn == mySide }
     var isAi: Bool { aiLevel != nil }
     var isOnline: Bool { true }
+    var friendlyMatch: Bool { isFriend && !friendRated }
 
     init(gameId: String, uid: String, fallbackAi: Bool = false) {
         self.gameId = gameId
@@ -91,6 +95,8 @@ final class OnlineGame: GameModel {
         scoreDelta = g.delta(side)
         scoreBonus = g.bonus(side)
         myBoost = g.boost(side)
+        isFriend = g.vsFriend
+        friendRated = g.rated
         // AI 대전은 내 차례에만 시간 제한
         let timed = !(g.vsAi != nil && g.turn != side)
         turnSec = g.turnMs(g.turn) / 1000

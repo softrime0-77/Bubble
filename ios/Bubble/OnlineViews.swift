@@ -96,6 +96,93 @@ struct MatchingView: View {
     }
 }
 
+/// 친구 대전: 대전 링크를 보내고 친구를 기다리는 화면
+struct FriendWaitView: View {
+    let code: String?
+    let startedAt: Date
+    let onCancel: () -> Void
+    @State private var copied = false
+
+    private func shareText(_ c: String) -> String {
+        let link = OnlineService.battleLink(c)
+        return tr("Bubble 냥햄대전에서 나랑 한 판 붙자! ⚔️🐱🐹\n대전 코드: \(c)\n\(link)",
+                  "Battle me in Bubble: Cats vs Hamsters! ⚔️🐱🐹\nBattle code: \(c)\n\(link)",
+                  zh: "来 Bubble 猫咪大战仓鼠和我对战吧！⚔️🐱🐹\n对战码：\(c)\n\(link)",
+                  es: "¡Juega una partida conmigo en Bubble! ⚔️🐱🐹\nCódigo: \(c)\n\(link)",
+                  fr: "Viens m’affronter dans Bubble ! ⚔️🐱🐹\nCode : \(c)\n\(link)",
+                  de: "Spiel eine Runde Bubble gegen mich! ⚔️🐱🐹\nCode: \(c)\n\(link)",
+                  pt: "Jogue uma partida de Bubble comigo! ⚔️🐱🐹\nCódigo: \(c)\n\(link)",
+                  ru: "Сразись со мной в Bubble! ⚔️🐱🐹\nКод боя: \(c)\n\(link)",
+                  ja: "Bubble で一緒に対戦しよう！⚔️🐱🐹\n対戦コード：\(c)\n\(link)")
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { tl in
+            let sec = Int(tl.date.timeIntervalSince(startedAt))
+            let left = max(0, Int(OnlineService.friendWait) - sec)
+            let swing = sin(tl.date.timeIntervalSinceReferenceDate * 2 * .pi / 1.3)
+            VStack(spacing: 14) {
+                Spacer()
+                HStack {
+                    Critter(side: .cat).frame(width: 96, height: 96).offset(x: swing * 10)
+                    Text("👫").font(.system(size: 34))
+                    Critter(side: .hamster).frame(width: 96, height: 96).offset(x: -swing * 10)
+                }
+                if let code {
+                    Text(tr("친구에게 링크를 보내 주세요", "Send this link to a friend", zh: "把链接发给朋友", es: "Envía este enlace a un amigo",
+                            fr: "Envoie ce lien à un ami", de: "Schick diesen Link an einen Freund", pt: "Envie este link para um amigo",
+                            ru: "Отправьте ссылку другу", ja: "友だちにリンクを送ってください"))
+                        .font(.system(size: 20, weight: .bold)).foregroundColor(UiColor.text).multilineTextAlignment(.center)
+                    Text(code).font(.system(size: 32, weight: .black)).kerning(4).foregroundColor(UiColor.primaryDark)
+                        .padding(.horizontal, 18).padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(.white))
+                    ShareLink(item: shareText(code)) {
+                        Text(tr("💬 링크 보내기", "💬 Send link", zh: "💬 发送链接", es: "💬 Enviar enlace", fr: "💬 Envoyer le lien",
+                                de: "💬 Link senden", pt: "💬 Enviar link", ru: "💬 Отправить ссылку", ja: "💬 リンクを送る"))
+                            .font(.system(size: 16, weight: .bold)).foregroundColor(.white)
+                            .padding(.horizontal, 22).padding(.vertical, 12)
+                            .background(Capsule().fill(UiColor.accent))
+                    }
+                    Button(copied ? t("✅ 링크를 복사했어요")
+                           : tr("🔗 링크 복사", "🔗 Copy link", zh: "🔗 复制链接", es: "🔗 Copiar enlace", fr: "🔗 Copier le lien",
+                                de: "🔗 Link kopieren", pt: "🔗 Copiar link", ru: "🔗 Скопировать ссылку", ja: "🔗 リンクをコピー")) {
+                        UIPasteboard.general.string = OnlineService.battleLink(code)
+                        copied = true
+                    }
+                    .font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.accent)
+                    Text(tr("친구를 기다리는 중", "Waiting for your friend", zh: "正在等待朋友", es: "Esperando a tu amigo",
+                            fr: "En attente de ton ami", de: "Warte auf deinen Freund", pt: "Esperando seu amigo", ru: "Ждём друга",
+                            ja: "友だちを待っています") + String(repeating: ".", count: sec % 4)
+                         + String(format: "  %d:%02d", left / 60, left % 60))
+                        .foregroundColor(UiColor.text.opacity(0.75))
+                    Text(tr("승리 +\(Shop.friendWinPoints)점 · 패배 -\(Shop.friendLosePoints)점\n같은 친구와는 하루 \(Shop.friendRatedPerDay)판까지 점수가 걸려요",
+                            "Win +\(Shop.friendWinPoints) · Lose -\(Shop.friendLosePoints)\nOnly \(Shop.friendRatedPerDay) scored games per friend per day",
+                            zh: "胜 +\(Shop.friendWinPoints) · 负 -\(Shop.friendLosePoints)\n同一好友每天最多 \(Shop.friendRatedPerDay) 局计分",
+                            es: "Gana +\(Shop.friendWinPoints) · Pierde -\(Shop.friendLosePoints)\nSolo \(Shop.friendRatedPerDay) partidas con puntos por amigo al día",
+                            fr: "Victoire +\(Shop.friendWinPoints) · Défaite -\(Shop.friendLosePoints)\n\(Shop.friendRatedPerDay) parties notées max. par ami et par jour",
+                            de: "Sieg +\(Shop.friendWinPoints) · Niederlage -\(Shop.friendLosePoints)\nNur \(Shop.friendRatedPerDay) gewertete Partien pro Freund und Tag",
+                            pt: "Vitória +\(Shop.friendWinPoints) · Derrota -\(Shop.friendLosePoints)\nSó \(Shop.friendRatedPerDay) partidas valendo pontos por amigo por dia",
+                            ru: "Победа +\(Shop.friendWinPoints) · Поражение -\(Shop.friendLosePoints)\nНе больше \(Shop.friendRatedPerDay) игр на очки с одним другом в день",
+                            ja: "勝ち +\(Shop.friendWinPoints)点 · 負け -\(Shop.friendLosePoints)点\n同じ友だちとは1日\(Shop.friendRatedPerDay)戦まで点数がかかります"))
+                        .font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.accent).multilineTextAlignment(.center)
+                } else {
+                    ProgressView()
+                    Text(tr("대전방을 만드는 중…", "Creating a room…", zh: "正在创建房间…", es: "Creando sala…", fr: "Création de la salle…",
+                            de: "Raum wird erstellt…", pt: "Criando sala…", ru: "Создаём комнату…", ja: "ルームを作成中…"))
+                        .foregroundColor(UiColor.text)
+                }
+                Button(t("취소"), action: onCancel)
+                    .foregroundColor(UiColor.text)
+                    .padding(.horizontal, 22).padding(.vertical, 10)
+                    .overlay(Capsule().stroke(UiColor.text.opacity(0.4)))
+                    .padding(.top, 18)
+                Spacer()
+            }
+            .padding(24)
+        }
+    }
+}
+
 /// "KR" → 🇰🇷
 func flag(_ code: String?) -> String {
     guard let c = code?.uppercased(), c.count == 2, c.allSatisfy({ $0.isASCII && $0.isLetter }) else { return "🌐" }
@@ -122,6 +209,9 @@ struct VsIntro: View {
                           fr: "Aucun adversaire trouvé : tu affrontes 🤖 l’IA (Difficile)", de: "Kein Gegner gefunden, du spielst gegen 🤖 KI (Schwer)",
                           pt: "Nenhum rival encontrado, você vai enfrentar 🤖 IA (Difícil)", ru: "Соперник не найден — играете с 🤖 ИИ (Сложно)",
                           ja: "相手が見つからなかったので 🤖 AI（むずかしい）と対戦します")
+                     : game.isFriend
+                     ? tr("👫 친구와 대전!", "👫 Friend battle!", zh: "👫 好友对战！", es: "👫 ¡Duelo entre amigos!", fr: "👫 Duel entre amis !",
+                          de: "👫 Freundesduell!", pt: "👫 Duelo entre amigos!", ru: "👫 Бой с другом!", ja: "👫 友だちと対戦！")
                      : t("⚔️ 매칭 완료!"))
                     .font(.system(size: 22, weight: .black)).foregroundColor(.white).multilineTextAlignment(.center)
                 HStack(spacing: 10) {

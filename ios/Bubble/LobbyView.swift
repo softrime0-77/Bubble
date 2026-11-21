@@ -9,6 +9,7 @@ struct LobbyView: View {
     @ObservedObject var ads = Ads.shared
     var onStartAi: (AiLevel) -> Void
     var onRandomMatch: () -> Void
+    var onFriendBattle: () -> Void
     var onShop: () -> Void
 
     @State private var showRules = false
@@ -65,6 +66,28 @@ struct LobbyView: View {
                 }
                 .disabled(online.profile == nil)
 
+                Button(action: onFriendBattle) {
+                    VStack(spacing: 2) {
+                        Text(tr("👫  친구와 대전", "👫  Battle a Friend", zh: "👫  好友对战", es: "👫  Reta a un amigo", fr: "👫  Défier un ami",
+                                de: "👫  Freund herausfordern", pt: "👫  Desafiar um amigo", ru: "👫  Бой с другом", ja: "👫  友だちと対戦"))
+                            .font(.system(size: 19, weight: .black))
+                        Text(tr("링크를 보내 1:1 · 승리 +\(Shop.friendWinPoints) · 패배 -\(Shop.friendLosePoints)",
+                                "Send a link, play 1:1 · Win +\(Shop.friendWinPoints) · Lose -\(Shop.friendLosePoints)",
+                                zh: "发送链接 1:1 · 胜 +\(Shop.friendWinPoints) · 负 -\(Shop.friendLosePoints)",
+                                es: "Envía un enlace, 1:1 · Gana +\(Shop.friendWinPoints) · Pierde -\(Shop.friendLosePoints)",
+                                fr: "Envoie un lien, 1:1 · Victoire +\(Shop.friendWinPoints) · Défaite -\(Shop.friendLosePoints)",
+                                de: "Link senden, 1:1 · Sieg +\(Shop.friendWinPoints) · Niederlage -\(Shop.friendLosePoints)",
+                                pt: "Envie um link, 1:1 · Vitória +\(Shop.friendWinPoints) · Derrota -\(Shop.friendLosePoints)",
+                                ru: "Отправьте ссылку, 1:1 · Победа +\(Shop.friendWinPoints) · Поражение -\(Shop.friendLosePoints)",
+                                ja: "リンクを送って1対1 · 勝ち +\(Shop.friendWinPoints) · 負け -\(Shop.friendLosePoints)"))
+                            .font(.system(size: 12))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 64)
+                    .background(RoundedRectangle(cornerRadius: 24).fill(UiColor.accent.opacity(online.profile == nil ? 0.4 : 1)))
+                }
+                .disabled(online.profile == nil)
+
                 card {
                     Text(online.profile != nil ? t("🤖 AI 대전") : t("🤖 AI와 연습하기"))
                         .font(.system(size: 17, weight: .bold))
@@ -113,17 +136,18 @@ struct LobbyView: View {
                         Text(t("🏆 랭킹")).font(.system(size: 17, weight: .bold)).foregroundColor(UiColor.text)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         ForEach(Array(online.leaderboard.enumerated()), id: \.element.uid) { i, p in
-                            let me = p.uid == online.profile?.uid
-                            HStack {
-                                Text(i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : "\(i + 1)")
-                                    .font(.system(size: 15, weight: .bold)).frame(width: 32, alignment: .leading)
-                                Text(p.name + (me ? t(" (나)") : "")).foregroundColor(UiColor.text).lineLimit(1)
-                                Spacer()
-                                RankBadge(score: p.score)
-                                Text(pts(p.score)).font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                            leaderRow(i + 1, p.name, p.country, p.score, me: p.uid == online.profile?.uid)
+                        }
+                        // TOP 100 밖이면 내 순위와 위아래 10명
+                        if let r = online.myRank, !online.aroundMe.isEmpty {
+                            Text(tr("📍 내 순위: \(r)위", "📍 My rank: #\(r)", zh: "📍 我的排名：第 \(r) 名", es: "📍 Mi puesto: #\(r)",
+                                    fr: "📍 Mon rang : #\(r)", de: "📍 Mein Platz: #\(r)", pt: "📍 Minha posição: #\(r)", ru: "📍 Моё место: #\(r)",
+                                    ja: "📍 自分の順位：\(r)位"))
+                                .font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.text)
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 10)
+                            ForEach(online.aroundMe) { row in
+                                leaderRow(row.rank, row.name, row.country, row.score, me: row.uid == online.profile?.uid)
                             }
-                            .padding(.horizontal, 8).padding(.vertical, 5)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(me ? UiColor.primary.opacity(0.15) : .clear))
                         }
                     }
                 }
@@ -149,6 +173,21 @@ struct LobbyView: View {
         } message: {
             Text(welcomeText)
         }
+    }
+
+    /// 랭킹 한 줄: 순위 · 국기 · 닉네임 · 계급 · 점수
+    private func leaderRow(_ position: Int, _ name: String, _ country: String?, _ score: Int, me: Bool) -> some View {
+        HStack(spacing: 6) {
+            Text(position == 1 ? "🥇" : position == 2 ? "🥈" : position == 3 ? "🥉" : "\(position)")
+                .font(.system(size: 15, weight: .bold)).lineLimit(1).minimumScaleFactor(0.7).frame(width: 40, alignment: .leading)
+            Text(flag(country)).font(.system(size: 16)).frame(width: 24)
+            Text(name + (me ? t(" (나)") : "")).foregroundColor(UiColor.text).lineLimit(1)
+            Spacer()
+            RankBadge(score: score)
+            Text(pts(score)).font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.primaryDark)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(RoundedRectangle(cornerRadius: 10).fill(me ? UiColor.primary.opacity(0.15) : .clear))
     }
 
     private var deleteWarning: String {

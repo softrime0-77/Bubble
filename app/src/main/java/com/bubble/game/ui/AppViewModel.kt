@@ -14,6 +14,7 @@ import com.bubble.game.data.Invite
 import com.bubble.game.data.OnlineGame
 import com.bubble.game.data.OnlineRepository
 import com.bubble.game.data.Profile
+import com.bubble.game.data.RankRow
 import com.bubble.game.game.Ai
 import com.bubble.game.game.AiLevel
 import com.bubble.game.game.Animal
@@ -23,6 +24,8 @@ import com.bubble.game.game.Move
 import com.bubble.game.game.Rank
 import com.bubble.game.game.Side
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +38,8 @@ import kotlin.random.Random
 sealed interface Screen {
     data object Lobby : Screen
     data class Matching(val startedAt: Long) : Screen
+    /** 친구 대전: 링크를 보내고 친구를 기다리는 중 (code가 null이면 방 만드는 중) */
+    data class FriendWait(val code: String?, val startedAt: Long) : Screen
     data object Game : Screen
     data object Shop : Screen
 }
@@ -80,6 +85,9 @@ data class GameUi(
     val fallbackAi: Boolean = false,
     /** 이번 판에 내가 ×3 부스터를 썼는지 */
     val myBoost: Boolean = false,
+    /** 친구 대전 / 그중 점수가 걸린 판 (같은 친구와 하루 5판까지) */
+    val friend: Boolean = false,
+    val friendRated: Boolean = false,
 ) {
     /** 서버에서 진행하는 점수 걸린 AI 대전 */
     val scoredAi: Boolean get() = online && aiLevel != null
@@ -103,6 +111,9 @@ data class LobbyUi(
     val onlineCount: Int? = null,
     val profile: Profile? = null,
     val leaderboard: List<Profile> = emptyList(),
+    /** 내 순위 (TOP 100 밖이면 아래에 내 위아래 10명을 따로 보여줌) */
+    val myRank: Int? = null,
+    val aroundMe: List<RankRow> = emptyList(),
 )
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -370,7 +381,7 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
         _lobby.update { it.copy(loading = true, needsLogin = false, error = null) }
         sessionJob = viewModelScope.launch {
             try {
-                repo.ensureProfile()?.let { w -> _lobby.update { it.copy(welcome = w) } }
+                repo.ensureProfile(country)?.let { w -> _lobby.update { it.copy(welcome = w) } }
                 // 1분마다 접속 신호
                 launch {
                     while (isActive) {
@@ -394,6 +405,7 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                         val rankedUp = rank != null && prev != null && rank.ordinal > prev.ordinal
                         if (rank != null) lastRank = rank
                         if (p != null) tryRedeemPendingInvite(p)
+                        if (p != null) tryJoinPendingBattle()
                         _lobby.update {
                             it.copy(
                                 profile = p,
@@ -401,9 +413,15 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                                 rankUpScore = if (rankedUp) p!!.score else it.rankUpScore,
                             )
                         }
+                        refreshMyRanking()
                     }
                 }
-                launch { repo.leaderboardFlow().collect { l -> _lobby.update { it.copy(leaderboard = l) } } }
+                launch {
+                    repo.leaderboardFlow().collect { l ->
+                        _lobby.update { it.copy(leaderboard = l) }
+                        refreshMyRanking()
+                    }
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -412,6 +430,105 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
 "Could not connect to the server: ${e.message}",
 zh = "无法连接服务器：${e.message}", hi = "सर्वर से कनेक्ट नहीं हो सका: ${e.message}", es = "No se pudo conectar con el servidor: ${e.message}", fr = "Connexion au serveur impossible : ${e.message}", ar = "تعذّر الاتصال بالخادم: ${e.message}", de = "Keine Verbindung zum Server: ${e.message}", pt = "Não foi possível conectar ao servidor: ${e.message}", ru = "Не удалось подключиться к серверу: ${e.message}", ja = "サーバーに接続できませんでした：${e.message}",
 )) }
+            }
+        }
+    }
+
+    /** 마지막으로 내 순위를 불러온 점수 (점수가 바뀔 때만 다시 불러옴) */
+    private var rankedAtScore: Int? = null
+    private var rankJob: Job? = null
+
+    /** TOP 100 밖이면 내 순위와 위아래 10명을 서버에서 불러옴 */
+    private fun refreshMyRanking() {
+        val ui = _lobby.value
+        val p = ui.profile ?: return
+        if (ui.leaderboard.any { it.uid == p.uid }) {
+            rankedAtScore = null
+            _lobby.update { it.copy(myRank = null, aroundMe = emptyList()) }
+            return
+        }
+        if (ui.leaderboard.size < OnlineRepository.LEADERBOARD_SIZE) return
+        if (rankedAtScore == p.score || rankJob?.isActive == true) return
+        rankedAtScore = p.score
+        rankJob = viewModelScope.launch {
+            runCatching { repo.myRanking() }
+                .onSuccess { (rank, rows) -> _lobby.update { it.copy(myRank = rank, aroundMe = rows) } }
+                .onFailure { rankedAtScore = null }
+        }
+    }
+
+    // ---------- 친구 대전 ----------
+
+    private var friendJob: Job? = null
+    /** 친구가 보낸 대전 링크의 코드 (로그인되면 들어감) */
+    private var pendingBattle: String? = null
+    private var joiningBattle = false
+
+    /** 친구 대전방을 만들고, 친구가 링크로 들어올 때까지 기다림 */
+    fun startFriendBattle() {
+        if (_lobby.value.profile == null || friendJob?.isActive == true) return
+        _screen.value = Screen.FriendWait(null, System.currentTimeMillis())
+        friendJob = viewModelScope.launch {
+            var code: String? = null
+            try {
+                val c = repo.createFriendRoom(country)
+                code = c
+                val started = System.currentTimeMillis()
+                _screen.value = Screen.FriendWait(c, started)
+                while (isActive) {
+                    delay(2_500)
+                    val st = runCatching { repo.pollFriendRoom(c) }.getOrNull() ?: continue
+                    if (st.gameId != null) {
+                        code = null
+                        startOnlineGame(st.gameId)
+                        return@launch
+                    }
+                    if (st.expired || System.currentTimeMillis() - started > OnlineRepository.FRIEND_WAIT_MS) {
+                        code = null
+                        _lobby.update { it.copy(info = tr("친구가 오지 않아 대전방을 닫았어요", "Your friend didn't come, so the room was closed", zh = "朋友没有来，房间已关闭", es = "Tu amigo no llegó, así que se cerró la sala", fr = "Ton ami n’est pas venu, la salle est fermée", de = "Dein Freund kam nicht, der Raum wurde geschlossen", pt = "Seu amigo não veio, a sala foi fechada", ru = "Друг не пришёл, комната закрыта", ja = "友だちが来なかったのでルームを閉じました")) }
+                        _screen.value = Screen.Lobby
+                        return@launch
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                code?.let { withContext(NonCancellable) { repo.cancelFriendRoom(it) } }
+                throw e
+            } catch (e: Exception) {
+                _lobby.update { it.copy(error = e.message) }
+                _screen.value = Screen.Lobby
+            }
+        }
+    }
+
+    fun cancelFriendBattle() {
+        friendJob?.cancel()
+        friendJob = null
+        _screen.value = Screen.Lobby
+    }
+
+    /** 친구의 대전 링크로 앱이 열림 */
+    fun receiveBattle(code: String) {
+        pendingBattle = code
+        if (_lobby.value.profile == null) {
+            _lobby.update { it.copy(info = tr("로그인하면 친구와 대전을 시작해요 ⚔️", "Sign in to start the battle with your friend ⚔️", zh = "登录后即可开始与朋友对战 ⚔️", es = "Inicia sesión para empezar la batalla con tu amigo ⚔️", fr = "Connecte-toi pour lancer le duel avec ton ami ⚔️", de = "Melde dich an, um gegen deinen Freund zu spielen ⚔️", pt = "Entre para começar a batalha com seu amigo ⚔️", ru = "Войдите, чтобы начать бой с другом ⚔️", ja = "ログインすると友だちとの対戦が始まります ⚔️")) }
+        }
+        tryJoinPendingBattle()
+    }
+
+    private fun tryJoinPendingBattle() {
+        val code = pendingBattle ?: return
+        if (_lobby.value.profile == null || joiningBattle || _screen.value != Screen.Lobby) return
+        pendingBattle = null
+        joiningBattle = true
+        viewModelScope.launch {
+            try {
+                startOnlineGame(repo.joinFriendRoom(code, country))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lobby.update { it.copy(error = e.message) }
+            } finally {
+                joiningBattle = false
             }
         }
     }
@@ -450,6 +567,7 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         matchJob?.cancel()
         matchJob = null
         _screen.value = Screen.Lobby
+        tryJoinPendingBattle()
     }
 
     private fun startOnlineGame(gameId: String, fallbackAi: Boolean = false) {
@@ -515,6 +633,8 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             opponentCountry = og.countryOf(side.opponent),
             myScore = og.scoreOf(side),
             myBoost = og.boostOf(side),
+            friend = og.vsFriend,
+            friendRated = og.rated,
             opponentSkin = og.skinOf(side.opponent),
             scoreDelta = og.deltaFor(side),
             scoreBonus = og.bonusFor(side),
@@ -682,5 +802,6 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
         localTimerJob = null
         onlineGameId = null
         _screen.value = Screen.Lobby
+        tryJoinPendingBattle()
     }
 }

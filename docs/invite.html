@@ -41,7 +41,25 @@
   document.getElementById("open").href = "bubble://invite?code=" + encodeURIComponent(code);
   document.getElementById("play").href = "https://play.google.com/store/apps/details?id=com.bubble.game&referrer=" +
     encodeURIComponent("code=" + code);
-  if (!(navigator.language || "").toLowerCase().startsWith("ko")) {
+  // 친구 대전 링크: invite.html?battle=ABC234 → 앱에서 바로 그 대전방에 들어감
+  var rawBattle = new URLSearchParams(location.search).get("battle") || "";
+  var battle = /^[A-Z0-9]{6}$/.test(rawBattle.toUpperCase()) ? rawBattle.toUpperCase() : "";
+  var ko = (navigator.language || "").toLowerCase().startsWith("ko");
+  if (battle) {
+    document.title = ko ? "Bubble 친구 대전" : "Bubble friend battle";
+    document.getElementById("title").textContent = ko ? "친구가 대전을 신청했어요! ⚔️" : "A friend challenged you! ⚔️";
+    document.getElementById("desc").textContent = ko ? "앱에서 열면 바로 1:1 대결이 시작돼요 (10분 안에)" : "Open it in the app to start the 1:1 battle right away (within 10 minutes)";
+    document.getElementById("code").textContent = battle;
+    document.getElementById("hint").textContent = ko ? "앱이 없으면 설치하고 로그인한 다음, 이 링크를 다시 눌러 주세요" : "No app yet? Install it, sign in, then tap this link again";
+    document.getElementById("open").href = "bubble://invite?battle=" + encodeURIComponent(battle);
+    document.getElementById("play").href = "https://play.google.com/store/apps/details?id=com.bubble.game";
+    document.getElementById("open").textContent = ko ? "앱에서 대전 시작" : "Start the battle in the app";
+    if (!ko) {
+      document.documentElement.lang = "en";
+      document.getElementById("play").textContent = "Get it on Google Play";
+      document.getElementById("apk").textContent = "Download the APK";
+    }
+  } else if (!ko) {
     document.documentElement.lang = "en";
     document.title = "Bubble invite";
     document.getElementById("title").textContent = "A friend invited you to Bubble!";

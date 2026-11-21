@@ -74,12 +74,17 @@ final class GameLogicTests: XCTestCase {
     func testRanksAndBonusMatchServer() {
         XCTAssertEqual(Rank.of(1000), .dirt)
         XCTAssertEqual(Rank.of(1001), .copper)
-        XCTAssertEqual(Rank.of(1500), .silver)
-        XCTAssertEqual(Rank.of(2000), .gold)
-        XCTAssertEqual(Rank.of(5000), .ruby)
-        XCTAssertEqual(Rank.of(7000), .sapphire)
-        XCTAssertEqual(Rank.of(10000), .diamond)
+        XCTAssertEqual(Rank.of(1400), .copper)
+        XCTAssertEqual(Rank.of(1401), .silver)
+        XCTAssertEqual(Rank.of(2001), .gold)
+        XCTAssertEqual(Rank.of(4001), .ruby)
+        XCTAssertEqual(Rank.of(7001), .sapphire)
+        XCTAssertEqual(Rank.of(10000), .sapphire)
+        XCTAssertEqual(Rank.of(10001), .diamond)
+        XCTAssertEqual(Rank.of(50000), .diamond)
+        XCTAssertEqual(Rank.of(50001), .pinkDiamond)
         XCTAssertEqual(Rank.diamond.bonus(for: 30), 9)
+        XCTAssertEqual(Rank.pinkDiamond.bonus(for: 30), 11)
         XCTAssertEqual(Rank.copper.bonus(for: 30), 2)
     }
 }

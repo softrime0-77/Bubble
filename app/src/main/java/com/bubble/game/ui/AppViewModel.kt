@@ -83,6 +83,8 @@ data class GameUi(
     val myScore: Int? = null,
     /** 랜덤 매칭에서 30초 동안 상대가 없어 AI로 넘어온 게임 */
     val fallbackAi: Boolean = false,
+    /** 시작할 때 VS 소개 화면을 띄울지 (직접 고른 AI 대전은 바로 시작) */
+    val showIntro: Boolean = true,
     /** 이번 판에 내가 ×3 부스터를 썼는지 */
     val myBoost: Boolean = false,
     /** 친구 대전 / 그중 점수가 걸린 판 (같은 친구와 하루 5판까지) */
@@ -570,11 +572,11 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         tryJoinPendingBattle()
     }
 
-    private fun startOnlineGame(gameId: String, fallbackAi: Boolean = false) {
+    private fun startOnlineGame(gameId: String, fallbackAi: Boolean = false, showIntro: Boolean = true) {
         val me = uid ?: return
         onlineGameId = gameId
         gameJob?.cancel()
-        _game.value = GameUi(online = true, busy = true, gameId = gameId, fallbackAi = fallbackAi)
+        _game.value = GameUi(online = true, busy = true, gameId = gameId, fallbackAi = fallbackAi, showIntro = showIntro)
         _screen.value = Screen.Game
         gameJob = viewModelScope.launch {
             var lastMove = -1
@@ -656,7 +658,8 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             _screen.value = Screen.Game
             gameJob = viewModelScope.launch {
                 try {
-                    startOnlineGame(repo.startAiGame(level, country), fallbackAi = fallback)
+                    // 직접 고른 AI 대전은 VS 소개 없이 바로 (매칭 실패로 넘어온 AI 대전만 안내)
+                    startOnlineGame(repo.startAiGame(level, country), fallbackAi = fallback, showIntro = fallback)
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {

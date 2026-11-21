@@ -85,16 +85,17 @@ test("opponent animal shortens my turn", () => {
 
 test("rank bonus follows the new tiers", () => {
   assert.deepEqual(
-    [1000, 1001, 1499, 1500, 2000, 5000, 7000, 10000].map(rankBonusPercent),
-    [0, 5, 5, 10, 15, 20, 25, 30],
+    [1000, 1001, 1400, 1401, 2000, 2001, 4000, 4001, 7000, 7001, 10000, 10001, 50000, 50001].map(rankBonusPercent),
+    [0, 5, 5, 10, 10, 15, 15, 20, 20, 25, 25, 30, 30, 35],
   );
   assert.equal(rankBonus(30, 1000), 0);
   assert.equal(rankBonus(30, 1200), 2); // 1.5 -> 2
-  assert.equal(rankBonus(30, 1600), 3);
+  assert.equal(rankBonus(30, 1500), 3);
   assert.equal(rankBonus(30, 2500), 5); // 4.5 -> 5
   assert.equal(rankBonus(30, 6000), 6);
   assert.equal(rankBonus(30, 8000), 8); // 7.5 -> 8
   assert.equal(rankBonus(30, 12000), 9);
+  assert.equal(rankBonus(30, 60000), 11); // 10.5 -> 11
   assert.equal(rankBonus(-15, 12000), 0);
 });
 

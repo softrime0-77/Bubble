@@ -18,11 +18,13 @@ enum class Rank(
 ) {
     DIRT("흙", "Dirt", "🟫", Int.MIN_VALUE, 0, 0),
     COPPER("구리", "Copper", "🟠", 1001, 1, 5),
-    SILVER("은", "Silver", "⚪", 1500, 2, 10),
-    GOLD("금", "Gold", "🟡", 2000, 3, 15),
-    RUBY("루비", "Ruby", "🔴", 5000, 4, 20),
-    SAPPHIRE("사파이어", "Sapphire", "🔷", 7000, 5, 25),
-    DIAMOND("다이아", "Diamond", "💎", 10000, 6, 30);
+    SILVER("은", "Silver", "⚪", 1401, 2, 10),
+    GOLD("금", "Gold", "🟡", 2001, 3, 15),
+    RUBY("루비", "Ruby", "🔴", 4001, 4, 20),
+    SAPPHIRE("사파이어", "Sapphire", "🔷", 7001, 5, 25),
+    DIAMOND("다이아", "Diamond", "💎", 10001, 6, 30),
+    // 최고 계급: 분홍빛으로 흐르는 배지 + 하트 반짝이 + 궤도를 도는 별빛 + 빛 고리 (가장 화려함)
+    PINK_DIAMOND("핑크다이아", "Pink Diamond", "🌸", 50001, 7, 35);
 
     /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */
     private val others: List<String>
@@ -34,6 +36,7 @@ enum class Rank(
             RUBY -> listOf("红宝石", "रूबी", "Rubí", "Rubis", "ياقوت أحمر", "Rubin", "Rubi", "Рубин", "ルビー")
             SAPPHIRE -> listOf("蓝宝石", "नीलम", "Zafiro", "Saphir", "ياقوت أزرق", "Saphir", "Safira", "Сапфир", "サファイア")
             DIAMOND -> listOf("钻石", "डायमंड", "Diamante", "Diamant", "ماس", "Diamant", "Diamante", "Алмаз", "ダイヤ")
+            PINK_DIAMOND -> listOf("粉钻", "पिंक डायमंड", "Diamante rosa", "Diamant rose", "ماس وردي", "Pinker Diamant", "Diamante rosa", "Розовый алмаз", "ピンクダイヤ")
         }
 
     val label: String get() = Lang.pick(listOf(ko, en) + others)
@@ -55,7 +58,12 @@ enum class Animal(private val ko: String, private val en: String, val price: Int
     SHEEP("양", "Sheep", 30, 15),
     DOG("강아지", "Puppy", 50, 10),
     GIRAFFE("기린", "Giraffe", 100, 5),
+    /** 무료 캐릭터: 모습만 햄스터로 바뀌고 효과 없음, 소모되지 않음 */
+    HAMSTER("햄스터", "Hamster", 0, Shop.DEFAULT_TURN_SEC),
     ;
+
+    /** 무료 캐릭터 (사지 않고 바로 장착, 효과 없음) */
+    val free: Boolean get() = price == 0
 
     /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */
     private val others: List<String>
@@ -63,6 +71,7 @@ enum class Animal(private val ko: String, private val en: String, val price: Int
             SHEEP -> listOf("绵羊", "भेड़", "Oveja", "Mouton", "خروف", "Schaf", "Ovelha", "Овечка", "ヒツジ")
             DOG -> listOf("小狗", "पिल्ला", "Perrito", "Chiot", "جرو", "Welpe", "Cachorrinho", "Щенок", "子イヌ")
             GIRAFFE -> listOf("长颈鹿", "जिराफ़", "Jirafa", "Girafe", "زرافة", "Giraffe", "Girafa", "Жираф", "キリン")
+            HAMSTER -> listOf("仓鼠", "हैम्स्टर", "Hámster", "Hamster", "هامستر", "Hamster", "Hamster", "Хомяк", "ハムスター")
         }
 
     val label: String get() = Lang.pick(listOf(ko, en) + others)

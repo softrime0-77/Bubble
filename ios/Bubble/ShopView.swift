@@ -55,7 +55,34 @@ struct ShopView: View {
                     Text(t("소모품: 1개 = 랜덤 매칭 1판. 장착한 채 매칭되면 1개를 쓰고, 그 판에 내 캐릭터가 바뀌고 상대의 턴이 짧아져요"))
                         .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    ForEach(Animal.allCases, id: \.self) { a in
+                    // 무료 햄스터: 사지 않고 바로 장착 (모습만 바뀌고 효과 없음)
+                    let hamOn = p.equipped == .hamster
+                    shopCard(title: tr("🐹 햄스터", "🐹 Hamster", zh: "🐹 仓鼠", es: "🐹 Hámster", fr: "🐹 Hamster", de: "🐹 Hamster", pt: "🐹 Hamster", ru: "🐹 Хомяк", ja: "🐹 ハムスター"),
+                             desc: tr("🎁 무료! 내 캐릭터를 햄스터로 바꿔요.\n효과는 없고 몇 판을 해도 줄지 않아요 (모든 대전에서 모습만)",
+                                      "🎁 Free! Turn your character into a hamster.\nNo effect and never used up (look only, in every battle)",
+                                      zh: "🎁 免费！把你的角色换成仓鼠。\n没有效果，也不会消耗（所有对战中仅外观）",
+                                      es: "🎁 ¡Gratis! Convierte tu personaje en hámster.\nSin efecto y nunca se gasta (solo aspecto, en todas las batallas)",
+                                      fr: "🎁 Gratuit ! Transforme ton perso en hamster.\nAucun effet, jamais consommé (look seulement, dans tous les combats)",
+                                      de: "🎁 Gratis! Mach deine Figur zum Hamster.\nKein Effekt, wird nie verbraucht (nur Look, in jedem Duell)",
+                                      pt: "🎁 Grátis! Transforme seu personagem em hamster.\nSem efeito e nunca acaba (só visual, em todas as batalhas)",
+                                      ru: "🎁 Бесплатно! Превратите персонажа в хомяка.\nБез эффекта и не тратится (только вид, в любом бою)",
+                                      ja: "🎁 無料！自分のキャラをハムスターに。\n効果なし・減りません（どの対戦でも見た目だけ）"),
+                             price: nil,
+                             owned: hamOn ? tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", es: "✅ Equipado", fr: "✅ Équipé", de: "✅ Ausgerüstet", pt: "✅ Equipado", ru: "✅ Надето", ja: "✅ 装備中") : nil,
+                             art: AnyView(Critter(side: .hamster, skin: .hamster, happy: hamOn).frame(width: 84, height: 84))) {
+                        if hamOn {
+                            outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
+                        } else {
+                            Button { Task { await online.equip(.hamster) } } label: {
+                                Text(tr("무료로 장착", "Equip for free", zh: "免费装备", es: "Equipar gratis", fr: "Équiper gratuitement", de: "Gratis ausrüsten", pt: "Equipar grátis", ru: "Надеть бесплатно", ja: "無料で装備"))
+                                    .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                                    .padding(.horizontal, 12).padding(.vertical, 8)
+                                    .background(Capsule().fill(UiColor.accent))
+                            }
+                            .disabled(online.busy)
+                        }
+                    }
+                    ForEach(Animal.allCases.filter { !$0.free }, id: \.self) { a in
                         let count = p.animalCount(a)
                         let on = p.equipped == a && count > 0
                         shopCard(title: a.label,
@@ -218,7 +245,7 @@ struct ShopView: View {
         .disabled(online.busy)
     }
 
-    private func shopCard<A: View>(title: String, desc: String, price: Int, owned: String?, art: AnyView, @ViewBuilder action: () -> A) -> some View {
+    private func shopCard<A: View>(title: String, desc: String, price: Int?, owned: String?, art: AnyView, @ViewBuilder action: () -> A) -> some View {
         card {
             HStack(alignment: .center, spacing: 12) {
                 art
@@ -227,7 +254,9 @@ struct ShopView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(title).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text).lineLimit(1).minimumScaleFactor(0.7)
-                        Text(pts(price)).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                        if let price {
+                            Text(pts(price)).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                        }
                     }
                     Text(desc).font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.8)).fixedSize(horizontal: false, vertical: true)
                     if let owned {

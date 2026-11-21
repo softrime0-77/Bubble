@@ -310,6 +310,22 @@ private fun rankColors(rank: com.bubble.game.game.Rank, hueShift: Float): List<C
     com.bubble.game.game.Rank.DIAMOND -> List(6) { i ->
         Color.hsv((hueShift * 360f + i * 50f) % 360f, 0.32f, 1f)
     }
+    // 핑크다이아: 분홍 → 자홍 → 라벤더 사이를 물결치듯 흐르는 빛
+    com.bubble.game.game.Rank.PINK_DIAMOND -> List(6) { i ->
+        val h = 312f + 34f * sin(((hueShift + i / 6f) * 2 * PI).toFloat())
+        Color.hsv((h + 360f) % 360f, 0.36f + 0.1f * (i % 2), 1f)
+    }
+}
+
+/** 작은 하트 (핑크다이아 반짝이) */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.heart(c: Offset, r: Float, color: Color) {
+    val p = androidx.compose.ui.graphics.Path().apply {
+        moveTo(c.x, c.y + r * 0.9f)
+        cubicTo(c.x - r * 1.6f, c.y - r * 0.2f, c.x - r * 0.6f, c.y - r * 1.3f, c.x, c.y - r * 0.45f)
+        cubicTo(c.x + r * 0.6f, c.y - r * 1.3f, c.x + r * 1.6f, c.y - r * 0.2f, c.x, c.y + r * 0.9f)
+        close()
+    }
+    drawPath(p, color)
 }
 
 /**
@@ -336,10 +352,12 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
     val textColor = when (rank) {
         com.bubble.game.game.Rank.DIRT, com.bubble.game.game.Rank.COPPER,
         com.bubble.game.game.Rank.RUBY, com.bubble.game.game.Rank.SAPPHIRE -> Color.White
+        com.bubble.game.game.Rank.PINK_DIAMOND -> Color(0xFF9C1060)
         else -> Color(0xFF4A3B5C)
     }
-    // 흙 0 → 구리 2 → 은 4 → 금 6 → 루비 8 → 사파이어 11 → 다이아 16
-    val sparkleCount = when (level) { 1 -> 2; 2 -> 4; 3 -> 6; 4 -> 8; 5 -> 11; 6 -> 16; else -> 0 }
+    // 흙 0 → 구리 2 → 은 4 → 금 6 → 루비 8 → 사파이어 11 → 다이아 16 → 핑크다이아 24
+    val sparkleCount = when (level) { 1 -> 2; 2 -> 4; 3 -> 6; 4 -> 8; 5 -> 11; 6 -> 16; 7 -> 24; else -> 0 }
+    val pink = rank == com.bubble.game.game.Rank.PINK_DIAMOND
     val seeds = remember(sparkleCount) {
         val r = Random(level * 31 + 7)
         List(sparkleCount) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
@@ -376,14 +394,18 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
                         // 빛 줄기가 배지를 훑고 지나감
                         // 글자 뒤(배경 위)로 지나가게 해서 글자가 흐려지지 않게
                         Modifier.drawBehind {
-                            val x = shine * size.width
-                            drawRect(
-                                Brush.linearGradient(
-                                    listOf(Color.Transparent, Color.White.copy(alpha = 0.75f), Color.Transparent),
-                                    start = Offset(x - size.height, 0f),
-                                    end = Offset(x + size.height, size.height),
-                                ),
-                            )
+                            // 핑크다이아는 빛 줄기가 두 개 (반 박자 차이로)
+                            val bands = if (pink) listOf(shine, (shine + 0.9f) % 1.8f - 0.4f) else listOf(shine)
+                            bands.forEach { b ->
+                                val x = b * size.width
+                                drawRect(
+                                    Brush.linearGradient(
+                                        listOf(Color.Transparent, Color.White.copy(alpha = 0.75f), Color.Transparent),
+                                        start = Offset(x - size.height, 0f),
+                                        end = Offset(x + size.height, size.height),
+                                    ),
+                                )
+                            }
                         }
                     } else {
                         Modifier
@@ -402,13 +424,39 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
                         (sy * 1.8f - 0.4f) * size.height,
                     )
                     val color = when (rank) {
+                        com.bubble.game.game.Rank.PINK_DIAMOND -> listOf(Color(0xFFFF5FB4), Color.White, Color(0xFFFFB8E2), Color(0xFFE6A8FF))[i % 4]
                         com.bubble.game.game.Rank.DIAMOND -> Color.hsv((hue * 360f + i * 47f) % 360f, 0.5f, 1f)
                         com.bubble.game.game.Rank.SAPPHIRE -> if (i % 2 == 0) Color(0xFFBFE6FF) else Color.White
                         com.bubble.game.game.Rank.RUBY -> if (i % 2 == 0) Color(0xFFFFC2D6) else Color.White
                         com.bubble.game.game.Rank.GOLD -> Color(0xFFFFF4B0)
                         else -> Color.White
                     }
-                    sparkle(pos, (if (large) 7f else 4.5f) * density * (0.4f + a * 0.8f), color.copy(alpha = a))
+                    val r = (if (large) 7f else 4.5f) * density * (0.4f + a * 0.8f)
+                    // 핑크다이아는 셋 중 하나가 하트
+                    if (pink && i % 3 == 0) heart(pos, r * 0.75f, color.copy(alpha = a)) else sparkle(pos, r, color.copy(alpha = a))
+                }
+            }
+        }
+        // 핑크다이아 전용: 숨쉬는 빛 고리 + 배지 둘레를 도는 별빛
+        if (pink) {
+            Canvas(Modifier.matchParentSize()) {
+                val grow = 1f + glow * 0.12f
+                val w = size.width * 1.08f * grow
+                val h = size.height * 1.55f * grow
+                drawRoundRect(
+                    Brush.linearGradient(listOf(Color(0xFFFF6FBF), Color(0xFFFFD1EC), Color(0xFFD9A3FF), Color(0xFFFF6FBF))),
+                    topLeft = Offset((size.width - w) / 2, (size.height - h) / 2),
+                    size = androidx.compose.ui.geometry.Size(w, h),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(h / 2),
+                    alpha = 0.35f + 0.45f * glow,
+                    style = Stroke(width = (if (large) 2.5f else 1.6f) * density),
+                )
+                repeat(6) { i ->
+                    val ang = ((twinkle + i / 6f) * 2 * PI).toFloat()
+                    val pos = center + Offset(cos(ang) * size.width * 0.6f, sin(ang) * size.height * 1.05f)
+                    val c = listOf(Color.White, Color(0xFFFF8FCF), Color(0xFFE6B8FF))[i % 3]
+                    val r = (if (large) 5.5f else 3.5f) * density
+                    if (i % 2 == 0) sparkle(pos, r, c) else heart(pos, r * 0.7f, c)
                 }
             }
         }
@@ -445,13 +493,19 @@ fun RankUpCelebration(score: Int, onDismiss: () -> Unit) {
                 val dist = size.minDimension * (0.1f + p * (0.35f + s * 0.3f))
                 val pos = center + Offset((cos(ang) * dist).toFloat(), (sin(ang) * dist).toFloat() + p * p * 120f)
                 val color = when (rank) {
+                    com.bubble.game.game.Rank.PINK_DIAMOND -> listOf(Color(0xFFFF4FA8), Color(0xFFFFB3E0), Color.White, Color(0xFFE3A6FF), Color(0xFFFFD6EC))[i % 5]
                     com.bubble.game.game.Rank.DIAMOND -> Color.hsv(h * 360f, 0.55f, 1f)
                     com.bubble.game.game.Rank.GOLD -> listOf(Ui.gold, Color(0xFFFFF4B0), Color.White)[i % 3]
                     com.bubble.game.game.Rank.RUBY -> listOf(Color(0xFFE0115F), Color(0xFFFF8FB0), Color.White)[i % 3]
                     com.bubble.game.game.Rank.SAPPHIRE -> listOf(Color(0xFF1F6FEB), Color(0xFF9AD7FF), Color.White)[i % 3]
                     else -> listOf(rankColors(rank, 0f)[0], Color.White)[i % 2]
                 }
-                sparkle(pos, (1f - p * 0.7f) * (6f + s * (4f + rank.sparkle * 3f)) * density, color.copy(alpha = 1f - p * 0.6f))
+                val pr = (1f - p * 0.7f) * (6f + s * (4f + rank.sparkle * 3f)) * density
+                if (rank == com.bubble.game.game.Rank.PINK_DIAMOND && i % 3 == 0) {
+                    heart(pos, pr * 0.8f, color.copy(alpha = 1f - p * 0.6f))
+                } else {
+                    sparkle(pos, pr, color.copy(alpha = 1f - p * 0.6f))
+                }
             }
         }
         androidx.compose.foundation.layout.Column(

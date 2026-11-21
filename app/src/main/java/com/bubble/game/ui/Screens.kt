@@ -554,17 +554,17 @@ zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，�
                     ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・10・5秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい5秒。時間切れで負け！\n\n",
                 ) +
                     tr(
-                        "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1500) → 금(2000) → 루비(5000) → 사파이어(7000) → 다이아(10000)",
-                        "• Ranks: Dirt (to 1000) → Copper (1001) → Silver (1500) → Gold (2000) → Ruby (5000) → Sapphire (7000) → Diamond (10000)",
-                        zh = "• 等级：泥土（≤1000）→ 铜（1001）→ 银（1500）→ 金（2000）→ 红宝石（5000）→ 蓝宝石（7000）→ 钻石（10000）",
-                        hi = "• रैंक: मिट्टी (1000 तक) → कॉपर (1001) → सिल्वर (1500) → गोल्ड (2000) → रूबी (5000) → नीलम (7000) → डायमंड (10000)",
-                        es = "• Rangos: Tierra (hasta 1000) → Cobre (1001) → Plata (1500) → Oro (2000) → Rubí (5000) → Zafiro (7000) → Diamante (10000)",
-                        fr = "• Rangs : Terre (jusqu’à 1000) → Cuivre (1001) → Argent (1500) → Or (2000) → Rubis (5000) → Saphir (7000) → Diamant (10000)",
-                        ar = "• الرتب: تراب (حتى 1000) ← نحاس (1001) ← فضة (1500) ← ذهب (2000) ← ياقوت أحمر (5000) ← ياقوت أزرق (7000) ← ماس (10000)",
-                        de = "• Ränge: Erde (bis 1000) → Kupfer (1001) → Silber (1500) → Gold (2000) → Rubin (5000) → Saphir (7000) → Diamant (10000)",
-                        pt = "• Ranks: Terra (até 1000) → Cobre (1001) → Prata (1500) → Ouro (2000) → Rubi (5000) → Safira (7000) → Diamante (10000)",
-                        ru = "• Ранги: Земля (до 1000) → Медь (1001) → Серебро (1500) → Золото (2000) → Рубин (5000) → Сапфир (7000) → Алмаз (10000)",
-                        ja = "• ランク：土（〜1000）→ 銅（1001）→ 銀（1500）→ 金（2000）→ ルビー（5000）→ サファイア（7000）→ ダイヤ（10000）",
+                        "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1401) → 금(2001) → 루비(4001) → 사파이어(7001) → 다이아(10001) → 핑크다이아(50001)",
+                        "• Ranks: Dirt (to 1000) → Copper (1001) → Silver (1401) → Gold (2001) → Ruby (4001) → Sapphire (7001) → Diamond (10001) → Pink Diamond (50001)",
+                        zh = "• 等级：泥土（≤1000）→ 铜（1001）→ 银（1401）→ 金（2001）→ 红宝石（4001）→ 蓝宝石（7001）→ 钻石（10001）→ 粉钻（50001）",
+                        hi = "• रैंक: मिट्टी (1000 तक) → कॉपर (1001) → सिल्वर (1401) → गोल्ड (2001) → रूबी (4001) → नीलम (7001) → डायमंड (10001) → पिंक डायमंड (50001)",
+                        es = "• Rangos: Tierra (hasta 1000) → Cobre (1001) → Plata (1401) → Oro (2001) → Rubí (4001) → Zafiro (7001) → Diamante (10001) → Diamante rosa (50001)",
+                        fr = "• Rangs : Terre (jusqu’à 1000) → Cuivre (1001) → Argent (1401) → Or (2001) → Rubis (4001) → Saphir (7001) → Diamant (10001) → Diamant rose (50001)",
+                        ar = "• الرتب: تراب (حتى 1000) ← نحاس (1001) ← فضة (1401) ← ذهب (2001) ← ياقوت أحمر (4001) ← ياقوت أزرق (7001) ← ماس (10001) ← ماس وردي (50001)",
+                        de = "• Ränge: Erde (bis 1000) → Kupfer (1001) → Silber (1401) → Gold (2001) → Rubin (4001) → Saphir (7001) → Diamant (10001) → Pinker Diamant (50001)",
+                        pt = "• Ranks: Terra (até 1000) → Cobre (1001) → Prata (1401) → Ouro (2001) → Rubi (4001) → Safira (7001) → Diamante (10001) → Diamante rosa (50001)",
+                        ru = "• Ранги: Земля (до 1000) → Медь (1001) → Серебро (1401) → Золото (2001) → Рубин (4001) → Сапфир (7001) → Алмаз (10001) → Розовый алмаз (50001)",
+                        ja = "• ランク：土（〜1000）→ 銅（1001）→ 銀（1401）→ 金（2001）→ ルビー（4001）→ サファイア（7001）→ ダイヤ（10001）→ ピンクダイヤ（50001）",
                     ),
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
@@ -905,7 +905,7 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
         // 매칭되면 3초 동안 VS 소개 (나라·계급)
         var showVs by remember { mutableStateOf(false) }
         LaunchedEffect(g.gameId) {
-            if (g.gameId != null) {
+            if (g.gameId != null && g.showIntro) {
                 showVs = true
                 delay(3_000)
                 showVs = false
@@ -1490,7 +1490,40 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             ), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(6.dp))
 
-        Animal.entries.forEach { a ->
+        // 무료 햄스터 옷: 사지 않고 바로 장착 (모습만 바뀌고 효과 없음)
+        val hamOn = p.equipped == Animal.HAMSTER
+        ShopCard(
+            title = tr("🐹 햄스터", "🐹 Hamster", zh = "🐹 仓鼠", hi = "🐹 हैम्स्टर", es = "🐹 Hámster", fr = "🐹 Hamster", ar = "🐹 هامستر", de = "🐹 Hamster", pt = "🐹 Hamster", ru = "🐹 Хомяк", ja = "🐹 ハムスター"),
+            desc = tr(
+                "🎁 무료! 내 캐릭터를 햄스터로 바꿔요.\n효과는 없고 몇 판을 해도 줄지 않아요 (모든 대전에서 모습만)",
+                "🎁 Free! Turn your character into a hamster.\nNo effect and never used up (look only, in every battle)",
+                zh = "🎁 免费！把你的角色换成仓鼠。\n没有效果，也不会消耗（所有对战中仅外观）",
+                hi = "🎁 मुफ़्त! अपने किरदार को हैम्स्टर बनाएँ।\nकोई असर नहीं, कभी खत्म नहीं होता (हर मुकाबले में सिर्फ़ रूप)",
+                es = "🎁 ¡Gratis! Convierte tu personaje en hámster.\nSin efecto y nunca se gasta (solo aspecto, en todas las batallas)",
+                fr = "🎁 Gratuit ! Transforme ton perso en hamster.\nAucun effet, jamais consommé (look seulement, dans tous les combats)",
+                ar = "🎁 مجانًا! حوّل شخصيتك إلى هامستر.\nبلا تأثير ولا يُستهلك أبدًا (الشكل فقط في كل المعارك)",
+                de = "🎁 Gratis! Mach deine Figur zum Hamster.\nKein Effekt, wird nie verbraucht (nur Look, in jedem Duell)",
+                pt = "🎁 Grátis! Transforme seu personagem em hamster.\nSem efeito e nunca acaba (só visual, em todas as batalhas)",
+                ru = "🎁 Бесплатно! Превратите персонажа в хомяка.\nБез эффекта и не тратится (только вид, в любом бою)",
+                ja = "🎁 無料！自分のキャラをハムスターに。\n効果なし・減りません（どの対戦でも見た目だけ）",
+            ),
+            price = null,
+            owned = if (hamOn) tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", hi = "✅ लगाया हुआ", es = "✅ Equipado", fr = "✅ Équipé", ar = "✅ مُجهَّز", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中") else null,
+            art = { Critter(Side.HAMSTER, Modifier.size(84.dp), skin = Animal.HAMSTER, happy = hamOn) },
+        ) {
+            if (hamOn) {
+                OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
+                    Text(tr("장착 해제", "Unequip", zh = "卸下", hi = "हटाएँ", es = "Quitar", fr = "Retirer", ar = "إزالة", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
+                }
+            } else {
+                Button(
+                    onClick = { vm.equip(Animal.HAMSTER) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                ) { Text(tr("무료로 장착", "Equip for free", zh = "免费装备", hi = "मुफ़्त में लगाएँ", es = "Equipar gratis", fr = "Équiper gratuitement", ar = "تجهيز مجانًا", de = "Gratis ausrüsten", pt = "Equipar grátis", ru = "Надеть бесплатно", ja = "無料で装備"), fontWeight = FontWeight.Bold) }
+            }
+        }
+
+        Animal.entries.filterNot { it.free }.forEach { a ->
             val count = p.animalCount(a)
             val have = count > 0
             val on = p.equipped == a && have
@@ -1665,13 +1698,13 @@ private fun RanksDialog(myScore: Int, onDismiss: () -> Unit) {
         confirmButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", zh = "关闭", hi = "बंद करें", es = "Cerrar", fr = "Fermer", ar = "إغلاق", de = "Schließen", pt = "Fechar", ru = "Закрыть", ja = "閉じる"), fontWeight = FontWeight.Bold) } },
         title = { Text(tr("🏅 계급표", "🏅 Ranks", zh = "🏅 等级表", hi = "🏅 रैंक", es = "🏅 Rangos", fr = "🏅 Rangs", ar = "🏅 الرتب", de = "🏅 Ränge", pt = "🏅 Ranks", ru = "🏅 Ранги", ja = "🏅 ランク表"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
-            // 계급이 7개라 작은 화면에선 길어짐 → 스크롤
+            // 계급이 8개라 작은 화면에선 길어짐 → 스크롤
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Rank.entries.reversed().forEach { r ->
                     val isMine = r == mine
                     val range = when (r) {
                         Rank.DIRT -> tr("1000점 이하", "Up to 1000 pts", zh = "1000 分以下", hi = "1000 अंक तक", es = "Hasta 1000 pts", fr = "Jusqu’à 1000 pts", ar = "حتى 1000 نقطة", de = "Bis 1000 Pkt", pt = "Até 1000 pts", ru = "До 1000 очк.", ja = "1000点以下")
-                        Rank.DIAMOND -> tr("${r.minScore}점 이상", "${r.minScore}+ pts", zh = "${r.minScore} 分以上", hi = "${r.minScore}+ अंक", es = "${r.minScore}+ pts", fr = "${r.minScore}+ pts", ar = "${r.minScore}+ نقطة", de = "${r.minScore}+ Pkt", pt = "${r.minScore}+ pts", ru = "${r.minScore}+ очк.", ja = "${r.minScore}点以上")
+                        Rank.PINK_DIAMOND -> tr("${r.minScore}점 이상", "${r.minScore}+ pts", zh = "${r.minScore} 分以上", hi = "${r.minScore}+ अंक", es = "${r.minScore}+ pts", fr = "${r.minScore}+ pts", ar = "${r.minScore}+ نقطة", de = "${r.minScore}+ Pkt", pt = "${r.minScore}+ pts", ru = "${r.minScore}+ очк.", ja = "${r.minScore}点以上")
                         else -> tr(
 "${r.minScore} ~ ${Rank.entries[r.ordinal + 1].minScore - 1}점",
 "${r.minScore} – ${Rank.entries[r.ordinal + 1].minScore - 1} pts",

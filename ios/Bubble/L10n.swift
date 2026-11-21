@@ -112,6 +112,7 @@ extension Rank {
             ["루비", "Ruby", "红宝石", "रूबी", "Rubí", "Rubis", "ياقوت أحمر", "Rubin", "Rubi", "Рубин", "ルビー"],
             ["사파이어", "Sapphire", "蓝宝石", "नीलम", "Zafiro", "Saphir", "ياقوت أزرق", "Saphir", "Safira", "Сапфир", "サファイア"],
             ["다이아", "Diamond", "钻石", "डायमंड", "Diamante", "Diamant", "ماس", "Diamant", "Diamante", "Алмаз", "ダイヤ"],
+            ["핑크다이아", "Pink Diamond", "粉钻", "पिंक डायमंड", "Diamante rosa", "Diamant rose", "ماس وردي", "Pinker Diamant", "Diamante rosa", "Розовый алмаз", "ピンクダイヤ"],
         ][rawValue])
     }
 }
@@ -122,6 +123,7 @@ extension Animal {
         case .sheep: return pick(["양", "Sheep", "绵羊", "भेड़", "Oveja", "Mouton", "خروف", "Schaf", "Ovelha", "Овечка", "ヒツジ"])
         case .dog: return pick(["강아지", "Puppy", "小狗", "पिल्ला", "Perrito", "Chiot", "جرو", "Welpe", "Cachorrinho", "Щенок", "子イヌ"])
         case .giraffe: return pick(["기린", "Giraffe", "长颈鹿", "जिराफ़", "Jirafa", "Girafe", "زرافة", "Giraffe", "Girafa", "Жираф", "キリン"])
+        case .hamster: return pick(["햄스터", "Hamster", "仓鼠", "हैम्स्टर", "Hámster", "Hamster", "هامستر", "Hamster", "Hamster", "Хомяк", "ハムスター"])
         }
     }
 }

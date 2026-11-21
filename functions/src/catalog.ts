@@ -25,6 +25,13 @@ export const ANIMALS: Record<string, { price: number; opponentTurnMs: number }> 
   GIRAFFE: { price: 100, opponentTurnMs: 5_000 },
 };
 
+/** 무료 캐릭터 (모습만 바뀌고 효과 없음, 소모되지 않음) */
+export const FREE_SKINS = ["HAMSTER"];
+
+export function isFreeSkin(id: unknown): id is string {
+  return typeof id === "string" && FREE_SKINS.includes(id);
+}
+
 /** 기본 턴 시간 (상대가 동물을 쓰면 더 짧아짐) */
 export const DEFAULT_TURN_MS = 20_000;
 
@@ -37,15 +44,16 @@ export function turnLimitAgainst(opponentEquipped: unknown): number {
 
 /**
  * 계급과 보너스. 앱의 game/Catalog.kt Rank와 같아야 합니다.
- * 흙(~1000) 0%, 구리(1001~) 5%, 은(1500~) 10%, 금(2000~) 15%,
- * 루비(5000~) 20%, 사파이어(7000~) 25%, 다이아(10000~) 30%.
+ * 흙(~1000) 0%, 구리(1001~1400) 5%, 은(1401~2000) 10%, 금(2001~4000) 15%,
+ * 루비(4001~7000) 20%, 사파이어(7001~10000) 25%, 다이아(10001~50000) 30%, 핑크다이아(50001~) 35%.
  */
 export const RANKS: { name: string; min: number; bonus: number }[] = [
-  { name: "DIAMOND", min: 10000, bonus: 30 },
-  { name: "SAPPHIRE", min: 7000, bonus: 25 },
-  { name: "RUBY", min: 5000, bonus: 20 },
-  { name: "GOLD", min: 2000, bonus: 15 },
-  { name: "SILVER", min: 1500, bonus: 10 },
+  { name: "PINK_DIAMOND", min: 50001, bonus: 35 },
+  { name: "DIAMOND", min: 10001, bonus: 30 },
+  { name: "SAPPHIRE", min: 7001, bonus: 25 },
+  { name: "RUBY", min: 4001, bonus: 20 },
+  { name: "GOLD", min: 2001, bonus: 15 },
+  { name: "SILVER", min: 1401, bonus: 10 },
   { name: "COPPER", min: 1001, bonus: 5 },
 ];
 

@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, isFreeSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
@@ -201,6 +201,8 @@ function isLate(game: Game): boolean {
 /** 장착한 동물이 남아 있으면 1개를 쓰고 그 동물을, 없으면 null (장착도 해제). */
 function useAnimal(tx: Transaction, profile: DocumentSnapshot): string | null {
   const equipped = profile.get("equipped") as string | null | undefined;
+  // 무료 캐릭터(햄스터)는 모습만 바뀌고 소모되지 않음 (상대 턴 시간도 그대로)
+  if (isFreeSkin(equipped)) return equipped;
   if (!equipped || !ANIMALS[equipped]) return null;
   const left = (profile.get(`animals.${equipped}`) as number | undefined) ?? 0;
   if (left <= 0) {
@@ -472,7 +474,7 @@ export const startAiGame = onCall(async (req) => {
   const myScore = me.get("score") ?? START_SCORE;
   const myRevives = revivesForGame(me.get("potions"));
   const eq = me.get("equipped") as string | null | undefined;
-  const aiSkin = eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null;
+  const aiSkin = isFreeSkin(eq) ? eq : eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null;
   await gameRef.set({
     vsAi: level,
     catCountry: humanIsCat ? country : null,
@@ -647,14 +649,15 @@ export const buyItem = onCall(async (req) => {
 export const equipAnimal = onCall(async (req) => {
   const uid = requireUser(req);
   const animal = (req.data as { animal?: unknown } | null)?.animal ?? null;
-  if (animal !== null && (typeof animal !== "string" || !ANIMALS[animal])) {
+  if (animal !== null && (typeof animal !== "string" || (!ANIMALS[animal] && !isFreeSkin(animal)))) {
     throw err("invalid-argument", "없는 캐릭터예요", "No such character");
   }
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
     const u = await tx.get(userRef);
     const left = animal === null ? 0 : ((u.get(`animals.${animal}`) as number | undefined) ?? 0);
-    if (animal !== null && left <= 0) {
+    // 무료 캐릭터는 가진 개수와 상관없이 장착
+    if (animal !== null && !isFreeSkin(animal) && left <= 0) {
       throw err("failed-precondition", "아직 없는 캐릭터예요", "You don't own this character yet");
     }
     tx.update(userRef, { equipped: animal });
@@ -1068,8 +1071,9 @@ export const joinFriendRoom = onCall(async (req) => {
       hamRevives: revivesForGame(ham.get("potions")),
       catCountry: iAmCat ? myCountry : hostCountry,
       hamCountry: iAmCat ? hostCountry : myCountry,
-      catSkin: null,
-      hamSkin: null,
+      // 친구 대전: 동물(효과)은 안 쓰고, 무료 캐릭터(햄스터 옷)는 모습만 보여줌
+      catSkin: isFreeSkin(cat.get("equipped")) ? cat.get("equipped") : null,
+      hamSkin: isFreeSkin(ham.get("equipped")) ? ham.get("equipped") : null,
       catBoost: false,
       hamBoost: false,
       catTurnMs: TURN_LIMIT_MS,

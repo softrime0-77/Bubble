@@ -17,6 +17,11 @@ struct RankBadge: View {
         case .ruby: return [Color(hex: 0xFF8FB0), Color(hex: 0xE0115F), Color(hex: 0x9B0B3F)]
         case .sapphire: return [Color(hex: 0x9AD7FF), Color(hex: 0x1F6FEB), Color(hex: 0x0B3D91)]
         case .diamond: return (0..<6).map { i in Color(hue: (hue + Double(i) * 50 / 360).truncatingRemainder(dividingBy: 1), saturation: 0.32, brightness: 1) }
+        // 핑크다이아: 분홍 → 자홍 → 라벤더 사이를 물결치듯 흐르는 빛
+        case .pinkDiamond: return (0..<6).map { i in
+            let h = 312 + 34 * sin((hue + Double(i) / 6) * 2 * .pi)
+            return Color(hue: (h / 360).truncatingRemainder(dividingBy: 1), saturation: 0.36 + 0.1 * Double(i % 2), brightness: 1)
+        }
         }
     }
 
@@ -25,16 +30,34 @@ struct RankBadge: View {
             let time = tl.date.timeIntervalSinceReferenceDate
             let hue = (time / 4).truncatingRemainder(dividingBy: 1)
             let darkText = [Rank.silver, .gold, .diamond].contains(rank)
-            let sparkles = [0, 2, 4, 6, 8, 11, 16][rank.rawValue]
+            let pink = rank == .pinkDiamond
+            let sparkles = [0, 2, 4, 6, 8, 11, 16, 24][rank.rawValue]
+            let glow = 0.7 + 0.3 * sin(time * 2 * .pi / 1.8)
             ZStack {
                 Text("\(rank.emoji) \(rank.label)")
                     .font(.system(size: large ? 18 : 12, weight: .black))
-                    .foregroundColor(darkText ? UiColor.text : .white)
+                    .foregroundColor(pink ? Color(hex: 0x9C1060) : darkText ? UiColor.text : .white)
                     .lineLimit(1)
                     .fixedSize()
                     .padding(.horizontal, large ? 14 : 8).padding(.vertical, large ? 6 : 2)
                     .background(Capsule().fill(LinearGradient(colors: colors(hue), startPoint: .topLeading, endPoint: .bottomTrailing)))
-                    .shadow(color: rank.rawValue >= 3 ? colors(hue)[1].opacity(0.6) : .clear, radius: CGFloat(rank.rawValue - 2) * 2)
+                    .overlay {
+                        // 핑크다이아: 빛 줄기 두 개가 배지를 훑고 지나감
+                        if pink {
+                            GeometryReader { geo in
+                                ForEach(0..<2, id: \.self) { k in
+                                    let x = ((time / 1.6 + Double(k) * 0.5).truncatingRemainder(dividingBy: 1) * 1.8 - 0.4) * geo.size.width
+                                    LinearGradient(colors: [.clear, .white.opacity(0.75), .clear], startPoint: .leading, endPoint: .trailing)
+                                        .frame(width: geo.size.height * 1.4)
+                                        .rotationEffect(.degrees(20))
+                                        .offset(x: x - geo.size.height * 0.7)
+                                }
+                            }
+                            .clipShape(Capsule())
+                            .allowsHitTesting(false)
+                        }
+                    }
+                    .shadow(color: rank.rawValue >= 3 ? colors(hue)[1].opacity(pink ? 0.9 * glow : 0.6) : .clear, radius: CGFloat(rank.rawValue - 2) * 2)
                 if sparkles > 0 {
                     Canvas { ctx, size in
                         var g = SeededRandom(seed: UInt64(rank.rawValue * 31 + 7))
@@ -43,12 +66,37 @@ struct RankBadge: View {
                             let p = (time / 1.3 + Double(ph)).truncatingRemainder(dividingBy: 1)
                             let a = sin(p * .pi)
                             let pos = CGPoint(x: (sx * 1.3 - 0.15) * size.width, y: (sy * 1.8 - 0.4) * size.height)
-                            let color: Color = rank == .diamond
+                            let color: Color = pink
+                                ? [Color(hex: 0xFF5FB4), .white, Color(hex: 0xFFB8E2), Color(hex: 0xE6A8FF)][i % 4]
+                                : rank == .diamond
                                 ? Color(hue: (hue + Double(i) * 47 / 360).truncatingRemainder(dividingBy: 1), saturation: 0.5, brightness: 1)
                                 : (rank.rawValue >= 3 ? Color(hex: 0xFFF4B0) : .white)
-                            ctx.fill(sparklePath(pos, (large ? 7 : 4.5) * (0.4 + a * 0.8)), with: .color(color.opacity(a)))
+                            let r = (large ? 7 : 4.5) * (0.4 + a * 0.8)
+                            // 핑크다이아는 셋 중 하나가 하트
+                            ctx.fill(pink && i % 3 == 0 ? heartPath(pos, r * 0.75) : sparklePath(pos, r), with: .color(color.opacity(a)))
                         }
                     }
+                    .allowsHitTesting(false)
+                }
+                // 핑크다이아 전용: 숨쉬는 빛 고리 + 배지 둘레를 도는 별빛·하트
+                if pink {
+                    Canvas { ctx, size in
+                        let grow = 1 + glow * 0.12
+                        let w = size.width * 1.08 * grow, h = size.height * 1.55 * grow
+                        let rect = CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h)
+                        ctx.stroke(Path(roundedRect: rect, cornerRadius: h / 2),
+                                   with: .linearGradient(Gradient(colors: [Color(hex: 0xFF6FBF), Color(hex: 0xFFD1EC), Color(hex: 0xD9A3FF), Color(hex: 0xFF6FBF)]),
+                                                         startPoint: CGPoint(x: rect.minX, y: rect.minY), endPoint: CGPoint(x: rect.maxX, y: rect.maxY)),
+                                   style: StrokeStyle(lineWidth: large ? 2.5 : 1.6))
+                        for i in 0..<6 {
+                            let ang = (time / 1.3 + Double(i) / 6) * 2 * .pi
+                            let pos = CGPoint(x: size.width / 2 + cos(ang) * size.width * 0.6, y: size.height / 2 + sin(ang) * size.height * 1.05)
+                            let c = [Color.white, Color(hex: 0xFF8FCF), Color(hex: 0xE6B8FF)][i % 3]
+                            let r: CGFloat = large ? 5.5 : 3.5
+                            ctx.fill(i % 2 == 0 ? sparklePath(pos, r) : heartPath(pos, r * 0.7), with: .color(c))
+                        }
+                    }
+                    .opacity(0.45 + 0.55 * glow)
                     .allowsHitTesting(false)
                 }
             }

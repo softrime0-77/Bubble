@@ -14,7 +14,7 @@ final class PointStore: ObservableObject {
         let id: String
         let points: Int
     }
-    static let products = [Pack(id: "points_500", points: 500), Pack(id: "points_1000", points: 1000), Pack(id: "points_2000", points: 2000)]
+    static let products = [Pack(id: "points_500", points: 500), Pack(id: "points_1000", points: 1000), Pack(id: "points_2000", points: 2000), Pack(id: "points_5000", points: 5000)]
 
     @Published private(set) var prices: [String: String] = [:]
     @Published private(set) var purchasing: String? = nil

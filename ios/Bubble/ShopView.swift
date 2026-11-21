@@ -205,7 +205,8 @@ struct ShopView: View {
             Text(t("결제한 포인트는 💰 상점 포인트로 들어가요. 상점 전용이라 계급·랭킹 점수와는 별개예요."))
                 .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.75))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            HStack(spacing: 8) {
+            // 상품 4개: 2칸씩 2줄
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(PointStore.products, id: \.self) { prod in
                     Button { Task { await store.buy(prod.id) } } label: {
                         VStack(spacing: 2) {

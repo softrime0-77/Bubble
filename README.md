@@ -163,6 +163,7 @@ firebase deploy --only functions,firestore:rules
      | `points_500` | 포인트 500 | ₩500 |
      | `points_1000` | 포인트 1000 | ₩1,000 |
      | `points_2000` | 포인트 2000 | ₩2,000 |
+     | `points_5000` | 포인트 5000 | ₩5,000 |
    - 다른 나라 가격은 자동 환산 → 각각 **활성화**
 4. [Google Cloud 콘솔](https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project=bubble-422ef)에서 **Google Play Android Developer API** 사용 설정
 5. Play Console → **사용자 및 권한 → 새 사용자 초대**
@@ -218,12 +219,13 @@ Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 
 1. **Apple 로그인 켜기**
    - [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) → Identifiers → **+** → App IDs → 번들 ID `com.softrime.bubble` (Explicit) → **Sign In with Apple** 체크
    - Firebase 콘솔 → Authentication → 로그인 방법 → **Apple** 사용 설정 (아이폰 앱만 쓰면 서비스 ID·키 입력 없이 저장해도 됨)
-2. **결제 상품 만들기**: App Store Connect → 앱 → 인앱 구입 → **소모품** 3개 (ID는 정확히 이 이름)
+2. **결제 상품 만들기**: App Store Connect → 앱 → 인앱 구입 → **소모품** 4개 (ID는 정확히 이 이름)
    | 상품 ID | 포인트 | 가격 예 |
    |---|---|---|
    | `points_500` | 500 | ₩500 단계 |
    | `points_1000` | 1000 | ₩1,000 단계 |
    | `points_2000` | 2000 | ₩2,000 단계 |
+   | `points_5000` | 5000 | ₩5,000 단계 |
    서버(`verifyApplePurchase`)는 Apple 서명을 직접 확인하므로 별도 API 키가 필요 없습니다. 테스트는 App Store Connect의 **샌드박스 테스터** 계정으로 합니다.
 3. **광고**: AdMob에 iOS 앱을 추가하고, 전면 광고·보상형 전면 광고 단위를 만든 뒤
    - `ios/project.yml`의 `GADApplicationIdentifier`, `BubbleInterstitialId`, `BubbleRewardedId`를 실제 ID로 교체 (지금은 구글 테스트 광고)

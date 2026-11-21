@@ -39,6 +39,7 @@ class BillingManager(
             "points_500" to 500,
             "points_1000" to 1000,
             "points_2000" to 2000,
+            "points_5000" to 5000,
         )
     }
 

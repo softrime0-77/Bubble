@@ -768,7 +768,7 @@ const PACKAGE_NAME = "com.bubble.game";
 const APPLE_BUNDLE_ID = "com.softrime.bubble";
 /** Play Console에 만든 소모성 상품 ID → 지급 점수 */
 /** 결제로 받는 것은 "상점 포인트(coins)" — 상점 전용이라 점수·계급에는 들어가지 않음 */
-const PRODUCTS: Record<string, number> = { points_500: 500, points_1000: 1000, points_2000: 2000 };
+const PRODUCTS: Record<string, number> = { points_500: 500, points_1000: 1000, points_2000: 2000, points_5000: 5000 };
 
 const playAuth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] });
 

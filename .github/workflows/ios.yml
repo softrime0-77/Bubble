@@ -54,10 +54,17 @@ jobs:
       - name: Build for simulator
         working-directory: ios
         run: |
-          set -o pipefail
-          xcodebuild build -project Bubble.xcodeproj -scheme Bubble \
+          # 실패하면 오류 줄만 모아서 보여줌
+          if ! xcodebuild build -project Bubble.xcodeproj -scheme Bubble \
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO | tail -40
+            CODE_SIGNING_ALLOWED=NO > build.log 2>&1; then
+            echo "===== errors ====="
+            grep -E "error:|fatal error|Could not resolve|failed" build.log | sort -u | head -80
+            echo "===== tail ====="
+            tail -30 build.log
+            exit 1
+          fi
+          tail -5 build.log
 
       - name: Screenshots
         working-directory: ios

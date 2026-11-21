@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # APK를 GitHub Release에 올리려면 쓰기 권한이 필요
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -64,6 +67,24 @@ jobs:
           path: |
             app/build/outputs/apk/**/*.apk
             app/build/outputs/bundle/release/*.aab
+
+      # main에서 서명된 release APK가 만들어졌으면 GitHub Release에 bubble.apk로 올림.
+      # 고정 다운로드 링크: https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk
+      # (AAB는 Play Console 전용이라 공개 릴리스에는 올리지 않음)
+      - name: Publish APK to GitHub Release
+        if: github.ref == 'refs/heads/main' && hashFiles('app/build/outputs/apk/release/app-release.apk') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          TAG="v$VERSION"
+          cp app/build/outputs/apk/release/app-release.apk bubble.apk
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" bubble.apk --clobber
+          else
+            gh release create "$TAG" bubble.apk --title "Bubble $VERSION" --notes "안드로이드 APK $VERSION" --latest
+          fi
+          echo "다운로드: https://github.com/${{ github.repository }}/releases/latest/download/bubble.apk"
 
   functions:
     runs-on: ubuntu-latest

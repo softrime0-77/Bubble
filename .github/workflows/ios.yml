@@ -22,6 +22,18 @@ jobs:
         working-directory: ios/BubbleCore
         run: swift test
 
+      # 저장소 Secrets에 GOOGLE_SERVICE_INFO_PLIST(파일 내용 그대로)가 있으면 온라인 기능이 켜진 앱이 됨
+      - name: Firebase config
+        env:
+          PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          if [ -n "$PLIST" ]; then
+            printf '%s' "$PLIST" > ios/Bubble/GoogleService-Info.plist
+            echo "Firebase 설정 적용"
+          else
+            echo "GOOGLE_SERVICE_INFO_PLIST 없음: 온라인 기능 없이 빌드"
+          fi
+
       - name: Generate Xcode project
         working-directory: ios
         run: |

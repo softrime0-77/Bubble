@@ -1,11 +1,11 @@
 import BubbleCore
 import SwiftUI
 
-struct GameView: View {
-    @ObservedObject var game: LocalGame
-    var myName: String
+struct GameView<M: GameModel>: View {
+    @ObservedObject var game: M
     var onLeave: () -> Void
-    var onAgain: () -> Void
+    /// AI 대전이면 "한 판 더"
+    var onAgain: (() -> Void)?
 
     @State private var confirmLeave = false
 
@@ -23,7 +23,7 @@ struct GameView: View {
                 .padding(.horizontal, 16)
 
                 HStack(spacing: 8) {
-                    PlayerTag(side: opp, name: game.opponentName, active: game.turn == opp && !game.finished)
+                    PlayerTag(side: opp, name: game.opponentName, active: game.turn == opp && !game.finished, skin: game.opponentSkin)
                     SplitCounter(left: game.board.splitsLeft(opp))
                 }
                 .padding(.top, 6)
@@ -40,7 +40,7 @@ struct GameView: View {
                 Spacer(minLength: 8)
                 turnBanner
                 if let d = game.deadline, !game.finished {
-                    TurnTimerView(deadline: d, totalSec: game.level.turnSec, mine: game.turn == me)
+                    TurnTimerView(deadline: d, totalSec: game.turnSec, mine: game.turn == me)
                         .padding(.top, 10)
                 }
                 Spacer(minLength: 8)
@@ -54,7 +54,7 @@ struct GameView: View {
                 .padding(.horizontal, 20)
 
                 HStack(spacing: 8) {
-                    PlayerTag(side: me, name: myName, active: game.myTurn)
+                    PlayerTag(side: me, name: game.myName, active: game.myTurn, skin: game.mySkin)
                     SplitCounter(left: game.board.splitsLeft(me))
                 }
                 .padding(.top, 16)
@@ -65,14 +65,23 @@ struct GameView: View {
             .padding(.vertical, 12)
 
             if game.finished, let w = game.winner {
-                ResultOverlay(won: w == me, side: me, reason: game.reason, onLobby: onLeave, onAgain: onAgain)
+                ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
+                              online: game.isOnline, bonus: game.scoreBonus, onLobby: onLeave, onAgain: onAgain)
             }
         }
         .alert(t("게임에서 나갈까요?"), isPresented: $confirmLeave) {
             Button(t("계속하기"), role: .cancel) {}
             Button(t("나가기"), role: .destructive) { onLeave() }
         } message: {
-            Text(t("연습 게임이 끝나요."))
+            Text(!game.isOnline ? t("연습 게임이 끝나요.")
+                 : game.isAi ? tr("지금 나가면 패배로 처리돼요.", "Leaving now counts as a loss.", zh: "现在离开将判负。", es: "Salir ahora cuenta como derrota.",
+                                fr: "Partir maintenant compte comme une défaite.", de: "Jetzt zu gehen zählt als Niederlage.",
+                                pt: "Sair agora conta como derrota.", ru: "Выход сейчас — поражение.", ja: "今退出すると負けになります。")
+                 : tr("지금 나가면 기권패로 처리돼요 (-\(Shop.losePoints)점).", "Leaving now counts as a forfeit (-\(Shop.losePoints) pts).",
+                      zh: "现在离开将判为弃权（-\(Shop.losePoints) 分）。", es: "Salir ahora cuenta como abandono (-\(Shop.losePoints) pts).",
+                      fr: "Partir maintenant compte comme un abandon (-\(Shop.losePoints) pts).", de: "Jetzt zu gehen zählt als Aufgabe (-\(Shop.losePoints) Pkt).",
+                      pt: "Sair agora conta como desistência (-\(Shop.losePoints) pts).", ru: "Выход сейчас — техническое поражение (-\(Shop.losePoints) очк.).",
+                      ja: "今退出すると棄権負けになります（-\(Shop.losePoints)点）。"))
         }
     }
 
@@ -125,7 +134,7 @@ struct GameView: View {
         if game.finished {
             text = t("게임 끝!")
         } else if game.turn != me {
-            text = t("AI가 생각 중… 🤔")
+            text = game.isAi ? t("AI가 생각 중… 🤔") : t("상대가 고민 중이에요…")
         } else if game.selected != nil {
             text = t("어디에 더할까요? 반짝이는 방울을 눌러요")
         } else {
@@ -167,6 +176,9 @@ struct GameView: View {
 
     private var logView: some View {
         VStack(spacing: 2) {
+            if let n = game.notice {
+                Text(n).font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.danger).multilineTextAlignment(.center)
+            }
             ForEach(Array(game.log.prefix(2).enumerated()), id: \.offset) { i, line in
                 Text(line)
                     .font(.system(size: i == 0 ? 16 : 14, weight: i == 0 ? .heavy : .semibold))
@@ -183,8 +195,11 @@ struct ResultOverlay: View {
     let won: Bool
     let side: Side
     let reason: String
+    var delta: Int? = nil
+    var online = false
+    var bonus = 0
     let onLobby: () -> Void
-    let onAgain: () -> Void
+    let onAgain: (() -> Void)?
 
     var body: some View {
         ZStack {
@@ -195,11 +210,24 @@ struct ResultOverlay: View {
                     .font(.system(size: 32, weight: .black))
                     .foregroundColor(won ? UiColor.primaryDark : UiColor.text)
                 Text(reasonText).foregroundColor(UiColor.text.opacity(0.7))
+                if online {
+                    Text(delta.map { d in d >= 0 ? "+" + pts(d) : pts(d) } ?? t("점수 계산 중…"))
+                        .font(.system(size: 26, weight: .black))
+                        .foregroundColor((delta ?? 0) >= 0 ? UiColor.accent : UiColor.danger)
+                    if bonus > 0 {
+                        Text(tr("✨ 계급 보너스 +\(bonus)점 포함", "✨ Includes rank bonus +\(bonus)", zh: "✨ 含等级奖励 +\(bonus)",
+                                es: "✨ Incluye bonus de rango +\(bonus)", fr: "✨ Bonus de rang inclus +\(bonus)", de: "✨ Inkl. Rangbonus +\(bonus)",
+                                pt: "✨ Inclui bônus de rank +\(bonus)", ru: "✨ С бонусом ранга +\(bonus)", ja: "✨ ランクボーナス +\(bonus) 込み"))
+                            .font(.system(size: 14, weight: .bold)).foregroundColor(Color(hex: 0xD08A00))
+                    }
+                }
                 HStack(spacing: 10) {
-                    Button(t("한 판 더"), action: onAgain)
-                        .foregroundColor(UiColor.text)
-                        .padding(.horizontal, 18).padding(.vertical, 10)
-                        .overlay(Capsule().stroke(UiColor.text.opacity(0.4)))
+                    if let onAgain {
+                        Button(t("한 판 더"), action: onAgain)
+                            .foregroundColor(UiColor.text)
+                            .padding(.horizontal, 18).padding(.vertical, 10)
+                            .overlay(Capsule().stroke(UiColor.text.opacity(0.4)))
+                    }
                     Button(t("로비로"), action: onLobby)
                         .foregroundColor(.white)
                         .padding(.horizontal, 18).padding(.vertical, 10)

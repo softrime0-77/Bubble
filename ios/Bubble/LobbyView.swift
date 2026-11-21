@@ -1,15 +1,17 @@
 import BubbleCore
 import SwiftUI
 
-/// 1단계 로비: 제목, 언어 선택, AI 연습. (로그인·랜덤 매칭·상점은 다음 단계)
+/// 로비: 언어, 로그인/프로필, 랜덤 매칭, AI 대전, 랭킹 (상점·결제·광고는 3단계)
 struct LobbyView: View {
     @ObservedObject var lang = LangStore.shared
+    @ObservedObject var online = OnlineService.shared
     var onStartAi: (AiLevel) -> Void
+    var onRandomMatch: () -> Void
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                HStack {
+                HStack(spacing: 8) {
                     Menu {
                         ForEach(LangCode.allCases) { code in
                             Button((code == lang.code ? "✓ " : "") + code.label) { lang.code = code }
@@ -21,13 +23,38 @@ struct LobbyView: View {
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(Capsule().fill(.white.opacity(0.7)))
                     }
+                    if let n = online.onlineCount {
+                        Text(tr("🟢 \(n)명 접속", "🟢 \(n) online", zh: "🟢 在线 \(n)", es: "🟢 \(n) en línea", fr: "🟢 \(n) en ligne",
+                                de: "🟢 \(n) online", pt: "🟢 \(n) online", ru: "🟢 \(n) в сети", ja: "🟢 \(n)人接続中"))
+                            .font(.system(size: 13, weight: .black)).foregroundColor(Color(hex: 0x2E7D32))
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(Capsule().fill(.white.opacity(0.75)))
+                    }
                     Spacer()
                 }
 
                 TitleBanner()
 
+                card { accountSection }
+
+                Button(action: onRandomMatch) {
+                    VStack(spacing: 2) {
+                        Text(t("🎲  랜덤 매칭")).font(.system(size: 22, weight: .black))
+                        Text(tr("익명의 상대와 1:1 대결 · 승리 +\(Shop.winPoints)점", "1:1 vs an anonymous player · Win +\(Shop.winPoints) pts",
+                                zh: "与匿名玩家 1:1 对战 · 胜利 +\(Shop.winPoints) 分", es: "1:1 contra un jugador anónimo · Victoria +\(Shop.winPoints) pts",
+                                fr: "1:1 contre un joueur anonyme · Victoire +\(Shop.winPoints) pts", de: "1:1 gegen anonyme Gegner · Sieg +\(Shop.winPoints) Pkt",
+                                pt: "1:1 contra um jogador anônimo · Vitória +\(Shop.winPoints) pts", ru: "1:1 с анонимным игроком · Победа +\(Shop.winPoints) очк.",
+                                ja: "匿名の相手と1対1 · 勝利 +\(Shop.winPoints)点"))
+                            .font(.system(size: 12))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 76)
+                    .background(RoundedRectangle(cornerRadius: 28).fill(UiColor.primary.opacity(online.profile == nil ? 0.4 : 1)))
+                }
+                .disabled(online.profile == nil)
+
                 card {
-                    Text(t("🤖 AI와 연습하기"))
+                    Text(online.profile != nil ? t("🤖 AI 대전") : t("🤖 AI와 연습하기"))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(UiColor.text)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -44,28 +71,118 @@ struct LobbyView: View {
                                         .padding(.vertical, 12)
                                         .overlay(RoundedRectangle(cornerRadius: 16).stroke(UiColor.text.opacity(0.5)))
                                 }
+                                if online.profile != nil {
+                                    Text("🏆 +\(lv.winPoints)   💔 \(lv.losePoints)")
+                                        .font(.system(size: 12, weight: .bold)).foregroundColor(UiColor.text.opacity(0.8)).lineLimit(1)
+                                }
                                 Text("⏱ " + secs(lv.turnSec))
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(UiColor.accent)
                             }
                         }
                     }
+                    if online.profile == nil {
+                        Text(t("로그인하면 AI 대전도 점수가 걸려요"))
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(UiColor.text.opacity(0.7))
+                    }
                 }
 
-                card {
-                    Text(tr("온라인 대전·랭킹·상점은 곧 열려요! 🫧", "Online battles, ranks and the shop are coming soon! 🫧",
-                            zh: "在线对战、排行榜和商店即将开放！🫧", es: "¡Pronto: batallas en línea, rangos y tienda! 🫧",
-                            fr: "Bientôt : combats en ligne, rangs et boutique ! 🫧", de: "Bald: Online-Duelle, Ränge und Shop! 🫧",
-                            pt: "Em breve: batalhas online, ranks e loja! 🫧", ru: "Скоро: онлайн-бои, ранги и магазин! 🫧",
-                            ja: "オンライン対戦・ランキング・ショップはもうすぐ！🫧"))
-                        .font(.system(size: 14))
-                        .foregroundColor(UiColor.text.opacity(0.75))
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
+                if !online.leaderboard.isEmpty {
+                    card {
+                        Text(t("🏆 랭킹")).font(.system(size: 17, weight: .bold)).foregroundColor(UiColor.text)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(Array(online.leaderboard.enumerated()), id: \.element.uid) { i, p in
+                            let me = p.uid == online.profile?.uid
+                            HStack {
+                                Text(i == 0 ? "🥇" : i == 1 ? "🥈" : i == 2 ? "🥉" : "\(i + 1)")
+                                    .font(.system(size: 15, weight: .bold)).frame(width: 32, alignment: .leading)
+                                Text(p.name + (me ? t(" (나)") : "")).foregroundColor(UiColor.text).lineLimit(1)
+                                Spacer()
+                                RankBadge(score: p.score)
+                                Text(pts(p.score)).font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                            }
+                            .padding(.horizontal, 8).padding(.vertical, 5)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(me ? UiColor.primary.opacity(0.15) : .clear))
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+        }
+        .alert(t("🎉 가입을 환영해요!"), isPresented: Binding(get: { online.welcome != nil }, set: { if !$0 { online.welcome = nil } })) {
+            Button(t("시작하기")) { online.welcome = nil }
+        } message: {
+            Text(welcomeText)
+        }
+    }
+
+    private var welcomeText: String {
+        guard let w = online.welcome else { return "" }
+        let s = w.score
+        switch w.kind {
+        case "returning":
+            return t("다시 오신 걸 환영해요! 탈퇴했던 계정이라 0점부터 시작해요.")
+        case "admin":
+            return tr("관리자 계정으로 \(s)점이 지급됐어요. 동시 접속자 수가 로비 위에 보여요.", "Admin account: you got \(s) pts. The online player count shows at the top of the lobby.")
+        default:
+            return tr("시작 점수 \(s)점을 드렸어요. 랜덤 매칭과 AI 대전으로 계급을 올려 보세요!", "You start with \(s) pts. Climb the ranks in random matches and AI battles!",
+                      zh: "你获得了 \(s) 分起始分。通过随机匹配和 AI 对战提升等级吧！", es: "Empiezas con \(s) pts. ¡Sube de rango en partidas aleatorias y contra la IA!",
+                      fr: "Tu commences avec \(s) pts. Grimpe dans les rangs en match aléatoire et contre l’IA !",
+                      de: "Du startest mit \(s) Pkt. Steig in Zufallsmatches und KI-Duellen im Rang auf!",
+                      pt: "Você começa com \(s) pts. Suba de rank em partidas aleatórias e contra a IA!",
+                      ru: "Вы начинаете с \(s) очк. Повышайте ранг в случайных матчах и боях с ИИ!",
+                      ja: "スタート時に\(s)点をプレゼント！ランダムマッチとAI対戦でランクを上げよう！")
+        }
+    }
+
+    @ViewBuilder private var accountSection: some View {
+        if !online.available {
+            Text(tr("온라인 대전은 서버 설정(GoogleService-Info.plist)이 들어간 빌드에서 열려요. 지금은 AI 연습을 즐겨 주세요!",
+                    "Online play opens in builds with the server config (GoogleService-Info.plist). Enjoy AI practice for now!"))
+                .font(.system(size: 14)).foregroundColor(UiColor.text).multilineTextAlignment(.center)
+        } else if let p = online.profile {
+            HStack(spacing: 10) {
+                Critter(side: .cat).frame(width: 52, height: 52)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text)
+                    RankBadge(score: p.score)
+                    Text(tr("\(p.wins)승 \(p.losses)패 · 💖 \(p.potions) · 💰 \(p.coins)", "\(p.wins)W \(p.losses)L · 💖 \(p.potions) · 💰 \(p.coins)",
+                            ja: "\(p.wins)勝 \(p.losses)敗 · 💖 \(p.potions) · 💰 \(p.coins)"))
+                        .font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.7))
+                }
+                Spacer()
+                VStack(alignment: .trailing) {
+                    Text("\(p.score)").font(.system(size: 26, weight: .black)).foregroundColor(UiColor.primaryDark)
+                    Text(t("점")).font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7))
+                }
+            }
+            HStack {
+                Spacer()
+                Button(t("로그아웃")) { online.signOut() }.font(.system(size: 14)).foregroundColor(UiColor.text.opacity(0.6))
+            }
+        } else if online.loading {
+            HStack(spacing: 10) {
+                ProgressView()
+                Text(t("서버에 접속하는 중…")).foregroundColor(UiColor.text)
+            }
+        } else {
+            VStack(spacing: 8) {
+                Text(t("구글 계정으로 로그인하면\n점수와 전적이 계정에 저장돼요")).foregroundColor(UiColor.text).multilineTextAlignment(.center)
+                Text(t("상대에게는 구글 이름 대신 닉네임만 보여요")).font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.6))
+                Button { Task { await online.signInWithGoogle() } } label: {
+                    HStack(spacing: 10) {
+                        Text("G").font(.system(size: 20, weight: .black)).foregroundColor(Color(hex: 0x4285F4))
+                        Text(t("Google로 시작하기")).font(.system(size: 16, weight: .bold)).foregroundColor(UiColor.text)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background(Capsule().fill(.white))
+                    .overlay(Capsule().stroke(Color(hex: 0xDADCE0)))
+                }
+                if let e = online.error {
+                    Text(e).font(.system(size: 12)).foregroundColor(UiColor.danger).multilineTextAlignment(.center)
+                }
+            }
         }
     }
 

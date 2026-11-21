@@ -3,7 +3,7 @@ import Foundation
 
 /// 폰 안에서 하는 AI 연습 게임 (점수 없음). 1단계 범위.
 @MainActor
-final class LocalGame: ObservableObject {
+final class LocalGame: GameModel {
     let level: AiLevel
     let mySide: Side
     private let ai: Ai
@@ -23,6 +23,15 @@ final class LocalGame: ObservableObject {
     private var timerTask: Task<Void, Never>?
 
     var myTurn: Bool { !finished && !busy && turn == mySide }
+    var turnSec: Int { level.turnSec }
+    var myName: String { t("나") }
+    var mySkin: Animal? { nil }
+    var opponentSkin: Animal? { nil }
+    var isAi: Bool { true }
+    var isOnline: Bool { false }
+    var scoreDelta: Int? { nil }
+    var scoreBonus: Int { 0 }
+    var notice: String? { nil }
     var opponentName: String {
         tr("AI 친구 (\(level.label))", "AI Buddy (\(level.label))", zh: "AI 伙伴（\(level.label)）", hi: "AI दोस्त (\(level.label))",
            es: "Amigo IA (\(level.label))", fr: "Copain IA (\(level.label))", ar: "رفيق الذكاء الاصطناعي (\(level.label))",

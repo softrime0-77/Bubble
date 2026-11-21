@@ -17,9 +17,9 @@ enum class Rank(
     val bonusPercent: Int,
 ) {
     DIRT("흙", "Dirt", "🟫", Int.MIN_VALUE, 0, 0),
-    COPPER("구리", "Copper", "🥉", 1001, 1, 5),
-    SILVER("은", "Silver", "🥈", 1500, 2, 10),
-    GOLD("금", "Gold", "🥇", 2000, 3, 15),
+    COPPER("구리", "Copper", "🟠", 1001, 1, 5),
+    SILVER("은", "Silver", "⚪", 1500, 2, 10),
+    GOLD("금", "Gold", "🟡", 2000, 3, 15),
     RUBY("루비", "Ruby", "🔴", 5000, 4, 20),
     SAPPHIRE("사파이어", "Sapphire", "🔷", 7000, 5, 25),
     DIAMOND("다이아", "Diamond", "💎", 10000, 6, 30);

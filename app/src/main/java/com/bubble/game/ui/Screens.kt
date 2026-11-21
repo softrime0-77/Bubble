@@ -1278,6 +1278,78 @@ private fun ShopIconButton(onClick: () -> Unit) {
     }
 }
 
+/** 상점 안내: 아이템이 어떤 대전에서 효과가 있는지 한눈에 */
+@Composable
+private fun ItemUsageCard() {
+    val yes = Color(0xFF2E9E5B)
+    val no = Ui.text.copy(alpha = 0.35f)
+    @Composable
+    fun Cell(text: String, color: Color, bg: Color, modifier: Modifier) {
+        Box(modifier.padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
+            Text(
+                text, color = color, fontWeight = FontWeight.Black, fontSize = 12.sp, maxLines = 1, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().background(bg, RoundedCornerShape(10.dp)).padding(vertical = 6.dp),
+            )
+        }
+    }
+    val on = tr("✓ 효과", "✓ Works", zh = "✓ 有效", hi = "✓ असर", es = "✓ Sí", fr = "✓ Oui", ar = "✓ يعمل", de = "✓ Ja", pt = "✓ Sim", ru = "✓ Да", ja = "✓ 効果")
+    val off = tr("— 없음", "— None", zh = "— 无", hi = "— नहीं", es = "— No", fr = "— Non", ar = "— لا", de = "— Nein", pt = "— Não", ru = "— Нет", ja = "— なし")
+    val look = tr("👀 모습만", "👀 Look only", zh = "👀 仅外观", hi = "👀 सिर्फ़ रूप", es = "👀 Solo look", fr = "👀 Look seul", ar = "👀 الشكل فقط", de = "👀 Nur Look", pt = "👀 Só visual", ru = "👀 Только вид", ja = "👀 見た目だけ")
+    val rows = listOf(
+        tr("💖 부활물약", "💖 Potion", zh = "💖 药水", hi = "💖 पोशन", es = "💖 Poción", fr = "💖 Potion", ar = "💖 جرعة", de = "💖 Trank", pt = "💖 Poção", ru = "💖 Зелье", ja = "💖 復活薬") to listOf(true, true, true),
+        tr("🚀 ×3 부스터", "🚀 x3 Booster", zh = "🚀 ×3 加成", hi = "🚀 ×3 बूस्टर", es = "🚀 x3", fr = "🚀 Booster x3", ar = "🚀 ×3", de = "🚀 x3-Booster", pt = "🚀 x3", ru = "🚀 Бустер x3", ja = "🚀 ×3") to listOf(true, false, false),
+        tr("🐾 동물 친구", "🐾 Animals", zh = "🐾 动物", hi = "🐾 जानवर", es = "🐾 Animales", fr = "🐾 Animaux", ar = "🐾 حيوانات", de = "🐾 Tiere", pt = "🐾 Animais", ru = "🐾 Зверята", ja = "🐾 どうぶつ") to listOf(true, null, false),
+    )
+    SoftCard {
+        Text(
+            tr("✨ 아이템은 어디서 효과가 있나요?", "✨ Where do items work?", zh = "✨ 道具在哪里有效？", hi = "✨ आइटम कहाँ काम करते हैं?", es = "✨ ¿Dónde funcionan los objetos?", fr = "✨ Où marchent les objets ?", ar = "✨ أين تعمل العناصر؟", de = "✨ Wo wirken Items?", pt = "✨ Onde os itens funcionam?", ru = "✨ Где работают предметы?", ja = "✨ アイテムはどこで効く？"),
+            fontWeight = FontWeight.Black, color = Ui.text, fontSize = 16.sp,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.weight(1.3f))
+            listOf(
+                tr("🎲 랜덤", "🎲 Random", zh = "🎲 随机", hi = "🎲 रैंडम", es = "🎲 Aleatoria", fr = "🎲 Aléatoire", ar = "🎲 عشوائي", de = "🎲 Zufall", pt = "🎲 Aleatória", ru = "🎲 Случайный", ja = "🎲 ランダム"),
+                tr("🤖 AI", "🤖 AI", zh = "🤖 AI", es = "🤖 IA", fr = "🤖 IA", ar = "🤖 AI", de = "🤖 KI", pt = "🤖 IA", ru = "🤖 ИИ", ja = "🤖 AI"),
+                tr("👫 친구", "👫 Friend", zh = "👫 好友", hi = "👫 दोस्त", es = "👫 Amigo", fr = "👫 Ami", ar = "👫 صديق", de = "👫 Freund", pt = "👫 Amigo", ru = "👫 Друг", ja = "👫 友だち"),
+            ).forEach { h ->
+                Text(h, Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Ui.text.copy(alpha = 0.75f), textAlign = TextAlign.Center, maxLines = 1)
+            }
+        }
+        rows.forEach { (label, cols) ->
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(label, Modifier.weight(1.3f), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.text, maxLines = 1)
+                cols.forEach { c ->
+                    when (c) {
+                        true -> Cell(on, yes, yes.copy(alpha = 0.13f), Modifier.weight(1f))
+                        false -> Cell(off, no, Ui.text.copy(alpha = 0.06f), Modifier.weight(1f))
+                        null -> Cell(look, Ui.accent, Ui.accent.copy(alpha = 0.12f), Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            tr(
+                "🤖 AI 대전과 👫 친구 대전에서는 부스터와 동물이 쓰이지 않아요. 개수도 줄지 않으니 안심하세요!",
+                "🤖 AI and 👫 friend battles don't use boosters or animals, so you won't lose any!",
+                zh = "🤖 AI 对战和 👫 好友对战不会使用加成和动物，数量也不会减少，放心吧！",
+                hi = "🤖 AI और 👫 दोस्त मुकाबलों में बूस्टर और जानवर इस्तेमाल नहीं होते, इसलिए घटते भी नहीं!",
+                es = "🤖 En batallas contra la IA y 👫 entre amigos no se usan potenciadores ni animales, ¡no pierdes ninguno!",
+                fr = "🤖 Les combats contre l’IA et 👫 entre amis n’utilisent ni boosters ni animaux : tu n’en perds aucun !",
+                ar = "🤖 معارك الذكاء الاصطناعي و👫 الأصدقاء لا تستخدم المضاعِف ولا الحيوانات، فلن تخسر شيئًا!",
+                de = "🤖 KI- und 👫 Freundesduelle verbrauchen keine Booster oder Tiere – du verlierst also nichts!",
+                pt = "🤖 Batalhas contra a IA e 👫 entre amigos não usam impulsos nem animais, então você não perde nenhum!",
+                ru = "🤖 В боях с ИИ и 👫 с друзьями бустеры и зверята не тратятся — ничего не потеряете!",
+                ja = "🤖 AI対戦と 👫 友だち対戦ではブースターとどうぶつは使われません。数も減らないので安心！",
+            ),
+            fontSize = 12.sp, color = Ui.text.copy(alpha = 0.75f), lineHeight = 17.sp,
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+}
+
 @Composable
 private fun ShopScreen(vm: AppViewModel) {
     val ui by vm.lobby.collectAsState()
@@ -1323,6 +1395,7 @@ private fun ShopScreen(vm: AppViewModel) {
         if (p == null) return@Column
 
         PointsCard(vm)
+        ItemUsageCard()
 
         // 부활물약
         ShopCard(

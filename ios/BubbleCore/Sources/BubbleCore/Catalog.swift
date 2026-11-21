@@ -20,7 +20,7 @@ public enum Rank: Int, CaseIterable, Sendable {
     public var sparkle: Int { rawValue }
     /// 이겨서 얻는 점수에 붙는 보너스 %
     public var bonusPercent: Int { [0, 5, 10, 15, 20, 25, 30][rawValue] }
-    public var emoji: String { ["🟫", "🥉", "🥈", "🥇", "🔴", "🔷", "💎"][rawValue] }
+    public var emoji: String { ["🟫", "🟠", "⚪", "🟡", "🔴", "🔷", "💎"][rawValue] }
 
     public static func of(_ score: Int) -> Rank {
         Rank.allCases.last { score >= $0.minScore } ?? .dirt

@@ -53,11 +53,11 @@ struct LobbyView: View {
                 Button(action: onRandomMatch) {
                     VStack(spacing: 2) {
                         Text(t("🎲  랜덤 매칭")).font(.system(size: 22, weight: .black))
-                        Text(tr("익명의 상대와 1:1 대결 · 승리 +\(Shop.winPoints)점", "1:1 vs an anonymous player · Win +\(Shop.winPoints) pts",
-                                zh: "与匿名玩家 1:1 对战 · 胜利 +\(Shop.winPoints) 分", es: "1:1 contra un jugador anónimo · Victoria +\(Shop.winPoints) pts",
-                                fr: "1:1 contre un joueur anonyme · Victoire +\(Shop.winPoints) pts", de: "1:1 gegen anonyme Gegner · Sieg +\(Shop.winPoints) Pkt",
-                                pt: "1:1 contra um jogador anônimo · Vitória +\(Shop.winPoints) pts", ru: "1:1 с анонимным игроком · Победа +\(Shop.winPoints) очк.",
-                                ja: "匿名の相手と1対1 · 勝利 +\(Shop.winPoints)点"))
+                        Text(tr("익명의 상대와 1:1 대결 · 승리 +\(Shop.winPoints) · 패배 -\(Shop.losePoints)", "1:1 vs an anonymous player · Win +\(Shop.winPoints) · Lose -\(Shop.losePoints)",
+                                zh: "与匿名玩家 1:1 对战 · 胜 +\(Shop.winPoints) · 负 -\(Shop.losePoints)", es: "1:1 contra un jugador anónimo · Gana +\(Shop.winPoints) · Pierde -\(Shop.losePoints)",
+                                fr: "1:1 contre un joueur anonyme · Victoire +\(Shop.winPoints) · Défaite -\(Shop.losePoints)", de: "1:1 gegen anonyme Gegner · Sieg +\(Shop.winPoints) · Niederlage -\(Shop.losePoints)",
+                                pt: "1:1 contra um jogador anônimo · Vitória +\(Shop.winPoints) · Derrota -\(Shop.losePoints)", ru: "1:1 с анонимным игроком · Победа +\(Shop.winPoints) · Поражение -\(Shop.losePoints)",
+                                ja: "匿名の相手と1対1 · 勝ち +\(Shop.winPoints) · 負け -\(Shop.losePoints)"))
                             .font(.system(size: 12))
                     }
                     .foregroundColor(.white)

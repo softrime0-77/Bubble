@@ -31,7 +31,7 @@ setGlobalOptions({ region: "asia-northeast3", maxInstances: 10 });
 
 const START_SCORE = 1000;
 const WIN_POINTS = 30;
-const LOSE_POINTS = 15;
+const LOSE_POINTS = 10;
 const TURN_LIMIT_MS = DEFAULT_TURN_MS;
 /** 턴 시간 판정 여유 (네트워크 지연용). 시간 판단은 서버 시계로만 함 */
 const TIMEOUT_GRACE_MS = 2_000;

@@ -58,8 +58,39 @@ jobs:
           REV=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" Bubble/GoogleService-Info.plist)
           /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 $REV" Bubble/Info.plist
 
-      # 빌드 번호는 이 워크플로 실행 번호 (올릴 때마다 커짐).
-      # 배포용(Apple Distribution) 인증서로 바로 서명: 개발용 서명은 등록된 아이폰이 있어야 해서 CI에서는 안 됨
+      # Xcode 자동 서명은 계정에 등록된 아이폰이 하나도 없으면 프로파일을 못 만듦.
+      # 등록된 기기가 없을 때만 자리표시 기기 1개를 등록 (연간 기기 100대 한도 중 1개 사용).
+      - name: Make sure the team has a device
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          python3 -m pip install --quiet --break-system-packages pyjwt cryptography 2>/dev/null || python3 -m pip install --quiet pyjwt cryptography
+          python3 - <<'PY'
+          import hashlib, json, os, time, urllib.request
+          import jwt
+          key = open(os.path.join(os.environ["RUNNER_TEMP"], "keys", f"AuthKey_{os.environ['ASC_KEY_ID']}.p8")).read()
+          now = int(time.time())
+          token = jwt.encode({"iss": os.environ["ASC_ISSUER_ID"], "iat": now, "exp": now + 900, "aud": "appstoreconnect-v1"},
+                             key, algorithm="ES256", headers={"kid": os.environ["ASC_KEY_ID"], "typ": "JWT"})
+          def api(path, body=None):
+              req = urllib.request.Request("https://api.appstoreconnect.apple.com" + path,
+                                           data=json.dumps(body).encode() if body else None,
+                                           headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"})
+              return json.load(urllib.request.urlopen(req))
+          devices = api("/v1/devices?filter[platform]=IOS&filter[status]=ENABLED&limit=1")["data"]
+          if devices:
+              print("등록된 기기가 있어요:", devices[0]["attributes"]["name"])
+          else:
+              h = hashlib.sha256(("bubble-ci-" + os.environ["APPLE_TEAM_ID"]).encode()).hexdigest().upper()
+              udid = "00008110-" + h[:16]
+              api("/v1/devices", {"data": {"type": "devices", "attributes": {
+                  "name": "CI placeholder (TestFlight build)", "udid": udid, "platform": "IOS"}}})
+              print("자리표시 기기를 등록했어요:", udid)
+          PY
+
+      # 빌드 번호는 이 워크플로 실행 번호 (올릴 때마다 커짐)
 
       - name: Archive (signed)
         working-directory: ios
@@ -73,7 +104,7 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} > archive.log 2>&1; then
             echo "===== errors ====="
             grep -E "error:|fatal error|No profiles|No signing|provision|certificate" archive.log | sort -u | head -80

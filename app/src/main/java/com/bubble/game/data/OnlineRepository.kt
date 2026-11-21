@@ -210,13 +210,17 @@ class OnlineRepository(context: Context) {
         return ((r["rank"] as? Number)?.toInt() ?: 0) to rows
     }
 
-    private fun Map<*, *>.toRankRow(): RankRow? = RankRow(
-        uid = this["uid"] as? String ?: return null,
-        rank = (this["rank"] as? Number)?.toInt() ?: return null,
-        name = this["name"] as? String ?: "Player",
-        score = (this["score"] as? Number)?.toInt() ?: START_SCORE,
-        country = this["country"] as? String,
-    )
+    private fun Map<*, *>.toRankRow(): RankRow? {
+        val uid = this["uid"] as? String ?: return null
+        val rank = (this["rank"] as? Number)?.toInt() ?: return null
+        return RankRow(
+            uid = uid,
+            rank = rank,
+            name = this["name"] as? String ?: "Player",
+            score = (this["score"] as? Number)?.toInt() ?: START_SCORE,
+            country = this["country"] as? String,
+        )
+    }
 
     // ---------- 친구 대전 ----------
 

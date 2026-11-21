@@ -61,4 +61,8 @@ public enum Shop {
     public static let defaultTurnSec = 20
     public static let winPoints = 30
     public static let losePoints = 15
+    /// 친구 대전 점수 (functions/src/friend.ts와 같게): 승리 +30, 패배 -10, 같은 친구와 하루 5판까지
+    public static let friendWinPoints = 30
+    public static let friendLosePoints = 10
+    public static let friendRatedPerDay = 5
 }

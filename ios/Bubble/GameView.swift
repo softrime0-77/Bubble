@@ -76,7 +76,7 @@ struct GameView<M: GameModel>: View {
 
             if game.finished, let w = game.winner {
                 ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
-                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, rewardOffer: rewardOffer,
+                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
                               onLobby: onLeave, onAgain: onAgain)
             }
         }
@@ -227,6 +227,7 @@ struct ResultOverlay: View {
     var online = false
     var bonus = 0
     var boosted = false
+    var friendly = false
     var rewardOffer: Int? = nil
     let onLobby: () -> Void
     let onAgain: (() -> Void)?
@@ -249,6 +250,18 @@ struct ResultOverlay: View {
                                 es: "✨ Incluye bonus de rango +\(bonus)", fr: "✨ Bonus de rang inclus +\(bonus)", de: "✨ Inkl. Rangbonus +\(bonus)",
                                 pt: "✨ Inclui bônus de rank +\(bonus)", ru: "✨ С бонусом ранга +\(bonus)", ja: "✨ ランクボーナス +\(bonus) 込み"))
                             .font(.system(size: 14, weight: .bold)).foregroundColor(Color(hex: 0xD08A00))
+                    }
+                    if friendly {
+                        Text(tr("🤝 친선전 (오늘 이 친구와는 점수가 걸린 \(Shop.friendRatedPerDay)판을 다 했어요)",
+                                "🤝 Friendly match (you've played today's \(Shop.friendRatedPerDay) scored games with this friend)",
+                                zh: "🤝 友谊赛（今天与这位好友的 \(Shop.friendRatedPerDay) 局计分赛已用完）",
+                                es: "🤝 Amistoso (ya jugaste las \(Shop.friendRatedPerDay) partidas con puntos de hoy con este amigo)",
+                                fr: "🤝 Match amical (les \(Shop.friendRatedPerDay) parties notées du jour avec cet ami sont jouées)",
+                                de: "🤝 Freundschaftsspiel (die \(Shop.friendRatedPerDay) gewerteten Partien mit diesem Freund sind heute gespielt)",
+                                pt: "🤝 Amistoso (as \(Shop.friendRatedPerDay) partidas com pontos de hoje com este amigo já foram jogadas)",
+                                ru: "🤝 Товарищеский матч (сегодняшние \(Shop.friendRatedPerDay) игр на очки с этим другом сыграны)",
+                                ja: "🤝 フレンドリーマッチ（今日はこの友だちとの点数付き\(Shop.friendRatedPerDay)戦を終えました）"))
+                            .font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.text.opacity(0.75)).multilineTextAlignment(.center)
                     }
                     if boosted, (delta ?? 0) > 0 {
                         Text(t("🚀 ×3 부스터 적용!")).font(.system(size: 16, weight: .black)).foregroundColor(UiColor.primaryDark)

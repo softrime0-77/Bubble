@@ -25,8 +25,20 @@ struct Profile: Equatable {
     var refCode: String? = nil
     var referrals: Int = 0
     var referred: Bool = false
+    /// 나라 (ISO 2글자, 랭킹 국기용)
+    var country: String? = nil
     var rank: Rank { Rank.of(score) }
     func animalCount(_ a: Animal) -> Int { animals[a] ?? 0 }
+}
+
+/// 랭킹 한 줄 (내 주변 순위)
+struct RankRow: Identifiable, Equatable {
+    var uid: String
+    var rank: Int
+    var name: String
+    var score: Int
+    var country: String?
+    var id: String { uid }
 }
 
 /// 게임 문서 (games/{id}) — 안드로이드 OnlineRepository.toGame과 같은 필드
@@ -61,6 +73,8 @@ struct OnlineGameDoc {
     var vsAi: AiLevel?
     var catBoost: Bool
     var hamBoost: Bool
+    var vsFriend: Bool = false
+    var rated: Bool = false
 
     func side(of uid: String) -> Side? { uid == catUid ? .cat : uid == hamUid ? .hamster : nil }
     func name(_ s: Side) -> String { s == .cat ? catName : hamName }
@@ -95,6 +109,16 @@ final class OnlineService: ObservableObject {
     @Published private(set) var uid: String? = nil
     @Published private(set) var profile: Profile? = nil
     @Published private(set) var leaderboard: [Profile] = []
+    /// TOP 100 밖이면 내 순위와 내 위아래 10명
+    @Published private(set) var myRank: Int? = nil
+    @Published private(set) var aroundMe: [RankRow] = []
+    /// 친구가 보낸 대전 링크의 코드 (로그인돼 있고 로비면 RootView가 바로 들어감)
+    @Published var pendingBattle: String? = nil
+    static let leaderboardSize = 100
+    /// 친구를 기다리는 최대 시간 (서버 FRIEND_ROOM_TTL_MS와 같게)
+    static let friendWait: TimeInterval = 600
+    private var rankedAtScore: Int? = nil
+    private var rankTask: Task<Void, Never>? = nil
     @Published private(set) var loading = false
     @Published var error: String? = nil
     @Published var welcome: (kind: String, score: Int)? = nil
@@ -293,7 +317,14 @@ final class OnlineService: ObservableObject {
         guard let c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
         let isApp = c.scheme == "bubble" && c.host == "invite"
         let isWeb = c.scheme == "https" && c.host == "softrime0-77.github.io" && c.path.hasPrefix("/Bubble/invite")
-        guard isApp || isWeb, let code = Self.normalizeCode(c.queryItems?.first { $0.name == "code" }?.value) else { return }
+        guard isApp || isWeb else { return }
+        // 친구 대전 링크: …?battle=ABC234
+        if let battle = Self.normalizeCode(c.queryItems?.first { $0.name == "battle" }?.value) {
+            pendingBattle = battle
+            if profile == nil { show(tr("로그인하면 친구와 대전을 시작해요 ⚔️", "Sign in to start the battle with your friend ⚔️", zh: "登录后即可开始与朋友对战 ⚔️", es: "Inicia sesión para empezar la batalla con tu amigo ⚔️", fr: "Connecte-toi pour lancer le duel avec ton ami ⚔️", de: "Melde dich an, um gegen deinen Freund zu spielen ⚔️", pt: "Entre para começar a batalha com seu amigo ⚔️", ru: "Войдите, чтобы начать бой с другом ⚔️", ja: "ログインすると友だちとの対戦が始まります ⚔️")) }
+            return
+        }
+        guard let code = Self.normalizeCode(c.queryItems?.first { $0.name == "code" }?.value) else { return }
         UserDefaults.standard.set(code, forKey: Self.pendingInviteKey)
         if let p = profile { redeemPendingInvite(p) }
     }
@@ -319,6 +350,59 @@ final class OnlineService: ObservableObject {
     }
 
     static func inviteLink(_ code: String) -> String { "https://softrime0-77.github.io/Bubble/invite.html?code=\(code)" }
+    static func battleLink(_ code: String) -> String { "https://softrime0-77.github.io/Bubble/invite.html?battle=\(code)" }
+
+    /// 기기의 나라 (VS 화면·랭킹 국기)
+    static var deviceCountry: String { Locale.current.region?.identifier ?? "" }
+
+    /// TOP 100 밖이면 내 순위와 위아래 10명을 서버에서 불러옴 (내 점수가 바뀔 때만)
+    private func refreshMyRanking() {
+        guard let p = profile else { return }
+        if leaderboard.contains(where: { $0.uid == p.uid }) {
+            rankedAtScore = nil
+            myRank = nil
+            aroundMe = []
+            return
+        }
+        guard leaderboard.count >= Self.leaderboardSize, rankedAtScore != p.score, rankTask == nil else { return }
+        rankedAtScore = p.score
+        rankTask = Task {
+            defer { rankTask = nil }
+            guard let r = try? await call("myRanking") else { rankedAtScore = nil; return }
+            myRank = Self.int(r["rank"])
+            aroundMe = ((r["rows"] as? [[String: Any]]) ?? []).compactMap { d in
+                guard let uid = d["uid"] as? String, let rank = Self.int(d["rank"]) else { return nil }
+                return RankRow(uid: uid, rank: rank, name: d["name"] as? String ?? "Player",
+                               score: Self.int(d["score"]) ?? Self.startScore, country: d["country"] as? String)
+            }
+        }
+    }
+
+    // MARK: 친구 대전
+
+    func createFriendRoom() async throws -> String {
+        guard let code = try await call("createFriendRoom", ["country": Self.deviceCountry])["code"] as? String else {
+            throw ServerError(message: "no code")
+        }
+        return code
+    }
+
+    /// 친구가 들어왔으면 gameId, 방이 끝났으면 expired
+    func pollFriendRoom(_ code: String) async throws -> (gameId: String?, expired: Bool) {
+        let r = try await call("pollFriendRoom", ["code": code])
+        return (r["gameId"] as? String, r["expired"] as? Bool ?? false)
+    }
+
+    func cancelFriendRoom(_ code: String) async {
+        _ = try? await call("cancelFriendRoom", ["code": code])
+    }
+
+    func joinFriendRoom(_ code: String) async throws -> String {
+        guard let id = try await call("joinFriendRoom", ["code": code, "country": Self.deviceCountry])["gameId"] as? String else {
+            throw ServerError(message: "no game")
+        }
+        return id
+    }
 
     func signOut() {
         stopSession()
@@ -327,6 +411,9 @@ final class OnlineService: ObservableObject {
         uid = nil
         profile = nil
         leaderboard = []
+        myRank = nil
+        aroundMe = []
+        rankedAtScore = nil
         onlineCount = nil
     }
 
@@ -343,7 +430,7 @@ final class OnlineService: ObservableObject {
         loading = true
         sessionTasks.append(Task {
             do {
-                let r = try await call("ensureProfile", ["name": Self.randomNickname()])
+                let r = try await call("ensureProfile", ["name": Self.randomNickname(), "country": Self.deviceCountry])
                 if let kind = r["kind"] as? String {
                     welcome = (kind, (r["score"] as? Int) ?? Self.startScore)
                 }
@@ -355,9 +442,12 @@ final class OnlineService: ObservableObject {
         listeners.append(db.collection("users").document(id).addSnapshotListener { [weak self] snap, _ in
             Task { @MainActor in self?.updateProfile(snap.flatMap(Self.profile(from:))) }
         })
-        listeners.append(db.collection("users").order(by: "score", descending: true).limit(to: 30).addSnapshotListener { [weak self] snap, _ in
+        listeners.append(db.collection("users").order(by: "score", descending: true).limit(to: Self.leaderboardSize).addSnapshotListener { [weak self] snap, _ in
             let list = snap?.documents.compactMap(Self.profile(from:)) ?? []
-            Task { @MainActor in self?.leaderboard = list }
+            Task { @MainActor in
+                self?.leaderboard = list
+                self?.refreshMyRanking()
+            }
         })
         // 1분마다 접속 신호, 관리자는 30초마다 동시 접속자 수
         sessionTasks.append(Task {
@@ -383,6 +473,7 @@ final class OnlineService: ObservableObject {
         // 같은 계정에서 계급이 올라가면 축하 화면
         if let old, old.uid == p.uid, p.rank.rawValue > old.rank.rawValue { rankUpScore = p.score }
         if old == nil { redeemPendingInvite(p) }
+        refreshMyRanking()
     }
 
     /// CI 스크린샷용: 로그인한 것처럼 프로필만 채움 (서버에는 연결 안 함)
@@ -412,7 +503,7 @@ final class OnlineService: ObservableObject {
 
     /// 랜덤 매칭. 30초 안에 사람이 없으면 nil (→ AI 어려움으로)
     func findMatch() async throws -> String? {
-        let data: [String: Any] = ["country": Locale.current.region?.identifier ?? ""]
+        let data: [String: Any] = ["country": Self.deviceCountry]
         let deadline = Date().addingTimeInterval(Self.matchTimeout)
         do {
             while Date() < deadline {
@@ -429,7 +520,7 @@ final class OnlineService: ObservableObject {
     }
 
     func startAiGame(_ level: AiLevel) async throws -> String {
-        let r = try await call("startAiGame", ["level": level.rawValue, "country": Locale.current.region?.identifier ?? ""])
+        let r = try await call("startAiGame", ["level": level.rawValue, "country": Self.deviceCountry])
         guard let id = r["gameId"] as? String else { throw ServerError(message: t("AI 대전을 시작하지 못했어요")) }
         return id
     }
@@ -464,7 +555,8 @@ final class OnlineService: ObservableObject {
             equipped: (d["equipped"] as? String).flatMap(Animal.init(rawValue:)),
             refCode: d["refCode"] as? String,
             referrals: int(d["referrals"]) ?? 0,
-            referred: d["referredBy"] != nil
+            referred: d["referredBy"] != nil,
+            country: d["country"] as? String
         )
     }
 
@@ -502,7 +594,9 @@ final class OnlineService: ObservableObject {
             catCountry: d["catCountry"] as? String, hamCountry: d["hamCountry"] as? String,
             vsAi: (d["vsAi"] as? String).flatMap(AiLevel.init(rawValue:)),
             catBoost: d["catBoost"] as? Bool ?? false,
-            hamBoost: d["hamBoost"] as? Bool ?? false
+            hamBoost: d["hamBoost"] as? Bool ?? false,
+            vsFriend: d["vsFriend"] as? Bool ?? false,
+            rated: d["rated"] as? Bool ?? false
         )
     }
 

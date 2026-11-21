@@ -31,5 +31,7 @@ protocol GameModel: ObservableObject {
     var notice: String? { get }
     /// 이번 판에 ×3 부스터를 썼는지 (서버 랜덤 매칭)
     var myBoost: Bool { get }
+    /// 친구 대전인데 하루 제한을 넘겨 점수가 없는 친선전인지
+    var friendlyMatch: Bool { get }
     func play(_ move: Move)
 }

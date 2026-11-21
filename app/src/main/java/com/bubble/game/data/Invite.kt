@@ -20,6 +20,21 @@ object Invite {
 
     fun link(code: String): String = "$PAGE?code=$code"
 
+    /** 친구 대전 링크 (같은 초대 페이지, battle 파라미터) */
+    fun battleLink(code: String): String = "$PAGE?battle=$code"
+
+    /** 친구 대전 링크에서 대전 코드 꺼내기 (bubble://invite?battle=… 또는 웹 링크) */
+    fun battleFromUri(uri: Uri?): String? {
+        uri ?: return null
+        return if (isOurLink(uri)) normalize(uri.getQueryParameter("battle")) else null
+    }
+
+    private fun isOurLink(uri: Uri): Boolean {
+        val isApp = uri.scheme == "bubble" && uri.host == "invite"
+        val isWeb = uri.scheme == "https" && uri.host == "softrime0-77.github.io" && uri.path?.startsWith("/Bubble/invite") == true
+        return isApp || isWeb
+    }
+
     /** 코드 정리: 영문 대문자/숫자 6자리만 */
     fun normalize(raw: String?): String? {
         val c = raw?.trim()?.uppercase()?.filter { it.isLetterOrDigit() } ?: return null
@@ -29,9 +44,7 @@ object Invite {
     /** 초대 링크(앱 링크·웹 링크)에서 코드 꺼내기 */
     fun fromUri(uri: Uri?): String? {
         uri ?: return null
-        val isApp = uri.scheme == "bubble" && uri.host == "invite"
-        val isWeb = uri.scheme == "https" && uri.host == "softrime0-77.github.io" && uri.path?.startsWith("/Bubble/invite") == true
-        return if (isApp || isWeb) normalize(uri.getQueryParameter("code")) else null
+        return if (isOurLink(uri)) normalize(uri.getQueryParameter("code")) else null
     }
 
     fun savePending(context: Context, code: String) {

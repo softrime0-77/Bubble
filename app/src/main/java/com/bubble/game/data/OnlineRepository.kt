@@ -56,6 +56,8 @@ data class Profile(
     /** ×3 부스터 남은 개수와 켜짐 여부 */
     val boosts: Int = 0,
     val boostOn: Boolean = false,
+    /** 나라 (ISO 2글자, 랭킹 국기용. 모르면 null) */
+    val country: String? = null,
 ) {
     val rank: Rank get() = Rank.of(score)
 
@@ -64,6 +66,12 @@ data class Profile(
 
     fun animalCount(a: Animal): Int = animals[a] ?: 0
 }
+
+/** 랭킹 한 줄 (내 주변 순위) */
+data class RankRow(val uid: String, val rank: Int, val name: String, val score: Int, val country: String?)
+
+/** 친구 대전방 상태: 친구가 들어왔으면 gameId, 방이 끝났으면 expired */
+data class FriendRoomState(val gameId: String?, val expired: Boolean)
 
 data class OnlineGame(
     val id: String,
@@ -101,6 +109,9 @@ data class OnlineGame(
     /** 이번 판에 ×3 부스터를 쓴 사람 */
     val catBoost: Boolean,
     val hamBoost: Boolean,
+    /** 친구 대전이면 true, 점수가 걸린 판이면 rated */
+    val vsFriend: Boolean = false,
+    val rated: Boolean = false,
 ) {
     fun boostOf(side: Side): Boolean = if (side == Side.CAT) catBoost else hamBoost
 
@@ -158,8 +169,8 @@ class OnlineRepository(context: Context) {
      * 첫 로그인이면 서버가 프로필을 만듭니다 (보통 1000점 · 탈퇴 후 재가입 0점 · 관리자 5000점).
      * 새로 만들었으면 종류("new" / "returning" / "admin")와 시작 점수, 이미 있으면 null.
      */
-    suspend fun ensureProfile(): Pair<String, Int>? {
-        val r = call("ensureProfile", mapOf("name" to randomNickname()))
+    suspend fun ensureProfile(country: String?): Pair<String, Int>? {
+        val r = call("ensureProfile", mapOf("name" to randomNickname(), "country" to country))
         val kind = r["kind"] as? String ?: return null
         return kind to ((r["score"] as? Number)?.toInt() ?: START_SCORE)
     }
@@ -185,12 +196,50 @@ class OnlineRepository(context: Context) {
     }
 
     fun leaderboardFlow(): Flow<List<Profile>> = callbackFlow {
-        val reg = users.orderBy("score", Query.Direction.DESCENDING).limit(30)
+        val reg = users.orderBy("score", Query.Direction.DESCENDING).limit(LEADERBOARD_SIZE.toLong())
             .addSnapshotListener { s, _ ->
                 if (s != null) trySend(s.documents.map { it.toProfile() })
             }
         awaitClose { reg.remove() }
     }
+
+    /** 내 순위와 내 위아래 10명 (TOP 100 밖일 때 보여줌) */
+    suspend fun myRanking(): Pair<Int, List<RankRow>> {
+        val r = call("myRanking")
+        val rows = (r["rows"] as? List<*>).orEmpty().mapNotNull { (it as? Map<*, *>)?.toRankRow() }
+        return ((r["rank"] as? Number)?.toInt() ?: 0) to rows
+    }
+
+    private fun Map<*, *>.toRankRow(): RankRow? {
+        val uid = this["uid"] as? String ?: return null
+        val rank = (this["rank"] as? Number)?.toInt() ?: return null
+        return RankRow(
+            uid = uid,
+            rank = rank,
+            name = this["name"] as? String ?: "Player",
+            score = (this["score"] as? Number)?.toInt() ?: START_SCORE,
+            country = this["country"] as? String,
+        )
+    }
+
+    // ---------- 친구 대전 ----------
+
+    /** 친구 대전방 만들기 → 대전 코드 */
+    suspend fun createFriendRoom(country: String?): String =
+        call("createFriendRoom", mapOf("country" to country))["code"] as? String ?: throw ServerException("no code")
+
+    suspend fun pollFriendRoom(code: String): FriendRoomState {
+        val r = call("pollFriendRoom", mapOf("code" to code))
+        return FriendRoomState(r["gameId"] as? String, r["expired"] == true)
+    }
+
+    suspend fun cancelFriendRoom(code: String) {
+        runCatching { call("cancelFriendRoom", mapOf("code" to code)) }
+    }
+
+    /** 친구의 대전 링크로 들어가기 → gameId */
+    suspend fun joinFriendRoom(code: String, country: String?): String =
+        call("joinFriendRoom", mapOf("code" to code, "country" to country))["gameId"] as? String ?: throw ServerException("no game")
 
     /**
      * 랜덤 매칭. 상대를 찾을 때까지 서버에 주기적으로 물어보고, 게임 ID를 돌려줍니다.
@@ -307,6 +356,7 @@ class OnlineRepository(context: Context) {
         coins = (getLong("coins") ?: 0).toInt(),
         boosts = (getLong("boosts") ?: 0).toInt(),
         boostOn = getBoolean("boostOn") ?: false,
+        country = getString("country"),
     )
 
     /** 서버가 보낸 수 정보로 화면 언어의 설명을 만듭니다. 정보가 없으면 서버 문구(한/영). */
@@ -370,6 +420,8 @@ class OnlineRepository(context: Context) {
             hamCountry = getString("hamCountry"),
             catBoost = getBoolean("catBoost") ?: false,
             hamBoost = getBoolean("hamBoost") ?: false,
+            vsFriend = getBoolean("vsFriend") ?: false,
+            rated = getBoolean("rated") ?: false,
         )
     }
 
@@ -387,6 +439,14 @@ class OnlineRepository(context: Context) {
         private const val POLL_MS = 2_500L
         /** 이 시간 안에 사람 상대가 없으면 AI(어려움)와 대결 */
         const val MATCH_TIMEOUT_MS = 30_000L
+        /** 랭킹 목록에 보여줄 인원 */
+        const val LEADERBOARD_SIZE = 100
+        /** 친구 대전 점수 (functions/src/friend.ts와 같게) */
+        const val FRIEND_WIN_POINTS = 30
+        const val FRIEND_LOSE_POINTS = 10
+        const val FRIEND_RATED_PER_DAY = 5
+        /** 친구를 기다리는 최대 시간 (서버 FRIEND_ROOM_TTL_MS와 같게) */
+        const val FRIEND_WAIT_MS = 10 * 60_000L
 
         private val adjectives = listOf("말랑", "몽글", "졸린", "배고픈", "용감한", "수줍은", "통통", "보송", "새침한", "씩씩한")
         private val animals = listOf("고양이", "햄스터", "냥이", "햄찌", "치즈냥", "골든햄")

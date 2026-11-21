@@ -28,8 +28,8 @@ android {
         applicationId = "com.bubble.game"
         minSdk = 24
         targetSdk = 35
-        versionCode = 23
-        versionName = "1.19.0"
+        versionCode = 25
+        versionName = "1.20.0"
 
         // AdMob 앱 ID (AndroidManifest의 meta-data로 들어감)
         manifestPlaceholders["admobAppId"] = "ca-app-pub-4615819907336992~2572585109"

@@ -110,7 +110,7 @@ struct InviteCard: View {
         card {
             Text(t("🎁 친구 초대")).font(.system(size: 17, weight: .bold)).foregroundColor(UiColor.text)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(t("친구가 내 코드를 입력하면 내가 +30점!")).font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.75))
+            Text(t("친구가 내 코드를 입력하면 나도 친구도 +30점!")).font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.75))
                 .frame(maxWidth: .infinity, alignment: .leading)
             HStack {
                 Text(profile.refCode ?? "······")

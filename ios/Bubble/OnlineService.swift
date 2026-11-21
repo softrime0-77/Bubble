@@ -335,7 +335,7 @@ final class OnlineService: ObservableObject {
 
     func redeemReferral(_ raw: String) async {
         guard let code = Self.normalizeCode(raw) else { return }
-        await shopAction(t("코드를 입력했어요! 친구에게 +30점이 들어갔어요 🎁")) {
+        await shopAction(t("코드를 입력했어요! 나도 친구도 +30점 🎁")) {
             _ = try await call("redeemReferral", ["code": code])
         }
     }
@@ -365,7 +365,7 @@ final class OnlineService: ObservableObject {
         Task {
             do {
                 _ = try await call("redeemReferral", ["code": code])
-                show(tf("초대 코드 {0}가 입력됐어요! 친구에게 +30점이 들어갔어요 🎁", code))
+                show(tf("초대 코드 {0}가 입력됐어요! 나도 친구도 +30점 🎁", code))
             } catch {
                 self.error = error.localizedDescription
             }

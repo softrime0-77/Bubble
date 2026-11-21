@@ -953,8 +953,10 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             // 친구 대전은 광고로 점수를 돌려받을 수 없음 (서버도 거절)
             val lostOnline = g.online && !g.friend && g.winner != g.mySide && (g.scoreDelta ?: 0) < 0
             val canOfferReward = lostOnline && rewardedReady && vm.rewardTarget() != null
+            val lobbyUi by vm.lobby.collectAsState()
             ResultOverlay(
                 g,
+                refCode = lobbyUi.profile?.refCode,
                 rewardOffer = if (canOfferReward) minOf(OnlineRepository.AD_REFUND_POINTS, -(g.scoreDelta ?: 0)) else null,
                 onLobby = {
                     if (canOfferReward) {
@@ -1079,8 +1081,9 @@ private fun TurnBanner(g: GameUi, selecting: Boolean) {
 }
 
 @Composable
-private fun ResultOverlay(g: GameUi, rewardOffer: Int?, onLobby: () -> Unit, onAgain: () -> Unit) {
+private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobby: () -> Unit, onAgain: () -> Unit) {
     val won = g.winner == g.mySide
+    val context = LocalContext.current
     val t = rememberInfiniteTransition(label = "result")
     val jump by t.animateFloat(0f, 1f, infiniteRepeatable(tween(450), RepeatMode.Reverse), label = "jump")
     Box(
@@ -1158,6 +1161,17 @@ zh = "📺 离开时看个广告，可拿回 ${rewardOffer} 分", hi = "📺 ब
                     }
                 }
                 Spacer(Modifier.height(18.dp))
+                // 📣 이겼으면 승리 카드 공유 (내 추천 코드 링크 포함 → 친구가 들어오면 둘 다 +30점)
+                if (won) {
+                    Button(
+                        onClick = { ShareCard.share(context, winCard(g, refCode)) },
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    ) {
+                        Text(tr("📣 자랑하기", "📣 Share my win", zh = "📣 炫耀一下", hi = "📣 जीत शेयर करें", es = "📣 Presumir", fr = "📣 Partager ma victoire", ar = "📣 شارك فوزك", de = "📣 Sieg teilen", pt = "📣 Compartilhar vitória", ru = "📣 Похвастаться", ja = "📣 自慢する"), fontWeight = FontWeight.Black)
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (g.aiLevel != null) {
                         OutlinedButton(onClick = onAgain, shape = RoundedCornerShape(18.dp)) { Text(tr("한 판 더", "Play again", zh = "再来一局", hi = "फिर से खेलें", es = "Jugar de nuevo", fr = "Rejouer", ar = "العب مجددًا", de = "Nochmal spielen", pt = "Jogar de novo", ru = "Ещё раз", ja = "もう一回")) }
@@ -1170,6 +1184,48 @@ zh = "📺 离开时看个广告，可拿回 ${rewardOffer} 分", hi = "📺 ब
             }
         }
     }
+}
+
+/** 승리 공유 카드 내용 (화면 언어로) */
+private fun winCard(g: GameUi, refCode: String?): ShareCard.Win {
+    val d = g.scoreDelta
+    val after = (g.myScore ?: 0) + (d ?: 0)
+    val rank = Rank.of(after)
+    val pts = when {
+        d == null || !g.online -> ""
+        d > 0 -> tr("+${d}점 · ", "+$d pts · ", zh = "+$d 分 · ", ja = "+${d}点 · ")
+        else -> ""
+    }
+    val vs = when {
+        g.friend -> tr("👫 친구 대전", "👫 Friend battle", zh = "👫 好友对战", es = "👫 Duelo entre amigos", fr = "👫 Duel entre amis", de = "👫 Freundesduell", pt = "👫 Duelo entre amigos", ru = "👫 Бой с другом", ja = "👫 友だち対戦")
+        g.aiLevel != null -> tr("🤖 AI 대전", "🤖 AI battle", zh = "🤖 AI 对战", es = "🤖 Batalla IA", fr = "🤖 Combat IA", de = "🤖 KI-Duell", pt = "🤖 Batalha IA", ru = "🤖 Бой с ИИ", ja = "🤖 AI対戦")
+        else -> tr("🎲 랜덤 매칭", "🎲 Random match", zh = "🎲 随机匹配", es = "🎲 Partida aleatoria", fr = "🎲 Match aléatoire", de = "🎲 Zufallsmatch", pt = "🎲 Partida aleatória", ru = "🎲 Случайный матч", ja = "🎲 ランダムマッチ")
+    }
+    val link = refCode?.let { Invite.link(it) } ?: Invite.PAGE
+    val footer = if (refCode != null) {
+        tr("추천 코드 $refCode · 둘 다 +30점 🎁", "Code $refCode · we both get +30 🎁", zh = "邀请码 $refCode · 双方各 +30 🎁", es = "Código $refCode · ambos +30 🎁", fr = "Code $refCode · +30 pour nous deux 🎁", de = "Code $refCode · beide +30 🎁", pt = "Código $refCode · os dois +30 🎁", ru = "Код $refCode · обоим +30 🎁", ja = "招待コード $refCode · 2人とも+30 🎁")
+    } else {
+        tr("고양이 vs 햄스터 1:1 방울 대결", "Cats vs Hamsters 1:1 bubble battle", zh = "猫咪 vs 仓鼠 1:1 泡泡对决", es = "Gatos vs Hámsteres 1:1", fr = "Chats contre Hamsters 1:1", de = "Katzen gegen Hamster 1:1", pt = "Gatos vs Hamsters 1:1", ru = "Котики против хомяков 1:1", ja = "ネコ vs ハムスター 1対1")
+    }
+    val message = tr(
+        "Bubble 냥햄대전에서 ${g.opponentName}을(를) 이겼어! 🏆 너도 한 판 해볼래?" + (refCode?.let { "\n내 추천 코드 $it 넣으면 우리 둘 다 +30점 🎁" } ?: "") + "\n$link",
+        "I beat ${g.opponentName} in Bubble: Cats vs Hamsters! 🏆 Wanna try?" + (refCode?.let { "\nUse my code $it and we both get +30 pts 🎁" } ?: "") + "\n$link",
+        zh = "我在 Bubble 猫咪大战仓鼠里赢了 ${g.opponentName}！🏆 你也来一局？" + (refCode?.let { "\n输入我的邀请码 $it，我们各得 +30 分 🎁" } ?: "") + "\n$link",
+        es = "¡Le gané a ${g.opponentName} en Bubble! 🏆 ¿Te animas?" + (refCode?.let { "\nUsa mi código $it y ambos ganamos +30 pts 🎁" } ?: "") + "\n$link",
+        fr = "J’ai battu ${g.opponentName} dans Bubble ! 🏆 Tu tentes ?" + (refCode?.let { "\nAvec mon code $it, on gagne +30 pts chacun 🎁" } ?: "") + "\n$link",
+        de = "Ich habe ${g.opponentName} in Bubble besiegt! 🏆 Probierst du’s?" + (refCode?.let { "\nMit meinem Code $it bekommen wir beide +30 Pkt 🎁" } ?: "") + "\n$link",
+        pt = "Venci ${g.opponentName} no Bubble! 🏆 Bora jogar?" + (refCode?.let { "\nUse meu código $it e nós dois ganhamos +30 pts 🎁" } ?: "") + "\n$link",
+        ru = "Я победил ${g.opponentName} в Bubble! 🏆 Сыграешь?" + (refCode?.let { "\nВведи мой код $it — получим по +30 очк. 🎁" } ?: "") + "\n$link",
+        ja = "Bubble で ${g.opponentName} に勝ったよ！🏆 一緒にやろう？" + (refCode?.let { "\n招待コード $it を入れると2人とも +30点 🎁" } ?: "") + "\n$link",
+    )
+    return ShareCard.Win(
+        title = tr("승리!", "Victory!", zh = "胜利！", hi = "जीत!", es = "¡Victoria!", fr = "Victoire !", ar = "فوز!", de = "Sieg!", pt = "Vitória!", ru = "Победа!", ja = "勝利！"),
+        matchLine = "$vs · ${g.myName} vs ${g.opponentName}",
+        scoreLine = pts + "${rank.emoji} ${rank.label}",
+        emoji = if (g.mySide == Side.CAT) "🐱" else "🐹",
+        footer = footer,
+        message = message,
+    )
 }
 
 /** 남은 분할 횟수. 줄어들면 "-1"이 떠오르며 사라집니다. */
@@ -2040,12 +2096,10 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
             fontWeight = FontWeight.Bold, color = Ui.text,
         )
         Text(
-            tr("친구가 내 코드를 입력하면 내가 +30점!", "Get +30 pts when a friend enters your code!",
-                zh = "好友输入你的邀请码，你就得 +30 分！", hi = "दोस्त आपका कोड डाले तो आपको +30 अंक!",
-                es = "¡Gana +30 pts cuando un amigo use tu código!", fr = "Gagne +30 pts quand un ami entre ton code !",
-                ar = "احصل على +30 نقطة عندما يُدخل صديقك رمزك!", de = "+30 Pkt, wenn ein Freund deinen Code eingibt!",
-                pt = "Ganhe +30 pts quando um amigo usar seu código!", ru = "+30 очк., когда друг введёт ваш код!",
-                ja = "友だちが自分のコードを入力すると +30点！"),
+            tr(
+                "친구가 내 코드를 입력하면 나도 친구도 +30점!", "When a friend enters your code, you both get +30 pts!",
+                zh = "好友输入你的邀请码，你们俩都得 +30 分！", hi = "दोस्त आपका कोड डाले तो आप दोनों को +30 अंक!", es = "¡Cuando un amigo use tu código, ambos ganan +30 pts!", fr = "Quand un ami entre ton code, vous gagnez tous les deux +30 pts !", ar = "عندما يُدخل صديقك رمزك يحصل كلاكما على +30 نقطة!", de = "Gibt ein Freund deinen Code ein, bekommt ihr beide +30 Pkt!", pt = "Quando um amigo usar seu código, vocês dois ganham +30 pts!", ru = "Когда друг введёт ваш код, вы оба получите +30 очк.!", ja = "友だちが自分のコードを入力すると、2人とも +30点！",
+            ),
             fontSize = 13.sp, color = Ui.text.copy(alpha = 0.75f),
         )
         Spacer(Modifier.height(8.dp))

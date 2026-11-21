@@ -70,6 +70,18 @@
 
 구매·장착·물약 사용은 모두 서버(Cloud Functions)가 점수와 보유 여부를 검사합니다.
 
+## 서버 배포 버튼 (PC 없이)
+
+저장소 **Actions → Deploy server → Run workflow** 한 번이면 서버(Functions + Firestore 규칙)가 배포됩니다. 휴대폰 GitHub 앱에서도 됩니다.
+
+처음 한 번만 설정:
+1. [Google Cloud 콘솔 → IAM → 서비스 계정](https://console.cloud.google.com/iam-admin/serviceaccounts?project=bubble-422ef) → **서비스 계정 만들기** (이름 예: `github-deploy`)
+2. 역할: **편집자(Editor)** 와 **서비스 계정 사용자(Service Account User)** 를 줍니다
+3. 만든 계정 → **키 → 키 추가 → 새 키 만들기 → JSON** → 파일이 내려받아짐
+4. GitHub 저장소 → Settings → Secrets and variables → Actions → **New repository secret**
+   - 이름 `FIREBASE_SERVICE_ACCOUNT`, 값: 받은 JSON 파일 내용 전체
+5. 받은 JSON 파일은 지우거나 안전한 곳에 보관 (이 키로 프로젝트를 바꿀 수 있음)
+
 ## 보상 · 수익
 
 | 기능 | 내용 |
@@ -156,7 +168,7 @@ firebase deploy --only functions,firestore:rules
 
 ## 친구 추천
 
-- 로비의 **친구 초대**에서 내 6자리 코드나 **초대 링크**를 공유하고, 친구가 그 코드를 입력하면 **초대한 사람에게 +30점**.
+- 로비의 **친구 초대**에서 내 6자리 코드나 **초대 링크**를 공유하고, 친구가 그 코드를 입력하면 **초대한 사람과 초대받은 사람 둘 다 +30점** (초대한 사람은 최대 100명까지).
 - 초대 링크: `https://softrime0-77.github.io/Bubble/invite.html?code=ABC234` → 초대 페이지에서 "앱에서 열기" / "Google Play에서 받기" / "APK 받기".
   앱을 이 링크로 열거나 Play 스토어 링크로 설치하면(Install Referrer) 로그인 후 코드가 **자동으로 입력**됩니다.
 - 코드 입력은 계정당 1번, 자기 코드 불가, 초대 보상은 1인당 최대 100명까지 (서버 `redeemReferral`).

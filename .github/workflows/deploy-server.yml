@@ -1,0 +1,45 @@
+name: Deploy server
+
+# 서버(Cloud Functions + Firestore 규칙)를 Firebase에 배포합니다.
+# Actions 탭 → "Deploy server" → Run workflow 버튼 한 번 (휴대폰 GitHub 앱에서도 됨).
+# 필요한 저장소 Secret:
+#   FIREBASE_SERVICE_ACCOUNT  배포용 서비스 계정 키(JSON) 내용 전체 (README "서버 배포 버튼" 참고)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secret
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::저장소 Secret FIREBASE_SERVICE_ACCOUNT가 없어요 (README의 '서버 배포 버튼' 참고)"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install and test
+        working-directory: functions
+        run: |
+          npm ci
+          npm test
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy functions + Firestore rules
+        run: npx --yes firebase-tools@13 deploy --only functions,firestore:rules --project bubble-422ef --non-interactive --force

@@ -16,6 +16,10 @@ final class PointStore: ObservableObject {
     }
     static let products = [Pack(id: "points_500", points: 500), Pack(id: "points_1000", points: 1000), Pack(id: "points_2000", points: 2000), Pack(id: "points_5000", points: 5000)]
 
+    /// 광고 제거 (비소모성: 한 번 사면 계속). App Store Connect에 "비소모품"으로 만듦
+    static let removeAds = "remove_ads"
+    private static var allIds: [String] { products.map { $0.id } + [removeAds] }
+
     @Published private(set) var prices: [String: String] = [:]
     @Published private(set) var purchasing: String? = nil
 
@@ -37,7 +41,7 @@ final class PointStore: ObservableObject {
     }
 
     func loadProducts() async {
-        guard let list = try? await Product.products(for: Self.products.map { $0.id }) else { return }
+        guard let list = try? await Product.products(for: Self.allIds) else { return }
         for p in list {
             loaded[p.id] = p
             prices[p.id] = p.displayPrice
@@ -93,7 +97,7 @@ final class PointStore: ObservableObject {
         case let .verified(t): transaction = t
         case let .unverified(t, _): transaction = t // 최종 확인은 서버가 Apple 서명으로 함
         }
-        guard Self.products.contains(where: { $0.id == transaction.productID }) else {
+        guard Self.allIds.contains(transaction.productID) else {
             await transaction.finish()
             return
         }
@@ -101,11 +105,25 @@ final class PointStore: ObservableObject {
             let r = try await online.call("verifyApplePurchase", ["jws": result.jwsRepresentation])
             await transaction.finish()
             let granted = (r["granted"] as? NSNumber)?.intValue ?? 0
-            if granted > 0 { online.show(tf("결제 완료! 💰 상점 포인트 +{0} 🎉", granted)) }
+            if transaction.productID == Self.removeAds {
+                online.show(tr("광고 제거 완료! 이제 전면 광고가 나오지 않아요 🎉", "Ads removed! No more full-screen ads 🎉",
+                               zh: "已去除广告！不再显示全屏广告 🎉", es: "¡Anuncios eliminados! 🎉", fr: "Pubs supprimées ! 🎉",
+                               de: "Werbung entfernt! 🎉", pt: "Anúncios removidos! 🎉", ru: "Реклама отключена! 🎉", ja: "広告を削除しました！🎉"))
+            } else if granted > 0 {
+                online.show(tf("결제 완료! 💰 상점 포인트 +{0} 🎉", granted))
+            }
         } catch {
             // 다른 계정의 결제 등: 다음에 같은 계정으로 로그인하면 다시 시도됨
             online.error = error.localizedDescription
         }
+    }
+
+    /// 구매 복원 (App Store 규정: 비소모품은 복원 버튼 필요). 광고 제거를 다시 확인
+    func restore() async {
+        try? await AppStore.sync()
+        for await result in Transaction.currentEntitlements { await deliver(result) }
+        OnlineService.shared.show(tr("구매 내역을 다시 확인했어요", "Purchases restored", zh: "已恢复购买", es: "Compras restauradas",
+                                     fr: "Achats restaurés", de: "Käufe wiederhergestellt", pt: "Compras restauradas", ru: "Покупки восстановлены", ja: "購入を復元しました"))
     }
 
     /// 결제를 계정에 묶는 표시. 서버 apple.ts appAccountToken과 같은 방법: SHA-256(uid) 앞 16바이트 → UUID v4

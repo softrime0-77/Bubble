@@ -15,7 +15,9 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, isFreeSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
+import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
 import { applyMove, Board, decodeMove, encodeMove, isLegal, MAX_SPLITS, opponent, Side, winner } from "./game";
 
@@ -53,9 +55,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * 우리 보상형 전면 광고 단위 번호. 테스트 광고 단위는 거절.
- * 안드로이드: ca-app-pub-…/6715010091. 아이폰 광고 단위를 AdMob에 만들면 그 번호를 여기에 추가 (README iOS 항목).
+ * 안드로이드: ca-app-pub-…/6715010091, 아이폰: ca-app-pub-…/9985608059 (보상형 전면).
  */
-const REWARDED_AD_UNITS = ["6715010091"];
+const REWARDED_AD_UNITS = ["6715010091", "9985608059"];
 
 /** 구글로 로그인한 사용자만 허용합니다. */
 function requireUser(req: CallableRequest): string {
@@ -148,7 +150,11 @@ function finishGame(
       [human === "CAT" ? "catDelta" : "hamDelta"]: delta,
       [human === "CAT" ? "catBonus" : "hamBonus"]: bonus,
     });
-    if (delta !== 0) tx.update(humanSnap.ref, { score: FieldValue.increment(delta) });
+    // 일일 미션: AI 대전도 "대전 하기"·"이기기"에 들어감
+    tx.update(humanSnap.ref, {
+      ...missionProgress(humanSnap.data() ?? {}, dayKey(Date.now()), { play: 1, win: win === human ? 1 : 0, random: 0 }),
+      ...(delta !== 0 ? { score: FieldValue.increment(delta) } : {}),
+    });
     return;
   }
   if (game.vsFriend) {
@@ -159,8 +165,16 @@ function finishGame(
     const hamDelta = catWon ? d.lose : d.win;
     tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus: 0, hamBonus: 0 });
     if (game.rated) {
-      tx.update(users.cat.ref, { score: FieldValue.increment(catDelta), [catWon ? "wins" : "losses"]: FieldValue.increment(1) });
-      tx.update(users.ham.ref, { score: FieldValue.increment(hamDelta), [catWon ? "losses" : "wins"]: FieldValue.increment(1) });
+      // 점수 걸린 친구 대전만 미션에 들어감 (친선전으로 미션 채우기 방지)
+      const today = dayKey(Date.now());
+      tx.update(users.cat.ref, {
+        ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 0 }),
+        score: FieldValue.increment(catDelta), [catWon ? "wins" : "losses"]: FieldValue.increment(1),
+      });
+      tx.update(users.ham.ref, {
+        ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 0 }),
+        score: FieldValue.increment(hamDelta), [catWon ? "losses" : "wins"]: FieldValue.increment(1),
+      });
     }
     return;
   }
@@ -170,11 +184,14 @@ function finishGame(
   const catDelta = catWon ? winPoints(WIN_POINTS, catBonus, game.catBoost === true) : -Math.min(LOSE_POINTS, score(users.cat));
   const hamDelta = catWon ? -Math.min(LOSE_POINTS, score(users.ham)) : winPoints(WIN_POINTS, hamBonus, game.hamBoost === true);
   tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus, hamBonus });
+  const today = dayKey(Date.now());
   tx.update(users.cat.ref, {
+    ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 1 }),
     score: FieldValue.increment(catDelta),
     [catWon ? "wins" : "losses"]: FieldValue.increment(1),
   });
   tx.update(users.ham.ref, {
+    ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 1 }),
     score: FieldValue.increment(hamDelta),
     [catWon ? "losses" : "wins"]: FieldValue.increment(1),
   });
@@ -202,7 +219,9 @@ function isLate(game: Game): boolean {
 function useAnimal(tx: Transaction, profile: DocumentSnapshot): string | null {
   const equipped = profile.get("equipped") as string | null | undefined;
   // 무료 캐릭터(햄스터)는 모습만 바뀌고 소모되지 않음 (상대 턴 시간도 그대로)
-  if (isFreeSkin(equipped)) return equipped;
+  // 무료 햄스터·유료 스킨은 모습만 바뀌고 소모되지 않음 (상대 턴 시간도 그대로)
+  const look = lookSkin(equipped, profile.get("skins"));
+  if (look) return look;
   if (!equipped || !ANIMALS[equipped]) return null;
   const left = (profile.get(`animals.${equipped}`) as number | undefined) ?? 0;
   if (left <= 0) {
@@ -474,7 +493,7 @@ export const startAiGame = onCall(async (req) => {
   const myScore = me.get("score") ?? START_SCORE;
   const myRevives = revivesForGame(me.get("potions"));
   const eq = me.get("equipped") as string | null | undefined;
-  const aiSkin = isFreeSkin(eq) ? eq : eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null;
+  const aiSkin = lookSkin(eq, me.get("skins")) ?? (eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null);
   await gameRef.set({
     vsAi: level,
     catCountry: humanIsCat ? country : null,
@@ -580,6 +599,26 @@ export const admobSsv = onRequest(async (req, res) => {
     return;
   }
 
+  // 상점의 "광고 보고 💖 부활물약 받기" (하루 POTION_ADS_PER_DAY번)
+  if (gameId === "potion") {
+    const potionResult = await db.runTransaction(async (tx) => {
+      const rewardRef = db.collection("adRewards").doc(p.transactionId.replace(/[^A-Za-z0-9_-]/g, "_"));
+      const userRef = db.collection("users").doc(p.userId);
+      const [done, u] = await Promise.all([tx.get(rewardRef), tx.get(userRef)]);
+      if (done.exists) return "duplicate";
+      if (!u.exists) return "no user";
+      const today = dayKey(Date.now());
+      const used = potionAdsToday(u.data() ?? {}, today);
+      tx.create(rewardRef, { uid: p.userId, kind: "potion", at: Date.now(), granted: used < POTION_ADS_PER_DAY });
+      if (used >= POTION_ADS_PER_DAY) return "daily limit";
+      tx.update(userRef, { potions: FieldValue.increment(1), potionAdDay: today, potionAds: used + 1 });
+      return "potion +1";
+    });
+    logger.info("SSV potion", { uid: p.userId, result: potionResult });
+    res.status(200).send(potionResult);
+    return;
+  }
+
   const result = await db.runTransaction(async (tx) => {
     const rewardRef = db.collection("adRewards").doc(p.transactionId.replace(/[^A-Za-z0-9_-]/g, "_"));
     if ((await tx.get(rewardRef)).exists) return "duplicate";
@@ -614,14 +653,18 @@ export const admobSsv = onRequest(async (req, res) => {
 export const buyItem = onCall(async (req) => {
   const uid = requireUser(req);
   const item = (req.data as { item?: unknown } | null)?.item;
-  if (typeof item !== "string" || (item !== "POTION" && item !== "BOOST" && !ANIMALS[item])) {
+  if (typeof item !== "string" || (item !== "POTION" && item !== "BOOST" && !ANIMALS[item] && !isCosmetic(item))) {
     throw err("invalid-argument", "없는 상품이에요", "No such item");
   }
-  const price = item === "POTION" ? POTION_PRICE : item === "BOOST" ? BOOST_PRICE : ANIMALS[item].price;
+  const price = item === "POTION" ? POTION_PRICE : item === "BOOST" ? BOOST_PRICE
+    : isCosmetic(item) ? COSMETIC_SKINS[item] : ANIMALS[item].price;
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
     const u = await tx.get(userRef);
     if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    if (isCosmetic(item) && ((u.get("skins") as unknown[] | undefined) ?? []).includes(item)) {
+      throw err("already-exists", "이미 가진 스킨이에요", "You already own this skin");
+    }
     const score = (u.get("score") as number | undefined) ?? START_SCORE;
     const coins = (u.get("coins") as number | undefined) ?? 0;
     // 상점 포인트(결제)를 먼저 쓰고, 모자라는 만큼 점수에서
@@ -632,6 +675,9 @@ export const buyItem = onCall(async (req) => {
       userRef,
       item === "POTION"
         ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(1) }
+        : isCosmetic(item)
+        // 유료 스킨: 한 번 사면 계속 (바로 장착)
+        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), skins: FieldValue.arrayUnion(item), equipped: item }
         : item === "BOOST"
         // 부스터: 1개 추가하고 바로 켬
         ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), boosts: FieldValue.increment(1), boostOn: true }
@@ -649,7 +695,7 @@ export const buyItem = onCall(async (req) => {
 export const equipAnimal = onCall(async (req) => {
   const uid = requireUser(req);
   const animal = (req.data as { animal?: unknown } | null)?.animal ?? null;
-  if (animal !== null && (typeof animal !== "string" || (!ANIMALS[animal] && !isFreeSkin(animal)))) {
+  if (animal !== null && (typeof animal !== "string" || (!ANIMALS[animal] && !isFreeSkin(animal) && !isCosmetic(animal)))) {
     throw err("invalid-argument", "없는 캐릭터예요", "No such character");
   }
   const userRef = db.collection("users").doc(uid);
@@ -657,7 +703,12 @@ export const equipAnimal = onCall(async (req) => {
     const u = await tx.get(userRef);
     const left = animal === null ? 0 : ((u.get(`animals.${animal}`) as number | undefined) ?? 0);
     // 무료 캐릭터는 가진 개수와 상관없이 장착
-    if (animal !== null && !isFreeSkin(animal) && left <= 0) {
+    if (isCosmetic(animal)) {
+      const skins = u.get("skins") as unknown;
+      if (!Array.isArray(skins) || !skins.includes(animal)) {
+        throw err("failed-precondition", "아직 없는 스킨이에요", "You don't own this skin yet");
+      }
+    } else if (animal !== null && !isFreeSkin(animal) && left <= 0) {
       throw err("failed-precondition", "아직 없는 캐릭터예요", "You don't own this character yet");
     }
     tx.update(userRef, { equipped: animal });
@@ -769,6 +820,26 @@ const APPLE_BUNDLE_ID = "com.softrime.bubble";
 /** Play Console에 만든 소모성 상품 ID → 지급 점수 */
 /** 결제로 받는 것은 "상점 포인트(coins)" — 상점 전용이라 점수·계급에는 들어가지 않음 */
 const PRODUCTS: Record<string, number> = { points_500: 500, points_1000: 1000, points_2000: 2000, points_5000: 5000 };
+/** 광고 제거 (한 번 사면 계속, 비소모성). 전면 광고만 안 나오고, 보고 싶을 때 보는 보상형 광고는 그대로 */
+const REMOVE_ADS = "remove_ads";
+
+/**
+ * 영수증 한 건을 계정에 반영 (트랜잭션 안).
+ * - 포인트 상품: 상점 포인트 지급. 이 계정의 첫 포인트 구매면 2배 (스타터 혜택)
+ * - 광고 제거: noAds = true
+ * 돌려주는 값: 지급한 포인트 (광고 제거는 0)
+ */
+function grantPurchase(tx: Transaction, user: DocumentSnapshot, productId: string): number {
+  if (productId === REMOVE_ADS) {
+    tx.update(user.ref, { noAds: true });
+    return 0;
+  }
+  const base = PRODUCTS[productId] ?? 0;
+  const first = user.get("firstBuyDone") !== true;
+  const points = first ? base * 2 : base;
+  tx.update(user.ref, { coins: FieldValue.increment(points), firstBuyDone: true });
+  return points;
+}
 
 const playAuth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] });
 
@@ -784,12 +855,14 @@ export const verifyPurchase = onCall(async (req) => {
   const productId = typeof data.productId === "string" ? data.productId : "";
   const token = typeof data.token === "string" ? data.token : "";
   const points = PRODUCTS[productId];
-  if (!points || !token || token.length > 4096) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
+  if ((!points && productId !== REMOVE_ADS) || !token || token.length > 4096) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
 
   const purchaseRef = db.collection("purchases").doc(token.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 1400));
   const done = await purchaseRef.get();
   if (done.exists) {
     if (done.get("uid") !== uid) throw err("permission-denied", "다른 계정의 결제예요", "This purchase belongs to another account");
+    // 광고 제거는 앱을 다시 깔아도 다시 확인되므로, 표시가 빠져 있으면 다시 켬
+    if (productId === REMOVE_ADS) await db.collection("users").doc(uid).update({ noAds: true });
     return { granted: 0, already: true };
   }
 
@@ -808,11 +881,12 @@ export const verifyPurchase = onCall(async (req) => {
   if (info.purchaseState !== 0) throw err("failed-precondition", "결제가 아직 완료되지 않았어요", "The payment isn't complete yet");
 
   const granted = await db.runTransaction(async (tx) => {
-    const again = await tx.get(purchaseRef);
+    const [again, user] = await Promise.all([tx.get(purchaseRef), tx.get(db.collection("users").doc(uid))]);
     if (again.exists) return 0;
-    tx.create(purchaseRef, { uid, productId, points, orderId: info.orderId ?? null, at: Date.now() });
-    tx.update(db.collection("users").doc(uid), { coins: FieldValue.increment(points) });
-    return points;
+    if (!user.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    const g = grantPurchase(tx, user, productId);
+    tx.create(purchaseRef, { uid, productId, points: g, orderId: info.orderId ?? null, at: Date.now() });
+    return g;
   });
   logger.info("purchase granted", { uid, productId, orderId: info.orderId, granted });
   return { granted };
@@ -830,7 +904,7 @@ export const verifyApplePurchase = onCall(async (req) => {
   const t = verifyAppleJws(jws);
   if (!t) throw err("permission-denied", "결제를 확인하지 못했어요", "Couldn't verify the purchase");
   const points = PRODUCTS[t.productId];
-  if (t.bundleId !== APPLE_BUNDLE_ID || !points) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
+  if (t.bundleId !== APPLE_BUNDLE_ID || (!points && t.productId !== REMOVE_ADS)) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
   if (t.revocationDate) throw err("failed-precondition", "환불된 결제예요", "This purchase was refunded");
   // 앱이 결제할 때 넣은 계정 표시와 같아야 함 (다른 계정의 영수증 재사용 방지)
   if (!t.appAccountToken || t.appAccountToken.toLowerCase() !== appAccountToken(uid)) {
@@ -838,13 +912,21 @@ export const verifyApplePurchase = onCall(async (req) => {
   }
   const purchaseRef = db.collection("purchases").doc(`apple_${t.transactionId.replace(/[^0-9A-Za-z]/g, "")}`);
   const granted = await db.runTransaction(async (tx) => {
-    if ((await tx.get(purchaseRef)).exists) return 0;
+    const userRef = db.collection("users").doc(uid);
+    const [done, user] = await Promise.all([tx.get(purchaseRef), tx.get(userRef)]);
+    if (!user.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    if (done.exists) {
+      if (done.get("uid") !== uid) throw err("permission-denied", "다른 계정의 결제예요", "This purchase belongs to another account");
+      // 구매 복원: 광고 제거 표시만 다시 켬
+      if (t.productId === REMOVE_ADS) tx.update(userRef, { noAds: true });
+      return 0;
+    }
+    const g = grantPurchase(tx, user, t.productId);
     tx.create(purchaseRef, {
-      uid, productId: t.productId, points, store: "apple", environment: t.environment ?? null,
+      uid, productId: t.productId, points: g, store: "apple", environment: t.environment ?? null,
       orderId: t.transactionId, at: Date.now(),
     });
-    tx.update(db.collection("users").doc(uid), { coins: FieldValue.increment(points) });
-    return points;
+    return g;
   });
   logger.info("apple purchase granted", { uid, productId: t.productId, transactionId: t.transactionId, env: t.environment, granted });
   return { granted };
@@ -1072,8 +1154,8 @@ export const joinFriendRoom = onCall(async (req) => {
       catCountry: iAmCat ? myCountry : hostCountry,
       hamCountry: iAmCat ? hostCountry : myCountry,
       // 친구 대전: 동물(효과)은 안 쓰고, 무료 캐릭터(햄스터 옷)는 모습만 보여줌
-      catSkin: isFreeSkin(cat.get("equipped")) ? cat.get("equipped") : null,
-      hamSkin: isFreeSkin(ham.get("equipped")) ? ham.get("equipped") : null,
+      catSkin: lookSkin(cat.get("equipped"), cat.get("skins")),
+      hamSkin: lookSkin(ham.get("equipped"), ham.get("skins")),
       catBoost: false,
       hamBoost: false,
       catTurnMs: TURN_LIMIT_MS,
@@ -1094,4 +1176,84 @@ export const joinFriendRoom = onCall(async (req) => {
     tx.update(roomRef, { status: "matched", gameId: gameRef.id, guest: uid });
     return { gameId: gameRef.id, rated };
   });
+});
+
+// ======================= 출석 · 일일 미션 · 주간 랭킹 보상 =======================
+
+/** 오늘 출석 보상 받기 (한국 시간 하루 한 번). 7일 주기, 7일째는 💖 부활물약도 */
+export const claimDaily = onCall(async (req) => {
+  const uid = requireUser(req);
+  const ref = db.collection("users").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const u = await tx.get(ref);
+    if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    const today = dayKey(Date.now());
+    const day = nextStreak(u.get("checkinDay"), u.get("checkinStreak"), today);
+    if (day === null) throw err("already-exists", "오늘은 이미 출석했어요", "You've already checked in today");
+    const coins = CHECKIN_COINS[day - 1];
+    const potion = day === CHECKIN_POTION_DAY;
+    tx.update(ref, {
+      checkinDay: today, checkinStreak: day, coins: FieldValue.increment(coins),
+      ...(potion ? { potions: FieldValue.increment(1) } : {}),
+    });
+    return { day, coins, potion };
+  });
+});
+
+/** 일일 미션 보상 받기 */
+export const claimMission = onCall(async (req) => {
+  const uid = requireUser(req);
+  const id = (req.data as { id?: unknown } | null)?.id;
+  const m = typeof id === "string" ? MISSIONS[id] : undefined;
+  if (!m) throw err("invalid-argument", "없는 미션이에요", "No such mission");
+  const ref = db.collection("users").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const u = await tx.get(ref);
+    if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    const today = dayKey(Date.now());
+    const sameDay = u.get("missionDay") === today;
+    const progress = sameDay ? ((u.get(m.field) as number | undefined) ?? 0) : 0;
+    const claimed = sameDay ? ((u.get("mClaimed") as string[] | undefined) ?? []) : [];
+    if (claimed.includes(id as string)) throw err("already-exists", "이미 받은 보상이에요", "Already claimed");
+    if (progress < m.goal) throw err("failed-precondition", "아직 미션을 다 하지 않았어요", "Mission not complete yet");
+    tx.update(ref, { coins: FieldValue.increment(m.coins), mClaimed: FieldValue.arrayUnion(id) });
+    return { coins: m.coins };
+  });
+});
+
+/** 주간 랭킹 보상 안내를 봤다고 표시 */
+export const ackWeeklyReward = onCall(async (req) => {
+  const uid = requireUser(req);
+  await db.collection("users").doc(uid).update({ "weeklyReward.seen": true });
+  return { ok: true };
+});
+
+/**
+ * 매주 월요일 0시 5분(한국 시간): 랭킹 TOP 100에게 💰 상점 포인트 지급.
+ * 1위 1000 · 2위 700 · 3위 500 · 4~10위 300 · 11~100위 100. weeklyRewards/{주}로 한 번만 지급.
+ */
+export const weeklyRankingRewards = onSchedule({ schedule: "5 0 * * 1", timeZone: "Asia/Seoul" }, async () => {
+  // 지금은 새 주의 월요일 → 보상은 지난주 순위에 대한 것
+  const week = weekKey(Date.now() - 86_400_000);
+  const markRef = db.collection("weeklyRewards").doc(week);
+  try {
+    await markRef.create({ at: Date.now(), status: "running" });
+  } catch {
+    logger.info("weekly rewards already done", { week });
+    return;
+  }
+  const top = await db.collection("users").orderBy("score", "desc").limit(100).get();
+  const batch = db.batch();
+  top.docs.forEach((d, i) => {
+    const rank = i + 1;
+    const coins = weeklyCoins(rank);
+    if (coins <= 0) return;
+    batch.update(d.ref, {
+      coins: FieldValue.increment(coins),
+      weeklyReward: { week, rank, coins, seen: false },
+    });
+  });
+  batch.update(markRef, { status: "done", count: top.size });
+  await batch.commit();
+  logger.info("weekly rewards granted", { week, count: top.size });
 });

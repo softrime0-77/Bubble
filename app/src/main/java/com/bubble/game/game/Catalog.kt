@@ -54,13 +54,28 @@ enum class Rank(
  * 그 판에 내 캐릭터가 바뀌고 상대의 턴 제한 시간이 줄어듭니다.
  * 값은 functions/src/catalog.ts와 같아야 합니다.
  */
-enum class Animal(private val ko: String, private val en: String, val price: Int, val opponentTurnSec: Int) {
+enum class Animal(
+    private val ko: String,
+    private val en: String,
+    val price: Int,
+    val opponentTurnSec: Int,
+    /** 유료 스킨: 한 번 사면 계속 쓰고, 모습만 바뀜 (효과 없음) */
+    val cosmetic: Boolean = false,
+) {
     SHEEP("양", "Sheep", 30, 15),
     DOG("강아지", "Puppy", 50, 10),
     GIRAFFE("기린", "Giraffe", 100, 5),
     /** 무료 캐릭터: 모습만 햄스터로 바뀌고 효과 없음, 소모되지 않음 */
     HAMSTER("햄스터", "Hamster", 0, Shop.DEFAULT_TURN_SEC),
+    // 유료 스킨 (functions/src/catalog.ts COSMETIC_SKINS와 같은 가격)
+    PINK_CAT("핑크 고양이", "Pink Cat", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    BLACK_CAT("까망 고양이", "Black Cat", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    SNOW_HAMSTER("눈송이 햄스터", "Snow Hamster", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    GOLD_HAMSTER("황금 햄스터", "Golden Hamster", 500, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     ;
+
+    /** 소모품 동물 (랜덤 매칭 1판에 1개, 상대 턴을 줄임) */
+    val consumable: Boolean get() = !free && !cosmetic
 
     /** 무료 캐릭터 (사지 않고 바로 장착, 효과 없음) */
     val free: Boolean get() = price == 0
@@ -72,6 +87,10 @@ enum class Animal(private val ko: String, private val en: String, val price: Int
             DOG -> listOf("小狗", "पिल्ला", "Perrito", "Chiot", "جرو", "Welpe", "Cachorrinho", "Щенок", "子イヌ")
             GIRAFFE -> listOf("长颈鹿", "जिराफ़", "Jirafa", "Girafe", "زرافة", "Giraffe", "Girafa", "Жираф", "キリン")
             HAMSTER -> listOf("仓鼠", "हैम्स्टर", "Hámster", "Hamster", "هامستر", "Hamster", "Hamster", "Хомяк", "ハムスター")
+            PINK_CAT -> listOf("粉红猫咪", "गुलाबी बिल्ली", "Gato rosa", "Chat rose", "قطة وردية", "Pinke Katze", "Gato rosa", "Розовый котик", "ピンクネコ")
+            BLACK_CAT -> listOf("小黑猫", "काली बिल्ली", "Gato negro", "Chat noir", "قطة سوداء", "Schwarze Katze", "Gato preto", "Чёрный котик", "くろネコ")
+            SNOW_HAMSTER -> listOf("雪花仓鼠", "स्नो हैम्स्टर", "Hámster nieve", "Hamster neige", "هامستر الثلج", "Schneehamster", "Hamster neve", "Снежный хомяк", "ゆきハムスター")
+            GOLD_HAMSTER -> listOf("黄金仓鼠", "गोल्डन हैम्स्टर", "Hámster dorado", "Hamster doré", "هامستر ذهبي", "Goldhamster", "Hamster dourado", "Золотой хомяк", "きんハムスター")
         }
 
     val label: String get() = Lang.pick(listOf(ko, en) + others)

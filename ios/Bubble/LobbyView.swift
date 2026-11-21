@@ -122,6 +122,7 @@ struct LobbyView: View {
                     }
                 }
 
+                if let p = online.profile { DailyCard(profile: p) }
                 if let p = online.profile { InviteCard(profile: p) }
                 if let i = online.info {
                     Text(i).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.accent).multilineTextAlignment(.center)
@@ -134,6 +135,17 @@ struct LobbyView: View {
                 if !online.leaderboard.isEmpty {
                     card {
                         Text(t("🏆 랭킹")).font(.system(size: 17, weight: .bold)).foregroundColor(UiColor.text)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(tr("🎁 매주 월요일 0시 TOP 100 보상 · 1위 💰1000 · 2위 700 · 3위 500 · 4~10위 300 · 11~100위 100",
+                                "🎁 Every Monday 00:00 (KST), TOP 100 get 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                                zh: "🎁 每周一 0 点（韩国时间）TOP 100 奖励 💰：第1名 1000 · 第2名 700 · 第3名 500 · 4–10名 300 · 11–100名 100",
+                                es: "🎁 Cada lunes 00:00 (KST) el TOP 100 recibe 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                                fr: "🎁 Chaque lundi 00h (KST), le TOP 100 reçoit 💰 : #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                                de: "🎁 Jeden Montag 0 Uhr (KST) bekommt die TOP 100 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                                pt: "🎁 Toda segunda 00h (KST) o TOP 100 ganha 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                                ru: "🎁 Каждый понедельник 00:00 (KST) ТОП-100 получают 💰: #1 1000 · #2 700 · #3 500 · #4–10 300 · #11–100 100",
+                                ja: "🎁 毎週月曜0時（韓国時間）TOP100に 💰：1位1000 · 2位700 · 3位500 · 4〜10位300 · 11〜100位100"))
+                            .font(.system(size: 11)).foregroundColor(UiColor.text.opacity(0.7))
                             .frame(maxWidth: .infinity, alignment: .leading)
                         ForEach(Array(online.leaderboard.enumerated()), id: \.element.uid) { i, p in
                             leaderRow(i + 1, p.name, p.country, p.score, me: p.uid == online.profile?.uid)
@@ -167,6 +179,19 @@ struct LobbyView: View {
             Button(t("삭제"), role: .destructive) { Task { await online.deleteAccount() } }
         } message: {
             Text(deleteWarning)
+        }
+        .alert(tr("🏆 주간 랭킹 보상!", "🏆 Weekly ranking reward!", zh: "🏆 每周排行奖励！", es: "🏆 ¡Premio semanal!", fr: "🏆 Récompense hebdo !",
+                  de: "🏆 Wochenbelohnung!", pt: "🏆 Prêmio semanal!", ru: "🏆 Недельная награда!", ja: "🏆 週間ランキング報酬！"),
+               isPresented: Binding(get: { online.profile?.weeklyReward.map { !$0.seen } ?? false }, set: { if !$0 { online.ackWeeklyReward() } })) {
+            Button(tr("받았어요!", "Got it!", zh: "收到！", es: "¡Genial!", fr: "Super !", de: "Danke!", pt: "Valeu!", ru: "Ура!", ja: "受け取った！")) { online.ackWeeklyReward() }
+        } message: {
+            let w = online.profile?.weeklyReward
+            Text(tr("지난주 \(w?.rank ?? 0)위! 💰 상점 포인트 \(w?.coins ?? 0)점을 드렸어요 🎉",
+                    "You were #\(w?.rank ?? 0) last week! Here are 💰 \(w?.coins ?? 0) shop points 🎉",
+                    zh: "上周第 \(w?.rank ?? 0) 名！获得 💰 \(w?.coins ?? 0) 商店积分 🎉", es: "¡Quedaste #\(w?.rank ?? 0) la semana pasada! Toma 💰 \(w?.coins ?? 0) 🎉",
+                    fr: "Tu étais #\(w?.rank ?? 0) ! 💰 \(w?.coins ?? 0) points 🎉", de: "Letzte Woche Platz \(w?.rank ?? 0)! 💰 \(w?.coins ?? 0) 🎉",
+                    pt: "Você foi #\(w?.rank ?? 0)! 💰 \(w?.coins ?? 0) pontos 🎉", ru: "На прошлой неделе #\(w?.rank ?? 0)! 💰 \(w?.coins ?? 0) 🎉",
+                    ja: "先週は\(w?.rank ?? 0)位！💰 \(w?.coins ?? 0) をプレゼント 🎉"))
         }
         .alert(t("🎉 가입을 환영해요!"), isPresented: Binding(get: { online.welcome != nil }, set: { if !$0 { online.welcome = nil } })) {
             Button(t("시작하기")) { online.welcome = nil }

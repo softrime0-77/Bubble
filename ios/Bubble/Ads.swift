@@ -8,7 +8,7 @@ import UserMessagingPlatform
 /// - 게임 중에는 띄우지 않고, 게임이 끝나 로비로 돌아갈 때만
 /// - 일반 전면 광고는 2판마다, 최소 60초 간격
 /// - 보상형 전면 광고는 보상 안내 화면(건너뛰기 가능)을 먼저 보여준 뒤에만 (화면 쪽에서 처리)
-/// 광고 단위 ID는 Info.plist(project.yml)의 BubbleInterstitialId / BubbleRewardedId. 지금은 구글 테스트 광고.
+/// 광고 단위 ID는 Info.plist(project.yml)의 BubbleInterstitialId / BubbleRewardedId (실제 AdMob 광고 단위).
 @MainActor
 final class Ads: NSObject, ObservableObject, GADFullScreenContentDelegate {
     static let shared = Ads()
@@ -17,6 +17,8 @@ final class Ads: NSObject, ObservableObject, GADFullScreenContentDelegate {
     private static let minGap: TimeInterval = 60
 
     @Published private(set) var rewardedReady = false
+    /// 광고 제거를 산 계정이면 true (전면 광고를 띄우지 않음. 보상형 광고는 원할 때만)
+    var noAds = false
     @Published private(set) var privacyOptionsRequired = false
 
     private var started = false
@@ -96,6 +98,7 @@ final class Ads: NSObject, ObservableObject, GADFullScreenContentDelegate {
 
     /// 게임이 끝나 로비로 갈 때. 빈도 제한을 통과하면 전면 광고, 닫히면(또는 안 띄우면 바로) done
     func maybeShowInterstitial(_ done: @escaping () -> Void) {
+        if noAds { done(); return }
         gamesSinceInterstitial += 1
         let allowed = gamesSinceInterstitial >= Self.everyNGames && Date().timeIntervalSince(lastFullScreenAt) >= Self.minGap
         guard allowed, let ad = interstitial, let root = Self.rootViewController() else {

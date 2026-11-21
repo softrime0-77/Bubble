@@ -114,7 +114,11 @@ struct RootView: View {
         // 친구 대전 링크: 로그인돼 있고 로비에 있으면 바로 대전방에 들어감
         .onChange(of: online.pendingBattle) { _ in joinPendingBattle() }
         .onChange(of: online.profile?.uid) { _ in joinPendingBattle() }
-        .onChange(of: screen.key) { _ in joinPendingBattle() }
+        .onChange(of: screen.key) { key in
+            joinPendingBattle()
+            // 로비로 돌아오면 랭킹 새로고침 (대전 결과 반영)
+            if key == "lobby" { Task { await online.refreshLeaderboard() } }
+        }
     }
 
     /// 로그인했으면 점수가 걸린 서버 AI 대전, 아니면 폰 안에서 연습

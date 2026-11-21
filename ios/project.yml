@@ -61,10 +61,10 @@ targets:
         CFBundleAllowMixedLocalizations: true
         # 표준 암호화(HTTPS)만 사용 → TestFlight 수출 규정 질문 생략
         ITSAppUsesNonExemptEncryption: false
-        # AdMob: 지금은 구글 테스트 앱 ID·광고 단위. AdMob에 iOS 앱을 등록하면 바꾸기 (README iOS 항목)
-        GADApplicationIdentifier: ca-app-pub-3940256099942544~1458002511
-        BubbleInterstitialId: ca-app-pub-3940256099942544/4411468910
-        BubbleRewardedId: ca-app-pub-3940256099942544/6978759866
+        # AdMob 실제 iOS 앱 ID·광고 단위 (전면 / 보상형 전면)
+        GADApplicationIdentifier: ca-app-pub-4615819907336992~5224683070
+        BubbleInterstitialId: ca-app-pub-4615819907336992/8942942946
+        BubbleRewardedId: ca-app-pub-4615819907336992/9985608059
         SKAdNetworkItems:
           - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
         UILaunchScreen: {}

@@ -2,6 +2,7 @@ package com.bubble.game.billing
 
 import android.app.Activity
 import android.content.Context
+import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -12,6 +13,7 @@ import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.consumePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
@@ -41,6 +43,11 @@ class BillingManager(
             "points_2000" to 2000,
             "points_5000" to 5000,
         )
+
+        /** 광고 제거 (비소모성: 한 번 사면 계속). Play Console에 관리형 상품으로 만듦 */
+        const val REMOVE_ADS = "remove_ads"
+
+        private val ALL_IDS: List<String> get() = PRODUCTS.keys.toList() + REMOVE_ADS
     }
 
     private val _prices = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -75,7 +82,7 @@ class BillingManager(
     private suspend fun loadProduct() {
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
-                PRODUCTS.keys.map { id ->
+                ALL_IDS.map { id ->
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(id)
                         .setProductType(BillingClient.ProductType.INAPP)
@@ -114,7 +121,13 @@ class BillingManager(
         if (p.purchaseState != Purchase.PurchaseState.PURCHASED) return
         val productId = p.products.firstOrNull() ?: return
         val ok = runCatching { onPurchased(productId, p.purchaseToken) }.getOrDefault(false)
-        if (ok) {
+        if (!ok) return
+        if (productId == REMOVE_ADS) {
+            // 광고 제거는 소모하지 않고 확인(acknowledge)만 → 계속 가진 상태로 남음
+            if (!p.isAcknowledged) {
+                client.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(p.purchaseToken).build())
+            }
+        } else {
             // 서버가 지급을 기록한 뒤에만 소모 → 같은 상품을 다시 살 수 있게 됨
             client.consumePurchase(ConsumeParams.newBuilder().setPurchaseToken(p.purchaseToken).build())
         }

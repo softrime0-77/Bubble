@@ -1,7 +1,7 @@
 # XcodeGen 설정: `xcodegen generate`로 Bubble.xcodeproj를 만듭니다 (CI에서 자동 실행).
 name: Bubble
 options:
-  bundleIdPrefix: com.bubble
+  bundleIdPrefix: com.softrime
   deploymentTarget:
     iOS: "16.0"
 packages:
@@ -47,7 +47,8 @@ targets:
       path: Bubble/Bubble.entitlements
       properties:
         com.apple.developer.applesignin: [Default]
-    # 구글 로그인 콜백용 URL scheme (REVERSED_CLIENT_ID, 비밀 아님)
+    # 구글 로그인 콜백용 URL scheme (REVERSED_CLIENT_ID, 비밀 아님).
+    # 첫 칸은 CI가 GoogleService-Info.plist의 REVERSED_CLIENT_ID로 바꿔 넣음 (Mac에서 직접 빌드할 때도 같은 값으로)
     info:
       path: Bubble/Info.plist
       properties:
@@ -72,7 +73,8 @@ targets:
           - CFBundleURLSchemes: [bubble]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.bubble.game
+        # App Store 번들 ID (com.bubble.game은 Apple에서 이미 쓰는 ID라 아이폰만 다름. 안드로이드는 com.bubble.game)
+        PRODUCT_BUNDLE_IDENTIFIER: com.softrime.bubble
         PRODUCT_NAME: Bubble
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"

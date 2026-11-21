@@ -739,6 +739,8 @@ export const redeemReferral = onCall(async (req) => {
 // ======================= 인앱 결제 =======================
 
 const PACKAGE_NAME = "com.bubble.game";
+/** 아이폰 앱 번들 ID (App Store). com.bubble.game은 Apple에서 이미 쓰는 ID라 다름 */
+const APPLE_BUNDLE_ID = "com.softrime.bubble";
 /** Play Console에 만든 소모성 상품 ID → 지급 점수 */
 /** 결제로 받는 것은 "상점 포인트(coins)" — 상점 전용이라 점수·계급에는 들어가지 않음 */
 const PRODUCTS: Record<string, number> = { points_500: 500, points_1000: 1000, points_2000: 2000 };
@@ -803,7 +805,7 @@ export const verifyApplePurchase = onCall(async (req) => {
   const t = verifyAppleJws(jws);
   if (!t) throw err("permission-denied", "결제를 확인하지 못했어요", "Couldn't verify the purchase");
   const points = PRODUCTS[t.productId];
-  if (t.bundleId !== PACKAGE_NAME || !points) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
+  if (t.bundleId !== APPLE_BUNDLE_ID || !points) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
   if (t.revocationDate) throw err("failed-precondition", "환불된 결제예요", "This purchase was refunded");
   // 앱이 결제할 때 넣은 계정 표시와 같아야 함 (다른 계정의 영수증 재사용 방지)
   if (!t.appAccountToken || t.appAccountToken.toLowerCase() !== appAccountToken(uid)) {

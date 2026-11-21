@@ -200,6 +200,8 @@ firebase deploy --only functions,firestore:rules
 
 Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 넣습니다 (파일은 저장소에 올리지 않음).
 
+아이폰 번들 ID는 **`com.softrime.bubble`** 입니다 (`com.bubble.game`은 App Store에서 이미 다른 사람이 쓰고 있어서). 안드로이드는 그대로 `com.bubble.game`이고, 서버·매칭은 같이 씁니다.
+
 ### 아이폰 기능
 
 - 로그인: **Apple로 계속하기** 또는 **Google로 시작하기**. 계정 삭제 시 Apple 계정은 Apple 토큰도 취소합니다 (App Store 규정)
@@ -210,7 +212,7 @@ Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 
 ### Apple Developer 가입 후 할 일 (한 번만)
 
 1. **Apple 로그인 켜기**
-   - [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) → Identifiers → `com.bubble.game` → **Sign In with Apple** 체크
+   - [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) → Identifiers → **+** → App IDs → 번들 ID `com.softrime.bubble` (Explicit) → **Sign In with Apple** 체크
    - Firebase 콘솔 → Authentication → 로그인 방법 → **Apple** 사용 설정 (아이폰 앱만 쓰면 서비스 ID·키 입력 없이 저장해도 됨)
 2. **결제 상품 만들기**: App Store Connect → 앱 → 인앱 구입 → **소모품** 3개 (ID는 정확히 이 이름)
    | 상품 ID | 포인트 | 가격 예 |

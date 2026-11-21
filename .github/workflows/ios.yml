@@ -48,6 +48,14 @@ jobs:
         run: |
           brew install xcodegen
           xcodegen generate
+          # 구글 로그인 콜백 URL scheme을 Firebase 설정 파일의 값으로 맞춤
+          if [ -f Bubble/GoogleService-Info.plist ]; then
+            REV=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" Bubble/GoogleService-Info.plist)
+            /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 $REV" Bubble/Info.plist
+            echo "URL scheme: $REV"
+            BID=$(/usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" Bubble/GoogleService-Info.plist)
+            [ "$BID" = "com.softrime.bubble" ] || echo "::warning::GoogleService-Info.plist의 BUNDLE_ID($BID)가 앱(com.softrime.bubble)과 달라요. Firebase에 새 iOS 앱을 추가하고 plist를 바꿔 주세요."
+          fi
 
       - name: Pick an iPhone simulator
         id: sim
@@ -85,8 +93,8 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
           shot() {
-            xcrun simctl terminate "$UDID" com.bubble.game 2>/dev/null || true
-            xcrun simctl launch "$UDID" com.bubble.game "${@:2}"
+            xcrun simctl terminate "$UDID" com.softrime.bubble 2>/dev/null || true
+            xcrun simctl launch "$UDID" com.softrime.bubble "${@:2}"
             sleep 8
             xcrun simctl io "$UDID" screenshot "shots/$1.png"
           }

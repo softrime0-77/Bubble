@@ -275,9 +275,9 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
         BigButton(
             text = tr("🎲  랜덤 매칭", "🎲  Random Match", zh = "🎲  随机匹配", hi = "🎲  रैंडम मैच", es = "🎲  Partida aleatoria", fr = "🎲  Match aléatoire", ar = "🎲  مباراة عشوائية", de = "🎲  Zufallsmatch", pt = "🎲  Partida aleatória", ru = "🎲  Случайный матч", ja = "🎲  ランダムマッチ"),
             sub = tr(
-"익명의 상대와 1:1 대결 · 승리 +${OnlineRepository.WIN_POINTS}점",
-"1:1 vs an anonymous player · Win +${OnlineRepository.WIN_POINTS} pts",
-zh = "与匿名玩家 1:1 对战 · 胜利 +${OnlineRepository.WIN_POINTS} 分", hi = "गुमनाम खिलाड़ी से 1:1 · जीत +${OnlineRepository.WIN_POINTS} अंक", es = "1:1 contra un jugador anónimo · Victoria +${OnlineRepository.WIN_POINTS} pts", fr = "1:1 contre un joueur anonyme · Victoire +${OnlineRepository.WIN_POINTS} pts", ar = "1:1 ضد لاعب مجهول · الفوز +${OnlineRepository.WIN_POINTS} نقطة", de = "1:1 gegen anonyme Gegner · Sieg +${OnlineRepository.WIN_POINTS} Pkt", pt = "1:1 contra um jogador anônimo · Vitória +${OnlineRepository.WIN_POINTS} pts", ru = "1:1 с анонимным игроком · Победа +${OnlineRepository.WIN_POINTS} очк.", ja = "匿名の相手と1対1 · 勝利 +${OnlineRepository.WIN_POINTS}点",
+"익명의 상대와 1:1 대결 · 승리 +${OnlineRepository.WIN_POINTS} · 패배 -${OnlineRepository.LOSE_POINTS}",
+"1:1 vs an anonymous player · Win +${OnlineRepository.WIN_POINTS} · Lose -${OnlineRepository.LOSE_POINTS}",
+zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -${OnlineRepository.LOSE_POINTS}", hi = "गुमनाम खिलाड़ी से 1:1 · जीत +${OnlineRepository.WIN_POINTS} · हार -${OnlineRepository.LOSE_POINTS}", es = "1:1 contra un jugador anónimo · Gana +${OnlineRepository.WIN_POINTS} · Pierde -${OnlineRepository.LOSE_POINTS}", fr = "1:1 contre un joueur anonyme · Victoire +${OnlineRepository.WIN_POINTS} · Défaite -${OnlineRepository.LOSE_POINTS}", ar = "1:1 ضد لاعب مجهول · الفوز +${OnlineRepository.WIN_POINTS} · الخسارة -${OnlineRepository.LOSE_POINTS}", de = "1:1 gegen anonyme Gegner · Sieg +${OnlineRepository.WIN_POINTS} · Niederlage -${OnlineRepository.LOSE_POINTS}", pt = "1:1 contra um jogador anônimo · Vitória +${OnlineRepository.WIN_POINTS} · Derrota -${OnlineRepository.LOSE_POINTS}", ru = "1:1 с анонимным игроком · Победа +${OnlineRepository.WIN_POINTS} · Поражение -${OnlineRepository.LOSE_POINTS}", ja = "匿名の相手と1対1 · 勝ち +${OnlineRepository.WIN_POINTS} · 負け -${OnlineRepository.LOSE_POINTS}",
 ),
             enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
             onClick = vm::startMatching,

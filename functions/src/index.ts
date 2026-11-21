@@ -9,6 +9,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { googleKeyLookup, verifySsv } from "./ssv";
+import { appAccountToken, verifyAppleJws } from "./apple";
 import { normalizeCode, randomCode } from "./referral";
 import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
@@ -49,15 +50,20 @@ const AI_LABEL: Record<AiLevel, string> = { EASY: "쉬움", NORMAL: "보통", HA
 const AI_THINK_MS = 900;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** 우리 보상형 전면 광고 단위 번호 (ca-app-pub-…/6715010091). 테스트 광고 단위는 거절. */
-const REWARDED_AD_UNIT = "6715010091";
+/**
+ * 우리 보상형 전면 광고 단위 번호. 테스트 광고 단위는 거절.
+ * 안드로이드: ca-app-pub-…/6715010091. 아이폰 광고 단위를 AdMob에 만들면 그 번호를 여기에 추가 (README iOS 항목).
+ */
+const REWARDED_AD_UNITS = ["6715010091"];
 
 /** 구글로 로그인한 사용자만 허용합니다. */
 function requireUser(req: CallableRequest): string {
   const uid = req.auth?.uid;
   if (!uid) throw err("unauthenticated", "로그인이 필요해요", "Please sign in");
   const provider = req.auth?.token.firebase?.sign_in_provider;
-  if (provider !== "google.com") throw err("permission-denied", "구글 계정으로 로그인해 주세요", "Please sign in with Google");
+  if (provider !== "google.com" && provider !== "apple.com") {
+    throw err("permission-denied", "구글 또는 Apple 계정으로 로그인해 주세요", "Please sign in with Google or Apple");
+  }
   return uid;
 }
 
@@ -540,7 +546,7 @@ export const admobSsv = onRequest(async (req, res) => {
     res.status(403).send("bad signature");
     return;
   }
-  if (p.adUnit !== REWARDED_AD_UNIT) {
+  if (!REWARDED_AD_UNITS.includes(p.adUnit)) {
     logger.info("SSV for other ad unit ignored", { adUnit: p.adUnit });
     res.status(200).send("ignored");
     return;
@@ -782,6 +788,38 @@ export const verifyPurchase = onCall(async (req) => {
     return points;
   });
   logger.info("purchase granted", { uid, productId, orderId: info.orderId, granted });
+  return { granted };
+});
+
+/**
+ * App Store 결제 확인 후 상점 포인트 지급 (아이폰).
+ * 앱이 보낸 StoreKit 2 거래 JWS의 Apple 서명을 확인하고(apple.ts), 상품·앱·계정이 맞는지 본 뒤
+ * purchases/apple_{transactionId} 기록으로 같은 거래를 두 번 쓰지 못하게 합니다.
+ */
+export const verifyApplePurchase = onCall(async (req) => {
+  const uid = requireUser(req);
+  const jws = (req.data as { jws?: unknown } | null)?.jws;
+  if (typeof jws !== "string") throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
+  const t = verifyAppleJws(jws);
+  if (!t) throw err("permission-denied", "결제를 확인하지 못했어요", "Couldn't verify the purchase");
+  const points = PRODUCTS[t.productId];
+  if (t.bundleId !== PACKAGE_NAME || !points) throw err("invalid-argument", "잘못된 결제 정보예요", "Invalid purchase");
+  if (t.revocationDate) throw err("failed-precondition", "환불된 결제예요", "This purchase was refunded");
+  // 앱이 결제할 때 넣은 계정 표시와 같아야 함 (다른 계정의 영수증 재사용 방지)
+  if (!t.appAccountToken || t.appAccountToken.toLowerCase() !== appAccountToken(uid)) {
+    throw err("permission-denied", "다른 계정의 결제예요", "This purchase belongs to another account");
+  }
+  const purchaseRef = db.collection("purchases").doc(`apple_${t.transactionId.replace(/[^0-9A-Za-z]/g, "")}`);
+  const granted = await db.runTransaction(async (tx) => {
+    if ((await tx.get(purchaseRef)).exists) return 0;
+    tx.create(purchaseRef, {
+      uid, productId: t.productId, points, store: "apple", environment: t.environment ?? null,
+      orderId: t.transactionId, at: Date.now(),
+    });
+    tx.update(db.collection("users").doc(uid), { coins: FieldValue.increment(points) });
+    return points;
+  });
+  logger.info("apple purchase granted", { uid, productId: t.productId, transactionId: t.transactionId, env: t.environment, granted });
   return { granted };
 });
 

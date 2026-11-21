@@ -313,7 +313,7 @@ class OnlineRepository(context: Context) {
     suspend fun referralCode(): String =
         call("getReferralCode")["code"] as? String ?: throw ServerException("no code")
 
-    /** 친구의 추천 코드 입력 (초대한 친구가 +30점) */
+    /** 친구의 추천 코드 입력 (초대한 친구와 나 둘 다 +30점) */
     suspend fun redeemReferral(code: String) {
         call("redeemReferral", mapOf("code" to code))
     }

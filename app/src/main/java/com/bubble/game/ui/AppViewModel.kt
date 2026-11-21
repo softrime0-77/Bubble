@@ -225,12 +225,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 _lobby.update {
                     it.copy(
                         info = tr(
-                            "초대 코드 ${code}가 입력됐어요! 친구에게 +30점이 들어갔어요 🎁", "Invite code $code applied! Your friend got +30 pts 🎁",
-                            zh = "已使用邀请码 $code！你的朋友获得 +30 分 🎁", hi = "इनवाइट कोड $code लग गया! दोस्त को +30 अंक मिले 🎁",
-                            es = "¡Código $code aplicado! Tu amigo recibió +30 pts 🎁", fr = "Code $code appliqué ! Ton ami a reçu +30 pts 🎁",
-                            ar = "تم تطبيق رمز الدعوة $code! حصل صديقك على +30 نقطة 🎁", de = "Code $code eingelöst! Dein Freund hat +30 Pkt bekommen 🎁",
-                            pt = "Código $code aplicado! Seu amigo ganhou +30 pts 🎁", ru = "Код $code принят! Друг получил +30 очк. 🎁",
-                            ja = "招待コード ${code} を入力しました！友だちに+30点 🎁",
+                            "초대 코드 ${code}가 입력됐어요! 나도 친구도 +30점 🎁", "Invite code ${code} applied! You and your friend both got +30 pts 🎁",
+                            zh = "已使用邀请码 ${code}！你和朋友都获得 +30 分 🎁", hi = "इनवाइट कोड ${code} लग गया! आप दोनों को +30 अंक 🎁", es = "¡Código ${code} aplicado! Tú y tu amigo reciben +30 pts 🎁", fr = "Code ${code} appliqué ! Toi et ton ami recevez +30 pts 🎁", ar = "تم تطبيق رمز الدعوة ${code}! حصلت أنت وصديقك على +30 نقطة 🎁", de = "Code ${code} eingelöst! Du und dein Freund bekommt je +30 Pkt 🎁", pt = "Código ${code} aplicado! Você e seu amigo ganharam +30 pts 🎁", ru = "Код ${code} принят! Вы и друг получили по +30 очк. 🎁", ja = "招待コード ${code} を入力しました！自分も友だちも +30点 🎁",
                         ),
                     )
                 }
@@ -253,12 +249,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun redeemReferral(code: String) = shopAction(
         tr(
-            "코드를 입력했어요! 친구에게 +30점이 들어갔어요 🎁", "Code applied! Your friend got +30 pts 🎁",
-            zh = "已使用邀请码！你的朋友获得 +30 分 🎁", hi = "कोड लग गया! आपके दोस्त को +30 अंक मिले 🎁",
-            es = "¡Código aplicado! Tu amigo recibió +30 pts 🎁", fr = "Code appliqué ! Ton ami a reçu +30 pts 🎁",
-            ar = "تم تطبيق الرمز! حصل صديقك على +30 نقطة 🎁", de = "Code eingelöst! Dein Freund hat +30 Pkt bekommen 🎁",
-            pt = "Código aplicado! Seu amigo ganhou +30 pts 🎁", ru = "Код принят! Друг получил +30 очк. 🎁",
-            ja = "コードを入力しました！友だちに+30点が入りました 🎁",
+            "코드를 입력했어요! 나도 친구도 +30점 🎁", "Code applied! You and your friend both got +30 pts 🎁",
+            zh = "已使用邀请码！你和朋友都获得 +30 分 🎁", hi = "कोड लग गया! आप और आपके दोस्त दोनों को +30 अंक 🎁", es = "¡Código aplicado! Tú y tu amigo reciben +30 pts 🎁", fr = "Code appliqué ! Toi et ton ami recevez +30 pts 🎁", ar = "تم تطبيق الرمز! حصلت أنت وصديقك على +30 نقطة 🎁", de = "Code eingelöst! Du und dein Freund bekommt je +30 Pkt 🎁", pt = "Código aplicado! Você e seu amigo ganharam +30 pts 🎁", ru = "Код принят! Вы и друг получили по +30 очк. 🎁", ja = "コードを入力しました！自分も友だちも +30点 🎁",
         ),
     ) { repo.redeemReferral(code) }
 

@@ -786,7 +786,7 @@ export const getReferralCode = onCall(async (req) => {
   throw err("internal", "코드를 만들지 못했어요. 다시 시도해 주세요", "Could not create a code. Please try again");
 });
 
-/** 친구의 추천 코드 입력. 계정당 한 번, 초대한 사람에게 +30점. */
+/** 친구의 추천 코드 입력. 계정당 한 번, 초대한 사람과 초대받은 사람 둘 다 +30점. */
 export const redeemReferral = onCall(async (req) => {
   const uid = requireUser(req);
   const code = normalizeCode((req.data as { code?: unknown } | null)?.code);
@@ -804,7 +804,8 @@ export const redeemReferral = onCall(async (req) => {
     const inv = await tx.get(inviterRef);
     if (!inv.exists) throw err("not-found", "없는 추천 코드예요", "No such referral code");
     const count = (inv.get("referrals") as number | undefined) ?? 0;
-    tx.update(meRef, { referredBy: inviter });
+    // 초대받은 사람: 항상 +30 (계정당 한 번) / 초대한 사람: 최대 MAX_REFERRALS명까지 +30
+    tx.update(meRef, { referredBy: inviter, score: FieldValue.increment(REFERRAL_POINTS) });
     if (count < MAX_REFERRALS) {
       tx.update(inviterRef, { score: FieldValue.increment(REFERRAL_POINTS), referrals: FieldValue.increment(1) });
     }

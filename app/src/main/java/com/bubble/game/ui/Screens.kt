@@ -2040,12 +2040,10 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
             fontWeight = FontWeight.Bold, color = Ui.text,
         )
         Text(
-            tr("친구가 내 코드를 입력하면 내가 +30점!", "Get +30 pts when a friend enters your code!",
-                zh = "好友输入你的邀请码，你就得 +30 分！", hi = "दोस्त आपका कोड डाले तो आपको +30 अंक!",
-                es = "¡Gana +30 pts cuando un amigo use tu código!", fr = "Gagne +30 pts quand un ami entre ton code !",
-                ar = "احصل على +30 نقطة عندما يُدخل صديقك رمزك!", de = "+30 Pkt, wenn ein Freund deinen Code eingibt!",
-                pt = "Ganhe +30 pts quando um amigo usar seu código!", ru = "+30 очк., когда друг введёт ваш код!",
-                ja = "友だちが自分のコードを入力すると +30点！"),
+            tr(
+                "친구가 내 코드를 입력하면 나도 친구도 +30점!", "When a friend enters your code, you both get +30 pts!",
+                zh = "好友输入你的邀请码，你们俩都得 +30 分！", hi = "दोस्त आपका कोड डाले तो आप दोनों को +30 अंक!", es = "¡Cuando un amigo use tu código, ambos ganan +30 pts!", fr = "Quand un ami entre ton code, vous gagnez tous les deux +30 pts !", ar = "عندما يُدخل صديقك رمزك يحصل كلاكما على +30 نقطة!", de = "Gibt ein Freund deinen Code ein, bekommt ihr beide +30 Pkt!", pt = "Quando um amigo usar seu código, vocês dois ganham +30 pts!", ru = "Когда друг введёт ваш код, вы оба получите +30 очк.!", ja = "友だちが自分のコードを入力すると、2人とも +30点！",
+            ),
             fontSize = 13.sp, color = Ui.text.copy(alpha = 0.75f),
         )
         Spacer(Modifier.height(8.dp))

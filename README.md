@@ -194,4 +194,6 @@ firebase deploy --only functions,firestore:rules
 - `ios/project.yml`: XcodeGen 설정 (`xcodegen generate`로 Xcode 프로젝트 생성)
 - 빌드 확인: GitHub Actions **iOS** 워크플로(Mac)에서 테스트 → 시뮬레이터 빌드 → 스크린샷. 스크린샷은 `ios-screenshots` 브랜치에 올라감
 
-진행 단계: ✅ 1단계 게임 화면·AI 연습 → 2단계 로그인(Google·Apple)·온라인 대전 → 3단계 상점·결제(StoreKit)·광고 → 4단계 마무리·TestFlight
+진행 단계: ✅ 1단계 게임 화면·AI 연습 → ✅ 2단계 구글 로그인·온라인 대전 (Apple 로그인은 Apple Developer 가입 후) → 3단계 상점·결제(StoreKit)·광고 → 4단계 마무리·TestFlight
+
+Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 넣습니다 (파일은 저장소에 올리지 않음).

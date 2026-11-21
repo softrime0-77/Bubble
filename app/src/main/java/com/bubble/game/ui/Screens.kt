@@ -1208,33 +1208,15 @@ private fun winCard(g: GameUi, refCode: String?): ShareCard.Win {
         tr("고양이 vs 햄스터 1:1 방울 대결", "Cats vs Hamsters 1:1 bubble battle", zh = "猫咪 vs 仓鼠 1:1 泡泡对决", es = "Gatos vs Hámsteres 1:1", fr = "Chats contre Hamsters 1:1", de = "Katzen gegen Hamster 1:1", pt = "Gatos vs Hamsters 1:1", ru = "Котики против хомяков 1:1", ja = "ネコ vs ハムスター 1対1")
     }
     val message = tr(
-        "Bubble 냥햄대전에서 ${g.opponentName}을(를) 이겼어! 🏆 너도 한 판 해볼래?" + (refCode?.let { "
-내 추천 코드 $it 넣으면 우리 둘 다 +30점 🎁" } ?: "") + "
-$link",
-        "I beat ${g.opponentName} in Bubble: Cats vs Hamsters! 🏆 Wanna try?" + (refCode?.let { "
-Use my code $it and we both get +30 pts 🎁" } ?: "") + "
-$link",
-        zh = "我在 Bubble 猫咪大战仓鼠里赢了 ${g.opponentName}！🏆 你也来一局？" + (refCode?.let { "
-输入我的邀请码 $it，我们各得 +30 分 🎁" } ?: "") + "
-$link",
-        es = "¡Le gané a ${g.opponentName} en Bubble! 🏆 ¿Te animas?" + (refCode?.let { "
-Usa mi código $it y ambos ganamos +30 pts 🎁" } ?: "") + "
-$link",
-        fr = "J’ai battu ${g.opponentName} dans Bubble ! 🏆 Tu tentes ?" + (refCode?.let { "
-Avec mon code $it, on gagne +30 pts chacun 🎁" } ?: "") + "
-$link",
-        de = "Ich habe ${g.opponentName} in Bubble besiegt! 🏆 Probierst du’s?" + (refCode?.let { "
-Mit meinem Code $it bekommen wir beide +30 Pkt 🎁" } ?: "") + "
-$link",
-        pt = "Venci ${g.opponentName} no Bubble! 🏆 Bora jogar?" + (refCode?.let { "
-Use meu código $it e nós dois ganhamos +30 pts 🎁" } ?: "") + "
-$link",
-        ru = "Я победил ${g.opponentName} в Bubble! 🏆 Сыграешь?" + (refCode?.let { "
-Введи мой код $it — получим по +30 очк. 🎁" } ?: "") + "
-$link",
-        ja = "Bubble で ${g.opponentName} に勝ったよ！🏆 一緒にやろう？" + (refCode?.let { "
-招待コード $it を入れると2人とも +30点 🎁" } ?: "") + "
-$link",
+        "Bubble 냥햄대전에서 ${g.opponentName}을(를) 이겼어! 🏆 너도 한 판 해볼래?" + (refCode?.let { "\n내 추천 코드 $it 넣으면 우리 둘 다 +30점 🎁" } ?: "") + "\n$link",
+        "I beat ${g.opponentName} in Bubble: Cats vs Hamsters! 🏆 Wanna try?" + (refCode?.let { "\nUse my code $it and we both get +30 pts 🎁" } ?: "") + "\n$link",
+        zh = "我在 Bubble 猫咪大战仓鼠里赢了 ${g.opponentName}！🏆 你也来一局？" + (refCode?.let { "\n输入我的邀请码 $it，我们各得 +30 分 🎁" } ?: "") + "\n$link",
+        es = "¡Le gané a ${g.opponentName} en Bubble! 🏆 ¿Te animas?" + (refCode?.let { "\nUsa mi código $it y ambos ganamos +30 pts 🎁" } ?: "") + "\n$link",
+        fr = "J’ai battu ${g.opponentName} dans Bubble ! 🏆 Tu tentes ?" + (refCode?.let { "\nAvec mon code $it, on gagne +30 pts chacun 🎁" } ?: "") + "\n$link",
+        de = "Ich habe ${g.opponentName} in Bubble besiegt! 🏆 Probierst du’s?" + (refCode?.let { "\nMit meinem Code $it bekommen wir beide +30 Pkt 🎁" } ?: "") + "\n$link",
+        pt = "Venci ${g.opponentName} no Bubble! 🏆 Bora jogar?" + (refCode?.let { "\nUse meu código $it e nós dois ganhamos +30 pts 🎁" } ?: "") + "\n$link",
+        ru = "Я победил ${g.opponentName} в Bubble! 🏆 Сыграешь?" + (refCode?.let { "\nВведи мой код $it — получим по +30 очк. 🎁" } ?: "") + "\n$link",
+        ja = "Bubble で ${g.opponentName} に勝ったよ！🏆 一緒にやろう？" + (refCode?.let { "\n招待コード $it を入れると2人とも +30点 🎁" } ?: "") + "\n$link",
     )
     return ShareCard.Win(
         title = tr("승리!", "Victory!", zh = "胜利！", hi = "जीत!", es = "¡Victoria!", fr = "Victoire !", ar = "فوز!", de = "Sieg!", pt = "Vitória!", ru = "Победа!", ja = "勝利！"),

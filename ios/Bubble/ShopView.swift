@@ -452,13 +452,18 @@ struct ShopView: View {
                       ru: "🐉 💰 +\(c) за каждый лопнутый пузырь соперника\n(макс. \(mx) в день · сегодня \(today)/\(mx)) · навсегда",
                       ja: "🐉 相手の泡を割るたびに 💰 +\(c)\n（1日最大\(mx) · 今日 \(today)/\(mx)）· 永久")
         case .rabbit:
-            let mx = Shop.rabbitMaxRibbons, n = p.winStreak
-            return tr("🐰 연승할수록 리본이 하나씩 (최대 \(mx)개, 지면 처음부터) · 지금 \(n)연승 · 이기면 하트 폭죽",
-                      "🐰 A new ribbon for every win in a row (max \(mx), resets on a loss) · streak \(n)",
-                      zh: "🐰 每连胜一场多一个蝴蝶结（最多 \(mx) 个）· 当前 \(n) 连胜", es: "🐰 Un lazo por cada victoria seguida (máx. \(mx)) · racha \(n)",
-                      fr: "🐰 Un ruban par victoire d’affilée (max \(mx)) · série \(n)", de: "🐰 Eine Schleife pro Sieg in Folge (max. \(mx)) · Serie \(n)",
-                      pt: "🐰 Um laço por vitória seguida (máx. \(mx)) · sequência \(n)", ru: "🐰 Бантик за каждую победу подряд (макс. \(mx)) · серия \(n)",
-                      ja: "🐰 連勝ごとにリボンが1つ（最大\(mx)個）· 今\(n)連勝")
+            let today = p.rabbitDay == OnlineService.today() ? p.rabbitCoins : 0
+            let mx = Shop.rabbitDailyMax, n = p.winStreak
+            let a3 = Shop.rabbit3Coins, a5 = Shop.rabbit5Coins, more = Shop.rabbitMoreCoins
+            return tr("🐰 연승 보상 💰: 3연승 +\(a3) · 5연승 +\(a5) · 그 뒤로 이길 때마다 +\(more)\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 연승마다 리본, 5연승이면 금빛 · 지금 \(n)연승",
+                      "🐰 Streak rewards 💰: 3 wins +\(a3) · 5 wins +\(a5) · then +\(more) per win\n(max \(mx)/day · today \(today)/\(mx)) · a ribbon per win, golden at 5 · streak \(n)",
+                      zh: "🐰 连胜奖励 💰：3连胜 +\(a3) · 5连胜 +\(a5) · 之后每胜 +\(more)\n（每天最多 \(mx) · 今天 \(today)/\(mx)）· 当前 \(n) 连胜",
+                      es: "🐰 Premios por racha 💰: 3 seguidas +\(a3) · 5 seguidas +\(a5) · luego +\(more) por victoria\n(máx. \(mx)/día · hoy \(today)/\(mx)) · racha \(n)",
+                      fr: "🐰 Récompenses de série 💰 : 3 victoires +\(a3) · 5 victoires +\(a5) · puis +\(more) par victoire\n(max \(mx)/jour · aujourd’hui \(today)/\(mx)) · série \(n)",
+                      de: "🐰 Serienbelohnung 💰: 3 Siege +\(a3) · 5 Siege +\(a5) · danach +\(more) pro Sieg\n(max. \(mx)/Tag · heute \(today)/\(mx)) · Serie \(n)",
+                      pt: "🐰 Prêmios por sequência 💰: 3 vitórias +\(a3) · 5 vitórias +\(a5) · depois +\(more) por vitória\n(máx. \(mx)/dia · hoje \(today)/\(mx)) · sequência \(n)",
+                      ru: "🐰 Награды за серию 💰: 3 победы +\(a3) · 5 побед +\(a5) · дальше +\(more) за победу\n(макс. \(mx) в день · сегодня \(today)/\(mx)) · серия \(n)",
+                      ja: "🐰 連勝ボーナス 💰：3連勝 +\(a3) · 5連勝 +\(a5) · その後は勝つたびに +\(more)\n（1日最大\(mx) · 今日 \(today)/\(mx)）· 今\(n)連勝")
         default:
             return tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect")
         }

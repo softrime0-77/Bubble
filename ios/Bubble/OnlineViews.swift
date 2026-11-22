@@ -324,10 +324,38 @@ struct VsIntro: View {
                               pt: "✨ Seu \(a.label): turno do rival \(a.opponentTurnSec) s", ru: "✨ Ваш \(a.label): ход соперника \(a.opponentTurnSec) с",
                               ja: "✨ 自分の\(a.label)効果！相手のターン\(a.opponentTurnSec)秒"), UiColor.accent)
                 }
+                rabbitNotices
             }
             .padding(20)
         }
         .onTapGesture(perform: onClose)
+    }
+
+    /// 🐰 연승 토끼 알림: 상대가 5연승 이상이면 경고, 내가 토끼면 다음 보상
+    @ViewBuilder private var rabbitNotices: some View {
+        if game.opponentSkin == .rabbit && game.opponentRibbons >= Shop.rabbitMaxRibbons {
+            notice(tr("🔥 상대가 연승 토끼로 5연승 이상 중!", "🔥 Your rival's Streak Bunny is on a 5+ win streak!",
+                      zh: "🔥 对手的连胜兔已经 5 连胜以上！", es: "🔥 ¡El conejo de tu rival lleva 5+ victorias seguidas!", fr: "🔥 Le lapin adverse est sur 5+ victoires d’affilée !",
+                      de: "🔥 Der Siegeshase deines Gegners hat 5+ Siege in Folge!", pt: "🔥 O coelho do rival está com 5+ vitórias seguidas!", ru: "🔥 Зайка соперника — серия 5+ побед!", ja: "🔥 相手の連勝ウサギが5連勝以上中！"),
+                   Color(hex: 0xFF8A3D))
+        }
+        if game.mySkin == .rabbit && game.myRibbons > 0 {
+            notice(myRabbitText(game.myRibbons), Color(hex: 0xFF7EB3))
+        }
+    }
+
+    private func myRabbitText(_ n: Int) -> String {
+        if n >= Shop.rabbitMaxRibbons {
+            let c = Shop.rabbitMoreCoins
+            return tr("🔥 내 연승 토끼 5연승 이상! 이기면 💰+\(c)", "🔥 Your bunny is on 5+ wins! Win = 💰+\(c)",
+                      zh: "🔥 我的连胜兔 5 连胜以上！赢了 💰+\(c)", es: "🔥 ¡Tu conejo lleva 5+! Gana = 💰+\(c)", fr: "🔥 Ton lapin est à 5+ ! Victoire = 💰+\(c)",
+                      de: "🔥 Dein Hase hat 5+ Siege! Sieg = 💰+\(c)", pt: "🔥 Seu coelho está com 5+! Vitória = 💰+\(c)", ru: "🔥 Ваш зайка: 5+ побед! Победа = 💰+\(c)", ja: "🔥 自分のウサギが5連勝以上！勝つと 💰+\(c)")
+        }
+        let next = n < 2 ? 3 : 5
+        let c = next == 3 ? Shop.rabbit3Coins : Shop.rabbit5Coins
+        return tr("🐰 지금 \(n)연승 · \(next)연승이면 💰+\(c)", "🐰 \(n) in a row · \(next) wins = 💰+\(c)",
+                  zh: "🐰 当前\(n)连胜 · \(next)连胜 💰+\(c)", es: "🐰 \(n) seguidas · \(next) = 💰+\(c)", fr: "🐰 \(n) d’affilée · \(next) = 💰+\(c)",
+                  de: "🐰 \(n) in Folge · \(next) = 💰+\(c)", pt: "🐰 \(n) seguidas · \(next) = 💰+\(c)", ru: "🐰 \(n) подряд · \(next) = 💰+\(c)", ja: "🐰 今\(n)連勝 · \(next)連勝で 💰+\(c)")
     }
 
     private func notice(_ text: String, _ color: Color) -> some View {

@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost, adminValue } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RABBIT_SKIN, rabbitCoins, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost, adminValue } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -133,6 +133,20 @@ async function loadGame(tx: Transaction, gameId: string, uid: string) {
 }
 
 /**
+ * 🐰 연승 토끼 보상: 이 판을 토끼로 이겨서 새 연승이 3·5·6+가 되면 💰.
+ * 이긴 사람 문서에 넣을 필드와 게임 문서에 남길 값(앱 결과 화면용)을 돌려줌.
+ */
+function rabbitWin(winner: DocumentSnapshot, skin: string | null | undefined) {
+  if (skin !== RABBIT_SKIN) return { user: {}, coins: 0, streak: 0 };
+  const streak = ((winner.get("winStreak") as number | undefined) ?? 0) + 1;
+  const today = dayKey(Date.now());
+  const got = winner.get("rabbitDay") === today ? ((winner.get("rabbitCoins") as number | undefined) ?? 0) : 0;
+  const coins = rabbitCoins(streak, got);
+  if (coins <= 0) return { user: {}, coins: 0, streak };
+  return { user: { coins: FieldValue.increment(coins), rabbitDay: today, rabbitCoins: got + coins }, coins, streak };
+}
+
+/**
  * 게임을 끝내고 두 사람의 점수를 반영합니다.
  * 트랜잭션 규칙상 읽기를 먼저 모두 끝낸 다음 호출해야 하므로, 사용자 문서는 미리 읽어 둡니다.
  */
@@ -173,7 +187,8 @@ function finishGame(
     const d = friendDeltas(game.rated === true, score(loserSnap));
     const catDelta = catWon ? d.win : d.lose;
     const hamDelta = catWon ? d.lose : d.win;
-    tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus: 0, hamBonus: 0 });
+    const rabbit = game.rated ? rabbitWin(catWon ? users.cat : users.ham, catWon ? game.catSkin : game.hamSkin) : { user: {}, coins: 0, streak: 0 };
+    tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus: 0, hamBonus: 0, rabbitCoins: rabbit.coins, rabbitStreak: rabbit.streak });
     if (game.rated) {
       // 점수 걸린 친구 대전만 미션에 들어감 (친선전으로 미션 채우기 방지)
       const today = dayKey(Date.now());
@@ -181,11 +196,13 @@ function finishGame(
         ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 0 }),
         score: FieldValue.increment(catDelta), [catWon ? "wins" : "losses"]: FieldValue.increment(1),
         winStreak: catWon ? FieldValue.increment(1) : 0,
+        ...(catWon ? rabbit.user : {}),
       });
       tx.update(users.ham.ref, {
         ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 0 }),
         score: FieldValue.increment(hamDelta), [catWon ? "losses" : "wins"]: FieldValue.increment(1),
         winStreak: catWon ? 0 : FieldValue.increment(1),
+        ...(catWon ? {} : rabbit.user),
       });
     }
     return;
@@ -195,19 +212,23 @@ function finishGame(
   const hamBonus = catWon ? 0 : rankBonus(WIN_POINTS, score(users.ham));
   const catDelta = catWon ? winPoints(WIN_POINTS, catBonus, game.catBoost === true) : -Math.min(LOSE_POINTS, score(users.cat));
   const hamDelta = catWon ? -Math.min(LOSE_POINTS, score(users.ham)) : winPoints(WIN_POINTS, hamBonus, game.hamBoost === true);
-  tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus, hamBonus });
+  // 🐰 연승 토끼 보상 (이긴 쪽만)
+  const rabbit = rabbitWin(catWon ? users.cat : users.ham, catWon ? game.catSkin : game.hamSkin);
+  tx.update(gameRef, { ...extra, status: "finished", winner: win, reason, catDelta, hamDelta, catBonus, hamBonus, rabbitCoins: rabbit.coins, rabbitStreak: rabbit.streak });
   const today = dayKey(Date.now());
   tx.update(users.cat.ref, {
     ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 1 }),
     score: FieldValue.increment(catDelta),
     [catWon ? "wins" : "losses"]: FieldValue.increment(1),
     winStreak: catWon ? FieldValue.increment(1) : 0,
+    ...(catWon ? rabbit.user : {}),
   });
   tx.update(users.ham.ref, {
     ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 1 }),
     score: FieldValue.increment(hamDelta),
     [catWon ? "losses" : "wins"]: FieldValue.increment(1),
     winStreak: catWon ? 0 : FieldValue.increment(1),
+    ...(catWon ? {} : rabbit.user),
   });
 }
 

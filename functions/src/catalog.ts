@@ -117,6 +117,17 @@ export const DRAGON_DAILY_MAX = 10;
 /** 🐰 연승 토끼: 리본 최대 개수 */
 export const RABBIT_SKIN = "RABBIT";
 export const RABBIT_MAX_RIBBONS = 5;
+/** 🐰 연승 보상 하루 최대 💰 */
+export const RABBIT_DAILY_MAX = 20;
+
+/**
+ * 🐰 연승 토끼가 이겨서 [streak]연승이 됐을 때 받을 💰.
+ * 3연승 5 · 5연승 15 · 6연승부터 이길 때마다 3. 오늘 이미 받은 [todayCoins]까지 합쳐 하루 최대 20.
+ */
+export function rabbitCoins(streak: number, todayCoins: number): number {
+  const base = streak === 3 ? 5 : streak === 5 ? 15 : streak > 5 ? 3 : 0;
+  return Math.max(0, Math.min(base, RABBIT_DAILY_MAX - todayCoins));
+}
 
 /** 이번에 아기 용이 받을 💰 (오늘 이미 받은 [todayCoins] 기준, 하루 최대를 넘지 않게) */
 export function dragonCoins(todayCoins: number): number {

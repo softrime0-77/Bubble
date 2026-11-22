@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   COSMETIC_SKINS, DRAGON_DAILY_MAX, dragonCoins, isCosmetic, isRankSkin, lookSkin, PANDA_CHECKIN_BONUS, pandaEquipped, RANK_SKINS,
+  RABBIT_DAILY_MAX, rabbitCoins,
 } from "../src/catalog";
 
 test("new characters prices", () => {
@@ -32,4 +33,18 @@ test("dragon coins capped per day", () => {
   assert.equal(dragonCoins(8), 2);
   assert.equal(dragonCoins(9), 1);
   assert.equal(dragonCoins(DRAGON_DAILY_MAX), 0);
+});
+
+test("rabbit streak rewards: 3 -> 5, 5 -> 15, 6+ -> 3, daily max 20", () => {
+  assert.equal(rabbitCoins(1, 0), 0);
+  assert.equal(rabbitCoins(2, 0), 0);
+  assert.equal(rabbitCoins(3, 0), 5);
+  assert.equal(rabbitCoins(4, 0), 0);
+  assert.equal(rabbitCoins(5, 0), 15);
+  assert.equal(rabbitCoins(6, 0), 3);
+  assert.equal(rabbitCoins(9, 0), 3);
+  // 3연승 5 + 5연승 15 = 20 → 그날은 더 없음
+  assert.equal(rabbitCoins(6, 20), 0);
+  assert.equal(rabbitCoins(5, 10), 10);
+  assert.equal(rabbitCoins(6, RABBIT_DAILY_MAX - 1), 1);
 });

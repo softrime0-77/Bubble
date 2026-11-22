@@ -35,16 +35,19 @@ test("dragon coins capped per day", () => {
   assert.equal(dragonCoins(DRAGON_DAILY_MAX), 0);
 });
 
-test("rabbit streak rewards: 3 -> 5, 5 -> 15, 6+ -> 3, daily max 20", () => {
+test("rabbit streak rewards: 3 -> 5, 5 -> 15, 6+ -> 2, daily max 30", () => {
   assert.equal(rabbitCoins(1, 0), 0);
   assert.equal(rabbitCoins(2, 0), 0);
   assert.equal(rabbitCoins(3, 0), 5);
   assert.equal(rabbitCoins(4, 0), 0);
   assert.equal(rabbitCoins(5, 0), 15);
-  assert.equal(rabbitCoins(6, 0), 3);
-  assert.equal(rabbitCoins(9, 0), 3);
-  // 3연승 5 + 5연승 15 = 20 → 그날은 더 없음
-  assert.equal(rabbitCoins(6, 20), 0);
-  assert.equal(rabbitCoins(5, 10), 10);
-  assert.equal(rabbitCoins(6, RABBIT_DAILY_MAX - 1), 1);
+  assert.equal(rabbitCoins(6, 0), 2);
+  // 10연승: 5 + 15 + 2×5 = 30 → 하루 최대
+  let got = 0;
+  for (let s = 1; s <= 10; s++) got += rabbitCoins(s, got);
+  assert.equal(got, RABBIT_DAILY_MAX);
+  assert.equal(rabbitCoins(11, got), 0);
+  // 끊겼다가 다시 3연승이면 또 5 (한도 안에서)
+  assert.equal(rabbitCoins(3, 20), 5);
+  assert.equal(rabbitCoins(3, 27), 3);
 });

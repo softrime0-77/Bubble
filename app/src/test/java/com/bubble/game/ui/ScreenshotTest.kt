@@ -475,7 +475,7 @@ class ScreenshotTest {
 
     /** 긴 화면으로 상점 전체 (묶음 할인 버튼 확인) */
     @Test
-    @Config(sdk = [34], qualifiers = "w400dp-h3200dp-xhdpi")
+    @Config(sdk = [34], qualifiers = "w400dp-h4800dp-xhdpi")
     fun shopTall() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

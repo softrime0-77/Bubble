@@ -455,15 +455,15 @@ struct ShopView: View {
             let today = p.rabbitDay == OnlineService.today() ? p.rabbitCoins : 0
             let mx = Shop.rabbitDailyMax, n = p.winStreak
             let a3 = Shop.rabbit3Coins, a5 = Shop.rabbit5Coins, more = Shop.rabbitMoreCoins
-            return tr("🐰 연승 보상 💰: 3연승 +\(a3) · 5연승 +\(a5) · 그 뒤로 이길 때마다 +\(more)\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 연승마다 리본, 5연승이면 금빛 · 지금 \(n)연승",
-                      "🐰 Streak rewards 💰: 3 wins +\(a3) · 5 wins +\(a5) · then +\(more) per win\n(max \(mx)/day · today \(today)/\(mx)) · a ribbon per win, golden at 5 · streak \(n)",
-                      zh: "🐰 连胜奖励 💰：3连胜 +\(a3) · 5连胜 +\(a5) · 之后每胜 +\(more)\n（每天最多 \(mx) · 今天 \(today)/\(mx)）· 当前 \(n) 连胜",
-                      es: "🐰 Premios por racha 💰: 3 seguidas +\(a3) · 5 seguidas +\(a5) · luego +\(more) por victoria\n(máx. \(mx)/día · hoy \(today)/\(mx)) · racha \(n)",
-                      fr: "🐰 Récompenses de série 💰 : 3 victoires +\(a3) · 5 victoires +\(a5) · puis +\(more) par victoire\n(max \(mx)/jour · aujourd’hui \(today)/\(mx)) · série \(n)",
-                      de: "🐰 Serienbelohnung 💰: 3 Siege +\(a3) · 5 Siege +\(a5) · danach +\(more) pro Sieg\n(max. \(mx)/Tag · heute \(today)/\(mx)) · Serie \(n)",
-                      pt: "🐰 Prêmios por sequência 💰: 3 vitórias +\(a3) · 5 vitórias +\(a5) · depois +\(more) por vitória\n(máx. \(mx)/dia · hoje \(today)/\(mx)) · sequência \(n)",
-                      ru: "🐰 Награды за серию 💰: 3 победы +\(a3) · 5 побед +\(a5) · дальше +\(more) за победу\n(макс. \(mx) в день · сегодня \(today)/\(mx)) · серия \(n)",
-                      ja: "🐰 連勝ボーナス 💰：3連勝 +\(a3) · 5連勝 +\(a5) · その後は勝つたびに +\(more)\n（1日最大\(mx) · 今日 \(today)/\(mx)）· 今\(n)連勝")
+            return tr("🐰 연승할수록 💰 보상!\n· 3연승 +\(a3) · 5연승 +\(a5) · 6연승부터 이길 때마다 +\(more)\n· 지면 연승이 처음부터 (다시 3연승하면 또 +\(a3))\n· 하루 최대 \(mx) (오늘 \(today)/\(mx))\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전만 · 지금 \(n)연승",
+                      "🐰 Win streaks pay 💰!\n· 3 wins +\(a3) · 5 wins +\(a5) · from 6, +\(more) per win\n· A loss resets the streak (3 again = +\(a3) again)\n· Max \(mx) a day (today \(today)/\(mx))\n· A ribbon per win, golden ribbons at 5\n· Random & scored friend matches · streak \(n)",
+                      zh: "🐰 连胜越多 💰 越多！\n· 3连胜 +\(a3) · 5连胜 +\(a5) · 6连胜起每胜 +\(more)\n· 输了连胜重来（再3连胜又 +\(a3)）\n· 每天最多 \(mx)（今天 \(today)/\(mx)）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配和计分好友对战 · 当前 \(n) 连胜",
+                      es: "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +\(a3) · 5 seguidas +\(a5) · desde 6, +\(more) por victoria\n· Perder reinicia la racha\n· Máx. \(mx) al día (hoy \(today)/\(mx))\n· Un lazo por victoria, dorados a las 5 · racha \(n)",
+                      fr: "🐰 Les séries rapportent 💰 !\n· 3 victoires +\(a3) · 5 victoires +\(a5) · dès 6, +\(more) par victoire\n· Une défaite remet la série à zéro\n· Max \(mx) par jour (aujourd’hui \(today)/\(mx))\n· Un ruban par victoire, dorés à 5 · série \(n)",
+                      de: "🐰 Siegesserien bringen 💰!\n· 3 Siege +\(a3) · 5 Siege +\(a5) · ab 6 +\(more) pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. \(mx) pro Tag (heute \(today)/\(mx))\n· Eine Schleife pro Sieg, golden ab 5 · Serie \(n)",
+                      pt: "🐰 Sequências dão 💰!\n· 3 vitórias +\(a3) · 5 vitórias +\(a5) · a partir de 6, +\(more) por vitória\n· Perder zera a sequência\n· Máx. \(mx) por dia (hoje \(today)/\(mx))\n· Um laço por vitória, dourados aos 5 · sequência \(n)",
+                      ru: "🐰 Серии побед дают 💰!\n· 3 победы +\(a3) · 5 побед +\(a5) · с 6-й +\(more) за победу\n· Поражение обнуляет серию\n· Макс. \(mx) в день (сегодня \(today)/\(mx))\n· Бантик за победу, золотые на 5 · серия \(n)",
+                      ja: "🐰 連勝するほど 💰！\n· 3連勝 +\(a3) · 5連勝 +\(a5) · 6連勝からは勝つたびに +\(more)\n· 負けると連勝はリセット（また3連勝で +\(a3)）\n· 1日最大\(mx)（今日 \(today)/\(mx)）\n· 連勝ごとにリボン、5連勝で金色 · 今\(n)連勝")
         default:
             return tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect")
         }

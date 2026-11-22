@@ -130,9 +130,9 @@ public enum Shop {
     public static let dragonPopCoins = 2
     public static let dragonDailyMax = 10
     public static let rabbitMaxRibbons = 5
-    /// 🐰 연승 보상: 3연승 💰5 · 5연승 💰15 · 6연승부터 💰3, 하루 최대 20 (functions/src/catalog.ts rabbitCoins와 같게)
+    /// 🐰 연승 보상: 3연승 💰5 · 5연승 💰15 · 6연승부터 💰2, 하루 최대 30 (functions/src/catalog.ts rabbitCoins와 같게)
     public static let rabbit3Coins = 5
     public static let rabbit5Coins = 15
-    public static let rabbitMoreCoins = 3
-    public static let rabbitDailyMax = 20
+    public static let rabbitMoreCoins = 2
+    public static let rabbitDailyMax = 30
 }

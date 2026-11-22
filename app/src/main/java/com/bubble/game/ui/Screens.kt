@@ -2527,15 +2527,15 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
     val b = Shop.RABBIT_5_COINS
     val c = Shop.RABBIT_MORE_COINS
     val n = p.winStreak
-    return tr("🐰 연승 보상 💰: 3연승 +$a · 5연승 +$b · 그 뒤로 이길 때마다 +$c (하루 최대 $mx, 오늘 $today/$mx) · 연승마다 리본, 5연승이면 금빛 · 지금 ${n}연승 · 랜덤 매칭·점수 걸린 친구 대전",
-        "🐰 Streak rewards 💰: 3 wins +$a · 5 wins +$b · then +$c per win (max $mx/day, today $today/$mx) · a ribbon per win, golden at 5 · streak $n · random & scored friend matches",
-        zh = "🐰 连胜奖励 💰：3连胜 +$a · 5连胜 +$b · 之后每胜 +$c（每天最多 $mx，今天 $today/$mx）· 每胜一个蝴蝶结，5连胜变金色 · 当前 ${n} 连胜",
-        es = "🐰 Premios por racha 💰: 3 seguidas +$a · 5 seguidas +$b · luego +$c por victoria (máx. $mx/día, hoy $today/$mx) · un lazo por victoria, dorados a las 5 · racha $n",
-        fr = "🐰 Récompenses de série 💰 : 3 victoires +$a · 5 victoires +$b · puis +$c par victoire (max $mx/jour, aujourd’hui $today/$mx) · un ruban par victoire, dorés à 5 · série $n",
-        de = "🐰 Serienbelohnung 💰: 3 Siege +$a · 5 Siege +$b · danach +$c pro Sieg (max. $mx/Tag, heute $today/$mx) · eine Schleife pro Sieg, golden ab 5 · Serie $n",
-        pt = "🐰 Prêmios por sequência 💰: 3 vitórias +$a · 5 vitórias +$b · depois +$c por vitória (máx. $mx/dia, hoje $today/$mx) · um laço por vitória, dourados aos 5 · sequência $n",
-        ru = "🐰 Награды за серию 💰: 3 победы +$a · 5 побед +$b · дальше +$c за победу (макс. $mx в день, сегодня $today/$mx) · бантик за победу, золотые на 5 · серия $n",
-        ja = "🐰 連勝ボーナス 💰：3連勝 +$a · 5連勝 +$b · その後は勝つたびに +$c（1日最大$mx、今日 $today/$mx）· 連勝ごとにリボン、5連勝で金色 · 今${n}連勝")
+    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전만 · 지금 ${n}연승",
+        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random & scored friend matches · streak $n",
+        zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配和计分好友对战 · 当前 ${n} 连胜",
+        es = "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
+        fr = "🐰 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",
+        de = "🐰 Siegesserien bringen 💰!\n· 3 Siege +$a · 5 Siege +$b · ab 6 +$c pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. $mx pro Tag (heute $today/$mx)\n· Eine Schleife pro Sieg, golden ab 5 · Serie $n",
+        pt = "🐰 Sequências dão 💰!\n· 3 vitórias +$a · 5 vitórias +$b · a partir de 6, +$c por vitória\n· Perder zera a sequência\n· Máx. $mx por dia (hoje $today/$mx)\n· Um laço por vitória, dourados aos 5 · sequência $n",
+        ru = "🐰 Серии побед дают 💰!\n· 3 победы +$a · 5 побед +$b · с 6-й +$c за победу\n· Поражение обнуляет серию\n· Макс. $mx в день (сегодня $today/$mx)\n· Бантик за победу, золотые на 5 · серия $n",
+        ja = "🐰 連勝するほど 💰！\n· 3連勝 +$a · 5連勝 +$b · 6連勝からは勝つたびに +$c\n· 負けると連勝はリセット（また3連勝で +$a）\n· 1日最大$mx（今日 $today/$mx）\n· 連勝ごとにリボン、5連勝で金色 · 今${n}連勝")
 }
 
 /** 🐰 결과 화면: 연승 보상 또는 다음 보상 안내 */

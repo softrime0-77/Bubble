@@ -572,7 +572,7 @@ private struct CheckinFrame: View {
                 Circle().stroke(Color.white, lineWidth: 4)
                 VStack(spacing: 0) {
                     Text(dayText).font(.system(size: 20, weight: .black)).foregroundColor(.white)
-                    Text("✔").font(.system(size: 30, weight: .black)).foregroundColor(.white)
+                    Image(systemName: "checkmark").font(.system(size: 30, weight: .black)).foregroundColor(.white)
                 }
             }
             .frame(width: 108, height: 108)

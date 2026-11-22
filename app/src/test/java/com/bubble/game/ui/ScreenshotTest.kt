@@ -521,4 +521,13 @@ class ScreenshotTest {
         vm.debugSetGame { it.copy(board = Board(cat = listOf(4, 3), ham = listOf(2, 2)), turn = Side.CAT, lastShot = Shot(Side.HAMSTER, 0, true, 0, 1)) }
         shot("penguin_fly", 360)
     }
+
+    @Test
+    fun rankDown() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(3990), rankDown = com.bubble.game.game.Rank.RUBY to 3990) }
+        rule.setContent { BubbleApp(vm) }
+        shot("rank_down", 1200)
+    }
 }

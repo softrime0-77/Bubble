@@ -1216,3 +1216,98 @@ fun timerTheme(skin: Animal?): TimerTheme? = when (skin) {
     Animal.BLACK_CAT -> TimerTheme("🌙", listOf(Color(0xFF9B8CFF), Color(0xFF6A4DE0), Color(0xFF3B2A6B)), FxShape.STAR)
     else -> null
 }
+
+
+// ======================= 강등 팝업 =======================
+
+/** 계급이 내려갔을 때: 빗방울이 톡톡, 예전 배지 → 지금 배지, 얼마나 더 얻으면 돌아가는지 (응원) */
+@Composable
+fun RankDownNotice(from: com.bubble.game.game.Rank, score: Int, onDismiss: () -> Unit) {
+    val now = com.bubble.game.game.Rank.of(score)
+    val need = (from.minScore - score).coerceAtLeast(1)
+    val t = rememberInfiniteTransition(label = "rankDown")
+    val rain by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_800, easing = LinearEasing)), label = "rain")
+    val pop = remember { Animatable(0f) }
+    val drop = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow)) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(450)
+        drop.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = Spring.StiffnessMediumLow))
+    }
+    val drops = remember { parts(40) }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xE0303A55), Color(0xEE1D2234))))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        // 톡톡 빗방울
+        Canvas(Modifier.fillMaxSize()) {
+            drops.forEachIndexed { i, q ->
+                val y = ((rain * (0.8f + q.s * 0.6f) + q.a) % 1f) * (size.height + 60f) - 30f
+                val x = ((q.k % 997) / 997f) * size.width
+                val len = (10f + q.s * 14f) * density
+                drawLine(Color(0xFF9FC3FF).copy(alpha = 0.45f), Offset(x, y), Offset(x - len * 0.15f, y + len), 2f * density, StrokeCap.Round)
+            }
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .padding(28.dp)
+                .scale(0.7f + 0.3f * pop.value)
+                .alpha(pop.value.coerceIn(0f, 1f))
+                .background(Brush.verticalGradient(listOf(Color(0xFFF4F7FF), Color(0xFFE9ECFA))), RoundedCornerShape(30.dp))
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+        ) {
+            Text("😢", fontSize = 56.sp)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                tr("계급이 내려갔어요", "Your rank went down", zh = "等级下降了", es = "Bajaste de rango", fr = "Ton rang a baissé",
+                    de = "Dein Rang ist gesunken", pt = "Seu rank caiu", ru = "Ранг понизился", ja = "ランクが下がりました"),
+                fontSize = 24.sp, fontWeight = FontWeight.Black, color = Ui.text,
+            )
+            Spacer(Modifier.height(16.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RankBadge(from.minScore, modifier = Modifier.alpha(0.55f))
+                Text(
+                    "  ➜  ", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.text.copy(alpha = 0.6f),
+                    modifier = Modifier.offset(y = (8f * (1f - drop.value)).dp),
+                )
+                // 지금 배지는 위에서 툭 떨어짐
+                RankBadge(score, modifier = Modifier.offset(y = (-24f * (1f - drop.value)).dp).scale(0.8f + 0.2f * drop.value))
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(
+                tr("${need}점만 더 얻으면 다시 ${from.label}!", "Just $need more pts to get back to ${from.label}!",
+                    zh = "再得 $need 分就能回到${from.label}！", es = "¡Solo $need pts para volver a ${from.label}!",
+                    fr = "Plus que $need pts pour revenir en ${from.label} !", de = "Nur noch $need Pkt bis ${from.label}!",
+                    pt = "Só mais $need pts para voltar ao ${from.label}!", ru = "Ещё $need очк. — и снова ${from.label}!",
+                    ja = "あと${need}点で${from.label}に戻れます！"),
+                fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ui.accent, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Text(
+                tr("지금은 ${now.label} 계급 · 계급 보너스 +${now.bonusPercent}%", "Now ${now.label} · rank bonus +${now.bonusPercent}%",
+                    zh = "当前${now.label} · 等级奖励 +${now.bonusPercent}%", es = "Ahora ${now.label} · bonus +${now.bonusPercent}%",
+                    fr = "Maintenant ${now.label} · bonus +${now.bonusPercent}%", de = "Jetzt ${now.label} · Bonus +${now.bonusPercent}%",
+                    pt = "Agora ${now.label} · bônus +${now.bonusPercent}%", ru = "Сейчас ${now.label} · бонус +${now.bonusPercent}%",
+                    ja = "今は${now.label} · ランクボーナス +${now.bonusPercent}%"),
+                fontSize = 13.sp, color = Ui.text.copy(alpha = 0.65f), modifier = Modifier.padding(top = 4.dp),
+            )
+            Spacer(Modifier.height(18.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Brush.horizontalGradient(listOf(Ui.accent, Ui.primary)), RoundedCornerShape(50))
+                    .clickable(onClick = onDismiss)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(tr("다시 도전! 💪", "Let's climb back! 💪", zh = "再来挑战！💪", es = "¡A recuperarlo! 💪", fr = "On remonte ! 💪",
+                    de = "Zurück nach oben! 💪", pt = "Bora subir! 💪", ru = "Вернём ранг! 💪", ja = "もう一度！💪"),
+                    color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            }
+        }
+    }
+}

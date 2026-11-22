@@ -122,6 +122,9 @@ fun BubbleApp(vm: AppViewModel) {
         val lobby by vm.lobby.collectAsState()
         val rankUp = lobby.rankUpScore
         if (rankUp != null && screen == Screen.Lobby) RankUpCelebration(rankUp, onDismiss = vm::dismissRankUp)
+        lobby.rankDown?.let { (from, score) ->
+            if (screen == Screen.Lobby) RankDownNotice(from, score, onDismiss = vm::dismissRankDown)
+        }
         val checkin = lobby.checkin
         androidx.compose.animation.AnimatedVisibility(
             checkin != null && screen == Screen.Lobby,

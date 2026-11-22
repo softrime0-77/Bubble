@@ -1,6 +1,22 @@
 import BubbleCore
 import SwiftUI
 
+// 계산은 모두 CGFloat로 (Double과 섞으면 컴파일러가 타입을 못 정함)
+private let tau: CGFloat = .pi * 2
+
+private func fcos(_ x: CGFloat) -> CGFloat { CGFloat(cos(Double(x))) }
+private func fsin(_ x: CGFloat) -> CGFloat { CGFloat(sin(Double(x))) }
+private func clamp01(_ x: CGFloat) -> CGFloat { min(1, max(0, x)) }
+
+/// [c]에서 [ang] 방향으로 [d]만큼 간 점
+private func polar(_ c: CGPoint, _ ang: CGFloat, _ d: CGFloat) -> CGPoint {
+    CGPoint(x: c.x + fcos(ang) * d, y: c.y + fsin(ang) * d)
+}
+
+private func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
+    Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+}
+
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /// 터질 때·날아갈 때 흩뿌리는 모양
@@ -12,6 +28,9 @@ struct FxTheme {
     let shapes: [FxShape]
     let emoji: String
     var main: Color { colors[0] }
+
+    func color(_ k: Int) -> Color { colors[k % colors.count] }
+    func shape(_ k: Int) -> FxShape { shapes[k % shapes.count] }
 
     static func of(_ side: Side, _ skin: Animal?) -> FxTheme {
         switch skin ?? (side == .cat ? nil : .hamster) {
@@ -37,16 +56,32 @@ struct FxTheme {
     }
 }
 
-private func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
-    Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+/// 눈꽃 모양 선
+private func snowPath(_ r: CGFloat) -> Path {
+    var p = Path()
+    for k in 0..<3 {
+        let a: CGFloat = CGFloat(k) * .pi / 3
+        let d = CGPoint(x: fcos(a) * r, y: fsin(a) * r)
+        p.move(to: CGPoint(x: -d.x, y: -d.y))
+        p.addLine(to: d)
+        for s: CGFloat in [-1, 1] {
+            let tip = CGPoint(x: d.x * 0.6 * s, y: d.y * 0.6 * s)
+            for da: CGFloat in [0.7, -0.7] {
+                let b = r * 0.32 * s
+                p.move(to: tip)
+                p.addLine(to: CGPoint(x: tip.x + fcos(a + da) * b, y: tip.y + fsin(a + da) * b))
+            }
+        }
+    }
+    return p
 }
 
-/// [shape]을 [c]에 반지름 [r]로 그림
-func drawFx(_ ctx: inout GraphicsContext, _ shape: FxShape, _ c: CGPoint, _ r: CGFloat, _ color: Color, rot: Double = 0) {
+/// [shape]을 [c]에 반지름 [r]로 그림 ([rot]는 도 단위 회전)
+func drawFx(_ ctx: inout GraphicsContext, _ shape: FxShape, _ c: CGPoint, _ r: CGFloat, _ color: Color, rot: CGFloat = 0) {
     guard r > 0.3 else { return }
     var g = ctx
     g.translateBy(x: c.x, y: c.y)
-    g.rotate(by: .degrees(rot))
+    g.rotate(by: .degrees(Double(rot)))
     let o = CGPoint.zero
     let shine = Color.white.opacity(0.75)
     switch shape {
@@ -58,40 +93,31 @@ func drawFx(_ ctx: inout GraphicsContext, _ shape: FxShape, _ c: CGPoint, _ r: C
         g.fill(circle(CGPoint(x: -r * 0.45, y: -r * 0.35), r * 0.2), with: .color(shine))
     case .paw:
         g.fill(Path(ellipseIn: CGRect(x: -r * 0.55, y: -r * 0.05, width: r * 1.1, height: r * 0.9)), with: .color(color))
-        for (dx, dy) in [(-0.62, -0.3), (-0.22, -0.72), (0.22, -0.72), (0.62, -0.3)] {
-            g.fill(circle(CGPoint(x: dx * r, y: dy * r), r * 0.26), with: .color(color))
+        let toes: [CGPoint] = [CGPoint(x: -0.62, y: -0.3), CGPoint(x: -0.22, y: -0.72), CGPoint(x: 0.22, y: -0.72), CGPoint(x: 0.62, y: -0.3)]
+        for t in toes {
+            g.fill(circle(CGPoint(x: t.x * r, y: t.y * r), r * 0.26), with: .color(color))
         }
     case .snow:
-        var p = Path()
-        for k in 0..<3 {
-            let a = Double(k) * .pi / 3
-            let d = CGPoint(x: cos(a) * r, y: sin(a) * r)
-            p.move(to: CGPoint(x: -d.x, y: -d.y)); p.addLine(to: d)
-            for s in [-1.0, 1.0] {
-                let tip = CGPoint(x: d.x * 0.6 * s, y: d.y * 0.6 * s)
-                for da in [0.7, -0.7] {
-                    p.move(to: tip)
-                    p.addLine(to: CGPoint(x: tip.x + cos(a + da) * r * 0.32 * s, y: tip.y + sin(a + da) * r * 0.32 * s))
-                }
-            }
-        }
-        g.stroke(p, with: .color(color), style: StrokeStyle(lineWidth: r * 0.2, lineCap: .round))
+        g.stroke(snowPath(r), with: .color(color), style: StrokeStyle(lineWidth: r * 0.2, lineCap: .round))
     case .coin:
         g.fill(circle(o, r), with: .color(color))
         g.stroke(circle(o, r * 0.72), with: .color(Color(hex: 0xE08A00)), lineWidth: r * 0.16)
         g.fill(circle(CGPoint(x: -r * 0.35, y: -r * 0.35), r * 0.22), with: .color(shine))
     case .bone:
         g.fill(Path(CGRect(x: -r * 0.7, y: -r * 0.2, width: r * 1.4, height: r * 0.4)), with: .color(color))
-        for sx in [-0.75, 0.75] { for sy in [-0.22, 0.22] {
-            g.fill(circle(CGPoint(x: sx * r, y: sy * r), r * 0.27), with: .color(color))
-        } }
+        let ends: [CGPoint] = [CGPoint(x: -0.75, y: -0.22), CGPoint(x: -0.75, y: 0.22), CGPoint(x: 0.75, y: -0.22), CGPoint(x: 0.75, y: 0.22)]
+        for e in ends {
+            g.fill(circle(CGPoint(x: e.x * r, y: e.y * r), r * 0.27), with: .color(color))
+        }
     case .leaf:
         var p = Path()
         p.move(to: CGPoint(x: 0, y: -r))
         p.addQuadCurve(to: CGPoint(x: 0, y: r), control: CGPoint(x: r * 0.95, y: 0))
         p.addQuadCurve(to: CGPoint(x: 0, y: -r), control: CGPoint(x: -r * 0.95, y: 0))
         g.fill(p, with: .color(color))
-        var vein = Path(); vein.move(to: CGPoint(x: 0, y: -r * 0.8)); vein.addLine(to: CGPoint(x: 0, y: r * 0.8))
+        var vein = Path()
+        vein.move(to: CGPoint(x: 0, y: -r * 0.8))
+        vein.addLine(to: CGPoint(x: 0, y: r * 0.8))
         g.stroke(vein, with: .color(.white.opacity(0.6)), lineWidth: r * 0.1)
     case .cloud:
         var p = circle(CGPoint(x: -r * 0.45, y: r * 0.12), r * 0.5)
@@ -100,71 +126,77 @@ func drawFx(_ ctx: inout GraphicsContext, _ shape: FxShape, _ c: CGPoint, _ r: C
         p.addPath(Path(roundedRect: CGRect(x: -r * 0.9, y: 0, width: r * 1.8, height: r * 0.6), cornerRadius: r * 0.3))
         g.fill(p, with: .color(color))
     case .moon:
+        let bite = circle(CGPoint(x: r * 0.45, y: -r * 0.25), r * 0.85)
         g.drawLayer { l in
-            l.clip(to: circle(CGPoint(x: r * 0.45, y: -r * 0.25), r * 0.85), options: .inverse)
+            l.clip(to: bite, options: .inverse)
             l.fill(circle(o, r), with: .color(color))
         }
     case .seed:
         g.fill(Path(ellipseIn: CGRect(x: -r * 0.45, y: -r, width: r * 0.9, height: r * 2)), with: .color(color))
-        var line = Path(); line.move(to: CGPoint(x: 0, y: -r * 0.7)); line.addLine(to: CGPoint(x: 0, y: r * 0.7))
+        var line = Path()
+        line.move(to: CGPoint(x: 0, y: -r * 0.7))
+        line.addLine(to: CGPoint(x: 0, y: r * 0.7))
         g.stroke(line, with: .color(.white.opacity(0.7)), style: StrokeStyle(lineWidth: r * 0.14, lineCap: .round))
     }
 }
 
 /// 파티클 하나의 무작위 값 (같은 seed면 같은 모양)
-struct FxPart { let a: Double; let s: Double; let spin: Double; let k: Int }
+struct FxPart { let a: CGFloat; let s: CGFloat; let spin: CGFloat; let k: Int }
 
 func fxParts(_ n: Int, seed: UInt64) -> [FxPart] {
     var g = SeededRandom(seed: seed)
-    return (0..<n).map { _ in FxPart(a: Double(g.next()), s: Double(g.next()), spin: Double(g.next()) * 2 - 1, k: Int(g.next() * 1000)) }
+    var out: [FxPart] = []
+    for _ in 0..<n {
+        let a = g.next(), s = g.next(), spin = g.next() * 2 - 1, k = Int(g.next() * 1000)
+        out.append(FxPart(a: a, s: s, spin: spin, k: k))
+    }
+    return out
 }
 
 /// 화려한 폭발: 섬광 + 빛줄기 + 충격파 2겹 + 캐릭터 모양 파편 + 반짝이 가루. [p]는 0 → 1.
-func drawBurst(_ ctx: inout GraphicsContext, _ c: CGPoint, _ radius: CGFloat, _ p: Double, _ theme: FxTheme, _ ps: [FxPart], rays: Int = 12) {
-    let fade = 1 - p
+func drawBurst(_ ctx: inout GraphicsContext, _ c: CGPoint, _ radius: CGFloat, _ p: CGFloat, _ theme: FxTheme, _ ps: [FxPart], rays: Int = 12) {
+    let fade: CGFloat = 1 - p
     // 섬광
-    let fr = radius * (0.5 + p * 0.9)
-    ctx.fill(circle(c, fr), with: .radialGradient(
-        Gradient(colors: [.white.opacity(fade * fade * 0.95), theme.main.opacity(fade * fade * 0.5), .clear]),
-        center: c, startRadius: 0, endRadius: fr))
+    let fr: CGFloat = radius * (0.5 + p * 0.9)
+    let flash = Gradient(colors: [.white.opacity(Double(fade * fade * 0.95)), theme.main.opacity(Double(fade * fade * 0.5)), .clear])
+    ctx.fill(circle(c, fr), with: .radialGradient(flash, center: c, startRadius: 0, endRadius: fr))
     // 빛줄기
     if p < 0.6 {
-        let rp = p / 0.6
+        let rp: CGFloat = p / 0.6
+        let width: CGFloat = (1 - rp) * radius * 0.09
         for i in 0..<rays {
-            let ang = Double(i) * 2 * .pi / Double(rays) + p * 0.6
-            let d = CGPoint(x: cos(ang), y: sin(ang))
+            let ang: CGFloat = CGFloat(i) * tau / CGFloat(rays) + p * 0.6
             var ray = Path()
-            ray.move(to: CGPoint(x: c.x + d.x * radius * (0.2 + rp * 0.5), y: c.y + d.y * radius * (0.2 + rp * 0.5)))
-            ray.addLine(to: CGPoint(x: c.x + d.x * radius * (0.6 + rp * 1.1), y: c.y + d.y * radius * (0.6 + rp * 1.1)))
-            ctx.stroke(ray, with: .color(theme.colors[i % theme.colors.count].opacity((1 - rp) * 0.9)),
-                       style: StrokeStyle(lineWidth: (1 - rp) * radius * 0.09, lineCap: .round))
+            ray.move(to: polar(c, ang, radius * (0.2 + rp * 0.5)))
+            ray.addLine(to: polar(c, ang, radius * (0.6 + rp * 1.1)))
+            ctx.stroke(ray, with: .color(theme.color(i).opacity(Double((1 - rp) * 0.9))),
+                       style: StrokeStyle(lineWidth: width, lineCap: .round))
         }
     }
     // 충격파 2겹
-    ctx.stroke(circle(c, radius * (0.5 + p * 1.0)), with: .color(theme.main.opacity(fade * 0.85)), lineWidth: fade * radius * 0.06)
-    let p2 = min(1, max(0, (p - 0.12) / 0.88))
+    ctx.stroke(circle(c, radius * (0.5 + p)), with: .color(theme.main.opacity(Double(fade * 0.85))), lineWidth: fade * radius * 0.06)
+    let p2: CGFloat = clamp01((p - 0.12) / 0.88)
     if p2 > 0 {
-        ctx.stroke(circle(c, radius * (0.4 + p2 * 1.4)), with: .color(.white.opacity((1 - p2) * 0.9)), lineWidth: (1 - p2) * radius * 0.04)
+        ctx.stroke(circle(c, radius * (0.4 + p2 * 1.4)), with: .color(.white.opacity(Double((1 - p2) * 0.9))), lineWidth: (1 - p2) * radius * 0.04)
     }
     // 파편 (캐릭터 모양)
-    let ease = 1 - (1 - p) * (1 - p)
+    let ease: CGFloat = 1 - fade * fade
+    let n = CGFloat(ps.count)
     for (i, q) in ps.enumerated() {
-        let ang = (Double(i) / Double(ps.count) + q.a * 0.08) * 2 * .pi
-        let dist = radius * (0.25 + ease * (0.9 + q.s * 0.9))
-        let pos = CGPoint(x: c.x + cos(ang) * dist, y: c.y + sin(ang) * dist + p * p * radius * 0.5)
-        let color = theme.colors[q.k % theme.colors.count]
-        let shape = theme.shapes[q.k % theme.shapes.count]
-        let sz = radius * (0.06 + q.s * 0.06) * (1 - p * 0.6)
-        drawFx(&ctx, shape, pos, sz, color.opacity(1 - p * p), rot: q.spin * 360 * p)
+        let ang: CGFloat = (CGFloat(i) / n + q.a * 0.08) * tau
+        let dist: CGFloat = radius * (0.25 + ease * (0.9 + q.s * 0.9))
+        var pos = polar(c, ang, dist)
+        pos.y += p * p * radius * 0.5
+        let sz: CGFloat = radius * (0.06 + q.s * 0.06) * (1 - p * 0.6)
+        drawFx(&ctx, theme.shape(q.k), pos, sz, theme.color(q.k).opacity(Double(1 - p * p)), rot: q.spin * 360 * p)
     }
     // 반짝이 가루 (깜빡임)
     for i in 0..<ps.count {
         let q = ps[(i * 7) % ps.count]
-        let ang = (q.a + Double(i) * 0.13) * 2 * .pi
-        let dist = radius * (0.3 + p * (0.5 + q.s * 1.3))
-        let tw = 0.5 + 0.5 * sin(p * 30 + Double(i))
-        ctx.fill(circle(CGPoint(x: c.x + cos(ang) * dist, y: c.y + sin(ang) * dist), radius * 0.025 * (1 + q.s)),
-                 with: .color(.white.opacity(fade * tw)))
+        let ang: CGFloat = (q.a + CGFloat(i) * 0.13) * tau
+        let dist: CGFloat = radius * (0.3 + p * (0.5 + q.s * 1.3))
+        let tw: CGFloat = 0.5 + 0.5 * fsin(p * 30 + CGFloat(i))
+        ctx.fill(circle(polar(c, ang, dist), radius * 0.025 * (1 + q.s)), with: .color(.white.opacity(Double(fade * tw))))
     }
 }
 
@@ -176,14 +208,23 @@ struct PopBurst: View {
     let skin: Animal?
     let p: Double
 
+    private static let parts = fxParts(30, seed: 11)
+
+    private var textScale: CGFloat {
+        let q = CGFloat(p)
+        return q < 0.25 ? 0.4 + q / 0.25 * 0.9 : 1.3 - (q - 0.25) * 0.3
+    }
+
     var body: some View {
         let theme = FxTheme.of(side, skin)
-        let ps = fxParts(30, seed: 11)
-        ZStack {
+        let q = CGFloat(p)
+        let fade: Double = min(1, (1 - p) * 1.4)
+        let angle: Double = -8 + p * 10
+        return ZStack {
             // 방울 밖으로도 튀어나가도록 그리는 영역을 넓힘
             Canvas { ctx, sz in
-                let r = (min(sz.width, sz.height) - 120) / 2
-                drawBurst(&ctx, CGPoint(x: sz.width / 2, y: sz.height / 2), r * 1.15, p, theme, ps, rays: 14)
+                let r: CGFloat = (min(sz.width, sz.height) - 120) / 2
+                drawBurst(&ctx, CGPoint(x: sz.width / 2, y: sz.height / 2), r * 1.15, q, theme, Self.parts, rays: 14)
             }
             .padding(-60)
             .allowsHitTesting(false)
@@ -192,9 +233,9 @@ struct PopBurst: View {
                 .foregroundColor(.white)
                 .shadow(color: theme.main, radius: 8)
                 .shadow(color: theme.main, radius: 3)
-                .scaleEffect(p < 0.25 ? 0.4 + p / 0.25 * 0.9 : 1.3 - (p - 0.25) * 0.3)
-                .rotationEffect(.degrees(-8 + p * 10))
-                .opacity(min(1, (1 - p) * 1.4))
+                .scaleEffect(textScale)
+                .rotationEffect(.degrees(angle))
+                .opacity(fade)
         }
     }
 }
@@ -205,28 +246,31 @@ struct SelectedSparkles: View {
     let skin: Animal?
     let time: Double
 
-    var body: some View {
-        let theme = FxTheme.of(side, skin)
-        let spin = time.truncatingRemainder(dividingBy: 2.6) / 2.6
-        Canvas { ctx, sz in
-            let r = (min(sz.width, sz.height) - 60) / 2
-            let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
-            ctx.fill(circle(c, r * 1.3), with: .radialGradient(
-                Gradient(colors: [.clear, UiColor.gold.opacity(0.45), .clear]), center: c, startRadius: 0, endRadius: r * 1.3))
-            for i in 0..<8 {
-                let ang = (spin + Double(i) / 8) * 2 * .pi
-                let rr = r * (1.08 + 0.06 * sin(spin * 4 * .pi + Double(i)))
-                let pos = CGPoint(x: c.x + cos(ang) * rr, y: c.y + sin(ang) * rr)
-                let tw = 0.55 + 0.45 * sin(spin * 6 * .pi + Double(i) * 1.7)
-                if i % 2 == 0 {
-                    drawFx(&ctx, theme.shapes[i / 2 % theme.shapes.count], pos, r * 0.13 * tw, theme.colors[i / 2 % theme.colors.count], rot: spin * 360)
-                } else {
-                    ctx.fill(sparklePath(pos, r * 0.16 * tw), with: .color(UiColor.gold))
-                }
+    private static func draw(_ ctx: inout GraphicsContext, _ sz: CGSize, _ theme: FxTheme, _ spin: CGFloat) {
+        let r: CGFloat = (min(sz.width, sz.height) - 60) / 2
+        let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
+        let glow = Gradient(colors: [.clear, UiColor.gold.opacity(0.45), .clear])
+        ctx.fill(circle(c, r * 1.3), with: .radialGradient(glow, center: c, startRadius: 0, endRadius: r * 1.3))
+        for i in 0..<8 {
+            let fi = CGFloat(i)
+            let ang: CGFloat = (spin + fi / 8) * tau
+            let rr: CGFloat = r * (1.08 + 0.06 * fsin(spin * 2 * tau + fi))
+            let pos = polar(c, ang, rr)
+            let tw: CGFloat = 0.55 + 0.45 * fsin(spin * 3 * tau + fi * 1.7)
+            if i % 2 == 0 {
+                drawFx(&ctx, theme.shape(i / 2), pos, r * 0.13 * tw, theme.color(i / 2), rot: spin * 360)
+            } else {
+                ctx.fill(sparklePath(pos, r * 0.16 * tw), with: .color(UiColor.gold))
             }
         }
-        .padding(-30)
-        .allowsHitTesting(false)
+    }
+
+    var body: some View {
+        let theme = FxTheme.of(side, skin)
+        let spin = CGFloat(time.truncatingRemainder(dividingBy: 2.6) / 2.6)
+        return Canvas { ctx, sz in Self.draw(&ctx, sz, theme, spin) }
+            .padding(-30)
+            .allowsHitTesting(false)
     }
 }
 
@@ -248,92 +292,124 @@ struct FlyingShot: Identifiable, Equatable {
 
     static let flySec = 0.52
     static let impactSec = 0.75
+
+    /// 날아가는 곡선의 조절점 (옆으로 휘어서 날아감)
+    var ctrl: CGPoint {
+        let dx: CGFloat = to.x - from.x, dy: CGFloat = to.y - from.y
+        let k: CGFloat = from.x <= to.x ? 0.28 : -0.28
+        return CGPoint(x: (from.x + to.x) / 2 - dy * k, y: (from.y + to.y) / 2 + dx * k)
+    }
+
+    /// 곡선 방향에 수직인 단위 벡터 (꼬리 흔들림용)
+    var perp: CGPoint {
+        let dx: CGFloat = to.x - from.x, dy: CGFloat = to.y - from.y
+        let len: CGFloat = max(1, (dx * dx + dy * dy).squareRoot())
+        return CGPoint(x: -dy / len, y: dx / len)
+    }
+
+    func at(_ t: CGFloat) -> CGPoint {
+        let u: CGFloat = 1 - t
+        let a: CGFloat = u * u, b: CGFloat = 2 * u * t, c: CGFloat = t * t
+        let cp = ctrl
+        return CGPoint(x: from.x * a + cp.x * b + to.x * c, y: from.y * a + cp.y * b + to.y * c)
+    }
+
+    var orb: CGFloat { CGFloat(34 + power * 4) }
 }
 
 /// 날아가는 방울 하나: 반짝이 꼬리를 남기며 휘어서 날아가 부딪힘
 struct ShotFx: View {
     let shot: FlyingShot
 
-    private func at(_ time: Double, _ ctrl: CGPoint) -> CGPoint {
-        let t = CGFloat(time)
-        let u: CGFloat = 1 - t
-        let a: CGFloat = u * u, b: CGFloat = 2 * u * t, c: CGFloat = t * t
-        let x: CGFloat = shot.from.x * a + ctrl.x * b + shot.to.x * c
-        let y: CGFloat = shot.from.y * a + ctrl.y * b + shot.to.y * c
-        return CGPoint(x: x, y: y)
+    private static let trail = fxParts(22, seed: 5)
+
+    /// 살짝 뒤로 당겼다가 쓩
+    private static func flyEase(_ x: CGFloat) -> CGFloat {
+        let s: CGFloat = 1.2
+        let back: CGFloat = x * x * ((s + 1) * x - s)
+        return back * 0.5 + x * 0.5
     }
 
-    /// 살짝 뒤로 당겼다가 쓩 (back-in 느낌)
-    private func flyEase(_ x: Double) -> Double {
-        let s = 1.2
-        return x * x * ((s + 1) * x - s) * 0.5 + x * 0.5
+    private static func drawFlying(_ ctx: inout GraphicsContext, _ shot: FlyingShot, _ theme: FxTheme, _ f: CGFloat) {
+        let orb = shot.orb
+        let perp = shot.perp
+        let count = CGFloat(trail.count)
+        for (k, q) in trail.enumerated() {
+            let tk: CGFloat = f - CGFloat(k + 1) * 0.028
+            if tk <= 0 { continue }
+            let fade: CGFloat = 1 - CGFloat(k) / count
+            let base = shot.at(tk)
+            let w: CGFloat = fsin(tk * 22 + q.a * 6) * orb * 0.35 * q.s
+            let pos = CGPoint(x: base.x + perp.x * w, y: base.y + perp.y * w)
+            ctx.fill(circle(base, orb * 0.5 * fade), with: .color(theme.main.opacity(Double(fade * 0.25))))
+            if k % 2 == 0 {
+                drawFx(&ctx, theme.shape(q.k), pos, orb * 0.22 * fade, theme.color(q.k).opacity(Double(fade)), rot: q.spin * 300 * f)
+            } else {
+                ctx.fill(sparklePath(pos, orb * 0.2 * fade), with: .color(.white.opacity(Double(fade))))
+            }
+        }
+        // 빛나는 방울
+        let head = shot.at(f)
+        let glow = Gradient(colors: [.white, theme.main.opacity(0.7), theme.main.opacity(0)])
+        ctx.fill(circle(head, orb * 1.1), with: .radialGradient(glow, center: head, startRadius: 0, endRadius: orb * 1.1))
+        ctx.stroke(circle(head, orb * 0.62), with: .color(.white.opacity(0.95)), lineWidth: orb * 0.07)
+        ctx.fill(circle(CGPoint(x: head.x - orb * 0.28, y: head.y - orb * 0.3), orb * 0.12), with: .color(.white.opacity(0.9)))
+    }
+
+    private static func drawImpact(_ ctx: inout GraphicsContext, _ shot: FlyingShot, _ theme: FxTheme, _ h: CGFloat) {
+        let ps = fxParts(14 + shot.power * 3 + (shot.boom ? 8 : 0), seed: UInt64(shot.power * 7 + 3))
+        let radius: CGFloat = shot.orb * (1.5 + CGFloat(shot.power) * 0.08) * (shot.boom ? 1.2 : 1)
+        drawBurst(&ctx, shot.to, radius, h, theme, ps, rays: shot.boom ? 18 : 12)
+    }
+
+    @ViewBuilder
+    private func scene(_ el: Double) -> some View {
+        let theme = FxTheme.of(shot.side, shot.skin)
+        let flying = el < FlyingShot.flySec
+        let f: CGFloat = clamp01(Self.flyEase(clamp01(CGFloat(el / FlyingShot.flySec))))
+        let h: CGFloat = clamp01(CGFloat((el - FlyingShot.flySec) / FlyingShot.impactSec))
+        ZStack(alignment: .topLeading) {
+            Canvas { ctx, _ in
+                if flying {
+                    Self.drawFlying(&ctx, shot, theme, f)
+                } else {
+                    Self.drawImpact(&ctx, shot, theme, h)
+                }
+            }
+            if flying {
+                critter(f)
+            } else {
+                plus(theme, h)
+            }
+        }
+    }
+
+    private func critter(_ f: CGFloat) -> some View {
+        let spin: Double = Double(f) * 360 * (shot.attack ? 1 : -1)
+        return Critter(side: shot.side, skin: shot.skin, happy: true)
+            .frame(width: shot.orb, height: shot.orb)
+            .scaleEffect(0.8 + f * 0.3)
+            .rotationEffect(.degrees(spin))
+            .position(shot.at(f))
+    }
+
+    /// 부딪힌 자리에 떠오르는 +N
+    private func plus(_ theme: FxTheme, _ h: CGFloat) -> some View {
+        let scale: CGFloat = h < 0.2 ? 0.5 + h * 4 : 1.3 - (h - 0.2) * 0.35
+        let alpha: Double = h < 0.7 ? 1 : Double((1 - h) / 0.3)
+        return Text("+\(shot.power)")
+            .font(.system(size: 28, weight: .black))
+            .foregroundColor(.white)
+            .shadow(color: theme.main, radius: 8)
+            .shadow(color: theme.main, radius: 3)
+            .scaleEffect(scale)
+            .opacity(alpha)
+            .position(x: shot.to.x, y: shot.to.y - 36 - h * 48)
     }
 
     var body: some View {
-        let theme = FxTheme.of(shot.side, shot.skin)
-        let ps = fxParts(14 + shot.power * 3 + (shot.boom ? 8 : 0), seed: UInt64(shot.power * 7 + 3))
-        let trail = fxParts(22, seed: 5)
-        let dx = shot.to.x - shot.from.x, dy = shot.to.y - shot.from.y
-        let len = max(1, sqrt(dx * dx + dy * dy))
-        let perp = CGPoint(x: -dy / len, y: dx / len)
-        let bend: CGFloat = shot.from.x <= shot.to.x ? 1 : -1
-        let ctrl = CGPoint(x: (shot.from.x + shot.to.x) / 2 + perp.x * len * 0.28 * bend,
-                           y: (shot.from.y + shot.to.y) / 2 + perp.y * len * 0.28 * bend)
-        let orb = CGFloat(34 + shot.power * 4)
-
         TimelineView(.animation) { tl in
-            let el = tl.date.timeIntervalSince(shot.start)
-            let flying = el < FlyingShot.flySec
-            let f = min(1, max(0, flyEase(min(1, el / FlyingShot.flySec))))
-            let h = min(1, max(0, (el - FlyingShot.flySec) / FlyingShot.impactSec))
-            let head = at(f, ctrl)
-            ZStack(alignment: .topLeading) {
-                Canvas { ctx, _ in
-                    if flying {
-                        // 꼬리
-                        for (k, q) in trail.enumerated() {
-                            let tk = f - Double(k + 1) * 0.028
-                            if tk <= 0 { continue }
-                            let fade = 1 - Double(k) / Double(trail.count)
-                            let base = at(tk, ctrl)
-                            let w: CGFloat = CGFloat(sin(tk * 22 + q.a * 6) * 0.35 * q.s) * orb
-                            let pos = CGPoint(x: base.x + perp.x * w, y: base.y + perp.y * w)
-                            ctx.fill(circle(base, orb * 0.5 * fade), with: .color(theme.main.opacity(fade * 0.25)))
-                            if k % 2 == 0 {
-                                drawFx(&ctx, theme.shapes[q.k % theme.shapes.count], pos, orb * 0.22 * fade,
-                                       theme.colors[q.k % theme.colors.count].opacity(fade), rot: q.spin * 300 * f)
-                            } else {
-                                ctx.fill(sparklePath(pos, orb * 0.2 * fade), with: .color(.white.opacity(fade)))
-                            }
-                        }
-                        // 빛나는 방울
-                        ctx.fill(circle(head, orb * 1.1), with: .radialGradient(
-                            Gradient(colors: [.white, theme.main.opacity(0.7), theme.main.opacity(0)]),
-                            center: head, startRadius: 0, endRadius: orb * 1.1))
-                        ctx.stroke(circle(head, orb * 0.62), with: .color(.white.opacity(0.95)), lineWidth: orb * 0.07)
-                        ctx.fill(circle(CGPoint(x: head.x - orb * 0.28, y: head.y - orb * 0.3), orb * 0.12), with: .color(.white.opacity(0.9)))
-                    } else {
-                        drawBurst(&ctx, shot.to, orb * (1.5 + CGFloat(shot.power) * 0.08) * (shot.boom ? 1.2 : 1), h, theme, ps,
-                                  rays: shot.boom ? 18 : 12)
-                    }
-                }
-                if flying {
-                    Critter(side: shot.side, skin: shot.skin, happy: true)
-                        .frame(width: orb, height: orb)
-                        .scaleEffect(0.8 + f * 0.3)
-                        .rotationEffect(.degrees(f * 360 * (shot.attack ? 1 : -1)))
-                        .position(head)
-                } else {
-                    Text("+\(shot.power)")
-                        .font(.system(size: 28, weight: .black))
-                        .foregroundColor(.white)
-                        .shadow(color: theme.main, radius: 8)
-                        .shadow(color: theme.main, radius: 3)
-                        .scaleEffect(h < 0.2 ? 0.5 + h * 4 : 1.3 - (h - 0.2) * 0.35)
-                        .opacity(h < 0.7 ? 1 : (1 - h) / 0.3)
-                        .position(x: shot.to.x, y: shot.to.y - 36 - h * 48)
-                }
-            }
+            scene(tl.date.timeIntervalSince(shot.start))
         }
         .allowsHitTesting(false)
     }
@@ -344,10 +420,9 @@ struct ShakeEffect: GeometryEffect {
     var amount: CGFloat = 7
     var animatableData: CGFloat
     func effectValue(size: CGSize) -> ProjectionTransform {
-        let frac = animatableData - floor(animatableData)
-        let k = 1 - frac
-        let x = sin(animatableData * .pi * 2 * 4) * amount * k
-        let y = cos(animatableData * .pi * 2 * 3) * amount * 0.5 * k
+        let k: CGFloat = 1 - (animatableData - animatableData.rounded(.down))
+        let x: CGFloat = fsin(animatableData * tau * 4) * amount * k
+        let y: CGFloat = fcos(animatableData * tau * 3) * amount * 0.5 * k
         return ProjectionTransform(CGAffineTransform(translationX: x, y: y))
     }
 }
@@ -363,64 +438,10 @@ struct CheckinCelebration: View {
     @State private var startedAt = Date()
     @State private var pop = false
 
-    private static let confetti = fxParts(70, seed: 21)
-    private static let burstParts = fxParts(34, seed: 31)
-    private let confettiColors = [UiColor.primary, UiColor.gold, UiColor.accent, Color(hex: 0x5CD6B4), Color(hex: 0x6EC1FF), Color(hex: 0xFF8A65), .white]
-    private let burstTheme = FxTheme(colors: [UiColor.gold, UiColor.primary, .white, UiColor.accent], shapes: [.star, .heart, .coin], emoji: "🎉")
-
     var body: some View {
         TimelineView(.animation) { tl in
-            let el = tl.date.timeIntervalSince(startedAt)
-            let now = tl.date.timeIntervalSinceReferenceDate
-            let stamp = min(1, max(0, (el - 0.38) / 0.32))
-            let stampEase = stamp * stamp
-            let burstP = min(1, max(0, (el - 0.7) / 1.1))
-            let count = min(1, max(0, (el - 0.65) / 0.9))
-            let countEase = 1 - pow(1 - count, 3)
-            ZStack {
-                RadialGradient(colors: [Color(hex: 0x3A1F5C, alpha: 0.8), Color(hex: 0x140B22, alpha: 0.93)], center: .center, startRadius: 0, endRadius: 600)
-                    .ignoresSafeArea()
-                // 회전하는 빛줄기 + 색종이
-                Canvas { ctx, size in
-                    let c = CGPoint(x: size.width / 2, y: size.height * 0.42)
-                    let big = max(size.width, size.height)
-                    let spin = now.truncatingRemainder(dividingBy: 9) / 9
-                    for i in 0..<16 {
-                        let a0 = (spin + Double(i) / 16) * 2 * .pi, a1 = a0 + .pi / 22
-                        var p = Path()
-                        p.move(to: c)
-                        p.addLine(to: CGPoint(x: c.x + cos(a0) * big, y: c.y + sin(a0) * big))
-                        p.addLine(to: CGPoint(x: c.x + cos(a1) * big, y: c.y + sin(a1) * big))
-                        p.closeSubpath()
-                        ctx.fill(p, with: .radialGradient(Gradient(colors: [UiColor.gold.opacity(0.32 * (pop ? 1 : 0)), .clear]),
-                                                          center: c, startRadius: 0, endRadius: big * 0.6))
-                    }
-                    let fall = now.truncatingRemainder(dividingBy: 3.6) / 3.6
-                    for (i, q) in Self.confetti.enumerated() {
-                        let y = (fall + q.a).truncatingRemainder(dividingBy: 1) * (size.height + 80) - 40
-                        let x = q.s * size.width + sin(fall * 2 * .pi * (1 + q.spin) + Double(i)) * 30
-                        let color = confettiColors[q.k % confettiColors.count]
-                        let sz = 5 + q.s * 4
-                        switch q.k % 3 {
-                        case 0:
-                            var g = ctx
-                            g.translateBy(x: x, y: y)
-                            g.rotate(by: .degrees(fall * 720 * q.spin + Double(q.k)))
-                            g.fill(Path(CGRect(x: -sz, y: -sz * 0.45, width: sz * 2, height: sz * 0.9)), with: .color(color))
-                        case 1:
-                            ctx.fill(circle(CGPoint(x: x, y: y), sz * 0.6), with: .color(color))
-                        default:
-                            ctx.fill(sparklePath(CGPoint(x: x, y: y), sz), with: .color(color))
-                        }
-                    }
-                }
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-
-                card(now: now, stamp: stampEase, burstP: burstP, countEase: countEase)
-                    .scaleEffect(pop ? 1 : 0.6)
-                    .opacity(pop ? 1 : 0)
-            }
+            CheckinFrame(day: day, coins: coins, potion: potion, onClose: onClose,
+                         el: tl.date.timeIntervalSince(startedAt), now: tl.date.timeIntervalSinceReferenceDate, pop: pop)
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onClose)
@@ -429,101 +450,100 @@ struct CheckinCelebration: View {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.5)) { pop = true }
         }
     }
+}
 
-    private func card(now: Double, stamp: Double, burstP: Double, countEase: Double) -> some View {
-        let next = day % 7 + 1
-        let nextCoins = OnlineService.checkinCoins[next - 1]
-        return VStack(spacing: 0) {
-            // 도장 쾅!
-            ZStack {
-                Canvas { ctx, sz in
-                    let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
-                    if burstP > 0 && burstP < 1 {
-                        drawBurst(&ctx, c, min(sz.width, sz.height) / 2 * 0.75, burstP, burstTheme, Self.burstParts, rays: 16)
-                    }
-                    let tw0 = now.truncatingRemainder(dividingBy: 1.6) / 1.6
-                    for i in 0..<6 {
-                        let ang = (tw0 + Double(i) / 6) * 2 * .pi
-                        let rr = min(sz.width, sz.height) * 0.36
-                        let tw = 0.5 + 0.5 * sin(tw0 * 4 * .pi + Double(i) * 1.3)
-                        ctx.fill(sparklePath(CGPoint(x: c.x + cos(ang) * rr, y: c.y + sin(ang) * rr), 9 * tw),
-                                 with: .color([UiColor.gold, UiColor.primary, UiColor.accent][i % 3]))
-                    }
-                }
-                .frame(width: 220, height: 220)
+/// 출석 팝업의 한 장면 (el: 시작 후 지난 초)
+private struct CheckinFrame: View {
+    let day: Int
+    let coins: Int
+    let potion: Bool
+    let onClose: () -> Void
+    let el: Double
+    let now: Double
+    let pop: Bool
+
+    private static let confetti = fxParts(70, seed: 21)
+    private static let burstParts = fxParts(34, seed: 31)
+    private static let confettiColors: [Color] = [UiColor.primary, UiColor.gold, UiColor.accent, Color(hex: 0x5CD6B4), Color(hex: 0x6EC1FF), Color(hex: 0xFF8A65), .white]
+    private static let burstTheme = FxTheme(colors: [UiColor.gold, UiColor.primary, .white, UiColor.accent], shapes: [.star, .heart, .coin], emoji: "🎉")
+
+    private var stamp: CGFloat { let s = clamp01(CGFloat((el - 0.38) / 0.32)); return s * s }
+    private var burstP: CGFloat { clamp01(CGFloat((el - 0.7) / 1.1)) }
+    private var countEase: CGFloat { let c = clamp01(CGFloat((el - 0.65) / 0.9)); return 1 - (1 - c) * (1 - c) * (1 - c) }
+
+    /// 회전하는 빛줄기 + 떨어지는 색종이
+    private static func drawBackdrop(_ ctx: inout GraphicsContext, _ size: CGSize, _ now: Double, _ shine: CGFloat) {
+        let c = CGPoint(x: size.width / 2, y: size.height * 0.42)
+        let big: CGFloat = max(size.width, size.height)
+        let spin = CGFloat(now.truncatingRemainder(dividingBy: 9) / 9)
+        let rayGrad = Gradient(colors: [UiColor.gold.opacity(Double(0.32 * shine)), .clear])
+        for i in 0..<16 {
+            let a0: CGFloat = (spin + CGFloat(i) / 16) * tau
+            var p = Path()
+            p.move(to: c)
+            p.addLine(to: polar(c, a0, big))
+            p.addLine(to: polar(c, a0 + .pi / 22, big))
+            p.closeSubpath()
+            ctx.fill(p, with: .radialGradient(rayGrad, center: c, startRadius: 0, endRadius: big * 0.6))
+        }
+        let fall = CGFloat(now.truncatingRemainder(dividingBy: 3.6) / 3.6)
+        for (i, q) in confetti.enumerated() {
+            let yy: CGFloat = (fall + q.a).truncatingRemainder(dividingBy: 1) * (size.height + 80) - 40
+            let xx: CGFloat = q.s * size.width + fsin(fall * tau * (1 + q.spin) + CGFloat(i)) * 30
+            let pt = CGPoint(x: xx, y: yy)
+            let color = confettiColors[q.k % confettiColors.count]
+            let sz: CGFloat = 5 + q.s * 4
+            switch q.k % 3 {
+            case 0:
+                var g = ctx
+                g.translateBy(x: xx, y: yy)
+                g.rotate(by: .degrees(Double(fall * 720 * q.spin) + Double(q.k)))
+                g.fill(Path(CGRect(x: -sz, y: -sz * 0.45, width: sz * 2, height: sz * 0.9)), with: .color(color))
+            case 1:
+                ctx.fill(circle(pt, sz * 0.6), with: .color(color))
+            default:
+                ctx.fill(sparklePath(pt, sz), with: .color(color))
+            }
+        }
+    }
+
+    /// 도장 뒤 폭죽 + 둘레 반짝이
+    private static func drawStampFx(_ ctx: inout GraphicsContext, _ sz: CGSize, _ burstP: CGFloat, _ now: Double) {
+        let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
+        let m: CGFloat = min(sz.width, sz.height)
+        if burstP > 0 && burstP < 1 {
+            drawBurst(&ctx, c, m / 2 * 0.75, burstP, burstTheme, burstParts, rays: 16)
+        }
+        let tw0 = CGFloat(now.truncatingRemainder(dividingBy: 1.6) / 1.6)
+        let colors: [Color] = [UiColor.gold, UiColor.primary, UiColor.accent]
+        for i in 0..<6 {
+            let fi = CGFloat(i)
+            let tw: CGFloat = 0.5 + 0.5 * fsin(tw0 * 2 * tau + fi * 1.3)
+            ctx.fill(sparklePath(polar(c, (tw0 + fi / 6) * tau, m * 0.36), 9 * tw), with: .color(colors[i % 3]))
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            RadialGradient(colors: [Color(hex: 0x3A1F5C, alpha: 0.8), Color(hex: 0x140B22, alpha: 0.93)], center: .center, startRadius: 0, endRadius: 600)
+                .ignoresSafeArea()
+            Canvas { ctx, size in Self.drawBackdrop(&ctx, size, now, pop ? 1 : 0) }
+                .ignoresSafeArea()
                 .allowsHitTesting(false)
-                ZStack {
-                    Circle().fill(RadialGradient(colors: [UiColor.primary, UiColor.primaryDark], center: .center, startRadius: 0, endRadius: 54))
-                    Circle().stroke(.white, lineWidth: 4)
-                    VStack(spacing: 0) {
-                        Text(tr("\(day)일째", "DAY \(day)", zh: "第\(day)天", es: "DÍA \(day)", fr: "JOUR \(day)", de: "TAG \(day)",
-                                pt: "DIA \(day)", ru: "ДЕНЬ \(day)", ja: "\(day)日目"))
-                            .font(.system(size: 20, weight: .black)).foregroundColor(.white)
-                        Text("✔").font(.system(size: 30, weight: .black)).foregroundColor(.white)
-                    }
-                }
-                .frame(width: 108, height: 108)
-                .scaleEffect(2.6 - 1.6 * stamp)
-                .rotationEffect(.degrees(-14 * stamp))
-                .opacity(min(1, stamp * 2))
-            }
-            .frame(width: 130, height: 130)
+            card
+                .scaleEffect(pop ? 1 : 0.6)
+                .opacity(pop ? 1 : 0)
+        }
+    }
 
-            Text(tr("출석 완료!", "Checked in!", zh: "签到成功！", es: "¡Asistencia lista!", fr: "Présence validée !", de: "Eingecheckt!",
-                    pt: "Presença feita!", ru: "Вход отмечен!", ja: "出席完了！"))
-                .font(.system(size: 30, weight: .black))
-                .foregroundStyle(LinearGradient(colors: [UiColor.primaryDark, UiColor.accent], startPoint: .leading, endPoint: .trailing))
-                .shadow(color: UiColor.gold.opacity(0.6), radius: 5, y: 3)
-                .padding(.top, 10)
-
-            // 7일 진행
-            HStack(spacing: 5) {
-                ForEach(1...7, id: \.self) { d in
-                    let done = d <= day, today = d == day
-                    ZStack {
-                        Circle().fill(today ? LinearGradient(colors: [UiColor.gold, Color(hex: 0xFF9F1C)], startPoint: .top, endPoint: .bottom)
-                                      : done ? LinearGradient(colors: [UiColor.primary, UiColor.primaryDark], startPoint: .top, endPoint: .bottom)
-                                      : LinearGradient(colors: [.black.opacity(0.12), .black.opacity(0.09)], startPoint: .top, endPoint: .bottom))
-                        if today { Circle().stroke(.white, lineWidth: 2) }
-                        Text(done ? "✓" : d == 7 ? "💖" : "\(d)")
-                            .font(.system(size: done ? 16 : 12, weight: .black))
-                            .foregroundColor(done ? .white : UiColor.text.opacity(0.5))
-                    }
-                    .frame(width: 32, height: 32)
-                    .scaleEffect(today ? min(stamp * 1.25, 1 + 0.25 * (1 - burstP)) : 1)
-                }
-            }
-            .padding(.top, 14)
-
-            // 보상
-            HStack(spacing: 10) {
-                rewardChip("💰", "+\(Int((Double(coins) * countEase).rounded()))", UiColor.gold)
-                if potion { rewardChip("💖", "+1", Color(hex: 0xFF5C8A)).scaleEffect(0.6 + 0.4 * countEase) }
-            }
-            .padding(.top, 16)
-
-            Text(day == 7
-                 ? tr("🎉 7일 개근! 내일은 1일째부터 다시 시작해요", "🎉 7-day streak! Tomorrow starts again at day 1", zh: "🎉 连续 7 天！明天从第 1 天重新开始",
-                      es: "🎉 ¡7 días seguidos! Mañana vuelves al día 1", fr: "🎉 7 jours d’affilée ! Demain, retour au jour 1",
-                      de: "🎉 7 Tage am Stück! Morgen geht’s bei Tag 1 weiter", pt: "🎉 7 dias seguidos! Amanhã recomeça no dia 1",
-                      ru: "🎉 7 дней подряд! Завтра снова с 1-го дня", ja: "🎉 7日皆勤！明日は1日目から")
-                 : tr("내일도 오면 💰 +\(nextCoins)", "Come back tomorrow for 💰 +\(nextCoins)", zh: "明天再来可得 💰 +\(nextCoins)",
-                      es: "Vuelve mañana por 💰 +\(nextCoins)", fr: "Reviens demain pour 💰 +\(nextCoins)", de: "Morgen wieder: 💰 +\(nextCoins)",
-                      pt: "Volte amanhã por 💰 +\(nextCoins)", ru: "Завтра: 💰 +\(nextCoins)", ja: "明日も来ると 💰 +\(nextCoins)"))
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(UiColor.text.opacity(0.7))
-                .multilineTextAlignment(.center)
-                .padding(.top, 10)
-
-            Button(action: onClose) {
-                Text(tr("좋아요! 💕", "Yay! 💕", zh: "太好了！💕", es: "¡Genial! 💕", fr: "Super ! 💕", de: "Juhu! 💕", pt: "Oba! 💕", ru: "Ура! 💕", ja: "やった！💕"))
-                    .font(.system(size: 18, weight: .black))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Capsule().fill(LinearGradient(colors: [UiColor.primary, UiColor.accent], startPoint: .leading, endPoint: .trailing)))
-            }
-            .padding(.top, 16)
+    private var card: some View {
+        VStack(spacing: 0) {
+            stampView
+            title
+            dayRow.padding(.top, 14)
+            rewards.padding(.top, 16)
+            hint.padding(.top, 10)
+            okButton.padding(.top, 16)
         }
         .padding(.horizontal, 22).padding(.vertical, 24)
         .background(RoundedRectangle(cornerRadius: 30).fill(LinearGradient(colors: [Color(hex: 0xFFF7FB), Color(hex: 0xF1ECFF)], startPoint: .top, endPoint: .bottom)))
@@ -531,6 +551,109 @@ struct CheckinCelebration: View {
         .contentShape(Rectangle())
         .onTapGesture {}
         .padding(28)
+    }
+
+    /// 도장 쾅!
+    private var stampView: some View {
+        let s = stamp
+        let b = burstP
+        let t0 = now
+        let scale: CGFloat = 2.6 - 1.6 * s
+        let angle: Double = Double(-14 * s)
+        let alpha: Double = Double(min(1, s * 2))
+        let dayText = tr("\(day)일째", "DAY \(day)", zh: "第\(day)天", es: "DÍA \(day)", fr: "JOUR \(day)", de: "TAG \(day)",
+                         pt: "DIA \(day)", ru: "ДЕНЬ \(day)", ja: "\(day)日目")
+        return ZStack {
+            Canvas { ctx, sz in Self.drawStampFx(&ctx, sz, b, t0) }
+                .frame(width: 220, height: 220)
+                .allowsHitTesting(false)
+            ZStack {
+                Circle().fill(RadialGradient(colors: [UiColor.primary, UiColor.primaryDark], center: .center, startRadius: 0, endRadius: 54))
+                Circle().stroke(Color.white, lineWidth: 4)
+                VStack(spacing: 0) {
+                    Text(dayText).font(.system(size: 20, weight: .black)).foregroundColor(.white)
+                    Text("✔").font(.system(size: 30, weight: .black)).foregroundColor(.white)
+                }
+            }
+            .frame(width: 108, height: 108)
+            .scaleEffect(scale)
+            .rotationEffect(.degrees(angle))
+            .opacity(alpha)
+        }
+        .frame(width: 130, height: 130)
+    }
+
+    private var title: some View {
+        Text(tr("출석 완료!", "Checked in!", zh: "签到成功！", es: "¡Asistencia lista!", fr: "Présence validée !", de: "Eingecheckt!",
+                pt: "Presença feita!", ru: "Вход отмечен!", ja: "出席完了！"))
+            .font(.system(size: 30, weight: .black))
+            .foregroundStyle(LinearGradient(colors: [UiColor.primaryDark, UiColor.accent], startPoint: .leading, endPoint: .trailing))
+            .shadow(color: UiColor.gold.opacity(0.6), radius: 5, y: 3)
+            .padding(.top, 10)
+    }
+
+    /// 7일 진행 동그라미
+    private var dayRow: some View {
+        let todayScale: CGFloat = min(stamp * 1.25, 1 + 0.25 * (1 - burstP))
+        return HStack(spacing: 5) {
+            ForEach(1...7, id: \.self) { d in
+                dayDot(d).scaleEffect(d == day ? todayScale : 1)
+            }
+        }
+    }
+
+    private func dayDot(_ d: Int) -> some View {
+        let done = d <= day
+        let today = d == day
+        let colors: [Color] = today ? [UiColor.gold, Color(hex: 0xFF9F1C)]
+            : done ? [UiColor.primary, UiColor.primaryDark]
+            : [Color.black.opacity(0.12), Color.black.opacity(0.09)]
+        let label = done ? "✓" : (d == 7 ? "💖" : "\(d)")
+        return ZStack {
+            Circle().fill(LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom))
+            if today { Circle().stroke(Color.white, lineWidth: 2) }
+            Text(label)
+                .font(.system(size: done ? 16 : 12, weight: .black))
+                .foregroundColor(done ? .white : UiColor.text.opacity(0.5))
+        }
+        .frame(width: 32, height: 32)
+    }
+
+    private var rewards: some View {
+        let shown = Int((CGFloat(coins) * countEase).rounded())
+        let potionScale: CGFloat = 0.6 + 0.4 * countEase
+        return HStack(spacing: 10) {
+            rewardChip("💰", "+\(shown)", UiColor.gold)
+            if potion { rewardChip("💖", "+1", Color(hex: 0xFF5C8A)).scaleEffect(potionScale) }
+        }
+    }
+
+    private var hint: some View {
+        let next = day % 7 + 1
+        let nc = OnlineService.checkinCoins[next - 1]
+        let text = day == 7
+            ? tr("🎉 7일 개근! 내일은 1일째부터 다시 시작해요", "🎉 7-day streak! Tomorrow starts again at day 1", zh: "🎉 连续 7 天！明天从第 1 天重新开始",
+                 es: "🎉 ¡7 días seguidos! Mañana vuelves al día 1", fr: "🎉 7 jours d’affilée ! Demain, retour au jour 1",
+                 de: "🎉 7 Tage am Stück! Morgen geht’s bei Tag 1 weiter", pt: "🎉 7 dias seguidos! Amanhã recomeça no dia 1",
+                 ru: "🎉 7 дней подряд! Завтра снова с 1-го дня", ja: "🎉 7日皆勤！明日は1日目から")
+            : tr("내일도 오면 💰 +\(nc)", "Come back tomorrow for 💰 +\(nc)", zh: "明天再来可得 💰 +\(nc)",
+                 es: "Vuelve mañana por 💰 +\(nc)", fr: "Reviens demain pour 💰 +\(nc)", de: "Morgen wieder: 💰 +\(nc)",
+                 pt: "Volte amanhã por 💰 +\(nc)", ru: "Завтра: 💰 +\(nc)", ja: "明日も来ると 💰 +\(nc)")
+        return Text(text)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundColor(UiColor.text.opacity(0.7))
+            .multilineTextAlignment(.center)
+    }
+
+    private var okButton: some View {
+        Button(action: onClose) {
+            Text(tr("좋아요! 💕", "Yay! 💕", zh: "太好了！💕", es: "¡Genial! 💕", fr: "Super ! 💕", de: "Juhu! 💕", pt: "Oba! 💕", ru: "Ура! 💕", ja: "やった！💕"))
+                .font(.system(size: 18, weight: .black))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Capsule().fill(LinearGradient(colors: [UiColor.primary, UiColor.accent], startPoint: .leading, endPoint: .trailing)))
+        }
     }
 
     private func rewardChip(_ icon: String, _ text: String, _ color: Color) -> some View {

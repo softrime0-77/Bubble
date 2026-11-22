@@ -530,4 +530,19 @@ class ScreenshotTest {
         rule.setContent { BubbleApp(vm) }
         shot("rank_down", 1200)
     }
+
+    /** 글자 크기 1.3배 폰에서도 묶음 가격이 잘리지 않는지 */
+    @Test
+    @Config(sdk = [34], qualifiers = "w400dp-h3200dp-xhdpi")
+    fun shopBigFont() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent {
+            val d = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density, 1.3f)) { BubbleApp(vm) }
+        }
+        vm.openShop()
+        shot("shop_bigfont", 900)
+    }
 }

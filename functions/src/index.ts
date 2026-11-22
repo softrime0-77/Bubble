@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost, adminValue } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -1008,6 +1008,66 @@ function isAdmin(req: CallableRequest): boolean {
   return typeof email === "string" && req.auth?.token.email_verified === true &&
     ADMIN_EMAILS.includes(email.toLowerCase());
 }
+
+/**
+ * 🛠 관리자: 닉네임(정확히 같은 것)이나 uid로 사용자 찾기. 빈 칸이면 나 자신.
+ * 관리자 이메일(구글 로그인, 인증됨)만 쓸 수 있음.
+ */
+export const adminFindUser = onCall(async (req) => {
+  const me = requireUser(req);
+  if (!isAdmin(req)) throw err("permission-denied", "관리자만 쓸 수 있어요", "Admins only");
+  const q = typeof (req.data as { query?: unknown } | null)?.query === "string" ? ((req.data as { query: string }).query).trim() : "";
+  const users = db.collection("users");
+  const docs: DocumentSnapshot[] = [];
+  if (!q) {
+    docs.push(await users.doc(me).get());
+  } else {
+    const byId = await users.doc(q).get().catch(() => null);
+    if (byId?.exists) docs.push(byId);
+    const byName = await users.where("name", "==", q).limit(10).get();
+    for (const d of byName.docs) if (!docs.some((x) => x.id === d.id)) docs.push(d);
+  }
+  return {
+    users: docs.filter((d) => d.exists).map((d) => ({
+      uid: d.id,
+      name: (d.get("name") as string | undefined) ?? "",
+      score: (d.get("score") as number | undefined) ?? START_SCORE,
+      coins: (d.get("coins") as number | undefined) ?? 0,
+      potions: (d.get("potions") as number | undefined) ?? 0,
+    })),
+  };
+});
+
+/**
+ * 🛠 관리자: 점수 · 💰 상점 포인트 · 💖 물약 수정 (넣은 값으로 바꿈, 0 ~ 1000만).
+ * 바꾼 기록은 adminLogs에 남김.
+ */
+export const adminSetPoints = onCall(async (req) => {
+  const me = requireUser(req);
+  if (!isAdmin(req)) throw err("permission-denied", "관리자만 쓸 수 있어요", "Admins only");
+  const data = (req.data ?? {}) as { uid?: unknown; score?: unknown; coins?: unknown; potions?: unknown };
+  const target = typeof data.uid === "string" && data.uid ? data.uid : me;
+  const score = adminValue(data.score);
+  const coins = adminValue(data.coins);
+  const potions = adminValue(data.potions);
+  if (score === null || coins === null || potions === null) {
+    throw err("invalid-argument", "0 이상 1000만 이하 숫자만 넣을 수 있어요", "Only whole numbers from 0 to 10,000,000");
+  }
+  const change: Record<string, number> = {};
+  if (score !== undefined) change.score = score;
+  if (coins !== undefined) change.coins = coins;
+  if (potions !== undefined) change.potions = potions;
+  if (Object.keys(change).length === 0) throw err("invalid-argument", "바꿀 값이 없어요", "Nothing to change");
+  const ref = db.collection("users").doc(target);
+  return db.runTransaction(async (tx) => {
+    const u = await tx.get(ref);
+    if (!u.exists) throw err("not-found", "없는 사용자예요", "No such user");
+    const before = { score: u.get("score") ?? null, coins: u.get("coins") ?? null, potions: u.get("potions") ?? null };
+    tx.update(ref, change);
+    tx.set(db.collection("adminLogs").doc(), { by: me, uid: target, before, after: change, at: Date.now() });
+    return { ok: true, uid: target, ...change };
+  });
+});
 
 /**
  * 첫 로그인 때 프로필 만들기 (서버만 만들 수 있음).

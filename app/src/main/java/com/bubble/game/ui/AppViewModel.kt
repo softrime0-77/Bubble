@@ -186,6 +186,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun dismissRankUp() = _lobby.update { it.copy(rankUpScore = null) }
     fun dismissRankDown() = _lobby.update { it.copy(rankDown = null) }
 
+    // ---------- 🛠 관리자 ----------
+
+    /** 관리자: 사용자 찾기 (결과는 [onResult], 실패는 오류 문구) */
+    fun adminFind(query: String, onResult: (List<com.bubble.game.data.AdminUser>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                onResult(repo.adminFind(query))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lobby.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
+    /** 관리자: 점수 · 💰 · 💖 수정 */
+    fun adminSet(u: com.bubble.game.data.AdminUser, score: Int, coins: Int, potions: Int) =
+        shopAction(tr("🛠 ${u.name} 수정 완료 (점수 $score · 💰 $coins · 💖 $potions)", "🛠 Updated ${u.name} (score $score · 💰 $coins · 💖 $potions)")) {
+            repo.adminSet(u.uid, score, coins, potions)
+        }
+
     fun dismissWelcome() = _lobby.update { it.copy(welcome = null) }
 
     // ---------- 인앱 결제 ----------

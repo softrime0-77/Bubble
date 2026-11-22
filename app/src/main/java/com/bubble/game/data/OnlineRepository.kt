@@ -232,6 +232,27 @@ class OnlineRepository(context: Context) {
     suspend fun onlineCount(): Int =
         (call("onlineCount")["online"] as? Number)?.toInt() ?: 0
 
+    /** 🛠 관리자: 닉네임(정확히)이나 uid로 찾기. 빈 칸이면 나 */
+    suspend fun adminFind(query: String): List<AdminUser> {
+        val list = call("adminFindUser", mapOf("query" to query.trim()))["users"] as? List<*> ?: return emptyList()
+        return list.mapNotNull { m ->
+            (m as? Map<*, *>)?.let {
+                AdminUser(
+                    uid = it["uid"] as? String ?: return@let null,
+                    name = it["name"] as? String ?: "",
+                    score = (it["score"] as? Number)?.toInt() ?: 0,
+                    coins = (it["coins"] as? Number)?.toInt() ?: 0,
+                    potions = (it["potions"] as? Number)?.toInt() ?: 0,
+                )
+            }
+        }
+    }
+
+    /** 🛠 관리자: 점수 · 💰 · 💖 를 넣은 값으로 바꿈 */
+    suspend fun adminSet(uid: String, score: Int, coins: Int, potions: Int) {
+        call("adminSetPoints", mapOf("uid" to uid, "score" to score, "coins" to coins, "potions" to potions))
+    }
+
     /** 닉네임 바꾸기 (서버): 첫 변경 무료, 그다음은 변경권 1장. 돌려주는 값: "free" / "ticket" / "same" */
     suspend fun rename(name: String): String =
         (call("rename", mapOf("name" to name.trim().take(12)))["used"] as? String) ?: "free"
@@ -585,3 +606,6 @@ class OnlineRepository(context: Context) {
 
 /** 출석 보상 결과 */
 data class CheckinResult(val day: Int, val coins: Int, val potion: Boolean, val panda: Int)
+
+/** 🛠 관리자 화면에서 고친 사용자 */
+data class AdminUser(val uid: String, val name: String, val score: Int, val coins: Int, val potions: Int)

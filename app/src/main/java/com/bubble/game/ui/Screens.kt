@@ -159,6 +159,7 @@ private fun LobbyScreen(vm: AppViewModel) {
     var renaming by remember { mutableStateOf(false) }
     var showRanks by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var showAdmin by remember { mutableStateOf(false) }
 
     Column(
         Modifier
@@ -171,6 +172,17 @@ private fun LobbyScreen(vm: AppViewModel) {
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             LanguageMenu()
+            // 관리자만: 🛠 포인트 수정
+            if (ui.profile?.admin == true) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "🛠", fontSize = 18.sp,
+                    modifier = Modifier
+                        .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
+                        .clickable { showAdmin = true }
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
             // 관리자만: 동시 접속자 수
             ui.onlineCount?.let { n ->
                 Spacer(Modifier.width(8.dp))
@@ -481,6 +493,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
     }
+    if (showAdmin) AdminDialog(vm, onClose = { showAdmin = false })
     if (renaming) {
         var name by remember { mutableStateOf(ui.profile?.name ?: "") }
         AlertDialog(
@@ -2956,4 +2969,65 @@ private fun BoostArt() {
         )
         Text("🚀", fontSize = 22.sp, modifier = Modifier.align(Alignment.TopEnd).offset(x = 14.dp, y = (-10).dp))
     }
+}
+
+
+/**
+ * 🛠 관리자 창: 닉네임으로 찾아(빈 칸이면 나) 점수 · 💰 상점 포인트 · 💖 물약을 넣은 값으로 바꿈.
+ * 서버가 관리자 이메일인지 다시 확인하고 기록(adminLogs)을 남김.
+ */
+@Composable
+private fun AdminDialog(vm: AppViewModel, onClose: () -> Unit) {
+    var query by remember { mutableStateOf("") }
+    var found by remember { mutableStateOf<List<com.bubble.game.data.AdminUser>>(emptyList()) }
+    var picked by remember { mutableStateOf<com.bubble.game.data.AdminUser?>(null) }
+    var score by remember { mutableStateOf("") }
+    var coins by remember { mutableStateOf("") }
+    var potions by remember { mutableStateOf("") }
+    var searched by remember { mutableStateOf(false) }
+    fun pick(u: com.bubble.game.data.AdminUser) {
+        picked = u; score = u.score.toString(); coins = u.coins.toString(); potions = u.potions.toString()
+    }
+    LaunchedEffect(Unit) { vm.adminFind("") { list -> found = list; list.firstOrNull()?.let(::pick) } }
+    val num = { s: String -> s.filter { it.isDigit() }.take(8) }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("🛠 관리자 · 포인트 수정", fontWeight = FontWeight.Black) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(query, { query = it.take(30) }, singleLine = true, modifier = Modifier.weight(1f),
+                        label = { Text("닉네임 (빈 칸 = 나)") })
+                    Spacer(Modifier.width(6.dp))
+                    TextButton(onClick = { vm.adminFind(query) { list -> found = list; searched = true; list.firstOrNull()?.let(::pick) } }) { Text("찾기") }
+                }
+                if (searched && found.isEmpty()) Text("찾는 사용자가 없어요", color = Ui.danger, fontSize = 13.sp)
+                found.forEach { u ->
+                    Text(
+                        (if (picked?.uid == u.uid) "✅ " else "• ") + "${u.name} · ${u.score}점 · 💰${u.coins} · 💖${u.potions}",
+                        fontSize = 13.sp, fontWeight = if (picked?.uid == u.uid) FontWeight.Black else FontWeight.Normal,
+                        modifier = Modifier.fillMaxWidth().clickable { pick(u) }.padding(vertical = 4.dp),
+                    )
+                }
+                picked?.let { u ->
+                    Text("고칠 사람: ${u.name}", fontWeight = FontWeight.Bold, color = Ui.accent)
+                    OutlinedTextField(score, { score = num(it) }, singleLine = true, label = { Text("점수 (랭킹·계급)") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
+                    OutlinedTextField(coins, { coins = num(it) }, singleLine = true, label = { Text("💰 상점 포인트") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
+                    OutlinedTextField(potions, { potions = num(it) }, singleLine = true, label = { Text("💖 부활물약") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
+                    Text("넣은 값으로 바뀌어요 (0 ~ 1000만) · 기록이 남아요", fontSize = 11.sp, color = Ui.text.copy(alpha = 0.6f))
+                }
+            }
+        },
+        confirmButton = {
+            val u = picked
+            TextButton(
+                enabled = u != null && score.isNotEmpty() && coins.isNotEmpty() && potions.isNotEmpty(),
+                onClick = { if (u != null) { vm.adminSet(u, score.toInt(), coins.toInt(), potions.toInt()); onClose() } },
+            ) { Text("저장", fontWeight = FontWeight.Black) }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text("닫기") } },
+    )
 }

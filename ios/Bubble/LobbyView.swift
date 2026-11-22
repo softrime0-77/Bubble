@@ -40,6 +40,7 @@ struct LobbyView: View {
     @State private var renaming = false
     @State private var newName = ""
     @State private var confirmDelete = false
+    @State private var showAdmin = false
 
     var body: some View {
         ScrollView {
@@ -55,6 +56,14 @@ struct LobbyView: View {
                             .foregroundColor(UiColor.text)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(Capsule().fill(.white.opacity(0.7)))
+                    }
+                    // 관리자만: 🛠 포인트 수정
+                    if online.profile?.admin == true {
+                        Button { showAdmin = true } label: {
+                            Text("🛠").font(.system(size: 18))
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Capsule().fill(.white.opacity(0.75)))
+                        }
                     }
                     if let n = online.onlineCount {
                         Text(tr("🟢 \(n)명 접속", "🟢 \(n) online", zh: "🟢 在线 \(n)", es: "🟢 \(n) en línea", fr: "🟢 \(n) en ligne",
@@ -191,6 +200,7 @@ struct LobbyView: View {
             .padding(.vertical, 16)
         }
         .sheet(isPresented: $showRules) { RulesSheet { showRules = false } }
+        .sheet(isPresented: $showAdmin) { AdminSheet { showAdmin = false } }
         .sheet(isPresented: $showRanks) { RanksSheet(myScore: online.profile?.score ?? 0) { showRanks = false } }
         .alert(t("닉네임"), isPresented: $renaming) {
             TextField(t("최대 12자"), text: $newName)

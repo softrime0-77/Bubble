@@ -400,3 +400,82 @@ struct DailyCard: View {
         .padding(.top, 4)
     }
 }
+
+
+/// 🛠 관리자 창: 닉네임으로 찾아(빈 칸이면 나) 점수 · 💰 상점 포인트 · 💖 물약을 넣은 값으로 바꿈.
+/// 서버가 관리자 이메일인지 다시 확인하고 기록(adminLogs)을 남김.
+struct AdminSheet: View {
+    @ObservedObject var online = OnlineService.shared
+    let onClose: () -> Void
+    @State private var query = ""
+    @State private var found: [AdminUser] = []
+    @State private var picked: AdminUser? = nil
+    @State private var score = ""
+    @State private var coins = ""
+    @State private var potions = ""
+    @State private var searched = false
+
+    private func pick(_ u: AdminUser) {
+        picked = u
+        score = String(u.score)
+        coins = String(u.coins)
+        potions = String(u.potions)
+    }
+
+    private func search(_ q: String) {
+        Task {
+            let list = await online.adminFind(q)
+            found = list
+            searched = !q.isEmpty
+            if let first = list.first { pick(first) }
+        }
+    }
+
+    private func digits(_ s: String) -> String { String(s.filter(\.isNumber).prefix(8)) }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("찾기")) {
+                    HStack {
+                        TextField("닉네임 (빈 칸 = 나)", text: $query)
+                        Button("찾기") { search(query) }
+                    }
+                    if searched && found.isEmpty { Text("찾는 사용자가 없어요").foregroundColor(UiColor.danger) }
+                    ForEach(found) { u in
+                        Button {
+                            pick(u)
+                        } label: {
+                            Text((picked?.uid == u.uid ? "✅ " : "• ") + "\(u.name) · \(u.score)점 · 💰\(u.coins) · 💖\(u.potions)")
+                                .foregroundColor(UiColor.text)
+                        }
+                    }
+                }
+                if let u = picked {
+                    Section(header: Text("고칠 사람: \(u.name)"), footer: Text("넣은 값으로 바뀌어요 (0 ~ 1000만) · 기록이 남아요")) {
+                        HStack { Text("점수"); TextField("0", text: $score).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
+                        HStack { Text("💰 상점 포인트"); TextField("0", text: $coins).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
+                        HStack { Text("💖 부활물약"); TextField("0", text: $potions).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
+                    }
+                    if let e = online.error { Text(e).foregroundColor(UiColor.danger) }
+                }
+            }
+            .navigationTitle("🛠 관리자 · 포인트 수정")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("닫기", action: onClose) }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") {
+                        guard let u = picked, let s = Int(digits(score)), let c = Int(digits(coins)), let p = Int(digits(potions)) else { return }
+                        Task {
+                            await online.adminSet(u, score: s, coins: c, potions: p)
+                            onClose()
+                        }
+                    }
+                    .disabled(picked == nil || score.isEmpty || coins.isEmpty || potions.isEmpty)
+                }
+            }
+        }
+        .onAppear { search("") }
+    }
+}

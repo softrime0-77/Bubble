@@ -46,6 +46,17 @@ public enum Animal: String, CaseIterable, Sendable {
     case goldHamster = "GOLD_HAMSTER"
     /// 💰 복냥이: 한 번 사면 계속. 공격할 때마다 50% 확률로 상점 포인트 +1 (하루 최대 30)
     case luckyCat = "LUCKY_CAT"
+    /// 🐙 문어 · 🐧 펭귄: 모습 + 효과만
+    case octopus = "OCTOPUS"
+    case penguin = "PENGUIN"
+    /// 🐼 출석 판다: 장착하고 출석하면 💰 +5
+    case panda = "PANDA"
+    /// 🐉 아기 용: 상대 방울을 터뜨리면 💰 +2 (하루 최대 10)
+    case dragon = "DRAGON"
+    /// 🐰 연승 토끼: 연승할수록 리본 (최대 5)
+    case rabbit = "RABBIT"
+    /// 🦄 유니콘: 팔지 않음. 다이아 계급 이상이면 장착
+    case unicorn = "UNICORN"
 
     public var price: Int {
         switch self {
@@ -56,6 +67,11 @@ public enum Animal: String, CaseIterable, Sendable {
         case .pinkCat, .blackCat, .snowHamster: return 300
         case .goldHamster: return 500
         case .luckyCat: return 1000
+        case .octopus, .penguin: return 400
+        case .panda: return 500
+        case .dragon: return 700
+        case .rabbit: return 600
+        case .unicorn: return 0
         }
     }
     public var opponentTurnSec: Int {
@@ -63,19 +79,22 @@ public enum Animal: String, CaseIterable, Sendable {
         case .sheep: return 15
         case .dog: return 10
         case .giraffe: return 5
-        case .hamster, .pinkCat, .blackCat, .snowHamster, .goldHamster, .luckyCat: return Shop.defaultTurnSec
+        case .hamster, .pinkCat, .blackCat, .snowHamster, .goldHamster, .luckyCat, .octopus, .penguin, .panda, .dragon, .rabbit, .unicorn: return Shop.defaultTurnSec
         }
     }
     /// 유료 스킨 (한 번 사면 계속, 모습만)
-    public var cosmetic: Bool { [.pinkCat, .blackCat, .snowHamster, .goldHamster, .luckyCat].contains(self) }
+    public var cosmetic: Bool { [.pinkCat, .blackCat, .snowHamster, .goldHamster, .luckyCat, .octopus, .penguin, .panda, .dragon, .rabbit].contains(self) }
+    /// 계급 캐릭터 (팔지 않음): 🦄 유니콘은 다이아(10001점) 이상이면 무료로 장착
+    public var rankOnly: Bool { self == .unicorn }
+    public var rankMin: Int { self == .unicorn ? 10_001 : 0 }
     /// 효과가 있는 영구 캐릭터 (복냥이)
     public var lucky: Bool { self == .luckyCat }
     /// 소모품 동물 (랜덤 매칭 1판에 1개)
-    public var consumable: Bool { !free && !cosmetic }
+    public var consumable: Bool { !free && !cosmetic && !rankOnly }
     /// 그릴 때 고양이 모양인지 햄스터 모양인지 (상점 미리보기용)
     public var looksLikeCat: Bool { self == .pinkCat || self == .blackCat || self == .luckyCat }
     /// 무료 캐릭터 (사지 않고 바로 장착, 효과 없음)
-    public var free: Bool { price == 0 }
+    public var free: Bool { price == 0 && !rankOnly }
 }
 
 public enum Shop {
@@ -93,4 +112,9 @@ public enum Shop {
     /// 💰 복냥이: 공격할 때 💰 +1 확률(%)과 하루 최대 (functions/src/catalog.ts LUCKY_*와 같게)
     public static let luckyChancePct = 50
     public static let luckyDailyMax = 30
+    /// 🐼 판다 보너스, 🐉 아기 용(터뜨릴 때 💰, 하루 최대), 🐰 리본 최대 (functions/src/catalog.ts와 같게)
+    public static let pandaCheckinBonus = 5
+    public static let dragonPopCoins = 2
+    public static let dragonDailyMax = 10
+    public static let rabbitMaxRibbons = 5
 }

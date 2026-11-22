@@ -52,6 +52,8 @@ struct Critter: View {
     var skin: Animal? = nil
     var phase: Int = 0
     var happy: Bool = false
+    /// 🐰 연승 토끼의 리본 수 (연승, 최대 5)
+    var ribbons: Int = 0
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -70,6 +72,12 @@ struct Critter: View {
                 case .blackCat: drawCat(&ctx, size, closed, happy, fur: Color(hex: 0x5B5662), stripe: Color(hex: 0x38343E), muzzle: Color(hex: 0xCFC8D6))
                 case .snowHamster: drawHamster(&ctx, size, closed, happy, fur: Color(hex: 0xF4F6FB), belly: .white, inner: Color(hex: 0xBFD8FF), sparkles: Color(hex: 0xBFE6FF))
                 case .goldHamster: drawHamster(&ctx, size, closed, happy, fur: Color(hex: 0xFFC94D), belly: Color(hex: 0xFFF3C4), inner: Color(hex: 0xFFB38A), sparkles: Color(hex: 0xFFF59D))
+                case .octopus: drawOctopus(&ctx, size, closed, happy)
+                case .penguin: drawPenguin(&ctx, size, closed, happy)
+                case .panda: drawPanda(&ctx, size, closed, happy)
+                case .dragon: drawDragon(&ctx, size, closed, happy)
+                case .rabbit: drawRabbit(&ctx, size, closed, happy, ribbons)
+                case .unicorn: drawUnicorn(&ctx, size, closed, happy)
                 case .luckyCat:
                     drawCat(&ctx, size, closed, happy, fur: Color(hex: 0xFFFBF2), stripe: Color(hex: 0xF2A33A), muzzle: .white)
                     drawLuckyCharm(&ctx, size)
@@ -300,4 +308,202 @@ func critterSlots(_ n: Int) -> [CGPoint] {
     case 4: return [CGPoint(x: -0.32, y: -0.3), CGPoint(x: 0.32, y: -0.3), CGPoint(x: -0.32, y: 0.3), CGPoint(x: 0.32, y: 0.3)]
     default: return []
     }
+}
+
+
+// ======================= 새 캐릭터 =======================
+
+private func fill(_ ctx: inout GraphicsContext, _ p: Path, _ c: Color) { ctx.fill(p, with: .color(c)) }
+
+private func blushes(_ ctx: inout GraphicsContext, _ cx: CGFloat, _ cy: CGFloat, _ dx: CGFloat, _ r: CGFloat) {
+    fill(&ctx, circle(CGPoint(x: cx - dx, y: cy), r), Palette.blush)
+    fill(&ctx, circle(CGPoint(x: cx + dx, y: cy), r), Palette.blush)
+}
+
+/// 🐙 문어: 보라 머리 + 꼬불꼬불 다리
+private func drawOctopus(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool) {
+    let cx: CGFloat = size.width / 2, cy: CGFloat = size.height * 0.52, r: CGFloat = size.width * 0.36
+    let body = Color(hex: 0xB57BEE), dark = Color(hex: 0x8E52D6)
+    for i in 0..<6 {
+        let x: CGFloat = cx + (CGFloat(i) - 2.5) * r * 0.36
+        let tipX: CGFloat = x + (i < 3 ? -1 : 1) * r * 0.16
+        let bend: CGFloat = x - r * 0.2 + CGFloat(i % 2) * r * 0.3
+        var leg = Path()
+        leg.move(to: CGPoint(x: x - r * 0.13, y: cy + r * 0.45))
+        leg.addQuadCurve(to: CGPoint(x: tipX, y: cy + r * 1.12), control: CGPoint(x: bend, y: cy + r * 1.05))
+        leg.addQuadCurve(to: CGPoint(x: x + r * 0.13, y: cy + r * 0.45), control: CGPoint(x: x + r * 0.05, y: cy + r * 0.85))
+        leg.closeSubpath()
+        fill(&ctx, leg, i % 2 == 0 ? body : dark)
+    }
+    fill(&ctx, oval(cx - r, cy - r * 1.05, r * 2, r * 1.75), body)
+    fill(&ctx, circle(CGPoint(x: cx - r * 0.45, y: cy - r * 0.68), r * 0.13), dark.opacity(0.6))
+    fill(&ctx, circle(CGPoint(x: cx + r * 0.3, y: cy - r * 0.78), r * 0.09), dark.opacity(0.6))
+    fill(&ctx, circle(CGPoint(x: cx - r * 0.55, y: cy - r * 0.45), r * 0.12), .white.opacity(0.55))
+    drawEyes(&ctx, cx, cy - r * 0.05, r * 0.38, r * 0.15, closed, happy)
+    blushes(&ctx, cx, cy + r * 0.25, r * 0.68, r * 0.16)
+    fill(&ctx, circle(CGPoint(x: cx, y: cy + r * 0.32), r * 0.1), dark)
+    fill(&ctx, circle(CGPoint(x: cx, y: cy + r * 0.33), r * 0.05), Palette.nose)
+}
+
+/// 🐧 펭귄: 남색 머리 + 하얀 하트 얼굴 + 주황 부리
+private func drawPenguin(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool) {
+    let cx: CGFloat = size.width / 2, cy: CGFloat = size.height * 0.57, r: CGFloat = size.width * 0.37
+    fill(&ctx, oval(cx - r, cy - r, r * 2, r * 1.95), Color(hex: 0x3A4A68))
+    fill(&ctx, oval(cx - r * 0.78, cy - r * 0.55, r * 0.9, r * 1.25), .white)
+    fill(&ctx, oval(cx - r * 0.12, cy - r * 0.55, r * 0.9, r * 1.25), .white)
+    fill(&ctx, oval(cx - r * 0.6, cy + r * 0.05, r * 1.2, r * 0.8), .white)
+    fill(&ctx, oval(cx - r * 0.5, cy - r * 0.92, r * 0.5, r * 0.22), .white.opacity(0.25))
+    drawEyes(&ctx, cx, cy - r * 0.08, r * 0.36, r * 0.14, closed, happy)
+    blushes(&ctx, cx, cy + r * 0.25, r * 0.6, r * 0.16)
+    var beak = Path()
+    beak.move(to: CGPoint(x: cx - r * 0.18, y: cy + r * 0.12))
+    beak.addLine(to: CGPoint(x: cx + r * 0.18, y: cy + r * 0.12))
+    beak.addLine(to: CGPoint(x: cx, y: cy + r * 0.38))
+    beak.closeSubpath()
+    fill(&ctx, beak, Color(hex: 0xFFA726))
+}
+
+/// 🐼 판다: 하얀 얼굴 + 까만 귀·눈 얼룩 + 대나무 잎
+private func drawPanda(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool) {
+    let cx: CGFloat = size.width / 2, cy: CGFloat = size.height * 0.58, r: CGFloat = size.width * 0.37
+    let black = Color(hex: 0x3B3B45)
+    for s: CGFloat in [-1, 1] { fill(&ctx, circle(CGPoint(x: cx + s * r * 0.78, y: cy - r * 0.78), r * 0.32), black) }
+    fill(&ctx, oval(cx - r * 1.05, cy - r * 0.95, r * 2.1, r * 1.85), .white)
+    for s: CGFloat in [-1, 1] {
+        var g = ctx
+        let c = CGPoint(x: cx + s * r * 0.4, y: cy - r * 0.1)
+        g.translateBy(x: c.x, y: c.y)
+        g.rotate(by: .degrees(Double(s * -25)))
+        g.fill(oval(-r * 0.24, -r * 0.3, r * 0.48, r * 0.6), with: .color(black))
+    }
+    for s: CGFloat in [-1, 1] {
+        let c = CGPoint(x: cx + s * r * 0.4, y: cy - r * 0.12)
+        if closed || happy {
+            var p = Path()
+            p.move(to: CGPoint(x: c.x - r * 0.12, y: c.y))
+            p.addQuadCurve(to: CGPoint(x: c.x + r * 0.12, y: c.y), control: CGPoint(x: c.x, y: c.y - r * 0.16))
+            ctx.stroke(p, with: .color(.white), style: StrokeStyle(lineWidth: r * 0.07, lineCap: .round))
+        } else {
+            fill(&ctx, circle(c, r * 0.11), .white)
+            fill(&ctx, circle(CGPoint(x: c.x + r * 0.02, y: c.y), r * 0.06), black)
+        }
+    }
+    blushes(&ctx, cx, cy + r * 0.28, r * 0.7, r * 0.15)
+    fill(&ctx, oval(cx - r * 0.14, cy + r * 0.14, r * 0.28, r * 0.18), black)
+    drawMouth(&ctx, cx, cy + r * 0.36, r * 0.14)
+    var leaf = Path()
+    leaf.move(to: CGPoint(x: cx + r * 0.2, y: cy - r * 0.95))
+    leaf.addQuadCurve(to: CGPoint(x: cx + r * 0.75, y: cy - r * 1.25), control: CGPoint(x: cx + r * 0.55, y: cy - r * 1.35))
+    leaf.addQuadCurve(to: CGPoint(x: cx + r * 0.2, y: cy - r * 0.95), control: CGPoint(x: cx + r * 0.5, y: cy - r * 1.0))
+    fill(&ctx, leaf, Color(hex: 0x6CCB5F))
+}
+
+/// 🐉 아기 용: 민트 얼굴 + 작은 뿔 + 귀 지느러미
+private func drawDragon(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool) {
+    let cx: CGFloat = size.width / 2, cy: CGFloat = size.height * 0.58, r: CGFloat = size.width * 0.36
+    let green = Color(hex: 0x7DDB9B), dark = Color(hex: 0x3FAE6A)
+    for s: CGFloat in [-1, 1] {
+        var fin = Path()
+        fin.move(to: CGPoint(x: cx + s * r * 0.8, y: cy - r * 0.45))
+        fin.addLine(to: CGPoint(x: cx + s * r * 1.35, y: cy - r * 0.75))
+        fin.addLine(to: CGPoint(x: cx + s * r * 1.2, y: cy - r * 0.35))
+        fin.addLine(to: CGPoint(x: cx + s * r * 1.38, y: cy - r * 0.15))
+        fin.addLine(to: CGPoint(x: cx + s * r * 0.85, y: cy - r * 0.05))
+        fin.closeSubpath()
+        fill(&ctx, fin, dark)
+        var horn = Path()
+        horn.move(to: CGPoint(x: cx + s * r * 0.25, y: cy - r * 0.8))
+        horn.addQuadCurve(to: CGPoint(x: cx + s * r * 0.55, y: cy - r * 1.4), control: CGPoint(x: cx + s * r * 0.35, y: cy - r * 1.35))
+        horn.addQuadCurve(to: CGPoint(x: cx + s * r * 0.55, y: cy - r * 0.75), control: CGPoint(x: cx + s * r * 0.5, y: cy - r * 1.05))
+        horn.closeSubpath()
+        fill(&ctx, horn, Color(hex: 0xFFE9B0))
+    }
+    fill(&ctx, oval(cx - r, cy - r * 0.95, r * 2, r * 1.85), green)
+    for i in -1...1 { fill(&ctx, circle(CGPoint(x: cx + CGFloat(i) * r * 0.22, y: cy - r * 0.82), r * 0.08), dark) }
+    fill(&ctx, oval(cx - r * 0.55, cy + r * 0.02, r * 1.1, r * 0.72), Color(hex: 0xD9F7DF))
+    drawEyes(&ctx, cx, cy - r * 0.18, r * 0.4, r * 0.15, closed, happy)
+    blushes(&ctx, cx, cy + r * 0.18, r * 0.72, r * 0.15)
+    fill(&ctx, circle(CGPoint(x: cx - r * 0.13, y: cy + r * 0.15), r * 0.05), dark)
+    fill(&ctx, circle(CGPoint(x: cx + r * 0.13, y: cy + r * 0.15), r * 0.05), dark)
+    drawMouth(&ctx, cx, cy + r * 0.38, r * 0.15)
+    fill(&ctx, circle(CGPoint(x: cx - r * 0.09, y: cy + r * 0.45), r * 0.045), .white)
+}
+
+/// 🐰 연승 토끼: 긴 귀 + 연승 수만큼 리본 (최대 5)
+private func drawRabbit(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool, _ ribbons: Int) {
+    let cx: CGFloat = size.width / 2, cy: CGFloat = size.height * 0.64, r: CGFloat = size.width * 0.33
+    let fur = Color(hex: 0xFFFBFD)
+    for s: CGFloat in [-1, 1] {
+        fill(&ctx, oval(cx + s * r * 0.42 - r * 0.22, cy - r * 1.95, r * 0.44, r * 1.4), fur)
+        fill(&ctx, oval(cx + s * r * 0.42 - r * 0.11, cy - r * 1.8, r * 0.22, r * 1.1), Palette.hamInner)
+    }
+    let face = oval(cx - r * 1.05, cy - r * 0.9, r * 2.1, r * 1.8)
+    fill(&ctx, face, fur)
+    ctx.stroke(face, with: .color(Color(hex: 0xF1E8F0)), lineWidth: r * 0.04)
+    drawEyes(&ctx, cx, cy - r * 0.1, r * 0.42, r * 0.15, closed, happy)
+    blushes(&ctx, cx, cy + r * 0.22, r * 0.7, r * 0.17)
+    fill(&ctx, oval(cx - r * 0.1, cy + r * 0.1, r * 0.2, r * 0.14), Palette.nose)
+    drawMouth(&ctx, cx, cy + r * 0.3, r * 0.15)
+    let spots: [CGPoint] = [
+        CGPoint(x: cx + r * 0.42, y: cy - r * 1.05), CGPoint(x: cx - r * 0.42, y: cy - r * 1.05),
+        CGPoint(x: cx + r * 0.42, y: cy - r * 1.55), CGPoint(x: cx - r * 0.42, y: cy - r * 1.55),
+        CGPoint(x: cx, y: cy - r * 0.82),
+    ]
+    let colors: [Color] = [Color(hex: 0xFF5C8A), Color(hex: 0x7C6CF2), Color(hex: 0xFFC94D), Color(hex: 0x5CD6B4), Color(hex: 0xFF8A3D)]
+    for i in 0..<min(max(ribbons, 0), spots.count) { bow(&ctx, spots[i], r * 0.2, colors[i]) }
+}
+
+/// 작은 리본 매듭
+private func bow(_ ctx: inout GraphicsContext, _ c: CGPoint, _ r: CGFloat, _ color: Color) {
+    for s: CGFloat in [-1, 1] {
+        var wing = Path()
+        wing.move(to: c)
+        wing.addLine(to: CGPoint(x: c.x + s * r * 1.2, y: c.y - r * 0.7))
+        wing.addLine(to: CGPoint(x: c.x + s * r * 1.2, y: c.y + r * 0.7))
+        wing.closeSubpath()
+        fill(&ctx, wing, color)
+    }
+    fill(&ctx, circle(c, r * 0.35), color.opacity(0.85))
+    fill(&ctx, circle(CGPoint(x: c.x - r * 0.7, y: c.y - r * 0.25), r * 0.12), .white.opacity(0.6))
+}
+
+/// 🦄 유니콘: 하얀 얼굴 + 금빛 뿔 + 무지개 갈기
+private func drawUnicorn(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool) {
+    let cx: CGFloat = size.width / 2, cy: CGFloat = size.height * 0.6, r: CGFloat = size.width * 0.34
+    let rainbow: [Color] = [Color(hex: 0xFF7EB3), Color(hex: 0xFFB86B), Color(hex: 0xFFE066), Color(hex: 0x7DDB9B), Color(hex: 0x7FC8FF), Color(hex: 0xB98CFF)]
+    for (i, c) in rainbow.enumerated() {
+        let x: CGFloat = cx - r * 0.98 - CGFloat(i % 2) * r * 0.1
+        let y: CGFloat = cy - r * 0.8 + CGFloat(i) * r * 0.27
+        fill(&ctx, circle(CGPoint(x: x, y: y), r * 0.3), c)
+    }
+    for s: CGFloat in [-1, 1] {
+        var ear = Path()
+        ear.move(to: CGPoint(x: cx + s * r * 0.35, y: cy - r * 0.75))
+        ear.addLine(to: CGPoint(x: cx + s * r * 0.6, y: cy - r * 1.3))
+        ear.addLine(to: CGPoint(x: cx + s * r * 0.82, y: cy - r * 0.6))
+        ear.closeSubpath()
+        fill(&ctx, ear, .white)
+    }
+    var horn = Path()
+    horn.move(to: CGPoint(x: cx - r * 0.16, y: cy - r * 0.85))
+    horn.addLine(to: CGPoint(x: cx, y: cy - r * 1.75))
+    horn.addLine(to: CGPoint(x: cx + r * 0.16, y: cy - r * 0.85))
+    horn.closeSubpath()
+    ctx.fill(horn, with: .linearGradient(Gradient(colors: [Color(hex: 0xFFF4B0), Color(hex: 0xFFC21A)]),
+                                         startPoint: CGPoint(x: cx, y: cy - r * 1.75), endPoint: CGPoint(x: cx, y: cy - r * 0.85)))
+    for k in 1...3 {
+        let y: CGFloat = cy - r * 0.85 - CGFloat(k) * r * 0.22
+        let hw: CGFloat = r * 0.16 * (1 - CGFloat(k) * 0.24)
+        line(&ctx, CGPoint(x: cx - hw, y: y + r * 0.05), CGPoint(x: cx + hw, y: y - r * 0.05), Color(hex: 0xE59A00), r * 0.04)
+    }
+    let face = oval(cx - r, cy - r * 0.9, r * 2, r * 1.85)
+    fill(&ctx, face, .white)
+    ctx.stroke(face, with: .color(Color(hex: 0xEDE7F6)), lineWidth: r * 0.04)
+    fill(&ctx, circle(CGPoint(x: cx - r * 0.25, y: cy - r * 0.78), r * 0.2), rainbow[0])
+    fill(&ctx, circle(CGPoint(x: cx + r * 0.05, y: cy - r * 0.82), r * 0.16), rainbow[5])
+    drawEyes(&ctx, cx, cy - r * 0.1, r * 0.4, r * 0.15, closed, happy)
+    blushes(&ctx, cx, cy + r * 0.22, r * 0.68, r * 0.17)
+    fill(&ctx, circle(CGPoint(x: cx - r * 0.12, y: cy + r * 0.2), r * 0.05), Color(hex: 0xFFB3D1))
+    fill(&ctx, circle(CGPoint(x: cx + r * 0.12, y: cy + r * 0.2), r * 0.05), Color(hex: 0xFFB3D1))
+    drawMouth(&ctx, cx, cy + r * 0.35, r * 0.14)
 }

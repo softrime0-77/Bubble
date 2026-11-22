@@ -62,10 +62,10 @@ fun shotOf(side: Side, move: Move, id: Int): Shot = when (move) {
 }
 
 /** 💰 복냥이 효과가 터짐: [side]가 상대 [to] 방울을 쳐서 💰 +1 */
-data class LuckyHit(val side: Side, val to: Int, val id: Int)
+data class LuckyHit(val side: Side, val to: Int, val id: Int, val coins: Int = 1)
 
 /** 출석 보상 받은 결과 (축하 팝업용) */
-data class CheckinReward(val day: Int, val coins: Int, val potion: Boolean)
+data class CheckinReward(val day: Int, val coins: Int, val potion: Boolean, val panda: Int = 0)
 
 /** 미션 보상 받은 결과 (축하 팝업용) */
 data class MissionReward(val label: String, val coins: Int)
@@ -97,6 +97,9 @@ data class GameUi(
     /** 장착한 동물 캐릭터 (null이면 기본 고양이/햄스터) */
     val mySkin: Animal? = null,
     val opponentSkin: Animal? = null,
+    /** 🐰 연승 토끼 리본 수 */
+    val myRibbons: Int = 0,
+    val opponentRibbons: Int = 0,
     /** 이번 차례의 제한 시간(초) */
     val turnSec: Int? = null,
     /** AI 대전 난이도 (로컬 연습이든 점수가 걸린 서버 대전이든) */
@@ -670,8 +673,10 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         }
         val shot = og.lastMove?.takeIf { newMove && lastMove >= 0 && og.lastBy != null }
             ?.let { shotOf(og.lastBy!!, it, og.moveNo) }
-        val luckyHit = (og.lastMove as? Move.Add)?.takeIf { newMove && og.lastLucky && og.lastBy != null }
-            ?.let { LuckyHit(og.lastBy!!, it.to, og.moveNo) }
+        // 💰 복냥이(+1) · 🐉 아기 용(+2): 맞은 방울에서 동전이 튀어나옴
+        val gained = if (og.lastCoins > 0) og.lastCoins else if (og.lastLucky) 1 else 0
+        val luckyHit = (og.lastMove as? Move.Add)?.takeIf { newMove && gained > 0 && og.lastBy != null }
+            ?.let { LuckyHit(og.lastBy!!, it.to, og.moveNo, gained) }
         return copy(
             lastShot = shot ?: lastShot,
             lucky = luckyHit ?: lucky,
@@ -693,6 +698,8 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             turnSec = if (og.vsAi != null && og.turn != side) null else (og.turnMsOf(og.turn) / 1000).toInt(),
             aiLevel = og.vsAi,
             mySkin = og.skinOf(side),
+            myRibbons = og.ribbonsOf(side),
+            opponentRibbons = og.ribbonsOf(side.opponent),
             myCountry = og.countryOf(side),
             opponentCountry = og.countryOf(side.opponent),
             myScore = og.scoreOf(side),
@@ -753,7 +760,8 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
             mySide = mySide,
             myName = _lobby.value.profile?.name ?: tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分"),
             opponentName = tr("AI 친구 (${level.label})", "AI Buddy (${level.label})", zh = "AI 伙伴（${level.label}）", hi = "AI दोस्त (${level.label})", es = "Amigo IA (${level.label})", fr = "Copain IA (${level.label})", ar = "رفيق الذكاء الاصطناعي (${level.label})", de = "KI-Kumpel (${level.label})", pt = "Amigo IA (${level.label})", ru = "ИИ-друг (${level.label})", ja = "AIフレンド（${level.label}）"),
-            mySkin = _lobby.value.profile?.equipped,
+            mySkin = _lobby.value.profile?.equipped?.takeUnless { it.rankOnly && (_lobby.value.profile?.score ?: 0) < it.rankMin },
+            myRibbons = (_lobby.value.profile?.winStreak ?: 0).coerceIn(0, com.bubble.game.game.Shop.RABBIT_MAX_RIBBONS),
             aiLevel = level,
             turnDeadline = if (mySide == Side.CAT) System.currentTimeMillis() + level.turnSec * 1000L else null,
             turnSec = if (mySide == Side.CAT) level.turnSec else null,
@@ -824,8 +832,8 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
         _lobby.update { it.copy(shopBusy = true, error = null) }
         viewModelScope.launch {
             try {
-                val (day, coins, potion) = repo.claimDaily()
-                _lobby.update { it.copy(shopBusy = false, checkin = CheckinReward(day, coins, potion)) }
+                val r = repo.claimDaily()
+                _lobby.update { it.copy(shopBusy = false, checkin = CheckinReward(r.day, r.coins, r.potion, r.panda)) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

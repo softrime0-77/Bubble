@@ -16,6 +16,9 @@ protocol GameModel: ObservableObject {
     var lastShot: ShotInfo? { get }
     /// 마지막 💰 복냥이 효과 (맞은 방울에서 동전이 튀어나옴). 서버 대전만
     var lucky: LuckyHit? { get }
+    /// 🐰 연승 토끼 리본 수
+    var myRibbons: Int { get }
+    var opponentRibbons: Int { get }
     var deadline: Date? { get }
     /// 이번 차례 제한 시간 (초)
     var turnSec: Int { get }
@@ -70,4 +73,5 @@ struct LuckyHit: Equatable {
     let side: Side
     let to: Int
     let id: Int
+    var coins: Int = 1
 }

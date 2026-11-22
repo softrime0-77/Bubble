@@ -40,7 +40,46 @@ export const COSMETIC_SKINS: Record<string, number> = {
   GOLD_HAMSTER: 500,
   // 💰 복냥이: 한 번 사면 계속. 공격할 때마다 50% 확률로 상점 포인트 +1 (하루 최대 30)
   LUCKY_CAT: 1000,
+  // 🐙 문어 · 🐧 펭귄: 모습 + 분할/공격 효과만
+  OCTOPUS: 400,
+  PENGUIN: 400,
+  // 🐼 출석 판다: 장착하고 출석하면 💰 +5
+  PANDA: 500,
+  // 🐉 아기 용: 상대 방울을 터뜨리면 💰 +2 (하루 최대 10)
+  DRAGON: 700,
+  // 🐰 연승 토끼: 연승할수록 리본이 늘어남 (최대 5개)
+  RABBIT: 600,
 };
+
+/** 계급 캐릭터: 팔지 않고, 점수가 이 이상이면 장착 가능 (🦄 유니콘 = 다이아 이상) */
+export const RANK_SKINS: Record<string, number> = { UNICORN: 10001 };
+
+export function isRankSkin(id: unknown): id is string {
+  return typeof id === "string" && RANK_SKINS[id] !== undefined;
+}
+
+/** 🐼 출석 판다: 출석 보너스 */
+export const PANDA_SKIN = "PANDA";
+export const PANDA_CHECKIN_BONUS = 5;
+
+/** 🐉 아기 용: 상대 방울을 터뜨릴 때 💰, 하루 최대 */
+export const DRAGON_SKIN = "DRAGON";
+export const DRAGON_POP_COINS = 2;
+export const DRAGON_DAILY_MAX = 10;
+
+/** 🐰 연승 토끼: 리본 최대 개수 */
+export const RABBIT_SKIN = "RABBIT";
+export const RABBIT_MAX_RIBBONS = 5;
+
+/** 이번에 아기 용이 받을 💰 (오늘 이미 받은 [todayCoins] 기준, 하루 최대를 넘지 않게) */
+export function dragonCoins(todayCoins: number): number {
+  return Math.max(0, Math.min(DRAGON_POP_COINS, DRAGON_DAILY_MAX - todayCoins));
+}
+
+/** 장착한 판다를 실제로 가졌는지 */
+export function pandaEquipped(equipped: unknown, ownedSkins: unknown): boolean {
+  return equipped === PANDA_SKIN && Array.isArray(ownedSkins) && ownedSkins.includes(PANDA_SKIN);
+}
 
 /** 복냥이 효과 */
 export const LUCKY_SKIN = "LUCKY_CAT";
@@ -59,9 +98,10 @@ export function isCosmetic(id: unknown): id is string {
   return typeof id === "string" && COSMETIC_SKINS[id] !== undefined;
 }
 
-/** 장착한 캐릭터가 "모습만" 스킨이면 그 ID (무료 햄스터 또는 가진 유료 스킨), 아니면 null */
-export function lookSkin(equipped: unknown, ownedSkins: unknown): string | null {
+/** 장착한 캐릭터가 "모습" 스킨이면 그 ID (무료 햄스터 · 가진 유료 스킨 · 계급이 되는 계급 캐릭터), 아니면 null */
+export function lookSkin(equipped: unknown, ownedSkins: unknown, score = 0): string | null {
   if (isFreeSkin(equipped)) return equipped;
+  if (isRankSkin(equipped) && score >= RANK_SKINS[equipped]) return equipped;
   if (isCosmetic(equipped) && Array.isArray(ownedSkins) && ownedSkins.includes(equipped)) return equipped;
   return null;
 }

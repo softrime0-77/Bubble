@@ -38,6 +38,10 @@ struct Profile: Equatable {
     /// 💰 복냥이로 오늘 받은 포인트 (luckyDay가 오늘일 때만 유효)
     var luckyDay: String? = nil
     var luckyCoins = 0
+    /// 🐉 아기 용으로 오늘 받은 포인트, 🐰 연승
+    var dragonDay: String? = nil
+    var dragonCoins = 0
+    var winStreak = 0
     /// 출석: 마지막으로 받은 날(한국 시간)과 연속 일수
     var checkinDay: String? = nil
     var checkinStreak = 0
@@ -113,6 +117,10 @@ struct OnlineGameDoc {
     var lastBy: Side? = nil
     /// 마지막 공격에서 💰 복냥이 효과가 터졌는지
     var lastLucky: Bool = false
+    /// 이번 수로 받은 💰 (복냥이 1 · 아기 용 2), 🐰 시작할 때 연승 리본 수
+    var lastCoins: Int = 0
+    var catStreak: Int = 0
+    var hamStreak: Int = 0
 
     func side(of uid: String) -> Side? { uid == catUid ? .cat : uid == hamUid ? .hamster : nil }
     func name(_ s: Side) -> String { s == .cat ? catName : hamName }
@@ -452,7 +460,7 @@ final class OnlineService: ObservableObject {
             let r = try await call("claimDaily")
             let day = Self.int(r["day"]) ?? 1, coins = Self.int(r["coins"]) ?? 0
             let potion = r["potion"] as? Bool ?? false
-            checkin = CheckinReward(day: day, coins: coins, potion: potion)
+            checkin = CheckinReward(day: day, coins: coins, potion: potion, panda: Self.int(r["panda"]) ?? 0)
         }
     }
 
@@ -666,6 +674,9 @@ final class OnlineService: ObservableObject {
             createdAt: int(d["createdAt"]),
             luckyDay: d["luckyDay"] as? String,
             luckyCoins: int(d["luckyCoins"]) ?? 0,
+            dragonDay: d["dragonDay"] as? String,
+            dragonCoins: int(d["dragonCoins"]) ?? 0,
+            winStreak: int(d["winStreak"]) ?? 0,
             checkinDay: d["checkinDay"] as? String,
             checkinStreak: int(d["checkinStreak"]) ?? 0,
             missionDay: d["missionDay"] as? String,
@@ -720,7 +731,10 @@ final class OnlineService: ObservableObject {
             rated: d["rated"] as? Bool ?? false,
             lastMove: (d["lastMove"] as? String).flatMap(Move.decode),
             lastBy: side("lastBy"),
-            lastLucky: d["lastLucky"] as? Bool ?? false
+            lastLucky: d["lastLucky"] as? Bool ?? false,
+            lastCoins: int(d["lastCoins"]) ?? 0,
+            catStreak: int(d["catStreak"]) ?? 0,
+            hamStreak: int(d["hamStreak"]) ?? 0
         )
     }
 
@@ -739,6 +753,7 @@ struct CheckinReward: Equatable {
     let day: Int
     let coins: Int
     let potion: Bool
+    var panda: Int = 0
 }
 
 /// 미션 보상 받은 결과 (축하 팝업용)

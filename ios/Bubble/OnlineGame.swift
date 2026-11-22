@@ -19,6 +19,8 @@ final class OnlineGame: GameModel {
     @Published private(set) var explosion: (Explosion, Int)? = nil
     @Published private(set) var lastShot: ShotInfo? = nil
     @Published private(set) var lucky: LuckyHit? = nil
+    @Published private(set) var myRibbons = 0
+    @Published private(set) var opponentRibbons = 0
     @Published private(set) var deadline: Date? = nil
     @Published private(set) var turnSec = Shop.defaultTurnSec
     @Published private(set) var busy = true
@@ -100,8 +102,10 @@ final class OnlineGame: GameModel {
         let newMove = g.moveNo != lastMove && g.moveNo > 0
         if newMove && !g.lastText.isEmpty { log = Array(([g.lastText] + log).prefix(30)) }
         if newMove, let es = g.explodedSide { explosion = (Explosion(side: es, index: g.explodedIndex), g.moveNo) }
-        if newMove, g.lastLucky, let by = g.lastBy, case let .add(_, _, to)? = g.lastMove {
-            lucky = LuckyHit(side: by, to: to, id: g.moveNo)
+        // 💰 복냥이(+1) · 🐉 아기 용(+2)
+        let gained = g.lastCoins > 0 ? g.lastCoins : (g.lastLucky ? 1 : 0)
+        if newMove, gained > 0, let by = g.lastBy, case let .add(_, _, to)? = g.lastMove {
+            lucky = LuckyHit(side: by, to: to, id: g.moveNo, coins: gained)
         }
         if newMove { notice = nil }
         lastMove = g.moveNo
@@ -118,6 +122,8 @@ final class OnlineGame: GameModel {
                fr: "Copain IA (\(lv.label))", de: "KI-Kumpel (\(lv.label))", pt: "Amigo IA (\(lv.label))", ja: "AIフレンド（\(lv.label)）")
         } ?? g.name(side.opponent)
         mySkin = g.skin(side)
+        myRibbons = side == .cat ? g.catStreak : g.hamStreak
+        opponentRibbons = side == .cat ? g.hamStreak : g.catStreak
         opponentSkin = g.skin(side.opponent)
         myCountry = g.country(side)
         opponentCountry = g.country(side.opponent)

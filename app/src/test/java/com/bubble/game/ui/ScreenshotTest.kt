@@ -66,6 +66,38 @@ class ScreenshotTest {
         refCode = "K7Q2MX", referrals = 3, coins = 1200, boosts = 2, boostOn = true,
     )
 
+    private fun rankedSample() = listOf(1, 2, 3, 4, 5, 7, 10, 11, 20, 30, 31, 45).mapIndexed { i, pos ->
+        RankedPlayer(pos, "u$pos", if (pos == 1) "엄청나게긴닉네임을가진다이아냥이123" else "플레이어$pos", if (i % 2 == 0) "KR" else "JP",
+            20000 - pos * 300, 40 - i, i, if (pos == 1) com.bubble.game.game.Animal.UNICORN else if (pos == 2) com.bubble.game.game.Animal.GOLD_HAMSTER else null)
+    }
+
+    @Test
+    fun rankingRows() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            androidx.compose.foundation.layout.Column(
+                androidx.compose.ui.Modifier.background(androidx.compose.ui.graphics.Color.White).padding(16.dp),
+            ) { rankedSample().forEach { RankingRow(it, me = it.position == 5) {} } }
+        }
+        shot("ranking_rows", 700)
+    }
+
+    @Test
+    fun rankingCardFirst() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent { PlayerCardDialog(rankedSample()[0], me = false) {} }
+        repeat(5) { rule.mainClock.advanceTimeBy(200); org.robolectric.shadows.ShadowLooper.idleMainLooper() }
+        shot("ranking_card_1", 300)
+    }
+
+    @Test
+    fun rankingCardTwenty() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent { PlayerCardDialog(rankedSample()[8], me = false) {} }
+        repeat(5) { rule.mainClock.advanceTimeBy(200); org.robolectric.shadows.ShadowLooper.idleMainLooper() }
+        shot("ranking_card_20", 300)
+    }
+
     @Test
     fun lobbyWithRanks() {
         rule.mainClock.autoAdvance = false

@@ -1140,6 +1140,14 @@ const AROUND_ME = 10;
  * 내 순위와 내 위아래 10명씩. 순서는 점수 높은 순, 같은 점수면 문서 ID 역순
  * (앱의 TOP 100 목록 orderBy("score", desc)와 같은 순서).
  */
+/** 다른 사람에게 보이는 캐릭터: 스킨(lookSkin) 또는 남아 있는 소모품 동물. 없으면 null(기본 고양이) */
+function shownAnimal(d: DocumentSnapshot): string | null {
+  const eq = d.get("equipped");
+  const skin = lookSkin(eq, d.get("skins"), (d.get("score") as number | undefined) ?? START_SCORE);
+  if (skin) return skin;
+  return typeof eq === "string" && ANIMALS[eq] && ((d.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null;
+}
+
 export const myRanking = onCall(async (req) => {
   const uid = requireUser(req);
   const users = db.collection("users");
@@ -1156,6 +1164,8 @@ export const myRanking = onCall(async (req) => {
   const row = (d: DocumentSnapshot, r: number) => ({
     uid: d.id, rank: r, name: (d.get("name") as string | undefined) ?? "Player",
     score: (d.get("score") as number | undefined) ?? START_SCORE, country: (d.get("country") as string | undefined) ?? null,
+    wins: (d.get("wins") as number | undefined) ?? 0, losses: (d.get("losses") as number | undefined) ?? 0,
+    look: shownAnimal(d),
   });
   const above = aboveSnap.docs.reverse().map((d, i, arr) => row(d, rank - (arr.length - i)));
   const below = belowSnap.docs.map((d, i) => row(d, rank + i + 1));

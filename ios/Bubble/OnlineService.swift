@@ -78,6 +78,10 @@ struct RankRow: Identifiable, Equatable {
     var name: String
     var score: Int
     var country: String?
+    var wins: Int? = nil
+    var losses: Int? = nil
+    /// 지금 보이는 캐릭터 (nil이면 기본 고양이)
+    var look: Animal? = nil
     var id: String { uid }
 }
 
@@ -469,7 +473,9 @@ final class OnlineService: ObservableObject {
             aroundMe = ((r["rows"] as? [[String: Any]]) ?? []).compactMap { d in
                 guard let uid = d["uid"] as? String, let rank = Self.int(d["rank"]) else { return nil }
                 return RankRow(uid: uid, rank: rank, name: d["name"] as? String ?? "Player",
-                               score: Self.int(d["score"]) ?? Self.startScore, country: d["country"] as? String)
+                               score: Self.int(d["score"]) ?? Self.startScore, country: d["country"] as? String,
+                               wins: Self.int(d["wins"]), losses: Self.int(d["losses"]),
+                               look: (d["look"] as? String).flatMap { Animal(rawValue: $0) })
             }
         }
     }

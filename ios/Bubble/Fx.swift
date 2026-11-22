@@ -20,7 +20,7 @@ private func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /// 터질 때·날아갈 때 흩뿌리는 모양
-enum FxShape { case star, heart, paw, snow, coin, bone, leaf, cloud, moon, seed }
+enum FxShape { case star, heart, paw, snow, coin, bone, leaf, cloud, moon, seed, ink, flame }
 
 /// 캐릭터마다 다른 반짝이 색과 모양, 터질 때 붙는 이모지
 struct FxTheme {
@@ -44,6 +44,18 @@ struct FxTheme {
             return FxTheme(colors: [Color(hex: 0x7A4DFF), Color(hex: 0xFFD54A), .white, Color(hex: 0x3B2A6B)], shapes: [.moon, .star], emoji: "🌙")
         case .snowHamster:
             return FxTheme(colors: [Color(hex: 0x5CC8FF), Color(hex: 0xBFE9FF), .white, Color(hex: 0x9AB8FF)], shapes: [.snow, .star], emoji: "❄️")
+        case .octopus:
+            return FxTheme(colors: [Color(hex: 0x2E1F4D), Color(hex: 0xB57BEE), Color(hex: 0x8E52D6), .white], shapes: [.ink, .star], emoji: "🐙")
+        case .penguin:
+            return FxTheme(colors: [Color(hex: 0x7FD3FF), .white, Color(hex: 0x3A4A68), Color(hex: 0xBFE9FF)], shapes: [.snow, .star], emoji: "🐧")
+        case .panda:
+            return FxTheme(colors: [Color(hex: 0x6CCB5F), .white, Color(hex: 0x3B3B45), Color(hex: 0xB8F0A8)], shapes: [.leaf, .heart], emoji: "🐼")
+        case .dragon:
+            return FxTheme(colors: [Color(hex: 0xFF6A2B), Color(hex: 0xFFC21A), Color(hex: 0xFF2D55), .white], shapes: [.flame, .star], emoji: "🔥")
+        case .rabbit:
+            return FxTheme(colors: [Color(hex: 0xFF8FB8), .white, Color(hex: 0xFFC94D), Color(hex: 0x7C6CF2)], shapes: [.heart, .star], emoji: "🐰")
+        case .unicorn:
+            return FxTheme(colors: [Color(hex: 0xFF7EB3), Color(hex: 0xFFE066), Color(hex: 0x7FC8FF), Color(hex: 0xB98CFF), Color(hex: 0x7DDB9B), .white], shapes: [.star, .heart], emoji: "🌈")
         case .luckyCat:
             return FxTheme(colors: [Color(hex: 0xFFC21A), Color(hex: 0xE5303F), .white, Color(hex: 0xFFE680)], shapes: [.coin, .star, .heart], emoji: "💰")
         case .goldHamster:
@@ -133,6 +145,20 @@ func drawFx(_ ctx: inout GraphicsContext, _ shape: FxShape, _ c: CGPoint, _ r: C
             l.clip(to: bite, options: .inverse)
             l.fill(circle(o, r), with: .color(color))
         }
+    case .ink:
+        var p = circle(o, r * 0.75)
+        p.addPath(circle(CGPoint(x: r * 0.7, y: -r * 0.35), r * 0.4))
+        p.addPath(circle(CGPoint(x: -r * 0.65, y: r * 0.45), r * 0.32))
+        p.addPath(circle(CGPoint(x: r * 0.2, y: r * 0.95), r * 0.2))
+        g.fill(p, with: .color(color))
+        g.fill(circle(CGPoint(x: -r * 0.25, y: -r * 0.3), r * 0.2), with: .color(.white.opacity(0.35)))
+    case .flame:
+        var p = Path()
+        p.move(to: CGPoint(x: 0, y: -r * 1.1))
+        p.addCurve(to: CGPoint(x: 0, y: r * 0.9), control1: CGPoint(x: r * 0.9, y: -r * 0.2), control2: CGPoint(x: r * 0.8, y: r * 0.9))
+        p.addCurve(to: CGPoint(x: 0, y: -r * 1.1), control1: CGPoint(x: -r * 0.8, y: r * 0.9), control2: CGPoint(x: -r * 0.9, y: -r * 0.2))
+        g.fill(p, with: .color(color))
+        g.fill(Path(ellipseIn: CGRect(x: -r * 0.32, y: 0, width: r * 0.64, height: r * 0.8)), with: .color(Color(hex: 0xFFF4B0)))
     case .seed:
         g.fill(Path(ellipseIn: CGRect(x: -r * 0.45, y: -r, width: r * 0.9, height: r * 2)), with: .color(color))
         var line = Path()
@@ -476,13 +502,14 @@ struct CheckinCelebration: View {
     let day: Int
     let coins: Int
     let potion: Bool
+    var panda: Int = 0
     let onClose: () -> Void
     @State private var startedAt = Date()
     @State private var pop = false
 
     var body: some View {
         TimelineView(.animation) { tl in
-            CheckinFrame(day: day, coins: coins, potion: potion, onClose: onClose,
+            CheckinFrame(day: day, coins: coins, potion: potion, panda: panda, onClose: onClose,
                          el: tl.date.timeIntervalSince(startedAt), now: tl.date.timeIntervalSinceReferenceDate, pop: pop)
         }
         .contentShape(Rectangle())
@@ -499,6 +526,7 @@ private struct CheckinFrame: View {
     let day: Int
     let coins: Int
     let potion: Bool
+    let panda: Int
     let onClose: () -> Void
     let el: Double
     let now: Double
@@ -584,6 +612,14 @@ private struct CheckinFrame: View {
             title
             dayRow.padding(.top, 14)
             rewards.padding(.top, 16)
+            if panda > 0 {
+                // 🐼 출석 판다 보너스
+                rewardChip("🐼", tr("판다 보너스 💰 +\(panda)", "Panda bonus 💰 +\(panda)", zh: "熊猫奖励 💰 +\(panda)", es: "Bono panda 💰 +\(panda)",
+                                   fr: "Bonus panda 💰 +\(panda)", de: "Panda-Bonus 💰 +\(panda)", pt: "Bônus panda 💰 +\(panda)", ru: "Бонус панды 💰 +\(panda)",
+                                   ja: "パンダボーナス 💰 +\(panda)"), Color(hex: 0x6CCB5F))
+                    .scaleEffect(0.6 + 0.4 * countEase)
+                    .padding(.top, 8)
+            }
             hint.padding(.top, 10)
             okButton.padding(.top, 16)
         }
@@ -870,6 +906,7 @@ private struct MissionFrame: View {
 struct CoinPop: Identifiable, Equatable {
     let id = UUID()
     let at: CGPoint
+    var amount: Int = 1
     let start = Date()
     static let sec = 1.7
 }
@@ -977,7 +1014,7 @@ struct CoinPopFx: View {
         let scale: CGFloat = tt < 0.12 ? 0.3 + tt / 0.12 * 1.1 : 1.4 - (tt - 0.12) * 0.35
         let alpha: Double = tt < 0.7 ? 1 : Double(clamp01((1 - tt) / 0.3))
         let y: CGFloat = Self.headY(pop.at, t) - 46 - tt * 24
-        return Text("💰 +1")
+        return Text("💰 +\(pop.amount)")
             .font(.system(size: 28, weight: .black))
             .foregroundStyle(LinearGradient(colors: [Color(hex: 0xFFFBE0), Color(hex: 0xFFD43B), Color(hex: 0xFF9F1C)], startPoint: .top, endPoint: .bottom))
             .shadow(color: Color(hex: 0x9A4A00), radius: 5, y: 3)

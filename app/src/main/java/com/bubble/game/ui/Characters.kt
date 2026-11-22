@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -50,6 +51,8 @@ fun Critter(
     happy: Boolean = false,
     /** 상점에서 산 동물을 장착했으면 그 동물로 그림 */
     skin: Animal? = null,
+    /** 🐰 연승 토끼의 리본 수 (연승, 최대 5) */
+    ribbons: Int = 0,
 ) {
     val t = rememberInfiniteTransition(label = "critter")
     val sway by t.animateFloat(
@@ -74,6 +77,12 @@ fun Critter(
                 Animal.BLACK_CAT -> drawCat(eyesClosed, happy, fur = Color(0xFF5B5662), stripe = Color(0xFF38343E), muzzle = Color(0xFFCFC8D6))
                 Animal.SNOW_HAMSTER -> drawHamster(eyesClosed, happy, fur = Color(0xFFF4F6FB), belly = Color.White, inner = Color(0xFFBFD8FF), sparkles = Color(0xFFBFE6FF))
                 Animal.GOLD_HAMSTER -> drawHamster(eyesClosed, happy, fur = Color(0xFFFFC94D), belly = Color(0xFFFFF3C4), inner = Color(0xFFFFB38A), sparkles = Color(0xFFFFF59D))
+                Animal.OCTOPUS -> drawOctopus(eyesClosed, happy)
+                Animal.PENGUIN -> drawPenguin(eyesClosed, happy)
+                Animal.PANDA -> drawPanda(eyesClosed, happy)
+                Animal.DRAGON -> drawDragon(eyesClosed, happy)
+                Animal.RABBIT -> drawRabbit(eyesClosed, happy, ribbons)
+                Animal.UNICORN -> drawUnicorn(eyesClosed, happy)
                 Animal.LUCKY_CAT -> {
                     drawCat(eyesClosed, happy, fur = Color(0xFFFFFBF2), stripe = Color(0xFFF2A33A), muzzle = Color(0xFFFFFFFF))
                     drawLuckyCharm()
@@ -338,4 +347,244 @@ private fun DrawScope.drawGiraffe(closed: Boolean, happy: Boolean) {
     drawCircle(Palette.ink, r * 0.06f, Offset(cx - r * 0.2f, cy + r * 0.38f))
     drawCircle(Palette.ink, r * 0.06f, Offset(cx + r * 0.2f, cy + r * 0.38f))
     drawMouth(cx, cy + r * 0.6f, r * 0.13f)
+}
+
+
+// ======================= 새 캐릭터 =======================
+
+/** 🐙 문어: 보라 머리 + 아래로 꼬불꼬불 다리 */
+private fun DrawScope.drawOctopus(closed: Boolean, happy: Boolean) {
+    val w = size.width
+    val cx = w / 2
+    val cy = size.height * 0.52f
+    val r = w * 0.36f
+    val body = Color(0xFFB57BEE)
+    val dark = Color(0xFF8E52D6)
+    // 다리 6개
+    for (i in 0 until 6) {
+        val x = cx + (i - 2.5f) * r * 0.36f
+        val leg = Path().apply {
+            moveTo(x - r * 0.13f, cy + r * 0.45f)
+            quadraticTo(x - r * 0.2f + (i % 2) * r * 0.3f, cy + r * 1.05f, x + (if (i < 3) -1 else 1) * r * 0.16f, cy + r * 1.12f)
+            quadraticTo(x + r * 0.05f, cy + r * 0.85f, x + r * 0.13f, cy + r * 0.45f)
+            close()
+        }
+        drawPath(leg, if (i % 2 == 0) body else dark)
+    }
+    // 둥근 머리
+    drawOval(body, Offset(cx - r * 1.0f, cy - r * 1.05f), Size(r * 2f, r * 1.75f))
+    // 머리 무늬
+    drawCircle(dark.copy(alpha = 0.6f), r * 0.13f, Offset(cx - r * 0.45f, cy - r * 0.68f))
+    drawCircle(dark.copy(alpha = 0.6f), r * 0.09f, Offset(cx + r * 0.3f, cy - r * 0.78f))
+    drawCircle(Color.White.copy(alpha = 0.55f), r * 0.12f, Offset(cx - r * 0.55f, cy - r * 0.45f))
+    drawEyes(cx, cy - r * 0.05f, r * 0.38f, r * 0.15f, closed, happy)
+    drawCircle(Palette.blush, r * 0.16f, Offset(cx - r * 0.68f, cy + r * 0.25f))
+    drawCircle(Palette.blush, r * 0.16f, Offset(cx + r * 0.68f, cy + r * 0.25f))
+    // 동그랗게 내민 입
+    drawCircle(dark, r * 0.1f, Offset(cx, cy + r * 0.32f))
+    drawCircle(Palette.nose, r * 0.05f, Offset(cx, cy + r * 0.33f))
+}
+
+/** 🐧 펭귄: 검은 머리 + 하얀 하트 얼굴 + 주황 부리 */
+private fun DrawScope.drawPenguin(closed: Boolean, happy: Boolean) {
+    val w = size.width
+    val cx = w / 2
+    val cy = size.height * 0.57f
+    val r = w * 0.37f
+    val navy = Color(0xFF3A4A68)
+    drawOval(navy, Offset(cx - r, cy - r * 1.0f), Size(r * 2f, r * 1.95f))
+    // 하얀 얼굴 (하트 모양)
+    drawOval(Color.White, Offset(cx - r * 0.78f, cy - r * 0.55f), Size(r * 0.9f, r * 1.25f))
+    drawOval(Color.White, Offset(cx - r * 0.12f, cy - r * 0.55f), Size(r * 0.9f, r * 1.25f))
+    drawOval(Color.White, Offset(cx - r * 0.6f, cy + r * 0.05f), Size(r * 1.2f, r * 0.8f))
+    // 정수리 하이라이트
+    drawOval(Color.White.copy(alpha = 0.25f), Offset(cx - r * 0.5f, cy - r * 0.92f), Size(r * 0.5f, r * 0.22f))
+    drawEyes(cx, cy - r * 0.08f, r * 0.36f, r * 0.14f, closed, happy)
+    drawCircle(Palette.blush, r * 0.16f, Offset(cx - r * 0.6f, cy + r * 0.25f))
+    drawCircle(Palette.blush, r * 0.16f, Offset(cx + r * 0.6f, cy + r * 0.25f))
+    // 부리
+    val beak = Path().apply {
+        moveTo(cx - r * 0.18f, cy + r * 0.12f)
+        lineTo(cx + r * 0.18f, cy + r * 0.12f)
+        lineTo(cx, cy + r * 0.38f)
+        close()
+    }
+    drawPath(beak, Color(0xFFFFA726))
+}
+
+/** 🐼 판다: 하얀 얼굴 + 까만 귀·눈 얼룩 */
+private fun DrawScope.drawPanda(closed: Boolean, happy: Boolean) {
+    val w = size.width
+    val cx = w / 2
+    val cy = size.height * 0.58f
+    val r = w * 0.37f
+    val black = Color(0xFF3B3B45)
+    for (s in listOf(-1f, 1f)) drawCircle(black, r * 0.32f, Offset(cx + s * r * 0.78f, cy - r * 0.78f))
+    drawOval(Color.White, Offset(cx - r * 1.05f, cy - r * 0.95f), Size(r * 2.1f, r * 1.85f))
+    // 눈 얼룩 (살짝 기운 타원)
+    for (s in listOf(-1f, 1f)) {
+        rotate(s * -25f, pivot = Offset(cx + s * r * 0.4f, cy - r * 0.1f)) {
+            drawOval(black, Offset(cx + s * r * 0.4f - r * 0.24f, cy - r * 0.1f - r * 0.3f), Size(r * 0.48f, r * 0.6f))
+        }
+    }
+    // 눈 (얼룩 위라 흰 눈동자)
+    for (s in listOf(-1f, 1f)) {
+        val c = Offset(cx + s * r * 0.4f, cy - r * 0.12f)
+        if (closed || happy) {
+            val p = Path().apply { moveTo(c.x - r * 0.12f, c.y); quadraticTo(c.x, c.y - r * 0.16f, c.x + r * 0.12f, c.y) }
+            drawPath(p, Color.White, style = Stroke(r * 0.07f, cap = StrokeCap.Round))
+        } else {
+            drawCircle(Color.White, r * 0.11f, c)
+            drawCircle(black, r * 0.06f, c + Offset(r * 0.02f, 0f))
+        }
+    }
+    drawCircle(Palette.blush, r * 0.15f, Offset(cx - r * 0.7f, cy + r * 0.28f))
+    drawCircle(Palette.blush, r * 0.15f, Offset(cx + r * 0.7f, cy + r * 0.28f))
+    drawOval(black, Offset(cx - r * 0.14f, cy + r * 0.14f), Size(r * 0.28f, r * 0.18f))
+    drawMouth(cx, cy + r * 0.36f, r * 0.14f)
+    // 대나무 잎 (머리 위)
+    val leaf = Path().apply {
+        moveTo(cx + r * 0.2f, cy - r * 0.95f)
+        quadraticTo(cx + r * 0.55f, cy - r * 1.35f, cx + r * 0.75f, cy - r * 1.25f)
+        quadraticTo(cx + r * 0.5f, cy - r * 1.0f, cx + r * 0.2f, cy - r * 0.95f)
+        close()
+    }
+    drawPath(leaf, Color(0xFF6CCB5F))
+}
+
+/** 🐉 아기 용: 민트 얼굴 + 작은 뿔 + 귀 지느러미 */
+private fun DrawScope.drawDragon(closed: Boolean, happy: Boolean) {
+    val w = size.width
+    val cx = w / 2
+    val cy = size.height * 0.58f
+    val r = w * 0.36f
+    val green = Color(0xFF7DDB9B)
+    val dark = Color(0xFF3FAE6A)
+    // 귀 지느러미
+    for (s in listOf(-1f, 1f)) {
+        val fin = Path().apply {
+            moveTo(cx + s * r * 0.8f, cy - r * 0.45f)
+            lineTo(cx + s * r * 1.35f, cy - r * 0.75f)
+            lineTo(cx + s * r * 1.2f, cy - r * 0.35f)
+            lineTo(cx + s * r * 1.38f, cy - r * 0.15f)
+            lineTo(cx + s * r * 0.85f, cy - r * 0.05f)
+            close()
+        }
+        drawPath(fin, dark)
+    }
+    // 뿔
+    for (s in listOf(-1f, 1f)) {
+        val horn = Path().apply {
+            moveTo(cx + s * r * 0.25f, cy - r * 0.8f)
+            quadraticTo(cx + s * r * 0.35f, cy - r * 1.35f, cx + s * r * 0.55f, cy - r * 1.4f)
+            quadraticTo(cx + s * r * 0.5f, cy - r * 1.05f, cx + s * r * 0.55f, cy - r * 0.75f)
+            close()
+        }
+        drawPath(horn, Color(0xFFFFE9B0))
+    }
+    drawOval(green, Offset(cx - r, cy - r * 0.95f), Size(r * 2f, r * 1.85f))
+    // 머리 위 비늘
+    for (i in -1..1) drawCircle(dark, r * 0.08f, Offset(cx + i * r * 0.22f, cy - r * 0.82f))
+    // 주둥이
+    drawOval(Color(0xFFD9F7DF), Offset(cx - r * 0.55f, cy + r * 0.02f), Size(r * 1.1f, r * 0.72f))
+    drawEyes(cx, cy - r * 0.18f, r * 0.4f, r * 0.15f, closed, happy)
+    drawCircle(Palette.blush, r * 0.15f, Offset(cx - r * 0.72f, cy + r * 0.18f))
+    drawCircle(Palette.blush, r * 0.15f, Offset(cx + r * 0.72f, cy + r * 0.18f))
+    // 콧구멍
+    drawCircle(dark, r * 0.05f, Offset(cx - r * 0.13f, cy + r * 0.15f))
+    drawCircle(dark, r * 0.05f, Offset(cx + r * 0.13f, cy + r * 0.15f))
+    drawMouth(cx, cy + r * 0.38f, r * 0.15f)
+    // 작은 송곳니
+    drawCircle(Color.White, r * 0.045f, Offset(cx - r * 0.09f, cy + r * 0.45f))
+}
+
+/** 🐰 연승 토끼: 긴 귀 + 연승 수만큼 리본 (최대 5) */
+private fun DrawScope.drawRabbit(closed: Boolean, happy: Boolean, ribbons: Int) {
+    val w = size.width
+    val cx = w / 2
+    val cy = size.height * 0.64f
+    val r = w * 0.33f
+    val fur = Color(0xFFFFFBFD)
+    // 긴 귀
+    for (s in listOf(-1f, 1f)) {
+        drawOval(fur, Offset(cx + s * r * 0.42f - r * 0.22f, cy - r * 1.95f), Size(r * 0.44f, r * 1.4f))
+        drawOval(Palette.hamInner, Offset(cx + s * r * 0.42f - r * 0.11f, cy - r * 1.8f), Size(r * 0.22f, r * 1.1f))
+    }
+    drawOval(fur, Offset(cx - r * 1.05f, cy - r * 0.9f), Size(r * 2.1f, r * 1.8f))
+    drawOval(Color(0xFFF1E8F0), Offset(cx - r * 1.05f, cy - r * 0.9f), Size(r * 2.1f, r * 1.8f), style = Stroke(r * 0.04f))
+    drawEyes(cx, cy - r * 0.1f, r * 0.42f, r * 0.15f, closed, happy)
+    drawCircle(Palette.blush, r * 0.17f, Offset(cx - r * 0.7f, cy + r * 0.22f))
+    drawCircle(Palette.blush, r * 0.17f, Offset(cx + r * 0.7f, cy + r * 0.22f))
+    drawOval(Palette.nose, Offset(cx - r * 0.1f, cy + r * 0.1f), Size(r * 0.2f, r * 0.14f))
+    drawMouth(cx, cy + r * 0.3f, r * 0.15f)
+    // 리본: 오른쪽 귀 → 왼쪽 귀 → 머리 순서로 하나씩
+    val spots = listOf(
+        Offset(cx + r * 0.42f, cy - r * 1.05f), Offset(cx - r * 0.42f, cy - r * 1.05f),
+        Offset(cx + r * 0.42f, cy - r * 1.55f), Offset(cx - r * 0.42f, cy - r * 1.55f),
+        Offset(cx, cy - r * 0.82f),
+    )
+    val colors = listOf(Color(0xFFFF5C8A), Color(0xFF7C6CF2), Color(0xFFFFC94D), Color(0xFF5CD6B4), Color(0xFFFF8A3D))
+    for (i in 0 until ribbons.coerceIn(0, spots.size)) bow(spots[i], r * 0.2f, colors[i])
+}
+
+/** 작은 리본 매듭 */
+private fun DrawScope.bow(c: Offset, r: Float, color: Color) {
+    for (s in listOf(-1f, 1f)) {
+        val wing = Path().apply {
+            moveTo(c.x, c.y)
+            lineTo(c.x + s * r * 1.2f, c.y - r * 0.7f)
+            lineTo(c.x + s * r * 1.2f, c.y + r * 0.7f)
+            close()
+        }
+        drawPath(wing, color)
+    }
+    drawCircle(color.copy(red = color.red * 0.8f, green = color.green * 0.8f, blue = color.blue * 0.8f), r * 0.35f, c)
+    drawCircle(Color.White.copy(alpha = 0.6f), r * 0.12f, c + Offset(-r * 0.7f, -r * 0.25f))
+}
+
+/** 🦄 유니콘: 하얀 얼굴 + 금빛 뿔 + 무지개 갈기 */
+private fun DrawScope.drawUnicorn(closed: Boolean, happy: Boolean) {
+    val w = size.width
+    val cx = w / 2
+    val cy = size.height * 0.6f
+    val r = w * 0.34f
+    val rainbow = listOf(Color(0xFFFF7EB3), Color(0xFFFFB86B), Color(0xFFFFE066), Color(0xFF7DDB9B), Color(0xFF7FC8FF), Color(0xFFB98CFF))
+    // 무지개 갈기 (왼쪽 뒤로)
+    rainbow.forEachIndexed { i, c ->
+        drawCircle(c, r * 0.3f, Offset(cx - r * 0.98f - (i % 2) * r * 0.1f, cy - r * 0.8f + i * r * 0.27f))
+    }
+    // 귀
+    for (s in listOf(-1f, 1f)) {
+        val ear = Path().apply {
+            moveTo(cx + s * r * 0.35f, cy - r * 0.75f)
+            lineTo(cx + s * r * 0.6f, cy - r * 1.3f)
+            lineTo(cx + s * r * 0.82f, cy - r * 0.6f)
+            close()
+        }
+        drawPath(ear, Color.White)
+    }
+    // 금빛 뿔 (줄무늬)
+    val horn = Path().apply {
+        moveTo(cx - r * 0.16f, cy - r * 0.85f)
+        lineTo(cx, cy - r * 1.75f)
+        lineTo(cx + r * 0.16f, cy - r * 0.85f)
+        close()
+    }
+    drawPath(horn, Brush.verticalGradient(listOf(Color(0xFFFFF4B0), Color(0xFFFFC21A)), cy - r * 1.75f, cy - r * 0.85f))
+    for (k in 1..3) {
+        val y = cy - r * 0.85f - k * r * 0.22f
+        val hw = r * 0.16f * (1f - k * 0.24f)
+        drawLine(Color(0xFFE59A00), Offset(cx - hw, y + r * 0.05f), Offset(cx + hw, y - r * 0.05f), r * 0.04f)
+    }
+    drawOval(Color.White, Offset(cx - r, cy - r * 0.9f), Size(r * 2f, r * 1.85f))
+    drawOval(Color(0xFFEDE7F6), Offset(cx - r, cy - r * 0.9f), Size(r * 2f, r * 1.85f), style = Stroke(r * 0.04f))
+    // 앞머리 (무지개 한 줌)
+    drawCircle(rainbow[0], r * 0.2f, Offset(cx - r * 0.25f, cy - r * 0.78f))
+    drawCircle(rainbow[5], r * 0.16f, Offset(cx + r * 0.05f, cy - r * 0.82f))
+    drawEyes(cx, cy - r * 0.1f, r * 0.4f, r * 0.15f, closed, happy)
+    drawCircle(Palette.blush, r * 0.17f, Offset(cx - r * 0.68f, cy + r * 0.22f))
+    drawCircle(Palette.blush, r * 0.17f, Offset(cx + r * 0.68f, cy + r * 0.22f))
+    drawCircle(Color(0xFFFFB3D1), r * 0.05f, Offset(cx - r * 0.12f, cy + r * 0.2f))
+    drawCircle(Color(0xFFFFB3D1), r * 0.05f, Offset(cx + r * 0.12f, cy + r * 0.2f))
+    drawMouth(cx, cy + r * 0.35f, r * 0.14f)
 }

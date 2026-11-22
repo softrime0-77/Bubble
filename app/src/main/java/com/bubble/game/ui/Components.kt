@@ -118,6 +118,8 @@ fun SetBubble(
     onClick: (() -> Unit)? = null,
     skin: com.bubble.game.game.Animal? = null,
     modifier: Modifier = Modifier,
+    /** 🐰 연승 토끼 리본 수 */
+    ribbons: Int = 0,
 ) {
     val t = rememberInfiniteTransition(label = "bubble")
     val breathe by t.animateFloat(
@@ -233,6 +235,7 @@ fun SetBubble(
                         Critter(
                             side = side,
                             skin = skin,
+                            ribbons = ribbons,
                             phase = i + if (side == Side.CAT) 0 else 5,
                             modifier = Modifier
                                 .align(Alignment.Center)

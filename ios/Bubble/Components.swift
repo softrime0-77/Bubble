@@ -59,6 +59,8 @@ struct SetBubbleView: View {
     var preview: String? = nil
     var explodeKey: Int? = nil
     var skin: Animal? = nil
+    /// 🐰 연승 토끼 리본 수
+    var ribbons: Int = 0
     var onTap: (() -> Void)? = nil
 
     @State private var bounce: CGFloat = 1
@@ -158,7 +160,7 @@ struct SetBubbleView: View {
             let half = geo.size.width / 2
             let cs = count == 1 ? geo.size.width * 0.55 : geo.size.width * 0.36
             ForEach(Array(critterSlots(count).enumerated()), id: \.offset) { i, o in
-                Critter(side: side, skin: skin, phase: i + (side == .cat ? 0 : 5))
+                Critter(side: side, skin: skin, phase: i + (side == .cat ? 0 : 5), ribbons: ribbons)
                     .frame(width: cs, height: cs)
                     .position(x: half + half * o.x * 1.25, y: half + half * o.y * 1.25)
                     .transition(.scale)

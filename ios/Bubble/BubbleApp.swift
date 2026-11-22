@@ -96,7 +96,7 @@ struct RootView: View {
                 MissionCelebration(label: m.label, coins: m.coins) { online.mission = nil }
                     .transition(.opacity)
             } else if let c = online.checkin, screen.key == "lobby" {
-                CheckinCelebration(day: c.day, coins: c.coins, potion: c.potion) { online.checkin = nil }
+                CheckinCelebration(day: c.day, coins: c.coins, potion: c.potion, panda: c.panda) { online.checkin = nil }
                     .transition(.opacity)
             } else if let score = online.rankUpScore, screen.key == "lobby" {
                 RankUpCelebration(score: score) { online.rankUpScore = nil }

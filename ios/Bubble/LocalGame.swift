@@ -17,6 +17,8 @@ final class LocalGame: GameModel {
     @Published private(set) var explosion: (Explosion, Int)? = nil
     @Published private(set) var lastShot: ShotInfo? = nil
     var lucky: LuckyHit? { nil }
+    var myRibbons: Int { 0 }
+    var opponentRibbons: Int { 0 }
     @Published private(set) var deadline: Date? = nil
     @Published private(set) var busy = false
     @Published var selected: Int? = nil

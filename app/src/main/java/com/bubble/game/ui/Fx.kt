@@ -69,7 +69,7 @@ import kotlin.random.Random
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /** 터질 때·날아갈 때 흩뿌리는 모양 */
-enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED }
+enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED, INK, FLAME }
 
 /** 캐릭터마다 다른 반짝이 색과 모양, 터질 때 붙는 이모지 */
 data class FxTheme(val colors: List<Color>, val shapes: List<FxShape>, val emoji: String) {
@@ -83,6 +83,12 @@ fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (side == Side
     Animal.BLACK_CAT -> FxTheme(listOf(Color(0xFF7A4DFF), Color(0xFFFFD54A), Color.White, Color(0xFF3B2A6B)), listOf(FxShape.MOON, FxShape.STAR), "🌙")
     Animal.SNOW_HAMSTER -> FxTheme(listOf(Color(0xFF5CC8FF), Color(0xFFBFE9FF), Color.White, Color(0xFF9AB8FF)), listOf(FxShape.SNOW, FxShape.STAR), "❄️")
     Animal.GOLD_HAMSTER -> FxTheme(listOf(Color(0xFFFFB800), Color(0xFFFFE680), Color.White, Color(0xFFFF9F1C)), listOf(FxShape.COIN, FxShape.STAR), "✨")
+    Animal.OCTOPUS -> FxTheme(listOf(Color(0xFF2E1F4D), Color(0xFFB57BEE), Color(0xFF8E52D6), Color.White), listOf(FxShape.INK, FxShape.STAR), "🐙")
+    Animal.PENGUIN -> FxTheme(listOf(Color(0xFF7FD3FF), Color.White, Color(0xFF3A4A68), Color(0xFFBFE9FF)), listOf(FxShape.SNOW, FxShape.STAR), "🐧")
+    Animal.PANDA -> FxTheme(listOf(Color(0xFF6CCB5F), Color.White, Color(0xFF3B3B45), Color(0xFFB8F0A8)), listOf(FxShape.LEAF, FxShape.HEART), "🐼")
+    Animal.DRAGON -> FxTheme(listOf(Color(0xFFFF6A2B), Color(0xFFFFC21A), Color(0xFFFF2D55), Color.White), listOf(FxShape.FLAME, FxShape.STAR), "🔥")
+    Animal.RABBIT -> FxTheme(listOf(Color(0xFFFF8FB8), Color.White, Color(0xFFFFC94D), Color(0xFF7C6CF2)), listOf(FxShape.HEART, FxShape.STAR), "🐰")
+    Animal.UNICORN -> FxTheme(listOf(Color(0xFFFF7EB3), Color(0xFFFFE066), Color(0xFF7FC8FF), Color(0xFFB98CFF), Color(0xFF7DDB9B), Color.White), listOf(FxShape.STAR, FxShape.HEART), "🌈")
     Animal.LUCKY_CAT -> FxTheme(listOf(Color(0xFFFFC21A), Color(0xFFE5303F), Color.White, Color(0xFFFFE680)), listOf(FxShape.COIN, FxShape.STAR, FxShape.HEART), "💰")
     Animal.SHEEP -> FxTheme(listOf(Color(0xFF9EC9FF), Color.White, Color(0xFFFFC2DE), Color(0xFFE8F1FF)), listOf(FxShape.CLOUD, FxShape.STAR), "☁️")
     Animal.DOG -> FxTheme(listOf(Color(0xFFC98A4B), Color(0xFF7FD3FF), Color.White, Color(0xFFFFE0B0)), listOf(FxShape.BONE, FxShape.PAW, FxShape.STAR), "🦴")
@@ -160,6 +166,24 @@ fun DrawScope.fxShape(shape: FxShape, c: Offset, r: Float, color: Color, rot: Fl
                 val outer = Path().apply { addOval(androidx.compose.ui.geometry.Rect(c, r)) }
                 val inner = Path().apply { addOval(androidx.compose.ui.geometry.Rect(c + Offset(r * 0.45f, -r * 0.25f), r * 0.85f)) }
                 drawPath(Path().apply { op(outer, inner, PathOperation.Difference) }, color)
+            }
+            FxShape.INK -> {
+                // 먹물 방울: 큰 덩어리 + 튄 방울들
+                drawCircle(color, r * 0.75f, c)
+                drawCircle(color, r * 0.4f, c + Offset(r * 0.7f, -r * 0.35f))
+                drawCircle(color, r * 0.32f, c + Offset(-r * 0.65f, r * 0.45f))
+                drawCircle(color, r * 0.2f, c + Offset(r * 0.2f, r * 0.95f))
+                drawCircle(Color.White.copy(alpha = color.alpha * 0.35f), r * 0.2f, c + Offset(-r * 0.25f, -r * 0.3f))
+            }
+            FxShape.FLAME -> {
+                val p = Path().apply {
+                    moveTo(c.x, c.y - r * 1.1f)
+                    cubicTo(c.x + r * 0.9f, c.y - r * 0.2f, c.x + r * 0.8f, c.y + r * 0.9f, c.x, c.y + r * 0.9f)
+                    cubicTo(c.x - r * 0.8f, c.y + r * 0.9f, c.x - r * 0.9f, c.y - r * 0.2f, c.x, c.y - r * 1.1f)
+                    close()
+                }
+                drawPath(p, color)
+                drawOval(Color(0xFFFFF4B0).copy(alpha = color.alpha), Offset(c.x - r * 0.32f, c.y), Size(r * 0.64f, r * 0.8f))
             }
             FxShape.SEED -> {
                 drawOval(color, Offset(c.x - r * 0.45f, c.y - r), Size(r * 0.9f, r * 2f))
@@ -419,7 +443,7 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
 
 /** 출석 완료! 쏟아지는 색종이 · 회전하는 빛 · 도장 쾅 · 💰 숫자 올라가기 */
 @Composable
-fun CheckinCelebration(day: Int, coins: Int, potion: Boolean, onDismiss: () -> Unit) {
+fun CheckinCelebration(day: Int, coins: Int, potion: Boolean, panda: Int = 0, onDismiss: () -> Unit) {
     val t = rememberInfiniteTransition(label = "checkin")
     val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_600, easing = LinearEasing)), label = "tw")
 
@@ -533,6 +557,13 @@ fun CheckinCelebration(day: Int, coins: Int, potion: Boolean, onDismiss: () -> U
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 RewardChip("💰", "+${(coins * count.value).roundToInt()}", Ui.gold)
                 if (potion) RewardChip("💖", "+1", Color(0xFFFF5C8A), Modifier.scale(0.6f + 0.4f * count.value))
+            }
+            // 🐼 출석 판다 보너스 (자리가 모자라지 않게 아랫줄에)
+            if (panda > 0) {
+                Spacer(Modifier.height(8.dp))
+                RewardChip("🐼", tr("판다 보너스 💰 +$panda", "Panda bonus 💰 +$panda", zh = "熊猫奖励 💰 +$panda", es = "Bono panda 💰 +$panda",
+                    fr = "Bonus panda 💰 +$panda", de = "Panda-Bonus 💰 +$panda", pt = "Bônus panda 💰 +$panda", ru = "Бонус панды 💰 +$panda",
+                    ja = "パンダボーナス 💰 +$panda"), Color(0xFF6CCB5F), Modifier.scale(0.6f + 0.4f * count.value))
             }
             Spacer(Modifier.height(10.dp))
             val nextDay = day % 7 + 1
@@ -711,7 +742,7 @@ fun MissionCelebration(label: String, coins: Int, onDismiss: () -> Unit) {
 // ======================= 💰 복냥이 동전 =======================
 
 /** 복냥이 효과로 튀어나오는 동전 하나 (좌표는 [ShotLayer]와 같은 기준) */
-data class CoinPop(val key: Long, val at: Offset, val mine: Boolean)
+data class CoinPop(val key: Long, val at: Offset, val mine: Boolean, val amount: Int = 1)
 
 /** 금화 하나 (빙글 도는 정도 [spin]: 1이면 정면, 0에 가까우면 옆면) */
 private fun DrawScope.goldCoin(c: Offset, r: Float, spin: Float, alpha: Float = 1f) {
@@ -809,7 +840,7 @@ fun CoinPopFx(c: CoinPop, onDone: (CoinPop) -> Unit) {
     val tt = ((t - 0.08f) / 0.92f).coerceIn(0f, 1f)
     val textPx = 46f * unit
     Text(
-        "💰 +1",
+        "💰 +${c.amount}",
         fontSize = 28.sp, fontWeight = FontWeight.Black,
         style = TextStyle(
             brush = Brush.verticalGradient(listOf(Color(0xFFFFFBE0), Color(0xFFFFD43B), Color(0xFFFF9F1C))),

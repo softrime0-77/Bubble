@@ -70,6 +70,11 @@ data class Profile(
     /** 💰 복냥이로 오늘 받은 포인트 (luckyDay가 오늘일 때만 유효) */
     val luckyDay: String? = null,
     val luckyCoins: Int = 0,
+    /** 🐉 아기 용으로 오늘 받은 포인트 (dragonDay가 오늘일 때만 유효) */
+    val dragonDay: String? = null,
+    val dragonCoins: Int = 0,
+    /** 🐰 연승 (랜덤 매칭·점수 걸린 친구 대전) */
+    val winStreak: Int = 0,
     /** 출석: 마지막으로 받은 날(한국 시간)과 연속 일수 */
     val checkinDay: String? = null,
     val checkinStreak: Int = 0,
@@ -143,6 +148,11 @@ data class OnlineGame(
     val lastBy: Side? = null,
     /** 마지막 공격에서 💰 복냥이 효과가 터졌는지 */
     val lastLucky: Boolean = false,
+    /** 이번 수로 받은 💰 (복냥이 1 · 아기 용 2) */
+    val lastCoins: Int = 0,
+    /** 🐰 시작할 때의 연승 리본 수 */
+    val catStreak: Int = 0,
+    val hamStreak: Int = 0,
     /** 친구 대전이면 true, 점수가 걸린 판이면 rated */
     val vsFriend: Boolean = false,
     val rated: Boolean = false,
@@ -154,6 +164,7 @@ data class OnlineGame(
     fun scoreOf(side: Side): Int = if (side == Side.CAT) catScore else hamScore
 
     fun skinOf(side: Side): Animal? = if (side == Side.CAT) catSkin else hamSkin
+    fun ribbonsOf(side: Side): Int = if (side == Side.CAT) catStreak else hamStreak
 
     fun turnMsOf(side: Side): Long = if (side == Side.CAT) catTurnMs else hamTurnMs
 
@@ -350,9 +361,13 @@ class OnlineRepository(context: Context) {
             ?: throw ServerException(tr("AI 대전을 시작하지 못했어요", "Could not start the AI battle", zh = "无法开始 AI 对战", hi = "AI मुकाबला शुरू नहीं हो सका", es = "No se pudo iniciar la batalla contra la IA", fr = "Impossible de lancer le combat contre l’IA", ar = "تعذّر بدء معركة الذكاء الاصطناعي", de = "KI-Duell konnte nicht gestartet werden", pt = "Não foi possível iniciar a batalha contra a IA", ru = "Не удалось начать бой с ИИ", ja = "AI対戦を開始できませんでした"))
 
     /** 오늘 출석 보상 받기 → (며칠째, 받은 💰, 물약 받았는지) */
-    suspend fun claimDaily(): Triple<Int, Int, Boolean> {
+    /** 출석 보상 → (며칠째, 💰, 💖 물약, 🐼 판다 보너스) */
+    suspend fun claimDaily(): CheckinResult {
         val r = call("claimDaily")
-        return Triple((r["day"] as? Number)?.toInt() ?: 1, (r["coins"] as? Number)?.toInt() ?: 0, r["potion"] == true)
+        return CheckinResult(
+            (r["day"] as? Number)?.toInt() ?: 1, (r["coins"] as? Number)?.toInt() ?: 0, r["potion"] == true,
+            (r["panda"] as? Number)?.toInt() ?: 0,
+        )
     }
 
     /** 일일 미션 보상 받기 → 받은 💰 */
@@ -415,6 +430,9 @@ class OnlineRepository(context: Context) {
         createdAt = getLong("createdAt"),
         luckyDay = getString("luckyDay"),
         luckyCoins = (getLong("luckyCoins") ?: 0).toInt(),
+        dragonDay = getString("dragonDay"),
+        dragonCoins = (getLong("dragonCoins") ?: 0).toInt(),
+        winStreak = (getLong("winStreak") ?: 0).toInt(),
         checkinDay = getString("checkinDay"),
         checkinStreak = (getLong("checkinStreak") ?: 0).toInt(),
         missionDay = getString("missionDay"),
@@ -484,6 +502,9 @@ class OnlineRepository(context: Context) {
             lastMove = getString("lastMove")?.let { Move.decode(it) },
             lastBy = getString("lastBy")?.let { runCatching { Side.valueOf(it) }.getOrNull() },
             lastLucky = getBoolean("lastLucky") ?: false,
+            lastCoins = (getLong("lastCoins") ?: 0).toInt(),
+            catStreak = (getLong("catStreak") ?: 0).toInt(),
+            hamStreak = (getLong("hamStreak") ?: 0).toInt(),
             turnStartedAt = getLong("turnStartedAt") ?: System.currentTimeMillis(),
             catDelta = getLong("catDelta")?.toInt(),
             hamDelta = getLong("hamDelta")?.toInt(),
@@ -556,3 +577,6 @@ class OnlineRepository(context: Context) {
             else adjectivesEn.random() + animalsEn.random() + Random.nextInt(10, 100)
     }
 }
+
+/** 출석 보상 결과 */
+data class CheckinResult(val day: Int, val coins: Int, val potion: Boolean, val panda: Int)

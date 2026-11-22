@@ -136,7 +136,7 @@ struct GameView<M: GameModel>: View {
         .onChange(of: game.lucky) { l in
             // 맞은 방울에서 금화가 튀어나옴 (판이 바뀌는 순간 = 방울이 부딪힌 순간)
             guard let l, let at = centers["\(l.side.opponent)\(l.to)"] else { return }
-            let pop = CoinPop(at: at)
+            let pop = CoinPop(at: at, amount: l.coins)
             coins.append(pop)
             DispatchQueue.main.asyncAfter(deadline: .now() + CoinPop.sec + 0.05) { coins.removeAll { $0.id == pop.id } }
         }
@@ -254,7 +254,7 @@ struct GameView<M: GameModel>: View {
         return SetBubbleView(
             side: opp, count: count, title: setName(i), mode: target ? .target : .normal, size: 140,
             preview: target ? previewFor(count) : nil, explodeKey: explodeKey(opp, i),
-            skin: game.opponentSkin, onTap: action
+            skin: game.opponentSkin, ribbons: game.opponentRibbons, onTap: action
         )
         .background(centerReader(opp, i))
     }
@@ -269,6 +269,7 @@ struct GameView<M: GameModel>: View {
             side: me, count: mine[i], title: setName(i), mode: mode, size: 150,
             preview: boostTarget ? "💪 " + previewFor(mine[i]) : nil, explodeKey: explodeKey(me, i),
             skin: game.mySkin,
+            ribbons: game.myRibbons,
             onTap: {
                 if boostTarget, let s = game.selected {
                     shoot(from: s, toOpponent: false, to: i)

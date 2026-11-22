@@ -131,7 +131,7 @@ fun BubbleApp(vm: AppViewModel) {
             // 사라지는 동안에도 마지막 내용을 보여줌
             val last = remember { mutableStateOf(checkin) }
             if (checkin != null) last.value = checkin
-            last.value?.let { CheckinCelebration(it.day, it.coins, it.potion, onDismiss = vm::dismissCheckin) }
+            last.value?.let { CheckinCelebration(it.day, it.coins, it.potion, panda = it.panda, onDismiss = vm::dismissCheckin) }
         }
         val mission = lobby.mission
         androidx.compose.animation.AnimatedVisibility(
@@ -863,7 +863,7 @@ private fun GameScreen(vm: AppViewModel) {
         if (l.id == firedLucky) return@LaunchedEffect
         firedLucky = l.id
         val at = centers["${l.side.opponent}${l.to}"] ?: return@LaunchedEffect
-        coins += CoinPop(System.nanoTime(), at - layerOrigin, mine = l.side == g.mySide)
+        coins += CoinPop(System.nanoTime(), at - layerOrigin, mine = l.side == g.mySide, amount = l.coins)
     }
 
     var selected by remember { mutableStateOf<Int?>(null) }
@@ -934,6 +934,7 @@ private fun GameScreen(vm: AppViewModel) {
                         mode = if (target) BubbleMode.TARGET else BubbleMode.NORMAL,
                         size = 140.dp,
                         skin = g.opponentSkin,
+                        ribbons = g.opponentRibbons,
                         preview = if (target) previewFor(theirs[i]) else null,
                         explodeKey = g.explosion?.takeIf { it.side == opp && it.index == i }?.id,
                         onClick = if (target) ({ shoot(sel!!, true, i) }) else null,
@@ -966,6 +967,7 @@ private fun GameScreen(vm: AppViewModel) {
                         },
                         size = 150.dp,
                         skin = g.mySkin,
+                        ribbons = g.myRibbons,
                         preview = if (boostTarget) "💪 " + previewFor(mine[i]) else null,
                         explodeKey = g.explosion?.takeIf { it.side == me && it.index == i }?.id,
                         modifier = Modifier.onGloballyPositioned { c ->
@@ -1755,11 +1757,12 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text, modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            tr("모습만 바뀌어요 (💰 복냥이만 특별 효과). 모든 대전에서 보여요", "Looks only (except 💰 Lucky Cat). Shown in every battle",
-                zh = "只改变外观（💰 招财猫有特别效果）。所有对战都会显示", es = "Solo aspecto (salvo 💰 Gato de la suerte). Se ve en todas las batallas",
-                fr = "Look seulement (sauf 💰 Chat porte-bonheur). Visible dans tous les combats", de = "Nur Look (außer 💰 Glückskatze). In jedem Duell sichtbar",
-                pt = "Só visual (exceto 💰 Gato da sorte). Aparece em todas as batalhas", ru = "Только вид (кроме 💰 Котика удачи). Виден в любом бою",
-                ja = "見た目だけ（💰 まねきネコだけ特別効果）。すべての対戦で表示"),
+            tr("승패에는 영향이 없어요. 💰 복냥이 · 🐼 판다 · 🐉 아기 용은 상점 포인트 보너스가 있어요",
+                "No effect on winning. 💰 Lucky Cat, 🐼 Panda and 🐉 Dragon give shop-point bonuses",
+                zh = "不影响胜负。💰 招财猫 · 🐼 熊猫 · 🐉 小龙有商店积分奖励", es = "No afectan al resultado. 💰 Gato, 🐼 Panda y 🐉 Dragón dan puntos de tienda",
+                fr = "Aucun effet sur la victoire. 💰 Chat, 🐼 Panda et 🐉 Dragon donnent des points boutique", de = "Kein Einfluss auf Sieg. 💰 Katze, 🐼 Panda und 🐉 Drache geben Shop-Punkte",
+                pt = "Não afetam a vitória. 💰 Gato, 🐼 Panda e 🐉 Dragão dão pontos da loja", ru = "На победу не влияют. 💰 Котик, 🐼 Панда и 🐉 Дракон дают очки магазина",
+                ja = "勝敗には影響なし。💰 まねきネコ · 🐼 パンダ · 🐉 ドラゴンはポイントボーナスあり"),
             fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(6.dp))
@@ -1769,16 +1772,14 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             val side = if (a.looksLikeCat) Side.CAT else Side.HAMSTER
             ShopCard(
                 title = a.label,
-                desc = if (a.lucky) luckyDesc(p) else tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh = "✨ 永久皮肤 · 无效果", es = "✨ Aspecto permanente · sin efecto",
-                    fr = "✨ Skin permanent · aucun effet", de = "✨ Dauerhafter Skin · kein Effekt", pt = "✨ Skin permanente · sem efeito",
-                    ru = "✨ Навсегда · без эффекта", ja = "✨ 永久スキン · 効果なし"),
+                desc = skinDesc(a, p),
                 price = if (have) null else a.price,
                 owned = when {
                     on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", hi = "✅ लगाया हुआ", es = "✅ Equipado", fr = "✅ Équipé", ar = "✅ مُجهَّز", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
                     have -> tr("💎 보유 중", "💎 Owned", zh = "💎 已拥有", es = "💎 Tuyo", fr = "💎 Possédé", de = "💎 Im Besitz", pt = "💎 Seu", ru = "💎 Есть", ja = "💎 所持中")
                     else -> null
                 },
-                art = { Critter(side, Modifier.size(84.dp), skin = a, happy = on) },
+                art = { Critter(side, Modifier.size(84.dp), skin = a, happy = on, ribbons = if (a == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS).coerceAtLeast(if (have) 0 else 3) else 0) },
             ) {
                 when {
                     on -> OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
@@ -1794,6 +1795,38 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
                     ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+
+        // 🦄 계급 캐릭터: 팔지 않고 다이아 계급이면 무료로 장착
+        Animal.entries.filter { it.rankOnly }.forEach { a ->
+            val unlocked = p.score >= a.rankMin
+            val on = p.equipped == a
+            ShopCard(
+                title = a.label,
+                desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(${a.rankMin}점)부터 무료로 장착", "🌈 Not for sale · free from 💎 Diamond rank (${a.rankMin} pts)",
+                    zh = "🌈 非卖品 · 💎 钻石段位（${a.rankMin} 分）起免费装备", es = "🌈 No se vende · gratis desde 💎 Diamante (${a.rankMin} pts)",
+                    fr = "🌈 Pas à vendre · gratuit dès 💎 Diamant (${a.rankMin} pts)", de = "🌈 Nicht käuflich · gratis ab 💎 Diamant (${a.rankMin} Pkt)",
+                    pt = "🌈 Não vende · grátis a partir de 💎 Diamante (${a.rankMin} pts)", ru = "🌈 Не продаётся · бесплатно с 💎 Алмаза (${a.rankMin} очк.)",
+                    ja = "🌈 非売品 · 💎 ダイヤ（${a.rankMin}点）から無料で装備"),
+                price = null,
+                owned = when {
+                    on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", es = "✅ Equipado", fr = "✅ Équipé", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
+                    unlocked -> tr("💎 해금됨", "💎 Unlocked", zh = "💎 已解锁", es = "💎 Desbloqueado", fr = "💎 Débloqué", de = "💎 Freigeschaltet", pt = "💎 Desbloqueado", ru = "💎 Открыто", ja = "💎 解放済み")
+                    else -> tr("🔒 앞으로 ${a.rankMin - p.score}점", "🔒 ${a.rankMin - p.score} pts to go", zh = "🔒 还差 ${a.rankMin - p.score} 分", es = "🔒 Faltan ${a.rankMin - p.score} pts",
+                        fr = "🔒 Encore ${a.rankMin - p.score} pts", de = "🔒 Noch ${a.rankMin - p.score} Pkt", pt = "🔒 Faltam ${a.rankMin - p.score} pts", ru = "🔒 Ещё ${a.rankMin - p.score} очк.", ja = "🔒 あと${a.rankMin - p.score}点")
+                },
+                art = { Critter(Side.HAMSTER, Modifier.size(84.dp).alpha(if (unlocked) 1f else 0.55f), skin = a, happy = on) },
+            ) {
+                when {
+                    on -> OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
+                        Text(tr("장착 해제", "Unequip", zh = "卸下", es = "Quitar", fr = "Retirer", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
+                    }
+                    else -> Button(
+                        onClick = { vm.equip(a) }, enabled = unlocked && !ui.shopBusy, shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                    ) { Text(if (unlocked) tr("장착하기", "Equip", zh = "装备", es = "Equipar", fr = "Équiper", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する") else "🔒", fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -2336,6 +2369,47 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
     }
 }
 
+
+/** 스킨 상점 설명 (효과가 있는 캐릭터는 조건을 숫자 그대로) */
+private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when (a) {
+    Animal.LUCKY_CAT -> luckyDesc(p)
+    Animal.OCTOPUS -> tr("🐙 분할하면 먹물이 퍽! · 모습·효과만", "🐙 Ink splash when you split · looks only", zh = "🐙 分裂时喷墨！· 仅外观",
+        es = "🐙 ¡Tinta al dividir! · solo aspecto", fr = "🐙 Jet d’encre en divisant · look seulement", de = "🐙 Tinte beim Teilen · nur Look",
+        pt = "🐙 Tinta ao dividir · só visual", ru = "🐙 Чернила при делении · только вид", ja = "🐙 分割でスミがぷしゅっ · 見た目だけ")
+    Animal.PENGUIN -> tr("🐧 공격하면 얼음 썰매가 쌩! · 모습·효과만", "🐧 Icy sled attacks · looks only", zh = "🐧 攻击时冰雪滑行！· 仅外观",
+        es = "🐧 ¡Ataques en trineo de hielo! · solo aspecto", fr = "🐧 Attaques en luge de glace · look seulement", de = "🐧 Eis-Schlitten-Angriffe · nur Look",
+        pt = "🐧 Ataques de trenó de gelo · só visual", ru = "🐧 Ледяные сани в атаке · только вид", ja = "🐧 攻撃でこおりソリ · 見た目だけ")
+    Animal.PANDA -> tr("🐼 장착하고 출석하면 💰 +${Shop.PANDA_CHECKIN_BONUS} 더 (하루 1번) · 영구", "🐼 Check in while equipped for 💰 +${Shop.PANDA_CHECKIN_BONUS} more (once a day) · permanent",
+        zh = "🐼 装备后签到多得 💰 +${Shop.PANDA_CHECKIN_BONUS}（每天 1 次）· 永久", es = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} extra al registrarte (1 al día) · permanente",
+        fr = "🐼 Équipé : 💰 +${Shop.PANDA_CHECKIN_BONUS} en plus à la présence (1/jour) · permanent", de = "🐼 Ausgerüstet: 💰 +${Shop.PANDA_CHECKIN_BONUS} beim Check-in (1×/Tag) · dauerhaft",
+        pt = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} na presença (1 por dia) · permanente", ru = "🐼 Надета: +${Shop.PANDA_CHECKIN_BONUS} 💰 за вход (1 раз в день) · навсегда",
+        ja = "🐼 装備して出席すると 💰 +${Shop.PANDA_CHECKIN_BONUS}（1日1回）· 永久")
+    Animal.DRAGON -> {
+        val today = if (p.dragonDay == OnlineRepository.today()) p.dragonCoins else 0
+        val mx = Shop.DRAGON_DAILY_MAX
+        tr("🐉 상대 방울을 터뜨릴 때마다 💰 +${Shop.DRAGON_POP_COINS}\n(하루 최대 $mx · 오늘 $today/$mx) · 영구",
+            "🐉 💰 +${Shop.DRAGON_POP_COINS} every time you pop a rival bubble\n(max $mx a day · today $today/$mx) · permanent",
+            zh = "🐉 每次打爆对手泡泡 💰 +${Shop.DRAGON_POP_COINS}\n（每天最多 $mx · 今天 $today/$mx）· 永久",
+            es = "🐉 💰 +${Shop.DRAGON_POP_COINS} cada vez que revientas una burbuja rival\n(máx. $mx al día · hoy $today/$mx) · permanente",
+            fr = "🐉 💰 +${Shop.DRAGON_POP_COINS} à chaque bulle adverse éclatée\n(max $mx par jour · aujourd’hui $today/$mx) · permanent",
+            de = "🐉 💰 +${Shop.DRAGON_POP_COINS} für jede geplatzte Gegnerblase\n(max. $mx pro Tag · heute $today/$mx) · dauerhaft",
+            pt = "🐉 💰 +${Shop.DRAGON_POP_COINS} a cada bolha rival estourada\n(máx. $mx por dia · hoje $today/$mx) · permanente",
+            ru = "🐉 💰 +${Shop.DRAGON_POP_COINS} за каждый лопнутый пузырь соперника\n(макс. $mx в день · сегодня $today/$mx) · навсегда",
+            ja = "🐉 相手の泡を割るたびに 💰 +${Shop.DRAGON_POP_COINS}\n（1日最大$mx · 今日 $today/$mx）· 永久")
+    }
+    Animal.RABBIT -> tr("🐰 연승할수록 리본이 하나씩 (최대 ${Shop.RABBIT_MAX_RIBBONS}개, 지면 처음부터) · 지금 ${p.winStreak}연승",
+        "🐰 A new ribbon for every win in a row (max ${Shop.RABBIT_MAX_RIBBONS}, resets on a loss) · streak ${p.winStreak}",
+        zh = "🐰 每连胜一场多一个蝴蝶结（最多 ${Shop.RABBIT_MAX_RIBBONS} 个，输了重来）· 当前 ${p.winStreak} 连胜",
+        es = "🐰 Un lazo por cada victoria seguida (máx. ${Shop.RABBIT_MAX_RIBBONS}) · racha ${p.winStreak}",
+        fr = "🐰 Un ruban par victoire d’affilée (max ${Shop.RABBIT_MAX_RIBBONS}) · série ${p.winStreak}",
+        de = "🐰 Eine Schleife pro Sieg in Folge (max. ${Shop.RABBIT_MAX_RIBBONS}) · Serie ${p.winStreak}",
+        pt = "🐰 Um laço por vitória seguida (máx. ${Shop.RABBIT_MAX_RIBBONS}) · sequência ${p.winStreak}",
+        ru = "🐰 Бантик за каждую победу подряд (макс. ${Shop.RABBIT_MAX_RIBBONS}) · серия ${p.winStreak}",
+        ja = "🐰 連勝ごとにリボンが1つ（最大${Shop.RABBIT_MAX_RIBBONS}個、負けるとリセット）· 今${p.winStreak}連勝")
+    else -> tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh = "✨ 永久皮肤 · 无效果", es = "✨ Aspecto permanente · sin efecto",
+        fr = "✨ Skin permanent · aucun effet", de = "✨ Dauerhafter Skin · kein Effekt", pt = "✨ Skin permanente · sem efeito",
+        ru = "✨ Навсегда · без эффекта", ja = "✨ 永久スキン · 効果なし")
+}
 
 /** 💰 복냥이 상점 설명: 확률·하루 최대를 숫자 그대로 표시 (확률 정보 공개) + 오늘 받은 양 */
 private fun luckyDesc(p: com.bubble.game.data.Profile): String {

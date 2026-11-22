@@ -10,6 +10,11 @@ import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import com.bubble.game.game.Board
 import com.bubble.game.game.Side
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -397,5 +402,29 @@ class ScreenshotTest {
             lastShot = Shot(Side.CAT, 0, false, 0, 6, ShotKind.REVIVE)) }
         shot("revive_drop", 300)
         shot("revive_burst", 500)
+    }
+
+    /** 새 캐릭터 6마리 그림 확인 */
+    @Test
+    fun newCritters() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            androidx.compose.foundation.layout.Column(
+                androidx.compose.ui.Modifier.fillMaxSize().background(Ui.bgTop).padding(16.dp),
+            ) {
+                listOf(
+                    listOf(com.bubble.game.game.Animal.OCTOPUS, com.bubble.game.game.Animal.PENGUIN, com.bubble.game.game.Animal.PANDA),
+                    listOf(com.bubble.game.game.Animal.DRAGON, com.bubble.game.game.Animal.RABBIT, com.bubble.game.game.Animal.UNICORN),
+                ).forEach { row ->
+                    androidx.compose.foundation.layout.Row {
+                        row.forEach { a ->
+                            Critter(Side.CAT, androidx.compose.ui.Modifier.size(120.dp), skin = a, ribbons = if (a == com.bubble.game.game.Animal.RABBIT) 5 else 0)
+                        }
+                    }
+                }
+                SetBubble(Side.CAT, 3, "1번 세트", BubbleMode.NORMAL, 150.dp, skin = com.bubble.game.game.Animal.RABBIT, ribbons = 2)
+            }
+        }
+        shot("new_critters", 300)
     }
 }

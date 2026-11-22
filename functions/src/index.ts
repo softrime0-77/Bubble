@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -109,6 +109,9 @@ interface Game {
   /** 이번 판에 장착한 캐릭터 (모습, 복냥이 효과 판정에도 씀) */
   catSkin?: string | null;
   hamSkin?: string | null;
+  /** 🐰 시작할 때의 연승 리본 수 */
+  catStreak?: number;
+  hamStreak?: number;
   moveNo: number;
   turnStartedAt: number;
 }
@@ -177,10 +180,12 @@ function finishGame(
       tx.update(users.cat.ref, {
         ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 0 }),
         score: FieldValue.increment(catDelta), [catWon ? "wins" : "losses"]: FieldValue.increment(1),
+        winStreak: catWon ? FieldValue.increment(1) : 0,
       });
       tx.update(users.ham.ref, {
         ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 0 }),
         score: FieldValue.increment(hamDelta), [catWon ? "losses" : "wins"]: FieldValue.increment(1),
+        winStreak: catWon ? 0 : FieldValue.increment(1),
       });
     }
     return;
@@ -196,12 +201,20 @@ function finishGame(
     ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 1 }),
     score: FieldValue.increment(catDelta),
     [catWon ? "wins" : "losses"]: FieldValue.increment(1),
+    winStreak: catWon ? FieldValue.increment(1) : 0,
   });
   tx.update(users.ham.ref, {
     ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 1 }),
     score: FieldValue.increment(hamDelta),
     [catWon ? "losses" : "wins"]: FieldValue.increment(1),
+    winStreak: catWon ? 0 : FieldValue.increment(1),
   });
+}
+
+/** 🐰 연승 토끼 리본 수 (연승 수, 최대 5). 토끼가 아니어도 기록해 두고 앱이 토끼일 때만 그림 */
+function ribbons(profile: DocumentSnapshot): number {
+  const s = (profile.get("winStreak") as number | undefined) ?? 0;
+  return Math.max(0, Math.min(RABBIT_MAX_RIBBONS, Math.floor(s)));
 }
 
 /** 부스터를 켜뒀고 남아 있으면 1개 쓰고 true. 다 쓰면 자동으로 끔. */
@@ -227,7 +240,7 @@ function useAnimal(tx: Transaction, profile: DocumentSnapshot): string | null {
   const equipped = profile.get("equipped") as string | null | undefined;
   // 무료 캐릭터(햄스터)는 모습만 바뀌고 소모되지 않음 (상대 턴 시간도 그대로)
   // 무료 햄스터·유료 스킨은 모습만 바뀌고 소모되지 않음 (상대 턴 시간도 그대로)
-  const look = lookSkin(equipped, profile.get("skins"));
+  const look = lookSkin(equipped, profile.get("skins"), (profile.get("score") as number | undefined) ?? START_SCORE);
   if (look) return look;
   if (!equipped || !ANIMALS[equipped]) return null;
   const left = (profile.get(`animals.${equipped}`) as number | undefined) ?? 0;
@@ -328,6 +341,8 @@ export const matchmake = onCall(async (req) => {
       hamCountry: iAmCat ? cleanCountry(opp.get("country")) : myCountry,
       catSkin: catAnimal,
       hamSkin: hamAnimal,
+      catStreak: ribbons(cat),
+      hamStreak: ribbons(ham),
       catBoost,
       hamBoost,
       catTurnMs: turnLimitAgainst(hamAnimal),
@@ -391,7 +406,11 @@ export const submitMove = onCall(async (req) => {
     const myRef = db.collection("users").doc(uid);
     const mySkin = side === "CAT" ? game.catSkin : game.hamSkin;
     const luckyAttack = mySkin === LUCKY_SKIN && move.kind === "add" && move.toOpponent;
-    const mine = move.kind === "revive" || luckyAttack ? await tx.get(myRef) : null;
+    // 수 결과는 계산만 먼저 (읽기는 모두 쓰기 전에)
+    const r = applyMove(board, side, move);
+    // 🐉 아기 용: 상대 방울을 터뜨리면 💰 +2 (하루 최대 10)
+    const dragonPop = mySkin === DRAGON_SKIN && r.exploded !== null && r.exploded.side !== side;
+    const mine = move.kind === "revive" || luckyAttack || dragonPop ? await tx.get(myRef) : null;
     if (move.kind === "revive" && (((mine?.get("potions") as number | undefined) ?? 0) < 1)) {
       throw err("failed-precondition", "부활물약이 없어요", "You have no revive potions");
     }
@@ -399,7 +418,8 @@ export const submitMove = onCall(async (req) => {
     const today = dayKey(Date.now());
     const luckyToday = mine && mine.get("luckyDay") === today ? ((mine.get("luckyCoins") as number | undefined) ?? 0) : 0;
     const lucky = luckyAttack && mine !== null && luckyRoll(luckyToday, Math.random());
-    const r = applyMove(board, side, move);
+    const dragonToday = mine && mine.get("dragonDay") === today ? ((mine.get("dragonCoins") as number | undefined) ?? 0) : 0;
+    const dragonGot = dragonPop && mine !== null ? dragonCoins(dragonToday) : 0;
     const update = {
       cat: r.board.cat,
       ham: r.board.ham,
@@ -419,6 +439,8 @@ export const submitMove = onCall(async (req) => {
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
       lastLucky: lucky,
+      /** 이번 수로 받은 💰 (복냥이 1 · 아기 용 2) */
+      lastCoins: (lucky ? 1 : 0) + dragonGot,
       moveNo: game.moveNo + 1,
       turnStartedAt: Date.now(),
     };
@@ -426,6 +448,7 @@ export const submitMove = onCall(async (req) => {
     const players = win ? await readPlayers(tx, game) : null;
     if (move.kind === "revive") tx.update(myRef, { potions: FieldValue.increment(-1) });
     if (lucky) tx.update(myRef, { coins: FieldValue.increment(1), luckyDay: today, luckyCoins: luckyToday + 1 });
+    if (dragonGot > 0) tx.update(myRef, { coins: FieldValue.increment(dragonGot), dragonDay: today, dragonCoins: dragonToday + dragonGot });
     if (win && players) {
       finishGame(tx, ref, game, win, "normal", players, update);
     } else {
@@ -474,6 +497,7 @@ async function aiTurn(gameId: string) {
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
       lastLucky: false,
+      lastCoins: 0,
       moveNo: game.moveNo + 1,
       turnStartedAt: Date.now(),
     };
@@ -507,7 +531,7 @@ export const startAiGame = onCall(async (req) => {
   const myScore = me.get("score") ?? START_SCORE;
   const myRevives = revivesForGame(me.get("potions"));
   const eq = me.get("equipped") as string | null | undefined;
-  const aiSkin = lookSkin(eq, me.get("skins")) ?? (eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null);
+  const aiSkin = lookSkin(eq, me.get("skins"), (me.get("score") as number | undefined) ?? START_SCORE) ?? (eq && ((me.get(`animals.${eq}`) as number | undefined) ?? 0) > 0 ? eq : null);
   await gameRef.set({
     vsAi: level,
     catCountry: humanIsCat ? country : null,
@@ -521,6 +545,8 @@ export const startAiGame = onCall(async (req) => {
     // AI 대전은 시간 제한이 없어 동물을 쓰지 않음 (남아 있으면 모습만)
     catSkin: humanIsCat ? aiSkin : null,
     hamSkin: humanIsCat ? null : aiSkin,
+    catStreak: humanIsCat ? ribbons(me) : 0,
+    hamStreak: humanIsCat ? 0 : ribbons(me),
     cat: [1, 1],
     ham: [1, 1],
     catSplits: MAX_SPLITS,
@@ -709,7 +735,7 @@ export const buyItem = onCall(async (req) => {
 export const equipAnimal = onCall(async (req) => {
   const uid = requireUser(req);
   const animal = (req.data as { animal?: unknown } | null)?.animal ?? null;
-  if (animal !== null && (typeof animal !== "string" || (!ANIMALS[animal] && !isFreeSkin(animal) && !isCosmetic(animal)))) {
+  if (animal !== null && (typeof animal !== "string" || (!ANIMALS[animal] && !isFreeSkin(animal) && !isCosmetic(animal) && !isRankSkin(animal)))) {
     throw err("invalid-argument", "없는 캐릭터예요", "No such character");
   }
   const userRef = db.collection("users").doc(uid);
@@ -717,7 +743,12 @@ export const equipAnimal = onCall(async (req) => {
     const u = await tx.get(userRef);
     const left = animal === null ? 0 : ((u.get(`animals.${animal}`) as number | undefined) ?? 0);
     // 무료 캐릭터는 가진 개수와 상관없이 장착
-    if (isCosmetic(animal)) {
+    if (isRankSkin(animal)) {
+      // 🦄 계급 캐릭터: 팔지 않고, 계급이 되면 장착
+      if (((u.get("score") as number | undefined) ?? START_SCORE) < RANK_SKINS[animal]) {
+        throw err("failed-precondition", "다이아 계급부터 장착할 수 있어요", "Unlocks at Diamond rank");
+      }
+    } else if (isCosmetic(animal)) {
       const skins = u.get("skins") as unknown;
       if (!Array.isArray(skins) || !skins.includes(animal)) {
         throw err("failed-precondition", "아직 없는 스킨이에요", "You don't own this skin yet");
@@ -1170,8 +1201,10 @@ export const joinFriendRoom = onCall(async (req) => {
       catCountry: iAmCat ? myCountry : hostCountry,
       hamCountry: iAmCat ? hostCountry : myCountry,
       // 친구 대전: 동물(효과)은 안 쓰고, 무료 캐릭터(햄스터 옷)는 모습만 보여줌
-      catSkin: lookSkin(cat.get("equipped"), cat.get("skins")),
-      hamSkin: lookSkin(ham.get("equipped"), ham.get("skins")),
+      catSkin: lookSkin(cat.get("equipped"), cat.get("skins"), (cat.get("score") as number | undefined) ?? START_SCORE),
+      hamSkin: lookSkin(ham.get("equipped"), ham.get("skins"), (ham.get("score") as number | undefined) ?? START_SCORE),
+      catStreak: ribbons(cat),
+      hamStreak: ribbons(ham),
       catBoost: false,
       hamBoost: false,
       catTurnMs: TURN_LIMIT_MS,
@@ -1209,11 +1242,13 @@ export const claimDaily = onCall({ invoker: "public" }, async (req) => {
     if (day === null) throw err("already-exists", "오늘은 이미 출석했어요", "You've already checked in today");
     const coins = CHECKIN_COINS[day - 1];
     const potion = day === CHECKIN_POTION_DAY;
+    // 🐼 출석 판다를 장착하고 있으면 💰 +5
+    const panda = pandaEquipped(u.get("equipped"), u.get("skins")) ? PANDA_CHECKIN_BONUS : 0;
     tx.update(ref, {
-      checkinDay: today, checkinStreak: day, coins: FieldValue.increment(coins),
+      checkinDay: today, checkinStreak: day, coins: FieldValue.increment(coins + panda),
       ...(potion ? { potions: FieldValue.increment(1) } : {}),
     });
-    return { day, coins, potion };
+    return { day, coins, potion, panda };
   });
 });
 

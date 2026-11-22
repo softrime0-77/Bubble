@@ -128,6 +128,12 @@ extension Animal {
         case .blackCat: return pick(["까망 고양이", "Black Cat", "小黑猫", "काली बिल्ली", "Gato negro", "Chat noir", "قطة سوداء", "Schwarze Katze", "Gato preto", "Чёрный котик", "くろネコ"])
         case .snowHamster: return pick(["눈송이 햄스터", "Snow Hamster", "雪花仓鼠", "स्नो हैम्स्टर", "Hámster nieve", "Hamster neige", "هامستر الثلج", "Schneehamster", "Hamster neve", "Снежный хомяк", "ゆきハムスター"])
         case .goldHamster: return pick(["황금 햄스터", "Golden Hamster", "黄金仓鼠", "गोल्डन हैम्स्टर", "Hámster dorado", "Hamster doré", "هامستر ذهبي", "Goldhamster", "Hamster dourado", "Золотой хомяк", "きんハムスター"])
+        case .octopus: return pick(["문어", "Octopus", "章鱼", "ऑक्टोपस", "Pulpo", "Pieuvre", "أخطبوط", "Oktopus", "Polvo", "Осьминог", "タコ"])
+        case .penguin: return pick(["펭귄", "Penguin", "企鹅", "पेंगुइन", "Pingüino", "Pingouin", "بطريق", "Pinguin", "Pinguim", "Пингвин", "ペンギン"])
+        case .panda: return pick(["출석 판다", "Check-in Panda", "签到熊猫", "हाज़िरी पांडा", "Panda asistente", "Panda de présence", "باندا الحضور", "Check-in-Panda", "Panda da presença", "Панда-отметка", "しゅっせきパンダ"])
+        case .dragon: return pick(["아기 용", "Baby Dragon", "小龙", "बेबी ड्रैगन", "Dragoncito", "Bébé dragon", "تنين صغير", "Babydrache", "Dragãozinho", "Дракончик", "ちびドラゴン"])
+        case .rabbit: return pick(["연승 토끼", "Streak Bunny", "连胜兔", "जीत खरगोश", "Conejo racha", "Lapin série", "أرنب الانتصارات", "Siegeshase", "Coelho da sequência", "Зайка-серия", "れんしょうウサギ"])
+        case .unicorn: return pick(["유니콘", "Unicorn", "独角兽", "यूनिकॉर्न", "Unicornio", "Licorne", "وحيد القرن", "Einhorn", "Unicórnio", "Единорог", "ユニコーン"])
         case .luckyCat: return pick(["복냥이", "Lucky Cat", "招财猫", "लकी बिल्ली", "Gato de la suerte", "Chat porte-bonheur", "قطة الحظ", "Glückskatze", "Gato da sorte", "Котик удачи", "まねきネコ"])
         }
     }

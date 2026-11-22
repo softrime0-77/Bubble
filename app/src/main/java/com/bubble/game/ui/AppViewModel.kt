@@ -54,6 +54,9 @@ data class Shot(val side: Side, val from: Int, val toOpponent: Boolean, val to: 
 /** 출석 보상 받은 결과 (축하 팝업용) */
 data class CheckinReward(val day: Int, val coins: Int, val potion: Boolean)
 
+/** 미션 보상 받은 결과 (축하 팝업용) */
+data class MissionReward(val label: String, val coins: Int)
+
 data class GameUi(
     val online: Boolean,
     val board: Board = Board(),
@@ -118,6 +121,8 @@ data class LobbyUi(
     val shopBusy: Boolean = false,
     /** 출석 완료 축하 팝업 */
     val checkin: CheckinReward? = null,
+    /** 미션 완료 축하 팝업 */
+    val mission: MissionReward? = null,
     /** 가입 환영 팝업: ("new" / "returning" / "admin", 시작 점수) */
     val welcome: Pair<String, Int>? = null,
     /** 동시 접속자 수 (관리자만) */
@@ -813,32 +818,26 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
 
     fun dismissCheckin() = _lobby.update { it.copy(checkin = null) }
 
-    fun claimMission(id: String) = rewardAction {
-        val coins = repo.claimMission(id)
-        tr("🎯 미션 완료! 💰 +$coins", "🎯 Mission complete! 💰 +$coins", zh = "🎯 任务完成！💰 +$coins", es = "🎯 ¡Misión cumplida! 💰 +$coins",
-            fr = "🎯 Mission réussie ! 💰 +$coins", de = "🎯 Mission geschafft! 💰 +$coins", pt = "🎯 Missão cumprida! 💰 +$coins",
-            ru = "🎯 Задание выполнено! 💰 +$coins", ja = "🎯 ミッション達成！💰 +$coins")
-    }
-
-    fun ackWeeklyReward() {
-        viewModelScope.launch { repo.ackWeeklyReward() }
-    }
-
-    private fun rewardAction(action: suspend () -> String) {
+    /** 미션 보상 받기 → 축하 팝업 ([label]은 팝업에 보여줄 미션 이름) */
+    fun claimMission(id: String, label: String) {
         if (_lobby.value.shopBusy) return
         _lobby.update { it.copy(shopBusy = true, error = null) }
         viewModelScope.launch {
             try {
-                val msg = action()
-                _lobby.update { it.copy(shopBusy = false, info = msg) }
-                delay(4_000)
-                _lobby.update { if (it.info == msg) it.copy(info = null) else it }
+                val coins = repo.claimMission(id)
+                _lobby.update { it.copy(shopBusy = false, mission = MissionReward(label, coins)) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 _lobby.update { it.copy(shopBusy = false, error = e.message) }
             }
         }
+    }
+
+    fun dismissMission() = _lobby.update { it.copy(mission = null) }
+
+    fun ackWeeklyReward() {
+        viewModelScope.launch { repo.ackWeeklyReward() }
     }
 
     /** 상점: 광고 보고 💖 부활물약 받기 → AdMob이 서버에 알려주면 물약이 들어옴 */

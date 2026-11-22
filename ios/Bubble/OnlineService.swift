@@ -33,6 +33,8 @@ struct Profile: Equatable {
     var noAds = false
     /// 첫 포인트 구매를 했는지 (안 했으면 첫 구매 2배)
     var firstBuyDone = false
+    /// 가입 시각 (ms). 첫 구매 2배는 가입 후 7일 동안만
+    var createdAt: Int? = nil
     /// 출석: 마지막으로 받은 날(한국 시간)과 연속 일수
     var checkinDay: String? = nil
     var checkinStreak = 0
@@ -162,6 +164,8 @@ final class OnlineService: ObservableObject {
     @Published var rankUpScore: Int? = nil
     /// 출석 완료 축하 팝업 (몇 일째, 💰, 💖 물약)
     @Published var checkin: CheckinReward? = nil
+    /// 미션 완료 축하 팝업 (미션 이름, 💰)
+    @Published var mission: MissionReward? = nil
 
     private var appleNonce: String? = nil
     private var infoTask: Task<Void, Never>? = nil
@@ -447,14 +451,23 @@ final class OnlineService: ObservableObject {
         }
     }
 
-    func claimMission(_ id: String) async {
+    /// 미션 보상 받기 → 축하 팝업 ([label]은 팝업에 보여줄 미션 이름)
+    func claimMission(_ id: String, label: String) async {
         await shopAction("") {
             let r = try await call("claimMission", ["id": id])
             let coins = Self.int(r["coins"]) ?? 0
-            show(tr("🎯 미션 완료! 💰 +\(coins)", "🎯 Mission complete! 💰 +\(coins)", zh: "🎯 任务完成！💰 +\(coins)", es: "🎯 ¡Misión cumplida! 💰 +\(coins)",
-                    fr: "🎯 Mission réussie ! 💰 +\(coins)", de: "🎯 Mission geschafft! 💰 +\(coins)", pt: "🎯 Missão cumprida! 💰 +\(coins)",
-                    ru: "🎯 Задание выполнено! 💰 +\(coins)", ja: "🎯 ミッション達成！💰 +\(coins)"))
+            mission = MissionReward(label: label, coins: coins)
         }
+    }
+
+    /// 첫 구매 2배 기간: 가입 후 7일 (functions/src/catalog.ts FIRST_BUY_WINDOW_MS와 같게)
+    static let firstBuyWindowMs = 7 * 86_400_000
+
+    /// 첫 구매 2배가 끝나기까지 남은 초. 이미 샀거나 기간이 지났으면 nil
+    static func firstBuyLeft(_ p: Profile?, now: Date = Date()) -> TimeInterval? {
+        guard let p, !p.firstBuyDone, let joined = p.createdAt else { return nil }
+        let left = Double(joined + firstBuyWindowMs) / 1000 - now.timeIntervalSince1970
+        return left > 0 ? left : nil
     }
 
     func ackWeeklyReward() {
@@ -645,6 +658,7 @@ final class OnlineService: ObservableObject {
             skins: Set(((d["skins"] as? [Any]) ?? []).compactMap { ($0 as? String).flatMap(Animal.init(rawValue:)) }),
             noAds: d["noAds"] as? Bool ?? false,
             firstBuyDone: d["firstBuyDone"] as? Bool ?? false,
+            createdAt: int(d["createdAt"]),
             checkinDay: d["checkinDay"] as? String,
             checkinStreak: int(d["checkinStreak"]) ?? 0,
             missionDay: d["missionDay"] as? String,
@@ -717,4 +731,10 @@ struct CheckinReward: Equatable {
     let day: Int
     let coins: Int
     let potion: Bool
+}
+
+/// 미션 보상 받은 결과 (축하 팝업용)
+struct MissionReward: Equatable {
+    let label: String
+    let coins: Int
 }

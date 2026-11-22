@@ -92,6 +92,9 @@ struct RootView: View {
                         online.show(t("📺 광고 보상 확인 중… 곧 점수가 돌아와요"))
                     }, done: {})
                 })
+            } else if let m = online.mission, screen.key == "lobby" {
+                MissionCelebration(label: m.label, coins: m.coins) { online.mission = nil }
+                    .transition(.opacity)
             } else if let c = online.checkin, screen.key == "lobby" {
                 CheckinCelebration(day: c.day, coins: c.coins, potion: c.potion) { online.checkin = nil }
                     .transition(.opacity)
@@ -293,6 +296,9 @@ struct RootView: View {
         case "checkin":
             online.setDemoProfile(profile)
             online.checkin = CheckinReward(day: 7, coins: 100, potion: true)
+        case "mission":
+            online.setDemoProfile(profile)
+            online.mission = MissionReward(label: t("2판 이기기"), coins: 30)
         default:
             break
         }

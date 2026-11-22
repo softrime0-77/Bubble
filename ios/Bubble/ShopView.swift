@@ -219,7 +219,7 @@ struct ShopView: View {
                         zh: "🎁 首充双倍！第一次充值的积分翻倍", es: "🎁 ¡Primera compra x2! Tu primera recarga vale el doble",
                         fr: "🎁 Premier achat x2 ! Ta première recharge est doublée", de: "🎁 Erster Kauf x2! Deine erste Aufladung wird verdoppelt",
                         pt: "🎁 Primeira compra x2! Sua primeira recarga vale em dobro", ru: "🎁 Первая покупка x2! Первое пополнение удваивается",
-                        ja: "🎁 初回購入2倍！最初のチャージは2倍になります"))
+                        ja: "🎁 初回購入2倍！最初のチャージは2倍になります") + "\n" + firstBuyLeftText)
                     .font(.system(size: 14, weight: .black)).foregroundColor(UiColor.danger)
                     .padding(8).frame(maxWidth: .infinity, alignment: .leading)
                     .background(RoundedRectangle(cornerRadius: 12).fill(UiColor.danger.opacity(0.08)))
@@ -250,7 +250,24 @@ struct ShopView: View {
         }
     }
 
-    private var firstBuy: Bool { online.profile?.firstBuyDone == false }
+    /// 첫 구매 2배는 가입 후 7일 동안만
+    private var firstBuy: Bool { OnlineService.firstBuyLeft(online.profile) != nil }
+
+    /// "⏰ 가입 후 7일 한정 · N일 M시간 남음"
+    private var firstBuyLeftText: String {
+        let sec = Int(OnlineService.firstBuyLeft(online.profile) ?? 0)
+        let h = sec / 3600, d = h / 24, hh = h % 24, m = (sec / 60) % 60
+        if d > 0 {
+            return tr("⏰ 가입 후 7일 한정 · \(d)일 \(hh)시간 남음", "⏰ First 7 days only · \(d)d \(hh)h left", zh: "⏰ 注册后 7 天内有效 · 剩 \(d) 天 \(hh) 小时",
+                      es: "⏰ Solo los 7 primeros días · quedan \(d) d \(hh) h", fr: "⏰ 7 premiers jours seulement · encore \(d) j \(hh) h",
+                      de: "⏰ Nur in den ersten 7 Tagen · noch \(d) T \(hh) Std", pt: "⏰ Só nos 7 primeiros dias · faltam \(d) d \(hh) h",
+                      ru: "⏰ Только первые 7 дней · осталось \(d) д \(hh) ч", ja: "⏰ 登録から7日間限定 · 残り\(d)日\(hh)時間")
+        }
+        return tr("⏰ 가입 후 7일 한정 · \(hh)시간 \(m)분 남음!", "⏰ First 7 days only · \(hh)h \(m)m left!", zh: "⏰ 注册后 7 天内有效 · 剩 \(hh) 小时 \(m) 分！",
+                  es: "⏰ Solo los 7 primeros días · ¡quedan \(hh) h \(m) min!", fr: "⏰ 7 premiers jours seulement · plus que \(hh) h \(m) min !",
+                  de: "⏰ Nur in den ersten 7 Tagen · noch \(hh) Std \(m) Min!", pt: "⏰ Só nos 7 primeiros dias · faltam \(hh) h \(m) min!",
+                  ru: "⏰ Только первые 7 дней · осталось \(hh) ч \(m) мин!", ja: "⏰ 登録から7日間限定 · 残り\(hh)時間\(m)分！")
+    }
 
     /// 🚫 광고 제거 (비소모품) + 구매 복원
     @ViewBuilder

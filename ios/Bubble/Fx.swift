@@ -472,7 +472,7 @@ private struct CheckinFrame: View {
     private var countEase: CGFloat { let c = clamp01(CGFloat((el - 0.65) / 0.9)); return 1 - (1 - c) * (1 - c) * (1 - c) }
 
     /// 회전하는 빛줄기 + 떨어지는 색종이
-    private static func drawBackdrop(_ ctx: inout GraphicsContext, _ size: CGSize, _ now: Double, _ shine: CGFloat) {
+    fileprivate static func drawBackdrop(_ ctx: inout GraphicsContext, _ size: CGSize, _ now: Double, _ shine: CGFloat) {
         let c = CGPoint(x: size.width / 2, y: size.height * 0.42)
         let big: CGFloat = max(size.width, size.height)
         let spin = CGFloat(now.truncatingRemainder(dividingBy: 9) / 9)
@@ -664,5 +664,160 @@ private struct CheckinFrame: View {
         .padding(.horizontal, 16).padding(.vertical, 8)
         .background(Capsule().fill(color.opacity(0.18)))
         .overlay(Capsule().stroke(color.opacity(0.7), lineWidth: 2))
+    }
+}
+
+// ======================= 미션 완료 팝업 =======================
+
+/// 미션 보상 받기! 과녁이 빙글 돌며 튀어나오고 팡 터짐 · 💰 숫자 올라가기
+struct MissionCelebration: View {
+    let label: String
+    let coins: Int
+    let onClose: () -> Void
+    @State private var startedAt = Date()
+    @State private var pop = false
+
+    var body: some View {
+        TimelineView(.animation) { tl in
+            MissionFrame(label: label, coins: coins, onClose: onClose,
+                         el: tl.date.timeIntervalSince(startedAt), now: tl.date.timeIntervalSinceReferenceDate, pop: pop)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onClose)
+        .onAppear {
+            startedAt = Date()
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.5)) { pop = true }
+        }
+    }
+}
+
+private struct MissionFrame: View {
+    let label: String
+    let coins: Int
+    let onClose: () -> Void
+    let el: Double
+    let now: Double
+    let pop: Bool
+
+    private static let burstParts = fxParts(30, seed: 41)
+    private static let burstTheme = FxTheme(colors: [UiColor.gold, Color(hex: 0x5CD6B4), .white, UiColor.primary], shapes: [.coin, .star], emoji: "🎯")
+    private static let mint = Color(hex: 0x5CD6B4)
+
+    /// 과녁: 0.25초 뒤 통통 튀며 한 바퀴 돌고 나타남
+    private var badge: CGFloat {
+        let x = clamp01(CGFloat((el - 0.25) / 0.6))
+        // 살짝 넘쳤다가 돌아오는 느낌
+        let over: CGFloat = fsin(x * .pi) * 0.25 * (1 - x)
+        return x + over
+    }
+    private var burstP: CGFloat { clamp01(CGFloat((el - 0.42) / 1.1)) }
+    private var countEase: CGFloat { let c = clamp01(CGFloat((el - 0.5) / 0.8)); return 1 - (1 - c) * (1 - c) * (1 - c) }
+
+    private static func drawBadgeFx(_ ctx: inout GraphicsContext, _ sz: CGSize, _ burstP: CGFloat, _ now: Double) {
+        let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
+        let m: CGFloat = min(sz.width, sz.height)
+        if burstP > 0 && burstP < 1 {
+            drawBurst(&ctx, c, m / 2 * 0.75, burstP, burstTheme, burstParts, rays: 16)
+        }
+        let tw0 = CGFloat(now.truncatingRemainder(dividingBy: 1.6) / 1.6)
+        let colors: [Color] = [UiColor.gold, mint, UiColor.accent]
+        for i in 0..<6 {
+            let fi = CGFloat(i)
+            let tw: CGFloat = 0.5 + 0.5 * fsin(tw0 * 2 * tau + fi * 1.3)
+            ctx.fill(sparklePath(polar(c, (tw0 + fi / 6) * tau, m * 0.36), 9 * tw), with: .color(colors[i % 3]))
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            RadialGradient(colors: [Color(hex: 0x1F3A5C, alpha: 0.8), Color(hex: 0x0B1622, alpha: 0.93)], center: .center, startRadius: 0, endRadius: 600)
+                .ignoresSafeArea()
+            Canvas { ctx, size in CheckinFrame.drawBackdrop(&ctx, size, now, pop ? 1 : 0) }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            card
+                .scaleEffect(pop ? 1 : 0.6)
+                .opacity(pop ? 1 : 0)
+        }
+    }
+
+    private var card: some View {
+        VStack(spacing: 0) {
+            badgeView
+            title
+            Text("✅ " + label)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(UiColor.text.opacity(0.8))
+                .padding(.top, 6)
+            coinChip.padding(.top, 16)
+            Text(tr("상점에서 쓸 수 있는 💰 포인트가 들어왔어요", "💰 shop points added — spend them in the shop", zh: "💰 商店积分已到账", es: "💰 Puntos de tienda añadidos",
+                    fr: "💰 Points boutique ajoutés", de: "💰 Shop-Punkte gutgeschrieben", pt: "💰 Pontos da loja adicionados", ru: "💰 Очки магазина начислены",
+                    ja: "💰 ショップポイントが入りました"))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(UiColor.text.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .padding(.top, 10)
+            okButton.padding(.top, 16)
+        }
+        .padding(.horizontal, 22).padding(.vertical, 24)
+        .background(RoundedRectangle(cornerRadius: 30).fill(LinearGradient(colors: [Color(hex: 0xF4FFFB), Color(hex: 0xEFF3FF)], startPoint: .top, endPoint: .bottom)))
+        .overlay(RoundedRectangle(cornerRadius: 30).stroke(AngularGradient(colors: [Self.mint, UiColor.gold, UiColor.accent, Color(hex: 0x6EC1FF), Self.mint], center: .center), lineWidth: 3))
+        .contentShape(Rectangle())
+        .onTapGesture {}
+        .padding(28)
+    }
+
+    private var badgeView: some View {
+        let b = badge
+        let bp = burstP
+        let t0 = now
+        let spin: Double = Double((1 - min(1, b)) * -360)
+        return ZStack {
+            Canvas { ctx, sz in Self.drawBadgeFx(&ctx, sz, bp, t0) }
+                .frame(width: 220, height: 220)
+                .allowsHitTesting(false)
+            ZStack {
+                Circle().fill(RadialGradient(colors: [Color(hex: 0x7BE3C4), Color(hex: 0x2FB58F)], center: .center, startRadius: 0, endRadius: 54))
+                Circle().stroke(Color.white, lineWidth: 4)
+                Text("🎯").font(.system(size: 54))
+            }
+            .frame(width: 108, height: 108)
+            .scaleEffect(max(0.01, b))
+            .rotationEffect(.degrees(spin))
+        }
+        .frame(width: 130, height: 130)
+    }
+
+    private var title: some View {
+        Text(tr("미션 완료!", "Mission complete!", zh: "任务完成！", es: "¡Misión cumplida!", fr: "Mission réussie !", de: "Mission geschafft!",
+                pt: "Missão cumprida!", ru: "Задание выполнено!", ja: "ミッション達成！"))
+            .font(.system(size: 30, weight: .black))
+            .foregroundStyle(LinearGradient(colors: [Color(hex: 0x1F9E7A), UiColor.accent], startPoint: .leading, endPoint: .trailing))
+            .shadow(color: UiColor.gold.opacity(0.6), radius: 5, y: 3)
+            .padding(.top, 10)
+    }
+
+    private var coinChip: some View {
+        let shown = Int((CGFloat(coins) * countEase).rounded())
+        let scale: CGFloat = 0.85 + 0.15 * countEase
+        return HStack(spacing: 6) {
+            Text("💰").font(.system(size: 24))
+            Text("+\(shown)").font(.system(size: 24, weight: .black)).foregroundColor(UiColor.text).monospacedDigit()
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .background(Capsule().fill(UiColor.gold.opacity(0.18)))
+        .overlay(Capsule().stroke(UiColor.gold.opacity(0.7), lineWidth: 2))
+        .scaleEffect(scale)
+    }
+
+    private var okButton: some View {
+        Button(action: onClose) {
+            Text(tr("좋아요! 💕", "Yay! 💕", zh: "太好了！💕", es: "¡Genial! 💕", fr: "Super ! 💕", de: "Juhu! 💕", pt: "Oba! 💕", ru: "Ура! 💕", ja: "やった！💕"))
+                .font(.system(size: 18, weight: .black))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Capsule().fill(LinearGradient(colors: [Color(hex: 0x3CC9A0), UiColor.accent], startPoint: .leading, endPoint: .trailing)))
+        }
     }
 }

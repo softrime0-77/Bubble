@@ -76,6 +76,9 @@ data class Profile(
     /** 🐰 연승 토끼로 오늘 받은 포인트 (rabbitDay가 오늘일 때만 유효) */
     val rabbitDay: String? = null,
     val rabbitCoins: Int = 0,
+    /** 🦄 유니콘 무지개 축복으로 오늘 받은 포인트 (unicornDay가 오늘일 때만 유효) */
+    val unicornDay: String? = null,
+    val unicornCoins: Int = 0,
     /** 🐰 연승 (랜덤 매칭·점수 걸린 친구 대전) */
     val winStreak: Int = 0,
     /** ✏️ 닉네임: 첫 무료 변경을 썼는지, 가진 변경권 수 */
@@ -167,6 +170,8 @@ data class OnlineGame(
     /** 🐰 이긴 쪽이 이 판으로 된 연승과 받은 💰 (연승 토끼일 때만) */
     val rabbitStreak: Int = 0,
     val rabbitCoins: Int = 0,
+    /** 🦄 이긴 쪽이 유니콘 무지개 축복으로 받은 💰 */
+    val unicornCoins: Int = 0,
     /** 친구 대전이면 true, 점수가 걸린 판이면 rated */
     val vsFriend: Boolean = false,
     val rated: Boolean = false,
@@ -472,6 +477,8 @@ class OnlineRepository(context: Context) {
         dragonCoins = (getLong("dragonCoins") ?: 0).toInt(),
         rabbitDay = getString("rabbitDay"),
         rabbitCoins = (getLong("rabbitCoins") ?: 0).toInt(),
+        unicornDay = getString("unicornDay"),
+        unicornCoins = (getLong("unicornCoins") ?: 0).toInt(),
         winStreak = (getLong("winStreak") ?: 0).toInt(),
         freeRenameUsed = getBoolean("freeRenameUsed") ?: false,
         renameTickets = (getLong("renameTickets") ?: 0).toInt(),
@@ -549,6 +556,7 @@ class OnlineRepository(context: Context) {
             hamStreak = (getLong("hamStreak") ?: 0).toInt(),
             rabbitStreak = (getLong("rabbitStreak") ?: 0).toInt(),
             rabbitCoins = (getLong("rabbitCoins") ?: 0).toInt(),
+            unicornCoins = (getLong("unicornCoins") ?: 0).toInt(),
             turnStartedAt = getLong("turnStartedAt") ?: System.currentTimeMillis(),
             catDelta = getLong("catDelta")?.toInt(),
             hamDelta = getLong("hamDelta")?.toInt(),

@@ -169,6 +169,16 @@ fun RankingRow(p: RankedPlayer, me: Boolean, onClick: () -> Unit) {
                         shadow = androidx.compose.ui.graphics.Shadow(Color.White, Offset.Zero, 8f),
                     ),
                 )
+            } else if (p.look == Animal.UNICORN) {
+                // 🦄 유니콘: 닉네임이 무지개색으로 흐름
+                val x = goldShift * 600f
+                Text(
+                    name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        brush = Brush.linearGradient(rainbowText, start = Offset(x - 300f, 0f), end = Offset(x, 0f), tileMode = androidx.compose.ui.graphics.TileMode.Mirror),
+                        fontSize = if (level >= 8) 16.sp else 14.sp, fontWeight = FontWeight.Black,
+                    ),
+                )
             } else {
                 Text(
                     name, modifier = Modifier.weight(1f), color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis,

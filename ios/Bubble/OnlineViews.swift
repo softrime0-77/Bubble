@@ -333,6 +333,17 @@ struct VsIntro: View {
 
     /// 🐰 연승 토끼 알림: 상대가 5연승 이상이면 경고, 내가 토끼면 다음 보상
     @ViewBuilder private var rabbitNotices: some View {
+        if game.opponentSkin == .unicorn {
+            notice(tr("🦄 다이아 전용 유니콘 등장!", "🦄 A Diamond-only Unicorn appears!", zh: "🦄 钻石专属独角兽登场！", es: "🦄 ¡Aparece un unicornio exclusivo de Diamante!",
+                      fr: "🦄 Une licorne réservée au Diamant apparaît !", de: "🦄 Ein Diamant-Einhorn erscheint!", pt: "🦄 Surge um unicórnio exclusivo do Diamante!",
+                      ru: "🦄 Появился единорог для Алмазов!", ja: "🦄 ダイヤ専用ユニコーン登場！"), Color(hex: 0x8E6CF0))
+        }
+        if game.mySkin == .unicorn {
+            let c = Shop.unicornWinCoins
+            notice(tr("🌈 무지개 축복: 이기면 💰+\(c)", "🌈 Rainbow blessing: win = 💰+\(c)", zh: "🌈 彩虹祝福：赢了 💰+\(c)",
+                      es: "🌈 Bendición arcoíris: gana = 💰+\(c)", fr: "🌈 Bénédiction : victoire = 💰+\(c)", de: "🌈 Regenbogensegen: Sieg = 💰+\(c)",
+                      pt: "🌈 Bênção arco-íris: vitória = 💰+\(c)", ru: "🌈 Благословение: победа = 💰+\(c)", ja: "🌈 にじの祝福：勝つと 💰+\(c)"), UiColor.primary)
+        }
         if game.opponentSkin == .rabbit && game.opponentRibbons >= Shop.rabbitMaxRibbons {
             notice(tr("🔥 상대가 연승 토끼로 5연승 이상 중!", "🔥 Your rival's Streak Bunny is on a 5+ win streak!",
                       zh: "🔥 对手的连胜兔已经 5 连胜以上！", es: "🔥 ¡El conejo de tu rival lleva 5+ victorias seguidas!", fr: "🔥 Le lapin adverse est sur 5+ victoires d’affilée !",

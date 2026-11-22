@@ -21,6 +21,7 @@ final class LocalGame: GameModel {
     var opponentRibbons: Int { 0 }
     var rabbitStreak: Int { 0 }
     var rabbitCoins: Int { 0 }
+    var unicornCoins: Int { 0 }
     @Published private(set) var deadline: Date? = nil
     @Published private(set) var busy = false
     @Published var selected: Int? = nil

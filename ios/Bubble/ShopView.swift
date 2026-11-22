@@ -478,11 +478,17 @@ struct ShopView: View {
             : unlocked ? tr("💎 해금됨", "💎 Unlocked", zh: "💎 已解锁", es: "💎 Desbloqueado", fr: "💎 Débloqué", de: "💎 Freigeschaltet", pt: "💎 Desbloqueado", ru: "💎 Открыто", ja: "💎 解放済み")
             : tr("🔒 앞으로 \(need)점", "🔒 \(need) pts to go", zh: "🔒 还差 \(need) 分", es: "🔒 Faltan \(need) pts", fr: "🔒 Encore \(need) pts",
                  de: "🔒 Noch \(need) Pkt", pt: "🔒 Faltam \(need) pts", ru: "🔒 Ещё \(need) очк.", ja: "🔒 あと\(need)点")
-        let desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(\(a.rankMin)점)부터 무료로 장착 · 이기면 무지개와 별 폭죽", "🌈 Not for sale · free from 💎 Diamond rank (\(a.rankMin) pts)",
-                      zh: "🌈 非卖品 · 💎 钻石段位（\(a.rankMin) 分）起免费装备", es: "🌈 No se vende · gratis desde 💎 Diamante (\(a.rankMin) pts)",
-                      fr: "🌈 Pas à vendre · gratuit dès 💎 Diamant (\(a.rankMin) pts)", de: "🌈 Nicht käuflich · gratis ab 💎 Diamant (\(a.rankMin) Pkt)",
-                      pt: "🌈 Não vende · grátis a partir de 💎 Diamante (\(a.rankMin) pts)", ru: "🌈 Не продаётся · бесплатно с 💎 Алмаза (\(a.rankMin) очк.)",
-                      ja: "🌈 非売品 · 💎 ダイヤ（\(a.rankMin)点）から無料で装備")
+        let today = p.unicornDay == OnlineService.today() ? p.unicornCoins : 0
+        let c = Shop.unicornWinCoins, mx = Shop.unicornDailyMax, mn = a.rankMin
+        let desc = tr("🌈 무지개 축복!\n· 이길 때마다 💰 +\(c) (하루 최대 \(mx) · 오늘 \(today)/\(mx))\n· 매칭되면 상대에게 \"다이아 전용 유니콘 등장!\"\n· 랭킹에서 닉네임이 무지개색 · 이기면 무지개와 별 폭죽\n· 판매하지 않아요: 💎 다이아 계급(\(mn)점)부터 무료로 장착\n· 랜덤 매칭·점수 걸린 친구 대전만",
+                      "🌈 Rainbow blessing!\n· 💰 +\(c) per win (max \(mx) a day · today \(today)/\(mx))\n· Rivals see \"A Diamond-only Unicorn appears!\"\n· Rainbow name on the leaderboard · rainbow & star fireworks when you win\n· Not for sale: free from 💎 Diamond (\(mn) pts)\n· Random & scored friend matches",
+                      zh: "🌈 彩虹祝福！\n· 每胜 💰 +\(c)（每天最多 \(mx) · 今天 \(today)/\(mx)）\n· 匹配时对手会看到“钻石专属独角兽登场！”\n· 排行榜上名字变彩虹色\n· 非卖品：💎 钻石（\(mn) 分）起免费装备",
+                      es: "🌈 ¡Bendición arcoíris!\n· 💰 +\(c) por victoria (máx. \(mx) al día · hoy \(today)/\(mx))\n· Tu rival verá el aviso del unicornio\n· Nombre arcoíris en la clasificación\n· No se vende: gratis desde 💎 Diamante (\(mn) pts)",
+                      fr: "🌈 Bénédiction arc-en-ciel !\n· 💰 +\(c) par victoire (max \(mx) par jour · aujourd’hui \(today)/\(mx))\n· L’adversaire voit l’arrivée de la licorne\n· Pseudo arc-en-ciel au classement\n· Pas à vendre : gratuit dès 💎 Diamant (\(mn) pts)",
+                      de: "🌈 Regenbogensegen!\n· 💰 +\(c) pro Sieg (max. \(mx) pro Tag · heute \(today)/\(mx))\n· Gegner sehen: Diamant-Einhorn erscheint\n· Regenbogenname in der Bestenliste\n· Nicht käuflich: gratis ab 💎 Diamant (\(mn) Pkt)",
+                      pt: "🌈 Bênção arco-íris!\n· 💰 +\(c) por vitória (máx. \(mx) por dia · hoje \(today)/\(mx))\n· O rival vê o aviso do unicórnio\n· Nome arco-íris no ranking\n· Não vende: grátis a partir de 💎 Diamante (\(mn) pts)",
+                      ru: "🌈 Радужное благословение!\n· 💰 +\(c) за победу (макс. \(mx) в день · сегодня \(today)/\(mx))\n· Соперник увидит появление единорога\n· Радужное имя в рейтинге\n· Не продаётся: бесплатно с 💎 Алмаза (\(mn) очк.)",
+                      ja: "🌈 にじの祝福！\n· 勝つたびに 💰 +\(c)（1日最大\(mx) · 今日 \(today)/\(mx)）\n· マッチすると相手に「ダイヤ専用ユニコーン登場！」\n· ランキングで名前が虹色\n· 非売品：💎 ダイヤ（\(mn)点）から無料で装備")
         return shopCard(title: a.label, desc: desc, price: nil, owned: owned,
                         art: AnyView(Critter(side: .hamster, skin: a, happy: on).frame(width: 84, height: 84).opacity(unlocked ? 1 : 0.55))) {
             if on {

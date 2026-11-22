@@ -61,7 +61,7 @@ struct GameView<M: GameModel>: View {
         let delta: Int? = game.isOnline ? game.scoreDelta : nil
         return ResultOverlay(won: won, side: me, skin: game.mySkin, reason: game.reason, delta: delta,
                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
-                             rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins,
+                             rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins, unicornCoins: game.unicornCoins,
                              share: won ? winShare : nil,
                              onLobby: onLeave, onAgain: onAgain)
     }
@@ -380,10 +380,23 @@ struct ResultOverlay: View {
     var rewardOffer: Int? = nil
     var rabbitStreak = 0
     var rabbitCoins = 0
+    var unicornCoins = 0
     /// 이겼으면 승리 공유 카드
     var share: WinShare? = nil
     let onLobby: () -> Void
     let onAgain: (() -> Void)?
+
+    /// 🦄 무지개 축복 💰
+    private var unicornResult: some View {
+        let c = unicornCoins
+        let text = tr("🦄 무지개 축복 💰+\(c)!", "🦄 Rainbow blessing 💰+\(c)!", zh: "🦄 彩虹祝福 💰+\(c)！", es: "🦄 ¡Bendición arcoíris 💰+\(c)!",
+                      fr: "🦄 Bénédiction arc-en-ciel 💰+\(c) !", de: "🦄 Regenbogensegen 💰+\(c)!", pt: "🦄 Bênção arco-íris 💰+\(c)!",
+                      ru: "🦄 Радужное благословение 💰+\(c)!", ja: "🦄 にじの祝福 💰+\(c)！")
+        return RainbowText(text: text, size: 17)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color(hex: 0xF6EEFF)))
+            .padding(.top, 6)
+    }
 
     /// 🐰 연승 보상 또는 다음 보상 안내
     private var rabbitResult: some View {
@@ -438,6 +451,7 @@ struct ResultOverlay: View {
                             .font(.system(size: 14, weight: .bold)).foregroundColor(Color(hex: 0xD08A00))
                     }
                     if won && rabbitStreak > 0 { rabbitResult }
+                    if won && unicornCoins > 0 { unicornResult }
                     if friendly {
                         Text(tr("🤝 친선전 (오늘 이 친구와는 점수가 걸린 \(Shop.friendRatedPerDay)판을 다 했어요)",
                                 "🤝 Friendly match (you've played today's \(Shop.friendRatedPerDay) scored games with this friend)",

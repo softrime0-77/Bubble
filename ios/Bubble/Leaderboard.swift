@@ -157,6 +157,9 @@ struct RankingRowView: View {
                             .mask(Text(name).font(.system(size: 18, weight: .black)).lineLimit(1))
                     )
                     .shadow(color: .white, radius: 3)
+            } else if p.look == .unicorn {
+                // 🦄 유니콘: 닉네임이 무지개색으로 흐름
+                RainbowText(text: name, size: level >= 8 ? 16 : 15, lines: 1)
             } else {
                 Text(name).font(.system(size: level >= 8 ? 16 : 15, weight: level >= 1 ? .black : .regular))
                     .foregroundColor(UiColor.text).lineLimit(1)
@@ -678,5 +681,29 @@ struct PlayerCardView: View {
                 .background(Capsule().fill(LinearGradient(colors: cols, startPoint: .leading, endPoint: .trailing)))
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// 무지개색으로 흐르는 글자 (🦄 유니콘 이름·무지개 축복)
+struct RainbowText: View {
+    let text: String
+    var size: CGFloat = 17
+    var lines: Int = 3
+
+    private static let colors: [Color] = [Color(hex: 0xE5397A), Color(hex: 0xE07A00), Color(hex: 0x2E9E4F), Color(hex: 0x2B7FD6), Color(hex: 0x7B4BD8), Color(hex: 0xE5397A)]
+
+    var body: some View {
+        TimelineView(.animation) { tl in
+            let x = CGFloat(tl.date.timeIntervalSinceReferenceDate / 2.4).truncatingRemainder(dividingBy: 1)
+            label.foregroundColor(.clear)
+                .overlay(
+                    LinearGradient(colors: Self.colors, startPoint: UnitPoint(x: x - 1, y: 0), endPoint: UnitPoint(x: x + 1, y: 0))
+                        .mask(label)
+                )
+        }
+    }
+
+    private var label: some View {
+        Text(text).font(.system(size: size, weight: .black)).lineLimit(lines).multilineTextAlignment(.center)
     }
 }

@@ -167,6 +167,9 @@ object Shop {
     const val RABBIT_5_COINS = 15
     const val RABBIT_MORE_COINS = 2
     const val RABBIT_DAILY_MAX = 30
+    /** 🦄 유니콘 무지개 축복: 이길 때마다 💰3, 하루 최대 30 (functions/src/catalog.ts와 같게) */
+    const val UNICORN_WIN_COINS = 3
+    const val UNICORN_DAILY_MAX = 30
 
     /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
     const val MAX_REVIVES_PER_GAME = 3

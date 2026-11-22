@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   COSMETIC_SKINS, DRAGON_DAILY_MAX, dragonCoins, isCosmetic, isRankSkin, lookSkin, PANDA_CHECKIN_BONUS, pandaEquipped, RANK_SKINS,
-  RABBIT_DAILY_MAX, rabbitCoins,
+  RABBIT_DAILY_MAX, rabbitCoins, UNICORN_DAILY_MAX, unicornCoins,
 } from "../src/catalog";
 
 test("new characters prices", () => {
@@ -50,4 +50,11 @@ test("rabbit streak rewards: 3 -> 5, 5 -> 15, 6+ -> 2, daily max 30", () => {
   // 끊겼다가 다시 3연승이면 또 5 (한도 안에서)
   assert.equal(rabbitCoins(3, 20), 5);
   assert.equal(rabbitCoins(3, 27), 3);
+});
+
+test("unicorn rainbow blessing: +3 per win, daily max 30", () => {
+  assert.equal(unicornCoins(0), 3);
+  assert.equal(unicornCoins(27), 3);
+  assert.equal(unicornCoins(29), 1);
+  assert.equal(unicornCoins(UNICORN_DAILY_MAX), 0);
 });

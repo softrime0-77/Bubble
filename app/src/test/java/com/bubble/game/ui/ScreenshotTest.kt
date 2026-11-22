@@ -68,7 +68,7 @@ class ScreenshotTest {
 
     private fun rankedSample() = listOf(1, 2, 3, 4, 5, 7, 10, 11, 20, 30, 31, 45).mapIndexed { i, pos ->
         RankedPlayer(pos, "u$pos", if (pos == 1) "엄청나게긴닉네임을가진다이아냥이123" else "플레이어$pos", if (i % 2 == 0) "KR" else "JP",
-            20000 - pos * 300, 40 - i, i, if (pos == 1) com.bubble.game.game.Animal.UNICORN else if (pos == 2) com.bubble.game.game.Animal.GOLD_HAMSTER else null)
+            20000 - pos * 300, 40 - i, i, if (pos == 1 || pos == 4 || pos == 20) com.bubble.game.game.Animal.UNICORN else if (pos == 2) com.bubble.game.game.Animal.GOLD_HAMSTER else null)
     }
 
     @Test

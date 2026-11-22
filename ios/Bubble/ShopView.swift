@@ -8,7 +8,7 @@ struct ShopView: View {
     @ObservedObject var ads = Ads.shared
     let onClose: () -> Void
 
-    @State private var confirm: (item: String, label: String, price: Int)? = nil
+    @State private var confirm: (item: String, label: String, price: Int, qty: Int)? = nil
 
     var body: some View {
         ScrollView {
@@ -35,12 +35,30 @@ struct ShopView: View {
                     pointsCard
                     itemUsageCard
                     shopCard(title: t("💖 부활물약"),
-                             desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
+                             desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 (랜덤 매칭 1번) · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
                              price: Shop.potionPrice, owned: tf("보유 {0}개", p.potions), art: AnyView(PotionArt().frame(width: 84, height: 84))) {
                         VStack(alignment: .leading, spacing: 6) {
-                            buyButton("POTION", t("부활물약"), Shop.potionPrice, p)
+                            // 묶음 할인: 1 · 3 · 5 · 10개
+                            bundleButtons("POTION", t("부활물약"), p)
                             potionAdButton(p)
                         }
+                    }
+                    // ✏️ 닉네임 변경권
+                    shopCard(title: tr("✏️ 닉네임 변경권", "✏️ Rename Ticket", zh: "✏️ 改名券", es: "✏️ Cupón de cambio de apodo", fr: "✏️ Ticket de pseudo",
+                                       de: "✏️ Namensticket", pt: "✏️ Cupom de troca de apelido", ru: "✏️ Талон смены ника", ja: "✏️ ニックネーム変更券"),
+                             desc: tr("닉네임을 한 번 바꿀 수 있어요. 첫 변경은 무료!", "Change your nickname once. Your first change is free!",
+                                      zh: "可以修改一次昵称。第一次免费！", es: "Cambia tu apodo una vez. ¡El primer cambio es gratis!", fr: "Change ton pseudo une fois. Le premier est gratuit !",
+                                      de: "Ändere deinen Namen einmal. Die erste Änderung ist gratis!", pt: "Troque seu apelido uma vez. A primeira é grátis!",
+                                      ru: "Смените ник один раз. Первая смена бесплатно!", ja: "ニックネームを1回変更できます。最初の変更は無料！")
+                                + (p.freeRenameUsed ? "" : "\n" + tr("🎁 아직 무료 변경이 남아 있어요", "🎁 You still have a free change", zh: "🎁 你还有一次免费修改",
+                                                                     es: "🎁 Aún tienes un cambio gratis", fr: "🎁 Il te reste un changement gratuit", de: "🎁 Du hast noch eine Gratis-Änderung",
+                                                                     pt: "🎁 Você ainda tem uma troca grátis", ru: "🎁 У вас ещё есть бесплатная смена", ja: "🎁 無料変更がまだ残っています")),
+                             price: Shop.renamePrice,
+                             owned: p.renameTickets > 0 ? tr("보유 \(p.renameTickets)장", "Owned: \(p.renameTickets)", zh: "拥有 \(p.renameTickets) 张", es: "Tienes: \(p.renameTickets)",
+                                                            fr: "Possédés : \(p.renameTickets)", de: "Im Besitz: \(p.renameTickets)", pt: "Você tem: \(p.renameTickets)", ru: "Есть: \(p.renameTickets)", ja: "所持 \(p.renameTickets)枚") : nil,
+                             art: AnyView(Text("✏️").font(.system(size: 54)))) {
+                        buyButton("RENAME", tr("닉네임 변경권", "Rename Ticket", zh: "改名券", es: "Cupón de cambio", fr: "Ticket de pseudo", de: "Namensticket",
+                                              pt: "Cupom de troca", ru: "Талон смены ника", ja: "変更券"), Shop.renamePrice, p)
                     }
                     shopCard(title: t("×3 점수 부스터"),
                              desc: t("켜두면 다음 랜덤 매칭에서 1개를 쓰고, 이기면 얻는 점수가 3배! (AI 대전에는 쓰지 않아요)"),
@@ -95,12 +113,13 @@ struct ShopView: View {
                         let count = p.animalCount(a)
                         let on = p.equipped == a && count > 0
                         shopCard(title: a.label,
-                                 desc: tf("⏱ 상대 턴 시간 {0}초 → {1}초", Shop.defaultTurnSec, a.opponentTurnSec),
+                                 desc: tf("⏱ 상대 턴 시간 {0}초 → {1}초", Shop.defaultTurnSec, a.opponentTurnSec) + (a == .sheep ? tr(" · 이기면 구름 둥실", " · win: floating clouds") : a == .dog ? tr(" · 이기면 발자국 콩콩", " · win: paw prints") : tr(" · 이기면 잎사귀 회오리", " · win: leaf whirl")),
                                  price: a.price,
                                  owned: count > 0 ? tf("보유 {0}개", count) + (on ? t("  ·  ✅ 장착 중") : "") : nil,
                                  art: AnyView(Critter(side: .cat, skin: a, happy: on).frame(width: 84, height: 84))) {
+                            // 묶음 할인: 1 · 3개
+                            bundleButtons(a.rawValue, a.label, p)
                             HStack(spacing: 6) {
-                                buyButton(a.rawValue, a.label, a.price, p)
                                 if on {
                                     outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
                                 } else if count > 0 {
@@ -126,7 +145,7 @@ struct ShopView: View {
         .alert(confirm.map { tf("{0} 살까요?", $0.label) } ?? "", isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
             Button(t("취소"), role: .cancel) { confirm = nil }
             Button(t("살게요")) {
-                if let c = confirm { Task { await online.buy(c.item, label: c.label) } }
+                if let c = confirm { Task { await online.buy(c.item, label: c.label, qty: c.qty) } }
                 confirm = nil
             }
         } message: {
@@ -359,7 +378,7 @@ struct ShopView: View {
         let owned: String? = on ? tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", es: "✅ Equipado", fr: "✅ Équipé", de: "✅ Ausgerüstet", pt: "✅ Equipado", ru: "✅ Надето", ja: "✅ 装備中")
             : have ? tr("💎 보유 중", "💎 Owned", zh: "💎 已拥有", es: "💎 Tuyo", fr: "💎 Possédé", de: "💎 Im Besitz", pt: "💎 Seu", ru: "💎 Есть", ja: "💎 所持中") : nil
         return shopCard(title: a.label,
-                        desc: [.octopus, .penguin, .panda, .dragon, .rabbit].contains(a) ? specialDesc(a, p) : a.lucky ? luckyDesc(p) : tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
+                        desc: [.octopus, .penguin, .panda, .dragon, .rabbit, .pinkCat, .blackCat, .snowHamster, .goldHamster].contains(a) ? specialDesc(a, p) : a.lucky ? luckyDesc(p) : tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
                                  fr: "✨ Skin permanent · aucun effet", de: "✨ Dauerhafter Skin · kein Effekt", pt: "✨ Skin permanente · sem efeito",
                                  ru: "✨ Навсегда · без эффекта", ja: "✨ 永久スキン · 効果なし"),
                         price: have ? nil : a.price, owned: owned,
@@ -383,17 +402,39 @@ struct ShopView: View {
     /// 🐙 🐧 🐼 🐉 🐰 효과 설명 (조건은 숫자 그대로)
     private func specialDesc(_ a: Animal, _ p: Profile) -> String {
         switch a {
+        case .pinkCat:
+            return tr("✨ 영구 스킨 · 💗 하트 타이머, 이기면 하트 비 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart timer, heart rain when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · 💗 获胜时下起爱心雨（不影响胜负）", es: "✨ Aspecto permanente · 💗 Lluvia de corazones al ganar", fr: "✨ Skin permanent · 💗 Pluie de cœurs à la victoire",
+                      de: "✨ Dauerhafter Skin · 💗 Herzregen beim Sieg", pt: "✨ Skin permanente · 💗 Chuva de corações ao vencer", ru: "✨ Навсегда · 💗 Дождь из сердечек при победе", ja: "✨ 永久スキン · 💗 勝つとハートの雨")
+        case .blackCat:
+            return tr("✨ 영구 스킨 · 🌙 밤하늘 타이머, 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Night-sky timer, moons and stars rain when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · 🌙 获胜时月亮星星落下（不影响胜负）", es: "✨ Aspecto permanente · 🌙 Lluvia de lunas y estrellas al ganar", fr: "✨ Skin permanent · 🌙 Pluie de lunes et d’étoiles à la victoire",
+                      de: "✨ Dauerhafter Skin · 🌙 Monde und Sterne beim Sieg", pt: "✨ Skin permanente · 🌙 Chuva de luas e estrelas ao vencer", ru: "✨ Навсегда · 🌙 Луны и звёзды при победе", ja: "✨ 永久スキン · 🌙 勝つと月と星が降る")
+        case .snowHamster:
+            return tr("✨ 영구 스킨 · ❄️ 내 타이머가 얼음 게이지로, 이기면 눈송이 비 (승패 영향 없음)", "✨ Permanent skin · ❄️ Icy timer, snow rain when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · ❄️ 冰雪计时条，获胜时下雪（不影响胜负）", es: "✨ Aspecto permanente · ❄️ Temporizador de hielo y nieve al ganar", fr: "✨ Skin permanent · ❄️ Minuteur de glace, neige à la victoire",
+                      de: "✨ Dauerhafter Skin · ❄️ Eis-Timer, Schnee beim Sieg", pt: "✨ Skin permanente · ❄️ Timer de gelo e neve ao vencer", ru: "✨ Навсегда · ❄️ Ледяной таймер, снег при победе", ja: "✨ 永久スキン · ❄️ 氷のタイマー、勝つと雪")
+        case .goldHamster:
+            return tr("✨ 영구 스킨 · 🏆 황금 타이머, 이기면 금가루 폭죽이 팡팡 (승패 영향 없음)", "✨ Permanent skin · 🏆 Golden timer, gold fireworks when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es: "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr: "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
+                      de: "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt: "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru: "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja: "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
         case .octopus:
-            return tr("🐙 분할하면 먹물이 퍽! · 모습·효과만", "🐙 Ink splash when you split · looks only", zh: "🐙 分裂时喷墨！· 仅外观",
+            return tr("🐙 분할하면 먹물이 퍽! · 이기면 화면에 먹물이 퍽퍽 · 승패 영향 없음", "🐙 Ink splash when you split · ink splats when you win · no effect on winning", zh: "🐙 分裂时喷墨！· 仅外观",
                       es: "🐙 ¡Tinta al dividir! · solo aspecto", fr: "🐙 Jet d’encre en divisant · look seulement", de: "🐙 Tinte beim Teilen · nur Look",
                       pt: "🐙 Tinta ao dividir · só visual", ru: "🐙 Чернила при делении · только вид", ja: "🐙 分割でスミがぷしゅっ · 見た目だけ")
         case .penguin:
-            return tr("🐧 공격하면 얼음 썰매가 쌩! · 모습·효과만", "🐧 Icy sled attacks · looks only", zh: "🐧 攻击时冰雪滑行！· 仅外观",
-                      es: "🐧 ¡Ataques en trineo de hielo! · solo aspecto", fr: "🐧 Attaques en luge de glace · look seulement", de: "🐧 Eis-Schlitten-Angriffe · nur Look",
-                      pt: "🐧 Ataques de trenó de gelo · só visual", ru: "🐧 Ледяные сани в атаке · только вид", ja: "🐧 攻撃でこおりソリ · 見た目だけ")
+            return tr("🐧 공격하면 빨간 썰매를 타고 쌩! 눈가루·얼음 조각이 튀고 부딪히면 얼음이 와장창\n이기면 썰매 퍼레이드와 눈보라 · 승패 영향 없음",
+                      "🐧 Attacks ride a red sled — snow spray, ice shards and an icy crash\nWin: sled parade in a snowstorm · no effect on winning",
+                      zh: "🐧 攻击时坐红色雪橇冲过去！雪粉冰片飞溅，撞上时冰块碎裂\n获胜：雪橇游行与暴风雪 · 不影响胜负",
+                      es: "🐧 Ataca en trineo rojo: nieve, esquirlas de hielo y choque helado\nVictoria: desfile en trineo con nevada · sin efecto",
+                      fr: "🐧 Attaque en luge rouge : neige, éclats de glace et choc glacé\nVictoire : parade en luge sous la neige · aucun effet",
+                      de: "🐧 Angriff auf rotem Schlitten: Schnee, Eissplitter, eisiger Aufprall\nSieg: Schlittenparade im Schneesturm · kein Effekt",
+                      pt: "🐧 Ataca de trenó vermelho: neve, lascas de gelo e choque gelado\nVitória: desfile de trenó na nevasca · sem efeito",
+                      ru: "🐧 Атака на красных санках: снег, осколки льда, ледяной удар\nПобеда: парад на санках в метель · без эффекта",
+                      ja: "🐧 攻撃は赤いソリでシュー！雪と氷のかけら、当たると氷がパリーン\n勝利：ソリのパレードと吹雪 · 勝敗に影響なし")
         case .panda:
             let b = Shop.pandaCheckinBonus
-            return tr("🐼 장착하고 출석하면 💰 +\(b) 더 (하루 1번) · 영구", "🐼 Check in while equipped for 💰 +\(b) more (once a day) · permanent",
+            return tr("🐼 장착하고 출석하면 💰 +\(b) 더 (하루 1번) · 이기면 대나무잎 회오리 · 영구", "🐼 Check in while equipped for 💰 +\(b) more (once a day) · permanent",
                       zh: "🐼 装备后签到多得 💰 +\(b)（每天 1 次）· 永久", es: "🐼 Equipado: 💰 +\(b) extra al registrarte (1 al día) · permanente",
                       fr: "🐼 Équipé : 💰 +\(b) en plus à la présence (1/jour) · permanent", de: "🐼 Ausgerüstet: 💰 +\(b) beim Check-in (1×/Tag) · dauerhaft",
                       pt: "🐼 Equipado: 💰 +\(b) na presença (1 por dia) · permanente", ru: "🐼 Надета: +\(b) 💰 за вход (1 раз в день) · навсегда",
@@ -401,7 +442,7 @@ struct ShopView: View {
         case .dragon:
             let today = p.dragonDay == OnlineService.today() ? p.dragonCoins : 0
             let c = Shop.dragonPopCoins, mx = Shop.dragonDailyMax
-            return tr("🐉 상대 방울을 터뜨릴 때마다 💰 +\(c)\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 영구",
+            return tr("🐉 상대 방울을 터뜨릴 때마다 💰 +\(c)\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 이기면 불꽃이 활활 · 영구",
                       "🐉 💰 +\(c) every time you pop a rival bubble\n(max \(mx) a day · today \(today)/\(mx)) · permanent",
                       zh: "🐉 每次打爆对手泡泡 💰 +\(c)\n（每天最多 \(mx) · 今天 \(today)/\(mx)）· 永久",
                       es: "🐉 💰 +\(c) cada vez que revientas una burbuja rival\n(máx. \(mx) al día · hoy \(today)/\(mx)) · permanente",
@@ -412,7 +453,7 @@ struct ShopView: View {
                       ja: "🐉 相手の泡を割るたびに 💰 +\(c)\n（1日最大\(mx) · 今日 \(today)/\(mx)）· 永久")
         case .rabbit:
             let mx = Shop.rabbitMaxRibbons, n = p.winStreak
-            return tr("🐰 연승할수록 리본이 하나씩 (최대 \(mx)개, 지면 처음부터) · 지금 \(n)연승",
+            return tr("🐰 연승할수록 리본이 하나씩 (최대 \(mx)개, 지면 처음부터) · 지금 \(n)연승 · 이기면 하트 폭죽",
                       "🐰 A new ribbon for every win in a row (max \(mx), resets on a loss) · streak \(n)",
                       zh: "🐰 每连胜一场多一个蝴蝶结（最多 \(mx) 个）· 当前 \(n) 连胜", es: "🐰 Un lazo por cada victoria seguida (máx. \(mx)) · racha \(n)",
                       fr: "🐰 Un ruban par victoire d’affilée (max \(mx)) · série \(n)", de: "🐰 Eine Schleife pro Sieg in Folge (max. \(mx)) · Serie \(n)",
@@ -432,7 +473,7 @@ struct ShopView: View {
             : unlocked ? tr("💎 해금됨", "💎 Unlocked", zh: "💎 已解锁", es: "💎 Desbloqueado", fr: "💎 Débloqué", de: "💎 Freigeschaltet", pt: "💎 Desbloqueado", ru: "💎 Открыто", ja: "💎 解放済み")
             : tr("🔒 앞으로 \(need)점", "🔒 \(need) pts to go", zh: "🔒 还差 \(need) 分", es: "🔒 Faltan \(need) pts", fr: "🔒 Encore \(need) pts",
                  de: "🔒 Noch \(need) Pkt", pt: "🔒 Faltam \(need) pts", ru: "🔒 Ещё \(need) очк.", ja: "🔒 あと\(need)点")
-        let desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(\(a.rankMin)점)부터 무료로 장착", "🌈 Not for sale · free from 💎 Diamond rank (\(a.rankMin) pts)",
+        let desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(\(a.rankMin)점)부터 무료로 장착 · 이기면 무지개와 별 폭죽", "🌈 Not for sale · free from 💎 Diamond rank (\(a.rankMin) pts)",
                       zh: "🌈 非卖品 · 💎 钻石段位（\(a.rankMin) 分）起免费装备", es: "🌈 No se vende · gratis desde 💎 Diamante (\(a.rankMin) pts)",
                       fr: "🌈 Pas à vendre · gratuit dès 💎 Diamant (\(a.rankMin) pts)", de: "🌈 Nicht käuflich · gratis ab 💎 Diamant (\(a.rankMin) Pkt)",
                       pt: "🌈 Não vende · grátis a partir de 💎 Diamante (\(a.rankMin) pts)", ru: "🌈 Не продаётся · бесплатно с 💎 Алмаза (\(a.rankMin) очк.)",
@@ -456,7 +497,7 @@ struct ShopView: View {
     private func luckyDesc(_ p: Profile) -> String {
         let today = p.luckyDay == OnlineService.today() ? p.luckyCoins : 0
         let pct = Shop.luckyChancePct, mx = Shop.luckyDailyMax
-        return tr("💰 상대를 공격할 때마다 \(pct)% 확률로 상점 포인트 +1\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 영구 캐릭터",
+        return tr("💰 상대를 공격할 때마다 \(pct)% 확률로 상점 포인트 +1\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 이기면 금화 폭죽 · 영구 캐릭터",
                   "💰 Each attack has a \(pct)% chance to give +1 shop point\n(max \(mx) a day · today \(today)/\(mx)) · permanent",
                   zh: "💰 每次攻击有 \(pct)% 概率获得 1 商店积分\n（每天最多 \(mx) · 今天 \(today)/\(mx)）· 永久",
                   es: "💰 Cada ataque tiene un \(pct)% de dar +1 punto de tienda\n(máx. \(mx) al día · hoy \(today)/\(mx)) · permanente",
@@ -468,13 +509,49 @@ struct ShopView: View {
     }
 
     private func buyButton(_ item: String, _ label: String, _ price: Int, _ p: Profile) -> some View {
-        Button { confirm = (item, label, price) } label: {
+        Button { confirm = (item, label, price, 1) } label: {
             Text(tf("{0}점에 사기", price)).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
                 .lineLimit(1).minimumScaleFactor(0.7)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Capsule().fill(UiColor.primary.opacity(p.score + p.coins >= price ? 1 : 0.4)))
         }
         .disabled(online.busy || p.score + p.coins < price)
+    }
+
+    /// 묶음 할인 버튼들: "1개 · 50점", "3개 · 135점 🔥−10%" … 두 개씩 한 줄
+    private func bundleButtons(_ item: String, _ label: String, _ p: Profile) -> some View {
+        let list = Shop.bundles(item)
+        let unit = list.first?.price ?? 1
+        let rows: [[(qty: Int, price: Int)]] = stride(from: 0, to: list.count, by: 2).map { Array(list[$0..<min($0 + 2, list.count)]) }
+        return VStack(alignment: .leading, spacing: 6) {
+            ForEach(0..<rows.count, id: \.self) { r in
+                HStack(spacing: 6) {
+                    ForEach(0..<rows[r].count, id: \.self) { k in
+                        bundleButton(item, label, rows[r][k].qty, rows[r][k].price, unit, p)
+                    }
+                }
+            }
+        }
+    }
+
+    private func bundleButton(_ item: String, _ label: String, _ qty: Int, _ price: Int, _ unit: Int, _ p: Profile) -> some View {
+        let off = 100 - price * 100 / (unit * qty)
+        let canBuy = p.score + p.coins >= price
+        let title = tr("\(qty)개 · \(price)점", "×\(qty) · \(price) pts", zh: "\(qty) 个 · \(price) 分", es: "×\(qty) · \(price) pts",
+                       fr: "×\(qty) · \(price) pts", de: "×\(qty) · \(price) Pkt", pt: "×\(qty) · \(price) pts", ru: "×\(qty) · \(price) очк.", ja: "\(qty)個 · \(price)点")
+        return Button { confirm = (item, qty == 1 ? label : "\(label) ×\(qty)", price, qty) } label: {
+            VStack(spacing: 1) {
+                Text(title).font(.system(size: 13, weight: .bold)).lineLimit(1).minimumScaleFactor(0.7)
+                if off > 0 {
+                    Text("🔥 −\(off)%").font(.system(size: 11, weight: .black)).foregroundColor(UiColor.gold)
+                }
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .padding(.horizontal, 6).padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 14).fill((qty == 1 ? UiColor.primary : UiColor.accent).opacity(canBuy ? 1 : 0.4)))
+        }
+        .disabled(online.busy || !canBuy)
     }
 
     private func outlineButton(_ label: String, _ action: @escaping () -> Void) -> some View {

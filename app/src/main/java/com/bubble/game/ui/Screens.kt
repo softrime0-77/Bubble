@@ -484,9 +484,38 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             onDismissRequest = { renaming = false },
             title = { Text(tr("닉네임", "Nickname", zh = "昵称", hi = "निकनेम", es = "Apodo", fr = "Pseudo", ar = "اللقب", de = "Spitzname", pt = "Apelido", ru = "Ник", ja = "ニックネーム")) },
             text = {
-                OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text(tr("최대 12자", "Up to 12 characters", zh = "最多 12 个字符", hi = "अधिकतम 12 अक्षर", es = "Hasta 12 caracteres", fr = "12 caractères max.", ar = "حتى 12 حرفًا", de = "Bis zu 12 Zeichen", pt = "Até 12 caracteres", ru = "До 12 символов", ja = "12文字まで")) })
+                Column {
+                    OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text(tr("최대 12자", "Up to 12 characters", zh = "最多 12 个字符", hi = "अधिकतम 12 अक्षर", es = "Hasta 12 caracteres", fr = "12 caractères max.", ar = "حتى 12 حرفًا", de = "Bis zu 12 Zeichen", pt = "Até 12 caracteres", ru = "До 12 символов", ja = "12文字まで")) })
+                    Spacer(Modifier.height(8.dp))
+                    // 첫 변경은 무료, 그다음은 ✏️ 변경권
+                    val p0 = ui.profile
+                    Text(
+                        when {
+                            p0 == null || !p0.freeRenameUsed -> tr("🎁 첫 변경은 무료예요!", "🎁 Your first change is free!", zh = "🎁 第一次修改免费！", es = "🎁 ¡El primer cambio es gratis!",
+                                fr = "🎁 Le premier changement est gratuit !", de = "🎁 Die erste Änderung ist gratis!", pt = "🎁 A primeira troca é grátis!", ru = "🎁 Первая смена бесплатно!", ja = "🎁 最初の変更は無料！")
+                            p0.renameTickets > 0 -> tr("✏️ 변경권 1장을 써요 (보유 ${p0.renameTickets}장)", "✏️ Uses 1 rename ticket (you have ${p0.renameTickets})",
+                                zh = "✏️ 使用 1 张改名券（拥有 ${p0.renameTickets} 张）", es = "✏️ Usa 1 cupón de cambio (tienes ${p0.renameTickets})", fr = "✏️ Utilise 1 ticket (tu en as ${p0.renameTickets})",
+                                de = "✏️ Nutzt 1 Namensticket (du hast ${p0.renameTickets})", pt = "✏️ Usa 1 cupom de troca (você tem ${p0.renameTickets})", ru = "✏️ Тратится 1 талон (у вас ${p0.renameTickets})", ja = "✏️ 変更券を1枚使います（所持${p0.renameTickets}枚）")
+                            else -> tr("✏️ 닉네임 변경권이 필요해요 · 상점에서 ${Shop.RENAME_PRICE}점", "✏️ You need a rename ticket · ${Shop.RENAME_PRICE} pts in the shop",
+                                zh = "✏️ 需要改名券 · 商店 ${Shop.RENAME_PRICE} 分", es = "✏️ Necesitas un cupón de cambio · ${Shop.RENAME_PRICE} pts en la tienda",
+                                fr = "✏️ Il faut un ticket de pseudo · ${Shop.RENAME_PRICE} pts en boutique", de = "✏️ Du brauchst ein Namensticket · ${Shop.RENAME_PRICE} Pkt im Shop",
+                                pt = "✏️ Precisa de um cupom de troca · ${Shop.RENAME_PRICE} pts na loja", ru = "✏️ Нужен талон смены ника · ${Shop.RENAME_PRICE} очк. в магазине",
+                                ja = "✏️ ニックネーム変更券が必要です · ショップで${Shop.RENAME_PRICE}点")
+                        },
+                        fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        color = if (p0 != null && p0.freeRenameUsed && p0.renameTickets == 0) Ui.danger else Ui.accent,
+                    )
+                }
             },
-            confirmButton = { TextButton(onClick = { vm.rename(name); renaming = false }) { Text(tr("저장", "Save", zh = "保存", hi = "सेव करें", es = "Guardar", fr = "Enregistrer", ar = "حفظ", de = "Speichern", pt = "Salvar", ru = "Сохранить", ja = "保存")) } },
+            confirmButton = {
+                val p0 = ui.profile
+                val canRename = p0 == null || !p0.freeRenameUsed || p0.renameTickets > 0
+                if (canRename) {
+                    TextButton(onClick = { vm.rename(name); renaming = false }) { Text(tr("저장", "Save", zh = "保存", hi = "सेव करें", es = "Guardar", fr = "Enregistrer", ar = "حفظ", de = "Speichern", pt = "Salvar", ru = "Сохранить", ja = "保存")) }
+                } else {
+                    TextButton(onClick = { renaming = false; vm.openShop() }) { Text(tr("🛒 상점 가기", "🛒 Go to shop", zh = "🛒 去商店", es = "🛒 Ir a la tienda", fr = "🛒 Aller à la boutique", de = "🛒 Zum Shop", pt = "🛒 Ir à loja", ru = "🛒 В магазин", ja = "🛒 ショップへ"), fontWeight = FontWeight.Bold) }
+                }
+            },
             dismissButton = { TextButton(onClick = { renaming = false }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
     }
@@ -586,9 +615,9 @@ zh = "   ✂️ 每人每局最多分裂 ${GameLogic.MAX_SPLITS} 次！\n\n", hi
 zh = "• 两个泡泡都破掉就输了。\n\n", hi = "• दोनों बबल फट गए तो आप हार जाते हैं।\n\n", es = "• Si pierdes las dos burbujas, pierdes.\n\n", fr = "• Perds tes deux bulles et tu as perdu.\n\n", ar = "• إذا خسرت فقاعتيك تخسر المباراة.\n\n", de = "• Verlierst du beide Blasen, hast du verloren.\n\n", pt = "• Perdeu as duas bolhas, perdeu o jogo.\n\n", ru = "• Потеряли оба пузыря — проиграли.\n\n", ja = "• 2つのバブルが両方割れたら負けです。\n\n",
 ) +
                     tr(
-"• 💖 부활물약(상점)이 있으면 터진 방울을 1마리로 살릴 수 있어요. 한 판에 최대 3번!\n\n",
-"• 💖 Revive potions (shop) bring a popped bubble back with 1 critter. Up to 3 per game!\n\n",
-zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活。每局最多 3 次！\n\n", hi = "• 💖 रिवाइव पोशन (दुकान) फटे बबल को 1 जीव के साथ वापस लाता है। हर गेम में अधिकतम 3!\n\n", es = "• 💖 Las pociones de revivir (tienda) devuelven una burbuja reventada con 1 bichito. ¡Hasta 3 por partida!\n\n", fr = "• 💖 Les potions de résurrection (boutique) font revenir une bulle éclatée avec 1 bestiole. Jusqu’à 3 par partie !\n\n", ar = "• 💖 جرعات الإحياء (المتجر) تعيد الفقاعة المنفجرة بمخلوق واحد. حتى 3 في كل مباراة!\n\n", de = "• 💖 Wiederbelebungstränke (Shop) holen eine geplatzte Blase mit 1 Tierchen zurück. Bis zu 3 pro Partie!\n\n", pt = "• 💖 Poções de reviver (loja) trazem de volta uma bolha estourada com 1 bichinho. Até 3 por partida!\n\n", ru = "• 💖 Зелья оживления (магазин) возвращают лопнувший пузырь с 1 зверьком. До 3 за партию!\n\n", ja = "• 💖 復活薬（ショップ）で割れたバブルを1匹で復活できます。1ゲーム最大3回！\n\n",
+"• 💖 부활물약(상점)이 있으면 터진 방울을 1마리로 살릴 수 있어요. 한 판에 최대 3번 (랜덤 매칭 1번)!\n\n",
+"• 💖 Revive potions (shop) bring a popped bubble back with 1 critter. Up to 3 per game (1 in random matches)!\n\n",
+zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活。每局最多 3 次（随机匹配 1 次）！\n\n", hi = "• 💖 रिवाइव पोशन (दुकान) फटे बबल को 1 जीव के साथ वापस लाता है। हर गेम में अधिकतम 3 (रैंडम मैच में 1)!\n\n", es = "• 💖 Las pociones de revivir (tienda) devuelven una burbuja reventada con 1 bichito. ¡Hasta 3 por partida (1 en aleatorias)!\n\n", fr = "• 💖 Les potions de résurrection (boutique) font revenir une bulle éclatée avec 1 bestiole. Jusqu’à 3 par partie (1 en aléatoire) !\n\n", ar = "• 💖 جرعات الإحياء (المتجر) تعيد الفقاعة المنفجرة بمخلوق واحد. حتى 3 في كل مباراة (1 في العشوائية)!\n\n", de = "• 💖 Wiederbelebungstränke (Shop) holen eine geplatzte Blase mit 1 Tierchen zurück. Bis zu 3 pro Partie (1 im Zufallsmatch)!\n\n", pt = "• 💖 Poções de reviver (loja) trazem de volta uma bolha estourada com 1 bichinho. Até 3 por partida (1 em aleatórias)!\n\n", ru = "• 💖 Зелья оживления (магазин) возвращают лопнувший пузырь с 1 зверьком. До 3 за партию (1 в случайном)!\n\n", ja = "• 💖 復活薬（ショップ）で割れたバブルを1匹で復活できます。1ゲーム最大3回（ランダムマッチは1回）！\n\n",
 ) +
                     tr(
 "• 온라인 대전은 한 턴에 ${OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요.\n",
@@ -596,19 +625,19 @@ zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活�
 zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，超时即判负。\n", hi = "• ऑनलाइन हर चाल ${OnlineRepository.TURN_LIMIT_MS / 1000} सेकंड। समय खत्म तो हार।\n", es = "• En línea cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Si se acaba el tiempo, pierdes.\n", fr = "• En ligne, chaque tour dure ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Temps écoulé = défaite.\n", ar = "• مدة الدور عبر الإنترنت ${OnlineRepository.TURN_LIMIT_MS / 1000} ثانية. إذا انتهى الوقت تخسر.\n", de = "• Online dauert ein Zug ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Zeit abgelaufen = verloren.\n", pt = "• Online, cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Se o tempo acabar, você perde.\n", ru = "• Онлайн ход длится ${OnlineRepository.TURN_LIMIT_MS / 1000} с. Время вышло — поражение.\n", ja = "• オンラインの1ターンは${OnlineRepository.TURN_LIMIT_MS / 1000}秒。時間切れで負けです。\n",
 ) +
                     tr(
-                    "   상대가 양·강아지·기린을 썼다면 내 턴이 15·10·5초로 줄어요.\n" +
+                    "   상대가 양·강아지·기린을 썼다면 내 턴이 15·12·8초로 줄어요.\n" +
                         "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 5초. 시간을 넘기면 패배!\n\n",
-                    "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 10 or 5s.\n" +
+                    "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 12 or 8s.\n" +
                         "• Your turn vs AI: Easy 20s · Normal 15s · Hard 5s. Run out of time and you lose!\n\n",
-                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、10 或 5 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 5 秒。超时判负！\n\n",
-                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 10 या 5 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 5से। समय खत्म तो हार!\n\n",
-                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 10 o 5 s.\n• Tu turno contra la IA: Fácil 20 s · Normal 15 s · Difícil 5 s. ¡Si se acaba el tiempo, pierdes!\n\n",
-                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 10 ou 5 s.\n• Ton tour contre l’IA : Facile 20 s · Normal 15 s · Difficile 5 s. Temps écoulé = défaite !\n\n",
-                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 10 أو 5 ثوانٍ.\n• دورك ضد الذكاء الاصطناعي: سهل 20ث · عادي 15ث · صعب 5ث. إذا انتهى الوقت تخسر!\n\n",
-                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 10 oder 5 s.\n• Dein Zug gegen die KI: Leicht 20 s · Normal 15 s · Schwer 5 s. Zeit abgelaufen = verloren!\n\n",
-                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 10 ou 5 s.\n• Seu turno contra a IA: Fácil 20 s · Normal 15 s · Difícil 5 s. Acabou o tempo, você perde!\n\n",
-                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 10 или 5 с.\n• Ваш ход против ИИ: Легко 20 с · Нормально 15 с · Сложно 5 с. Время вышло — поражение!\n\n",
-                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・10・5秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい5秒。時間切れで負け！\n\n",
+                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、12 或 8 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 5 秒。超时判负！\n\n",
+                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 12 या 8 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 5से। समय खत्म तो हार!\n\n",
+                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 12 o 8 s.\n• Tu turno contra la IA: Fácil 20 s · Normal 15 s · Difícil 5 s. ¡Si se acaba el tiempo, pierdes!\n\n",
+                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 12 ou 8 s.\n• Ton tour contre l’IA : Facile 20 s · Normal 15 s · Difficile 5 s. Temps écoulé = défaite !\n\n",
+                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 12 أو 8 ثوانٍ.\n• دورك ضد الذكاء الاصطناعي: سهل 20ث · عادي 15ث · صعب 5ث. إذا انتهى الوقت تخسر!\n\n",
+                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 12 oder 8 s.\n• Dein Zug gegen die KI: Leicht 20 s · Normal 15 s · Schwer 5 s. Zeit abgelaufen = verloren!\n\n",
+                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 12 ou 8 s.\n• Seu turno contra a IA: Fácil 20 s · Normal 15 s · Difícil 5 s. Acabou o tempo, você perde!\n\n",
+                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 12 или 8 с.\n• Ваш ход против ИИ: Легко 20 с · Нормально 15 с · Сложно 5 с. Время вышло — поражение!\n\n",
+                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・12・8秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい5秒。時間切れで負け！\n\n",
                 ) +
                     tr(
                         "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1401) → 금(2001) → 루비(4001) → 사파이어(7001) → 다이아(10001) → 핑크다이아(50001)",
@@ -1225,6 +1254,8 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
         Modifier.fillMaxSize().background(Color(0x88302040)),
         contentAlignment = Alignment.Center,
     ) {
+        // 이기면 내 스킨 테마로 하트 · 달 · 눈송이 · 금가루가 쏟아짐 (모습만)
+        if (won) WinRain(g.mySide, g.mySkin)
         Card(
             shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -1233,7 +1264,7 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
             Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Critter(
                     g.mySide, Modifier.size(120.dp).offset(y = (if (won) -jump * 16 else 0f).dp),
-                    happy = won,
+                    happy = won, skin = g.mySkin, ribbons = g.myRibbons,
                 )
                 Text(
                     if (won) tr("승리! 🎉", "You win! 🎉", zh = "你赢了！🎉", hi = "आप जीत गए! 🎉", es = "¡Ganaste! 🎉", fr = "Victoire ! 🎉", ar = "لقد فزت! 🎉", de = "Gewonnen! 🎉", pt = "Você venceu! 🎉", ru = "Победа! 🎉", ja = "勝利！🎉") else tr("아쉬운 패배…", "So close…", zh = "差一点…", hi = "बस थोड़ा सा रह गया…", es = "Casi…", fr = "Presque…", ar = "كدت تفوز…", de = "Knapp daneben…", pt = "Quase…", ru = "Почти…", ja = "惜しい…"),
@@ -1577,7 +1608,7 @@ private fun ShopScreen(vm: AppViewModel) {
     val ui by vm.lobby.collectAsState()
     val p = ui.profile
     BackHandler(onBack = vm::closeShop)
-    var confirm by remember { mutableStateOf<Triple<String, String, Int>?>(null) }
+    var confirm by remember { mutableStateOf<Purchase?>(null) }
 
     Column(
         Modifier
@@ -1623,23 +1654,46 @@ private fun ShopScreen(vm: AppViewModel) {
         ShopCard(
             title = tr("💖 부활물약", "💖 Revive Potion", zh = "💖 复活药水", hi = "💖 रिवाइव पोशन", es = "💖 Poción de revivir", fr = "💖 Potion de résurrection", ar = "💖 جرعة الإحياء", de = "💖 Wiederbelebungstrank", pt = "💖 Poção de reviver", ru = "💖 Зелье оживления", ja = "💖 復活薬"),
             desc = tr(
-"내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 ${Shop.MAX_REVIVES_PER_GAME}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용",
-"On your turn, bring a popped (empty) bubble back with 1 critter.\nUp to ${Shop.MAX_REVIVES_PER_GAME} per game · 1 used each time · online only",
-zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n每局最多 ${Shop.MAX_REVIVES_PER_GAME} 次 · 每次消耗 1 瓶 · 仅限在线对战", hi = "अपनी बारी में फटे (खाली) बबल को 1 जीव के साथ वापस लाएँ।\nहर गेम में अधिकतम ${Shop.MAX_REVIVES_PER_GAME} · हर बार 1 खर्च · सिर्फ़ ऑनलाइन", es = "En tu turno, revive una burbuja reventada (vacía) con 1 bichito.\nHasta ${Shop.MAX_REVIVES_PER_GAME} por partida · gasta 1 cada vez · solo en línea", fr = "À ton tour, ranime une bulle éclatée (vide) avec 1 bestiole.\nJusqu’à ${Shop.MAX_REVIVES_PER_GAME} par partie · 1 utilisée à chaque fois · en ligne uniquement", ar = "في دورك، أعِد فقاعة منفجرة (فارغة) بمخلوق واحد.\nحتى ${Shop.MAX_REVIVES_PER_GAME} في كل مباراة · تُستهلك واحدة كل مرة · عبر الإنترنت فقط", de = "Hol in deinem Zug eine geplatzte (leere) Blase mit 1 Tierchen zurück.\nBis zu ${Shop.MAX_REVIVES_PER_GAME} pro Partie · 1 pro Einsatz · nur online", pt = "Na sua vez, reviva uma bolha estourada (vazia) com 1 bichinho.\nAté ${Shop.MAX_REVIVES_PER_GAME} por partida · gasta 1 por uso · só online", ru = "В свой ход верните лопнувший (пустой) пузырь с 1 зверьком.\nДо ${Shop.MAX_REVIVES_PER_GAME} за партию · 1 за раз · только онлайн", ja = "自分の番に、割れた（空の）バブルを1匹で復活させます。\n1ゲーム最大${Shop.MAX_REVIVES_PER_GAME}回 · 使うたびに1個消費 · オンライン対戦のみ",
+"내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 ${Shop.MAX_REVIVES_PER_GAME}번 (랜덤 매칭 1번) · 쓸 때마다 1개 소모 · 온라인 대전 전용",
+"On your turn, bring a popped (empty) bubble back with 1 critter.\nUp to ${Shop.MAX_REVIVES_PER_GAME} per game (1 in random matches) · 1 used each time · online only",
+zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n每局最多 ${Shop.MAX_REVIVES_PER_GAME} 次（随机匹配 1 次） · 每次消耗 1 瓶 · 仅限在线对战", hi = "अपनी बारी में फटे (खाली) बबल को 1 जीव के साथ वापस लाएँ।\nहर गेम में अधिकतम ${Shop.MAX_REVIVES_PER_GAME} (रैंडम मैच में 1) · हर बार 1 खर्च · सिर्फ़ ऑनलाइन", es = "En tu turno, revive una burbuja reventada (vacía) con 1 bichito.\nHasta ${Shop.MAX_REVIVES_PER_GAME} por partida (1 en aleatorias) · gasta 1 cada vez · solo en línea", fr = "À ton tour, ranime une bulle éclatée (vide) avec 1 bestiole.\nJusqu’à ${Shop.MAX_REVIVES_PER_GAME} par partie (1 en aléatoire) · 1 utilisée à chaque fois · en ligne uniquement", ar = "في دورك، أعِد فقاعة منفجرة (فارغة) بمخلوق واحد.\nحتى ${Shop.MAX_REVIVES_PER_GAME} في كل مباراة (1 في العشوائية) · تُستهلك واحدة كل مرة · عبر الإنترنت فقط", de = "Hol in deinem Zug eine geplatzte (leere) Blase mit 1 Tierchen zurück.\nBis zu ${Shop.MAX_REVIVES_PER_GAME} pro Partie (1 im Zufallsmatch) · 1 pro Einsatz · nur online", pt = "Na sua vez, reviva uma bolha estourada (vazia) com 1 bichinho.\nAté ${Shop.MAX_REVIVES_PER_GAME} por partida (1 em aleatórias) · gasta 1 por uso · só online", ru = "В свой ход верните лопнувший (пустой) пузырь с 1 зверьком.\nДо ${Shop.MAX_REVIVES_PER_GAME} за партию (1 в случайном) · 1 за раз · только онлайн", ja = "自分の番に、割れた（空の）バブルを1匹で復活させます。\n1ゲーム最大${Shop.MAX_REVIVES_PER_GAME}回（ランダムマッチは1回） · 使うたびに1個消費 · オンライン対戦のみ",
 ),
             price = Shop.POTION_PRICE,
             owned = tr("보유 ${p.potions}개", "Owned: ${p.potions}", zh = "拥有：${p.potions}", hi = "पास में: ${p.potions}", es = "Tienes: ${p.potions}", fr = "Possédées : ${p.potions}", ar = "لديك: ${p.potions}", de = "Im Besitz: ${p.potions}", pt = "Você tem: ${p.potions}", ru = "Есть: ${p.potions}", ja = "所持：${p.potions}個"),
             art = { PotionArt(Modifier.size(84.dp)) },
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Button(
-                    onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬"), Shop.POTION_PRICE) },
-                    enabled = !ui.shopBusy && p.score + p.coins >= Shop.POTION_PRICE,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts", zh = "${Shop.POTION_PRICE} 分购买", hi = "${Shop.POTION_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.POTION_PRICE} pts", fr = "Acheter pour ${Shop.POTION_PRICE} pts", ar = "اشترِ مقابل ${Shop.POTION_PRICE} نقطة", de = "Für ${Shop.POTION_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.POTION_PRICE} pts", ru = "Купить за ${Shop.POTION_PRICE} очк.", ja = "${Shop.POTION_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
+                // 묶음 할인: 1 · 3 · 5 · 10개
+                BundleButtons("POTION", p.score + p.coins, !ui.shopBusy) { qty, price ->
+                    val name = tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬")
+                    confirm = Purchase("POTION", if (qty == 1) name else "$name ×$qty", price, qty)
+                }
                 PotionAdButton(vm, p)
             }
+        }
+
+        // ✏️ 닉네임 변경권
+        ShopCard(
+            title = tr("✏️ 닉네임 변경권", "✏️ Rename Ticket", zh = "✏️ 改名券", es = "✏️ Cupón de cambio de apodo", fr = "✏️ Ticket de pseudo",
+                de = "✏️ Namensticket", pt = "✏️ Cupom de troca de apelido", ru = "✏️ Талон смены ника", ja = "✏️ ニックネーム変更券"),
+            desc = tr("닉네임을 한 번 바꿀 수 있어요. 첫 변경은 무료!", "Change your nickname once. Your first change is free!",
+                zh = "可以修改一次昵称。第一次免费！", es = "Cambia tu apodo una vez. ¡El primer cambio es gratis!", fr = "Change ton pseudo une fois. Le premier est gratuit !",
+                de = "Ändere deinen Namen einmal. Die erste Änderung ist gratis!", pt = "Troque seu apelido uma vez. A primeira é grátis!",
+                ru = "Смените ник один раз. Первая смена бесплатно!", ja = "ニックネームを1回変更できます。最初の変更は無料！") +
+                (if (!p.freeRenameUsed) "\n" + tr("🎁 아직 무료 변경이 남아 있어요", "🎁 You still have a free change", zh = "🎁 你还有一次免费修改", es = "🎁 Aún tienes un cambio gratis",
+                    fr = "🎁 Il te reste un changement gratuit", de = "🎁 Du hast noch eine Gratis-Änderung", pt = "🎁 Você ainda tem uma troca grátis",
+                    ru = "🎁 У вас ещё есть бесплатная смена", ja = "🎁 無料変更がまだ残っています") else ""),
+            price = Shop.RENAME_PRICE,
+            owned = if (p.renameTickets > 0) tr("보유 ${p.renameTickets}장", "Owned: ${p.renameTickets}", zh = "拥有 ${p.renameTickets} 张", es = "Tienes: ${p.renameTickets}",
+                fr = "Possédés : ${p.renameTickets}", de = "Im Besitz: ${p.renameTickets}", pt = "Você tem: ${p.renameTickets}", ru = "Есть: ${p.renameTickets}", ja = "所持 ${p.renameTickets}枚") else null,
+            art = { Text("✏️", fontSize = 54.sp) },
+        ) {
+            Button(
+                onClick = { confirm = Purchase("RENAME", tr("닉네임 변경권", "Rename Ticket", zh = "改名券", es = "Cupón de cambio", fr = "Ticket de pseudo", de = "Namensticket", pt = "Cupom de troca", ru = "Талон смены ника", ja = "変更券"), Shop.RENAME_PRICE) },
+                enabled = !ui.shopBusy && p.score + p.coins >= Shop.RENAME_PRICE,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+            ) { Text(tr("${Shop.RENAME_PRICE}점에 사기", "Buy for ${Shop.RENAME_PRICE} pts", zh = "${Shop.RENAME_PRICE} 分购买", es = "Comprar por ${Shop.RENAME_PRICE} pts", fr = "Acheter pour ${Shop.RENAME_PRICE} pts", de = "Für ${Shop.RENAME_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.RENAME_PRICE} pts", ru = "Купить за ${Shop.RENAME_PRICE} очк.", ja = "${Shop.RENAME_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
         }
 
         // ×3 점수 부스터
@@ -1672,7 +1726,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Button(
-                    onClick = { confirm = Triple("BOOST", tr("×3 부스터", "x3 booster", zh = "×3 加成", hi = "×3 बूस्टर", es = "potenciador x3",
+                    onClick = { confirm = Purchase("BOOST", tr("×3 부스터", "x3 booster", zh = "×3 加成", hi = "×3 बूस्टर", es = "potenciador x3",
                         fr = "booster x3", ar = "المضاعِف ×3", de = "x3-Booster", pt = "impulso x3", ru = "бустер x3", ja = "×3 ブースター"), Shop.BOOST_PRICE) },
                     enabled = !ui.shopBusy && p.score + p.coins >= Shop.BOOST_PRICE,
                     shape = RoundedCornerShape(16.dp),
@@ -1790,7 +1844,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
                     ) { Text(tr("장착하기", "Equip", zh = "装备", hi = "लगाएँ", es = "Equipar", fr = "Équiper", ar = "تجهيز", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する"), fontWeight = FontWeight.Bold) }
                     else -> Button(
-                        onClick = { confirm = Triple(a.name, a.label, a.price) },
+                        onClick = { confirm = Purchase(a.name, a.label, a.price) },
                         enabled = !ui.shopBusy && p.score + p.coins >= a.price,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
@@ -1805,7 +1859,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             val on = p.equipped == a
             ShopCard(
                 title = a.label,
-                desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(${a.rankMin}점)부터 무료로 장착", "🌈 Not for sale · free from 💎 Diamond rank (${a.rankMin} pts)",
+                desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(${a.rankMin}점)부터 무료로 장착 · 이기면 무지개와 별 폭죽", "🌈 Not for sale · free from 💎 Diamond rank (${a.rankMin} pts)",
                     zh = "🌈 非卖品 · 💎 钻石段位（${a.rankMin} 分）起免费装备", es = "🌈 No se vende · gratis desde 💎 Diamante (${a.rankMin} pts)",
                     fr = "🌈 Pas à vendre · gratuit dès 💎 Diamant (${a.rankMin} pts)", de = "🌈 Nicht käuflich · gratis ab 💎 Diamant (${a.rankMin} Pkt)",
                     pt = "🌈 Não vende · grátis a partir de 💎 Diamante (${a.rankMin} pts)", ru = "🌈 Не продаётся · бесплатно с 💎 Алмаза (${a.rankMin} очк.)",
@@ -1841,8 +1895,8 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             ShopCard(
                 title = a.label,
                 desc = tr(
-"⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초",
-"⏱ Opponent turn ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s",
+"⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초" + when (a) { Animal.SHEEP -> " · 이기면 구름 둥실"; Animal.DOG -> " · 이기면 발자국 콩콩"; else -> " · 이기면 잎사귀 회오리" },
+"⏱ Opponent turn ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s" + when (a) { Animal.SHEEP -> " · win: floating clouds"; Animal.DOG -> " · win: paw prints"; else -> " · win: leaf whirl" },
 zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒", hi = "⏱ विरोधी की बारी ${Shop.DEFAULT_TURN_SEC}से → ${a.opponentTurnSec}से", es = "⏱ Turno del rival ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", fr = "⏱ Tour adverse ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", ar = "⏱ دور الخصم ${Shop.DEFAULT_TURN_SEC}ث ← ${a.opponentTurnSec}ث", de = "⏱ Gegnerzug ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", pt = "⏱ Turno do rival ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", ru = "⏱ Ход соперника ${Shop.DEFAULT_TURN_SEC}с → ${a.opponentTurnSec}с", ja = "⏱ 相手のターン ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
 ),
                 price = a.price,
@@ -1856,14 +1910,11 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
                 },
                 art = { Critter(Side.CAT, Modifier.size(84.dp), skin = a, happy = on) },
             ) {
+                // 묶음 할인: 1 · 3개
+                BundleButtons(a.name, p.score + p.coins, !ui.shopBusy) { qty, price ->
+                    confirm = Purchase(a.name, if (qty == 1) a.label else "${a.label} ×$qty", price, qty)
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Button(
-                        onClick = { confirm = Triple(a.name, a.label, a.price) },
-                        enabled = !ui.shopBusy && p.score + p.coins >= a.price,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
                     if (on) {
                         OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
                             Text(tr("장착 해제", "Unequip", zh = "卸下", hi = "हटाएँ", es = "Quitar", fr = "Retirer", ar = "إزالة", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
@@ -1879,7 +1930,7 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
         }
     }
 
-    confirm?.let { (item, label, price) ->
+    confirm?.let { (item, label, price, qty) ->
         // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙)
         val fromCoins = minOf(p?.coins ?: 0, price)
         val fromScore = price - fromCoins
@@ -1912,9 +1963,46 @@ zh = "⚠️ 你的等级会从${p.rank.label}降到${Rank.of(after).label}", hi
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { vm.buy(item, label); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
+            confirmButton = { TextButton(onClick = { vm.buy(item, label, qty); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
+    }
+}
+
+/** 상점에서 살 것 (묶음이면 qty개) */
+private data class Purchase(val item: String, val label: String, val price: Int, val qty: Int = 1)
+
+/** 묶음 할인 버튼들: "1개 50점", "3개 135점 −10%" … 두 개씩 한 줄 */
+@Composable
+private fun BundleButtons(item: String, budget: Int, enabled: Boolean, onPick: (qty: Int, price: Int) -> Unit) {
+    val list = Shop.bundles(item)
+    val unit = list.first().second
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        list.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.forEach { (qty, price) ->
+                    val off = 100 - price * 100 / (unit * qty)
+                    Button(
+                        onClick = { onPick(qty, price) },
+                        enabled = enabled && budget >= price,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (qty == 1) Ui.primary else Ui.accent),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                tr("${qty}개 · ${price}점", "×$qty · $price pts", zh = "${qty} 个 · ${price} 分", es = "×$qty · $price pts", fr = "×$qty · $price pts",
+                                    de = "×$qty · $price Pkt", pt = "×$qty · $price pts", ru = "×$qty · $price очк.", ja = "${qty}個 · ${price}点"),
+                                fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1,
+                            )
+                            if (off > 0) Text("🔥 −$off%", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Ui.gold)
+                        }
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
     }
 }
 
@@ -2373,13 +2461,19 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
 /** 스킨 상점 설명 (효과가 있는 캐릭터는 조건을 숫자 그대로) */
 private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when (a) {
     Animal.LUCKY_CAT -> luckyDesc(p)
-    Animal.OCTOPUS -> tr("🐙 분할하면 먹물이 퍽! · 모습·효과만", "🐙 Ink splash when you split · looks only", zh = "🐙 分裂时喷墨！· 仅外观",
+    Animal.OCTOPUS -> tr("🐙 분할하면 먹물이 퍽! · 이기면 화면에 먹물이 퍽퍽 · 승패 영향 없음", "🐙 Ink splash when you split · ink splats when you win · no effect on winning", zh = "🐙 分裂时喷墨！· 仅外观",
         es = "🐙 ¡Tinta al dividir! · solo aspecto", fr = "🐙 Jet d’encre en divisant · look seulement", de = "🐙 Tinte beim Teilen · nur Look",
         pt = "🐙 Tinta ao dividir · só visual", ru = "🐙 Чернила при делении · только вид", ja = "🐙 分割でスミがぷしゅっ · 見た目だけ")
-    Animal.PENGUIN -> tr("🐧 공격하면 얼음 썰매가 쌩! · 모습·효과만", "🐧 Icy sled attacks · looks only", zh = "🐧 攻击时冰雪滑行！· 仅外观",
-        es = "🐧 ¡Ataques en trineo de hielo! · solo aspecto", fr = "🐧 Attaques en luge de glace · look seulement", de = "🐧 Eis-Schlitten-Angriffe · nur Look",
-        pt = "🐧 Ataques de trenó de gelo · só visual", ru = "🐧 Ледяные сани в атаке · только вид", ja = "🐧 攻撃でこおりソリ · 見た目だけ")
-    Animal.PANDA -> tr("🐼 장착하고 출석하면 💰 +${Shop.PANDA_CHECKIN_BONUS} 더 (하루 1번) · 영구", "🐼 Check in while equipped for 💰 +${Shop.PANDA_CHECKIN_BONUS} more (once a day) · permanent",
+    Animal.PENGUIN -> tr("🐧 공격하면 빨간 썰매를 타고 쌩! 눈가루·얼음 조각이 튀고 부딪히면 얼음이 와장창\n이기면 썰매 퍼레이드와 눈보라 · 승패 영향 없음",
+        "🐧 Attacks ride a red sled — snow spray, ice shards and an icy crash\nWin: sled parade in a snowstorm · no effect on winning",
+        zh = "🐧 攻击时坐红色雪橇冲过去！雪粉冰片飞溅，撞上时冰块碎裂\n获胜：雪橇游行与暴风雪 · 不影响胜负",
+        es = "🐧 Ataca en trineo rojo: nieve, esquirlas de hielo y choque helado\nVictoria: desfile en trineo con nevada · sin efecto",
+        fr = "🐧 Attaque en luge rouge : neige, éclats de glace et choc glacé\nVictoire : parade en luge sous la neige · aucun effet",
+        de = "🐧 Angriff auf rotem Schlitten: Schnee, Eissplitter, eisiger Aufprall\nSieg: Schlittenparade im Schneesturm · kein Effekt",
+        pt = "🐧 Ataca de trenó vermelho: neve, lascas de gelo e choque gelado\nVitória: desfile de trenó na nevasca · sem efeito",
+        ru = "🐧 Атака на красных санках: снег, осколки льда, ледяной удар\nПобеда: парад на санках в метель · без эффекта",
+        ja = "🐧 攻撃は赤いソリでシュー！雪と氷のかけら、当たると氷がパリーン\n勝利：ソリのパレードと吹雪 · 勝敗に影響なし")
+    Animal.PANDA -> tr("🐼 장착하고 출석하면 💰 +${Shop.PANDA_CHECKIN_BONUS} 더 (하루 1번) · 이기면 대나무잎 회오리 · 영구", "🐼 Check in while equipped for 💰 +${Shop.PANDA_CHECKIN_BONUS} more (once a day) · permanent",
         zh = "🐼 装备后签到多得 💰 +${Shop.PANDA_CHECKIN_BONUS}（每天 1 次）· 永久", es = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} extra al registrarte (1 al día) · permanente",
         fr = "🐼 Équipé : 💰 +${Shop.PANDA_CHECKIN_BONUS} en plus à la présence (1/jour) · permanent", de = "🐼 Ausgerüstet: 💰 +${Shop.PANDA_CHECKIN_BONUS} beim Check-in (1×/Tag) · dauerhaft",
         pt = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} na presença (1 por dia) · permanente", ru = "🐼 Надета: +${Shop.PANDA_CHECKIN_BONUS} 💰 за вход (1 раз в день) · навсегда",
@@ -2387,7 +2481,7 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
     Animal.DRAGON -> {
         val today = if (p.dragonDay == OnlineRepository.today()) p.dragonCoins else 0
         val mx = Shop.DRAGON_DAILY_MAX
-        tr("🐉 상대 방울을 터뜨릴 때마다 💰 +${Shop.DRAGON_POP_COINS}\n(하루 최대 $mx · 오늘 $today/$mx) · 영구",
+        tr("🐉 상대 방울을 터뜨릴 때마다 💰 +${Shop.DRAGON_POP_COINS}\n(하루 최대 $mx · 오늘 $today/$mx) · 이기면 불꽃이 활활 · 영구",
             "🐉 💰 +${Shop.DRAGON_POP_COINS} every time you pop a rival bubble\n(max $mx a day · today $today/$mx) · permanent",
             zh = "🐉 每次打爆对手泡泡 💰 +${Shop.DRAGON_POP_COINS}\n（每天最多 $mx · 今天 $today/$mx）· 永久",
             es = "🐉 💰 +${Shop.DRAGON_POP_COINS} cada vez que revientas una burbuja rival\n(máx. $mx al día · hoy $today/$mx) · permanente",
@@ -2397,7 +2491,19 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
             ru = "🐉 💰 +${Shop.DRAGON_POP_COINS} за каждый лопнутый пузырь соперника\n(макс. $mx в день · сегодня $today/$mx) · навсегда",
             ja = "🐉 相手の泡を割るたびに 💰 +${Shop.DRAGON_POP_COINS}\n（1日最大$mx · 今日 $today/$mx）· 永久")
     }
-    Animal.RABBIT -> tr("🐰 연승할수록 리본이 하나씩 (최대 ${Shop.RABBIT_MAX_RIBBONS}개, 지면 처음부터) · 지금 ${p.winStreak}연승",
+    Animal.PINK_CAT -> tr("✨ 영구 스킨 · 💗 하트 타이머, 이기면 하트 비 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart timer, heart rain when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · 💗 获胜时下起爱心雨（不影响胜负）", es = "✨ Aspecto permanente · 💗 Lluvia de corazones al ganar", fr = "✨ Skin permanent · 💗 Pluie de cœurs à la victoire",
+        de = "✨ Dauerhafter Skin · 💗 Herzregen beim Sieg", pt = "✨ Skin permanente · 💗 Chuva de corações ao vencer", ru = "✨ Навсегда · 💗 Дождь из сердечек при победе", ja = "✨ 永久スキン · 💗 勝つとハートの雨")
+    Animal.BLACK_CAT -> tr("✨ 영구 스킨 · 🌙 밤하늘 타이머, 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Night-sky timer, moons and stars rain when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · 🌙 获胜时月亮星星落下（不影响胜负）", es = "✨ Aspecto permanente · 🌙 Lluvia de lunas y estrellas al ganar", fr = "✨ Skin permanent · 🌙 Pluie de lunes et d’étoiles à la victoire",
+        de = "✨ Dauerhafter Skin · 🌙 Monde und Sterne beim Sieg", pt = "✨ Skin permanente · 🌙 Chuva de luas e estrelas ao vencer", ru = "✨ Навсегда · 🌙 Луны и звёзды при победе", ja = "✨ 永久スキン · 🌙 勝つと月と星が降る")
+    Animal.SNOW_HAMSTER -> tr("✨ 영구 스킨 · ❄️ 내 타이머가 얼음 게이지로, 이기면 눈송이 비 (승패 영향 없음)", "✨ Permanent skin · ❄️ Icy timer, snow rain when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · ❄️ 冰雪计时条，获胜时下雪（不影响胜负）", es = "✨ Aspecto permanente · ❄️ Temporizador de hielo y nieve al ganar", fr = "✨ Skin permanent · ❄️ Minuteur de glace, neige à la victoire",
+        de = "✨ Dauerhafter Skin · ❄️ Eis-Timer, Schnee beim Sieg", pt = "✨ Skin permanente · ❄️ Timer de gelo e neve ao vencer", ru = "✨ Навсегда · ❄️ Ледяной таймер, снег при победе", ja = "✨ 永久スキン · ❄️ 氷のタイマー、勝つと雪")
+    Animal.GOLD_HAMSTER -> tr("✨ 영구 스킨 · 🏆 황금 타이머, 이기면 금가루 폭죽이 팡팡 (승패 영향 없음)", "✨ Permanent skin · 🏆 Golden timer, gold fireworks when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es = "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr = "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
+        de = "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt = "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru = "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja = "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
+    Animal.RABBIT -> tr("🐰 연승할수록 리본이 하나씩 (최대 ${Shop.RABBIT_MAX_RIBBONS}개, 지면 처음부터) · 지금 ${p.winStreak}연승 · 이기면 하트 폭죽",
         "🐰 A new ribbon for every win in a row (max ${Shop.RABBIT_MAX_RIBBONS}, resets on a loss) · streak ${p.winStreak}",
         zh = "🐰 每连胜一场多一个蝴蝶结（最多 ${Shop.RABBIT_MAX_RIBBONS} 个，输了重来）· 当前 ${p.winStreak} 连胜",
         es = "🐰 Un lazo por cada victoria seguida (máx. ${Shop.RABBIT_MAX_RIBBONS}) · racha ${p.winStreak}",
@@ -2417,7 +2523,7 @@ private fun luckyDesc(p: com.bubble.game.data.Profile): String {
     val pct = Shop.LUCKY_CHANCE_PCT
     val max = Shop.LUCKY_DAILY_MAX
     return tr(
-        "💰 상대를 공격할 때마다 ${pct}% 확률로 상점 포인트 +1\n(하루 최대 $max · 오늘 $today/$max) · 영구 캐릭터",
+        "💰 상대를 공격할 때마다 ${pct}% 확률로 상점 포인트 +1\n(하루 최대 $max · 오늘 $today/$max) · 이기면 금화 폭죽 · 영구 캐릭터",
         "💰 Each attack has a ${pct}% chance to give +1 shop point\n(max $max a day · today $today/$max) · permanent",
         zh = "💰 每次攻击有 ${pct}% 概率获得 1 商店积分\n（每天最多 $max · 今天 $today/$max）· 永久",
         es = "💰 Cada ataque tiene un ${pct}% de dar +1 punto de tienda\n(máx. $max al día · hoy $today/$max) · permanente",
@@ -2687,8 +2793,39 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
                 Text("VS", fontSize = 30.sp, fontWeight = FontWeight.Black, color = Ui.gold, modifier = Modifier.padding(horizontal = 10.dp))
                 VsCard(g.mySide.opponent, g.opponentSkin, g.opponentName, g.opponentCountry, g.opponentScore, isAi = g.aiLevel != null, Modifier.weight(1f))
             }
+            // 동물(시간 줄이기)을 썼으면 크게 알려줌: 갑자기 시간이 줄어 당황하지 않게
+            g.opponentSkin?.takeIf { it.consumable }?.let { a ->
+                Spacer(Modifier.height(16.dp))
+                VsNotice(
+                    tr("⏱ 상대가 ${a.label}을(를) 썼어요! 내 턴이 ${a.opponentTurnSec}초로 줄어요", "⏱ Your rival used a ${a.label}! Your turn is ${a.opponentTurnSec}s",
+                        zh = "⏱ 对手用了${a.label}！你的回合缩短为 ${a.opponentTurnSec} 秒", es = "⏱ ¡Tu rival usó ${a.label}! Tu turno dura ${a.opponentTurnSec} s",
+                        fr = "⏱ Ton adversaire a utilisé ${a.label} ! Ton tour dure ${a.opponentTurnSec} s", de = "⏱ Dein Gegner nutzt ${a.label}! Dein Zug: ${a.opponentTurnSec} s",
+                        pt = "⏱ Seu rival usou ${a.label}! Seu turno tem ${a.opponentTurnSec} s", ru = "⏱ Соперник использовал: ${a.label}! Ваш ход — ${a.opponentTurnSec} с",
+                        ja = "⏱ 相手が${a.label}を使った！自分のターンは${a.opponentTurnSec}秒"),
+                    Ui.danger,
+                )
+            }
+            g.mySkin?.takeIf { it.consumable }?.let { a ->
+                Spacer(Modifier.height(10.dp))
+                VsNotice(
+                    tr("✨ 내 ${a.label} 효과! 상대 턴 ${a.opponentTurnSec}초", "✨ Your ${a.label}: rival's turn is ${a.opponentTurnSec}s",
+                        zh = "✨ 我的${a.label}效果！对手回合 ${a.opponentTurnSec} 秒", es = "✨ Tu ${a.label}: el turno rival dura ${a.opponentTurnSec} s",
+                        fr = "✨ Ton ${a.label} : tour adverse ${a.opponentTurnSec} s", de = "✨ Dein ${a.label}: Gegnerzug ${a.opponentTurnSec} s",
+                        pt = "✨ Seu ${a.label}: turno do rival ${a.opponentTurnSec} s", ru = "✨ Ваш ${a.label}: ход соперника ${a.opponentTurnSec} с",
+                        ja = "✨ 自分の${a.label}効果！相手のターン${a.opponentTurnSec}秒"),
+                    Ui.accent,
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun VsNotice(text: String, color: Color) {
+    Text(
+        text, fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center,
+        modifier = Modifier.background(color, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
+    )
 }
 
 @Composable
@@ -2740,6 +2877,9 @@ private fun TurnTimer(g: GameUi, now: Long) {
     val blink by t.animateFloat(1f, 0.25f, infiniteRepeatable(tween(250), RepeatMode.Reverse), label = "blink")
     val alpha = if (urgent) blink else 1f
     val mine = g.turn == g.mySide
+    // ❄️ 눈송이 · ✨ 황금 햄스터: 내 시간일 때 게이지 테마 (모습만, 시간은 그대로)
+    val theme = if (mine) timerTheme(g.mySkin) else null
+    val drift by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "drift")
 
     Column(
         Modifier.fillMaxWidth().padding(top = 10.dp, start = 24.dp, end = 24.dp),
@@ -2755,10 +2895,10 @@ private fun TurnTimer(g: GameUi, now: Long) {
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                "⏱ $leftSec",
+                "${theme?.icon ?: "⏱"} $leftSec",
                 fontSize = if (urgent) 40.sp else 32.sp,
                 fontWeight = FontWeight.Black,
-                color = color,
+                color = if (theme != null && !urgent) theme.colors[2] else color,
                 modifier = Modifier.alpha(alpha),
             )
         }
@@ -2774,8 +2914,21 @@ private fun TurnTimer(g: GameUi, now: Long) {
                     .fillMaxWidth(fraction)
                     .fillMaxHeight()
                     .alpha(alpha)
-                    .background(color, RoundedCornerShape(50)),
+                    .then(
+                        if (theme != null && !urgent) Modifier.background(Brush.horizontalGradient(theme.colors), RoundedCornerShape(50))
+                        else Modifier.background(color, RoundedCornerShape(50)),
+                    ),
             )
+        }
+        // 게이지 위로 눈송이 / 금화가 흩날림
+        if (theme != null) {
+            androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(26.dp).offset(y = (-19).dp)) {
+                for (i in 0 until 7) {
+                    val x = size.width * fraction * ((i + drift) / 7f)
+                    val y = size.height * (0.5f + 0.4f * kotlin.math.sin((drift * 6.28f) + i * 1.7f))
+                    fxShape(theme.flake, androidx.compose.ui.geometry.Offset(x, y), 4.dp.toPx() + (i % 3) * 1.dp.toPx(), theme.colors[1 + i % 2].copy(alpha = 0.9f), drift * 360f + i * 40f)
+                }
+            }
         }
     }
 }

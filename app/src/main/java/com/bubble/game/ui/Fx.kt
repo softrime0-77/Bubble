@@ -69,7 +69,7 @@ import kotlin.random.Random
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /** 터질 때·날아갈 때 흩뿌리는 모양 */
-enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED, INK, FLAME }
+enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED, INK, FLAME, ICE }
 
 /** 캐릭터마다 다른 반짝이 색과 모양, 터질 때 붙는 이모지 */
 data class FxTheme(val colors: List<Color>, val shapes: List<FxShape>, val emoji: String) {
@@ -84,7 +84,7 @@ fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (side == Side
     Animal.SNOW_HAMSTER -> FxTheme(listOf(Color(0xFF5CC8FF), Color(0xFFBFE9FF), Color.White, Color(0xFF9AB8FF)), listOf(FxShape.SNOW, FxShape.STAR), "❄️")
     Animal.GOLD_HAMSTER -> FxTheme(listOf(Color(0xFFFFB800), Color(0xFFFFE680), Color.White, Color(0xFFFF9F1C)), listOf(FxShape.COIN, FxShape.STAR), "✨")
     Animal.OCTOPUS -> FxTheme(listOf(Color(0xFF2E1F4D), Color(0xFFB57BEE), Color(0xFF8E52D6), Color.White), listOf(FxShape.INK, FxShape.STAR), "🐙")
-    Animal.PENGUIN -> FxTheme(listOf(Color(0xFF7FD3FF), Color.White, Color(0xFF3A4A68), Color(0xFFBFE9FF)), listOf(FxShape.SNOW, FxShape.STAR), "🐧")
+    Animal.PENGUIN -> FxTheme(listOf(Color(0xFF7FD3FF), Color.White, Color(0xFF5CC8FF), Color(0xFFBFE9FF)), listOf(FxShape.ICE, FxShape.SNOW, FxShape.STAR), "🐧")
     Animal.PANDA -> FxTheme(listOf(Color(0xFF6CCB5F), Color.White, Color(0xFF3B3B45), Color(0xFFB8F0A8)), listOf(FxShape.LEAF, FxShape.HEART), "🐼")
     Animal.DRAGON -> FxTheme(listOf(Color(0xFFFF6A2B), Color(0xFFFFC21A), Color(0xFFFF2D55), Color.White), listOf(FxShape.FLAME, FxShape.STAR), "🔥")
     Animal.RABBIT -> FxTheme(listOf(Color(0xFFFF8FB8), Color.White, Color(0xFFFFC94D), Color(0xFF7C6CF2)), listOf(FxShape.HEART, FxShape.STAR), "🐰")
@@ -174,6 +174,24 @@ fun DrawScope.fxShape(shape: FxShape, c: Offset, r: Float, color: Color, rot: Fl
                 drawCircle(color, r * 0.32f, c + Offset(-r * 0.65f, r * 0.45f))
                 drawCircle(color, r * 0.2f, c + Offset(r * 0.2f, r * 0.95f))
                 drawCircle(Color.White.copy(alpha = color.alpha * 0.35f), r * 0.2f, c + Offset(-r * 0.25f, -r * 0.3f))
+            }
+            FxShape.ICE -> {
+                // 얼음 조각: 길쭉한 마름모 + 반짝 면
+                val p = Path().apply {
+                    moveTo(c.x, c.y - r * 1.2f)
+                    lineTo(c.x + r * 0.45f, c.y)
+                    lineTo(c.x, c.y + r * 1.2f)
+                    lineTo(c.x - r * 0.45f, c.y)
+                    close()
+                }
+                drawPath(p, color)
+                val face = Path().apply {
+                    moveTo(c.x, c.y - r * 1.2f)
+                    lineTo(c.x + r * 0.45f, c.y)
+                    lineTo(c.x, c.y)
+                    close()
+                }
+                drawPath(face, Color.White.copy(alpha = color.alpha * 0.55f))
             }
             FxShape.FLAME -> {
                 val p = Path().apply {
@@ -386,13 +404,48 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
                     sparkle(pos, orbPx * 0.2f * fade, Color.White.copy(alpha = fade))
                 }
             }
-            // 빛나는 방울
-            drawCircle(
-                Brush.radialGradient(listOf(Color.White, theme.main.copy(alpha = 0.7f), theme.main.copy(alpha = 0f)), head, orbPx * 1.1f),
-                orbPx * 1.1f, head,
-            )
-            drawCircle(Color.White.copy(alpha = 0.95f), orbPx * 0.62f, head, style = Stroke(orbPx * 0.07f))
-            drawCircle(Color.White.copy(alpha = 0.9f), orbPx * 0.12f, head + Offset(-orbPx * 0.28f, -orbPx * 0.3f))
+            if (s.skin == Animal.PENGUIN) {
+                // 🐧 썰매: 서리 오라 + 속도선 + 날 밑에서 튀는 눈가루·얼음 조각 + 두 줄 스키 자국
+                drawCircle(
+                    Brush.radialGradient(listOf(Color(0xFFE6F8FF).copy(alpha = 0.95f), Color(0xFF7FD3FF).copy(alpha = 0.45f), Color.Transparent), head, orbPx * 1.6f),
+                    orbPx * 1.6f, head,
+                )
+                val back = (at((f - 0.05f).coerceAtLeast(0f)) - head).let { v ->
+                    val l = kotlin.math.sqrt(v.x * v.x + v.y * v.y).coerceAtLeast(0.01f); Offset(v.x / l, v.y / l)
+                }
+                for (k in 0 until 6) {
+                    val o = perp * ((k - 2.5f) * orbPx * 0.22f)
+                    val a0 = head + back * (orbPx * 0.9f) + o
+                    val a1 = a0 + back * (orbPx * (1.2f + (k % 3) * 0.5f))
+                    drawLine(Color.White.copy(alpha = 0.75f - k * 0.08f), a0, a1, orbPx * 0.05f, StrokeCap.Round)
+                }
+                trail.forEachIndexed { k, q ->
+                    if (k >= 12) return@forEachIndexed
+                    val life = ((f * 6f + q.a) % 1f)
+                    val spray = head + Offset(0f, orbPx * 0.55f) + back * (orbPx * (0.4f + life * 1.6f)) + Offset(0f, -life * orbPx * (0.6f + q.s)) + perp * ((q.spin) * orbPx * 0.8f * life)
+                    val a = 1f - life
+                    if (k % 3 == 0) fxShape(FxShape.ICE, spray, orbPx * 0.16f * a, Color(0xFFBFE9FF).copy(alpha = a), q.spin * 200f + life * 300f)
+                    else drawCircle(Color.White.copy(alpha = a * 0.9f), orbPx * (0.05f + q.s * 0.06f), spray)
+                }
+                for (off in listOf(-0.18f, 0.18f)) {
+                    var prev: Offset? = null
+                    for (k in 0..18) {
+                        val tk = (f - k * 0.03f).coerceAtLeast(0f)
+                        val pt = at(tk) + perp * (orbPx * off) + Offset(0f, orbPx * 0.55f)
+                        prev?.let { drawLine(Color(0xFFBFE9FF).copy(alpha = 1f - k / 18f), it, pt, orbPx * 0.08f, StrokeCap.Round) }
+                        prev = pt
+                    }
+                }
+                sled(head + Offset(0f, orbPx * 0.15f), orbPx * 0.62f)
+            } else {
+                // 빛나는 방울
+                drawCircle(
+                    Brush.radialGradient(listOf(Color.White, theme.main.copy(alpha = 0.7f), theme.main.copy(alpha = 0f)), head, orbPx * 1.1f),
+                    orbPx * 1.1f, head,
+                )
+                drawCircle(Color.White.copy(alpha = 0.95f), orbPx * 0.62f, head, style = Stroke(orbPx * 0.07f))
+                drawCircle(Color.White.copy(alpha = 0.9f), orbPx * 0.12f, head + Offset(-orbPx * 0.28f, -orbPx * 0.3f))
+            }
         } else {
             burst(s.to, orbPx * (1.5f + s.power * 0.08f) * (if (s.boom) 1.2f else 1f), hit.value, theme, ps, rays = if (s.boom) 18 else 12)
         }
@@ -419,7 +472,11 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
             modifier = Modifier
                 .offset { IntOffset((head.x - orbPx / 2).roundToInt(), (head.y - orbPx / 2).roundToInt()) }
                 .size(sizeDp)
-                .graphicsLayer { rotationZ = f * 360f * (if (s.attack) 1f else -1f); scaleX = 0.8f + f * 0.3f; scaleY = 0.8f + f * 0.3f },
+                .graphicsLayer {
+                    // 🐧 펭귄은 썰매에 탄 채 살짝 기울기만, 나머지는 빙글빙글
+                    rotationZ = if (s.skin == Animal.PENGUIN) sin(f * 18f) * 10f else f * 360f * (if (s.attack) 1f else -1f)
+                    scaleX = 0.8f + f * 0.3f; scaleY = 0.8f + f * 0.3f
+                },
         )
     } else {
         // 부딪힌 자리에 +N
@@ -960,4 +1017,202 @@ fun ReviveFx(r: ReviveBurst, onDone: (ReviveBurst) -> Unit) {
                 .alpha(if (after < 0.75f) 1f else ((1f - after) / 0.25f).coerceIn(0f, 1f)),
         )
     }
+}
+
+// ======================= 스킨별 승리 효과 · 타이머 테마 =======================
+
+/** 승리 효과 겹(layer) 종류: 캐릭터마다 몇 개를 골라 씀 */
+enum class WinFx { FIREWORKS, STORM, RAINBOW, NIGHT, PAWS, INK, SLED, CLOUDS, FLAMES }
+
+/** 캐릭터별 승리 효과 (테마 비는 모두 공통) */
+fun winFx(side: Side, skin: Animal?): List<WinFx> = when (skin ?: if (side == Side.CAT) null else Animal.HAMSTER) {
+    null -> listOf(WinFx.PAWS)                              // 🐾 고양이: 발자국이 콩콩
+    Animal.HAMSTER -> listOf(WinFx.FIREWORKS)               // 🌻 햄스터: 해바라기씨 폭죽
+    Animal.PINK_CAT -> listOf(WinFx.FIREWORKS)              // 💗 하트 폭죽
+    Animal.BLACK_CAT -> listOf(WinFx.NIGHT)                 // 🌙 밤하늘 + 별똥별
+    Animal.SNOW_HAMSTER -> listOf(WinFx.STORM)              // ❄️ 눈보라
+    Animal.GOLD_HAMSTER -> listOf(WinFx.FIREWORKS)          // ✨ 금가루 폭죽
+    Animal.LUCKY_CAT -> listOf(WinFx.FIREWORKS, WinFx.PAWS) // 💰 금화 폭죽 + 복 발자국
+    Animal.OCTOPUS -> listOf(WinFx.INK)                     // 🐙 먹물이 퍽퍽
+    Animal.PENGUIN -> listOf(WinFx.SLED, WinFx.STORM)       // 🐧 썰매가 쌩 + 눈
+    Animal.PANDA -> listOf(WinFx.STORM)                     // 🐼 대나무잎 회오리
+    Animal.DRAGON -> listOf(WinFx.FLAMES, WinFx.FIREWORKS)  // 🐉 불꽃이 활활
+    Animal.RABBIT -> listOf(WinFx.FIREWORKS)                // 🐰 리본·하트 폭죽
+    Animal.UNICORN -> listOf(WinFx.RAINBOW, WinFx.FIREWORKS) // 🦄 무지개 + 별
+    Animal.SHEEP -> listOf(WinFx.CLOUDS)                    // ☁️ 구름이 둥실
+    Animal.DOG -> listOf(WinFx.PAWS)                        // 🦴 발자국 + 뼈다귀
+    Animal.GIRAFFE -> listOf(WinFx.STORM)                   // 🍃 잎사귀 회오리
+}
+
+/**
+ * 이겼을 때 내 캐릭터 테마로 쏟아지는 비 + 캐릭터별 효과
+ * (폭죽 · 눈보라 · 무지개 · 별똥별 · 발자국 · 먹물 · 썰매 · 구름 · 불꽃). 승패에는 영향 없음 (모습만).
+ */
+@Composable
+fun WinRain(side: Side, skin: Animal?) {
+    val theme = remember(side, skin) { fxTheme(side, skin) }
+    val layers = remember(side, skin) { winFx(side, skin) }
+    val t = rememberInfiniteTransition(label = "winRain")
+    val fall by t.animateFloat(0f, 1f, infiniteRepeatable(tween(4_200, easing = LinearEasing)), label = "fall")
+    val boom by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_400, easing = LinearEasing)), label = "boom")
+    val drops = remember { parts(46) }
+    val fireParts = remember { parts(26) }
+    val flakes = remember { parts(34) }
+    Canvas(Modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        // 밤하늘은 다른 것보다 먼저 (배경)
+        if (WinFx.NIGHT in layers) {
+            drawRect(Brush.verticalGradient(listOf(Color(0xCC1B1240), Color(0x553B2A6B), Color.Transparent), 0f, h * 0.7f))
+            for (i in 0 until 3) {
+                val tt = ((fall * 1.6f + i / 3f) % 1f)
+                val start = Offset(w * (0.95f - i * 0.25f), h * (0.05f + i * 0.08f))
+                val head = start + Offset(-w * 0.6f * tt, h * 0.35f * tt)
+                val tail = head - Offset(-w * 0.18f, h * 0.1f)
+                drawLine(Brush.linearGradient(listOf(Color.Transparent, Color(0xFFFFE680).copy(alpha = 1f - tt)), tail, head), tail, head, 4.dp.toPx() * (1f - tt), StrokeCap.Round)
+                sparkle(head, 10.dp.toPx() * (1f - tt * 0.5f), Color.White.copy(alpha = 1f - tt))
+            }
+            fxShape(FxShape.MOON, Offset(w * 0.82f, h * 0.12f), 30.dp.toPx(), Color(0xFFFFE680))
+        }
+        if (WinFx.RAINBOW in layers) {
+            val colors = listOf(Color(0xFFFF7EB3), Color(0xFFFFB86B), Color(0xFFFFE066), Color(0xFF7DDB9B), Color(0xFF7FC8FF), Color(0xFFB98CFF))
+            val grow = (fall * 2f).coerceAtMost(1f)
+            colors.forEachIndexed { i, c ->
+                val r = w * (0.62f - i * 0.045f)
+                drawArc(c.copy(alpha = 0.55f), 180f, 180f * grow, false, Offset(w / 2 - r, h * 0.42f - r), Size(r * 2, r * 2), style = Stroke(w * 0.04f))
+            }
+        }
+        if (WinFx.CLOUDS in layers) {
+            for (i in 0 until 5) {
+                val x = ((fall * (0.6f + i * 0.15f) + i * 0.27f) % 1.3f) * (w + 300f) - 200f
+                val y = h * (0.08f + i * 0.17f)
+                fxShape(FxShape.CLOUD, Offset(x, y), (34f + i * 6f).dp.toPx() / 2.2f, Color.White.copy(alpha = 0.85f))
+            }
+        }
+        // 공통: 테마 비
+        drops.forEachIndexed { i, q ->
+            val y = ((fall * (0.7f + q.s * 0.6f) + q.a) % 1f) * (h + 120f) - 60f
+            val x = ((q.k % 997) / 997f) * w + sin(fall * 2 * PI.toFloat() * (1 + q.spin) + i) * 26f
+            val r = (7f + q.s * 9f) * density
+            val shape = theme.shapes[q.k % theme.shapes.size]
+            val c0 = theme.colors[q.k % theme.colors.size]
+            // 하얀 금화는 빈 고리처럼 보여서 테마 색으로
+            val color = if (shape == FxShape.COIN && c0 == Color.White) theme.main else c0
+            fxShape(shape, Offset(x, y), r, color.copy(alpha = 0.9f), fall * 360f * q.spin + q.k)
+        }
+        if (WinFx.STORM in layers) {
+            val frost = if (skin == Animal.SNOW_HAMSTER || skin == Animal.PENGUIN) Color(0xFFDFF4FF) else theme.colors[0].copy(alpha = 0.6f)
+            drawRect(Brush.verticalGradient(listOf(frost.copy(alpha = 0.7f), Color.Transparent), 0f, h * 0.22f))
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent, frost.copy(alpha = 0.55f)), h * 0.8f, h))
+            drawRect(Brush.horizontalGradient(listOf(frost.copy(alpha = 0.45f), Color.Transparent), 0f, w * 0.18f))
+            drawRect(Brush.horizontalGradient(listOf(Color.Transparent, frost.copy(alpha = 0.45f)), w * 0.82f, w))
+            val big = if (skin == Animal.PANDA || skin == Animal.GIRAFFE) FxShape.LEAF else FxShape.SNOW
+            flakes.forEachIndexed { i, q ->
+                val tt = (fall * (0.8f + q.s * 0.5f) + q.a) % 1f
+                val x = -60f + tt * (w + 160f) + sin(tt * 9f + i) * 40f
+                val y = (q.spin + 1f) / 2f * h * 0.9f + tt * h * 0.35f - h * 0.1f + cos(tt * 7f + i) * 30f
+                val r = (10f + q.s * 14f) * density
+                val c = if (big == FxShape.SNOW) (if (i % 3 == 0) Color(0xFF7FD3FF) else Color.White) else theme.colors[i % theme.colors.size]
+                fxShape(big, Offset(x, y), r, c.copy(alpha = 0.95f), tt * 540f + i * 20f)
+                if (i % 4 == 0) sparkle(Offset(x + r, y - r), r * 0.5f * (0.5f + 0.5f * sin(fall * 40f + i)), Color.White)
+            }
+        }
+        if (WinFx.PAWS in layers) {
+            // 화면을 가로질러 콩콩 걸어가는 발자국 두 줄
+            for (row in 0 until 2) {
+                val y0 = h * (0.2f + row * 0.62f)
+                for (k in 0 until 12) {
+                    val step = (fall * 12f + row * 6f) % 12f
+                    if (k > step) continue
+                    val a = (1f - (step - k) / 12f).coerceIn(0f, 1f)
+                    val x = w * (0.04f + k * 0.085f)
+                    val y = y0 + (if (k % 2 == 0) -14f else 14f) * density
+                    val c = if (skin == Animal.LUCKY_CAT) Color(0xFFFFC21A) else theme.main
+                    fxShape(FxShape.PAW, Offset(x, y), 11.dp.toPx(), c.copy(alpha = 0.8f * a), 90f)
+                }
+            }
+        }
+        if (WinFx.INK in layers) {
+            for (i in 0 until 7) {
+                val q = drops[i * 5]
+                val p = ((fall * 1.5f + i / 7f) % 1f)
+                val c = Offset(w * (0.08f + (q.a * 0.84f)), h * (0.08f + q.s * 0.84f))
+                val grow = if (p < 0.15f) p / 0.15f else 1f
+                val a = if (p < 0.7f) 0.85f else (1f - p) / 0.3f * 0.85f
+                fxShape(FxShape.INK, c, (26f + q.s * 22f).dp.toPx() * grow, Color(0xFF2E1F4D).copy(alpha = a), q.spin * 90f)
+            }
+        }
+        if (WinFx.FLAMES in layers) {
+            // 아래에서 활활 솟는 불꽃
+            for (i in 0 until 14) {
+                val q = drops[i * 3]
+                val p = ((fall * 2.2f + q.a) % 1f)
+                val x = w * (i + 0.5f) / 14f + sin(p * 12f + i) * 10f
+                val y = h - p * h * 0.45f
+                val r = (16f + q.s * 18f).dp.toPx() * (1f - p * 0.6f)
+                fxShape(FxShape.FLAME, Offset(x, y), r, (if (i % 2 == 0) Color(0xFFFF6A2B) else Color(0xFFFFC21A)).copy(alpha = 1f - p), sin(p * 8f + i) * 12f)
+            }
+        }
+        if (WinFx.SLED in layers) {
+            // 아래쪽을 쌩 가로지르는 펭귄 썰매 + 얼음 자국
+            val p = fall
+            val y = h * 0.86f
+            val x = -120f + p * (w + 240f)
+            drawLine(Color(0xFFBFE9FF), Offset(0f, y + 22.dp.toPx()), Offset(x, y + 22.dp.toPx()), 4.dp.toPx(), StrokeCap.Round)
+            drawLine(Color(0xFFBFE9FF), Offset(0f, y + 30.dp.toPx()), Offset(x, y + 30.dp.toPx()), 4.dp.toPx(), StrokeCap.Round)
+            sled(Offset(x, y), 34.dp.toPx())
+            for (k in 0 until 6) {
+                val puff = Offset(x - (k + 1) * 26f, y + 20.dp.toPx() - sin(p * 30f + k) * 8f)
+                fxShape(FxShape.SNOW, puff, (8f - k).coerceAtLeast(2f) * density, Color.White.copy(alpha = 1f - k / 6f), p * 400f)
+            }
+        }
+        if (WinFx.FIREWORKS in layers) {
+            val round = (fall * 3).toInt()
+            for (k in 0 until 3) {
+                val p = ((boom + k / 3f) % 1f)
+                val seed = (round * 7 + k * 13) % 10
+                val c = Offset(w * (0.2f + 0.3f * k + (seed - 5) * 0.01f), h * (0.18f + 0.07f * ((seed + k) % 4)))
+                burst(c, size.minDimension * 0.16f, p, theme, fireParts, rays = 12)
+            }
+        }
+    }
+    // 🐧 썰매 위의 펭귄
+    if (WinFx.SLED in layers) {
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+            val wPx = constraints.maxWidth.toFloat()
+            val hPx = constraints.maxHeight.toFloat()
+            val x = -120f + fall * (wPx + 240f)
+            val y = hPx * 0.86f
+            val sz = with(LocalDensity.current) { 56.dp.toPx() }
+            Critter(
+                Side.CAT, Modifier.offset { IntOffset((x - sz / 2).roundToInt(), (y - sz * 0.85f).roundToInt()) }.size(56.dp),
+                skin = Animal.PENGUIN, happy = true,
+            )
+        }
+    }
+}
+
+/** 🐧 썰매: 빨간 판 + 휘어진 날 (펭귄은 위에 따로 그림) */
+fun DrawScope.sled(c: Offset, r: Float) {
+    // 날 (앞이 위로 말림)
+    val runner = Path().apply {
+        moveTo(c.x - r * 1.1f, c.y + r * 0.62f)
+        lineTo(c.x + r * 0.9f, c.y + r * 0.62f)
+        quadraticTo(c.x + r * 1.35f, c.y + r * 0.62f, c.x + r * 1.25f, c.y + r * 0.2f)
+    }
+    drawPath(runner, Color(0xFF8A9BB5), style = Stroke(r * 0.12f, cap = StrokeCap.Round))
+    for (dx in listOf(-0.6f, 0.5f)) drawLine(Color(0xFF8A9BB5), Offset(c.x + dx * r, c.y + r * 0.62f), Offset(c.x + dx * r, c.y + r * 0.35f), r * 0.1f)
+    drawRoundRect(Color(0xFFE5303F), Offset(c.x - r * 1.05f, c.y + r * 0.15f), Size(r * 2.1f, r * 0.28f), androidx.compose.ui.geometry.CornerRadius(r * 0.1f))
+    drawRoundRect(Color.White.copy(alpha = 0.4f), Offset(c.x - r * 0.95f, c.y + r * 0.18f), Size(r * 1.9f, r * 0.07f), androidx.compose.ui.geometry.CornerRadius(r * 0.05f))
+}
+
+/** 타이머 테마: ❄️ 눈송이 햄스터 = 얼음 게이지 · ✨ 황금 햄스터 = 황금 게이지. 그 외 null */
+data class TimerTheme(val icon: String, val colors: List<Color>, val flake: FxShape)
+
+fun timerTheme(skin: Animal?): TimerTheme? = when (skin) {
+    Animal.SNOW_HAMSTER -> TimerTheme("❄️", listOf(Color(0xFFBFE9FF), Color(0xFF5CC8FF), Color(0xFF3A8DFF)), FxShape.SNOW)
+    Animal.GOLD_HAMSTER -> TimerTheme("✨", listOf(Color(0xFFFFF4B0), Color(0xFFFFC21A), Color(0xFFFF9F1C)), FxShape.COIN)
+    Animal.PINK_CAT -> TimerTheme("💗", listOf(Color(0xFFFFD6EC), Color(0xFFFF8FC4), Color(0xFFFF4FA0)), FxShape.HEART)
+    Animal.BLACK_CAT -> TimerTheme("🌙", listOf(Color(0xFF9B8CFF), Color(0xFF6A4DE0), Color(0xFF3B2A6B)), FxShape.STAR)
+    else -> null
 }

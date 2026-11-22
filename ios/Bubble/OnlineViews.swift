@@ -309,10 +309,32 @@ struct VsIntro: View {
                     card(game.mySide.opponent, game.opponentSkin, game.opponentName, game.opponentCountry, game.opponentScore, ai: game.isAi)
                 }
                 .fixedSize(horizontal: false, vertical: true)
+                // 동물(시간 줄이기)을 썼으면 크게 알려줌
+                if let a = game.opponentSkin, a.consumable {
+                    notice(tr("⏱ 상대가 \(a.label)을(를) 썼어요! 내 턴이 \(a.opponentTurnSec)초로 줄어요", "⏱ Your rival used a \(a.label)! Your turn is \(a.opponentTurnSec)s",
+                              zh: "⏱ 对手用了\(a.label)！你的回合缩短为 \(a.opponentTurnSec) 秒", es: "⏱ ¡Tu rival usó \(a.label)! Tu turno dura \(a.opponentTurnSec) s",
+                              fr: "⏱ Ton adversaire a utilisé \(a.label) ! Ton tour dure \(a.opponentTurnSec) s", de: "⏱ Dein Gegner nutzt \(a.label)! Dein Zug: \(a.opponentTurnSec) s",
+                              pt: "⏱ Seu rival usou \(a.label)! Seu turno tem \(a.opponentTurnSec) s", ru: "⏱ Соперник использовал: \(a.label)! Ваш ход — \(a.opponentTurnSec) с",
+                              ja: "⏱ 相手が\(a.label)を使った！自分のターンは\(a.opponentTurnSec)秒"), UiColor.danger)
+                }
+                if let a = game.mySkin, a.consumable {
+                    notice(tr("✨ 내 \(a.label) 효과! 상대 턴 \(a.opponentTurnSec)초", "✨ Your \(a.label): rival's turn is \(a.opponentTurnSec)s",
+                              zh: "✨ 我的\(a.label)效果！对手回合 \(a.opponentTurnSec) 秒", es: "✨ Tu \(a.label): el turno rival dura \(a.opponentTurnSec) s",
+                              fr: "✨ Ton \(a.label) : tour adverse \(a.opponentTurnSec) s", de: "✨ Dein \(a.label): Gegnerzug \(a.opponentTurnSec) s",
+                              pt: "✨ Seu \(a.label): turno do rival \(a.opponentTurnSec) s", ru: "✨ Ваш \(a.label): ход соперника \(a.opponentTurnSec) с",
+                              ja: "✨ 自分の\(a.label)効果！相手のターン\(a.opponentTurnSec)秒"), UiColor.accent)
+                }
             }
             .padding(20)
         }
         .onTapGesture(perform: onClose)
+    }
+
+    private func notice(_ text: String, _ color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 16, weight: .black)).foregroundColor(.white).multilineTextAlignment(.center)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 16).fill(color))
     }
 
     private func card(_ side: Side, _ skin: Animal?, _ name: String, _ country: String?, _ score: Int, ai: Bool) -> some View {

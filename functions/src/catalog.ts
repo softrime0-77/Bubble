@@ -1,6 +1,21 @@
 // 상점 상품과 계급. 앱의 game/Catalog.kt와 같은 값이어야 합니다.
 
 export const POTION_PRICE = 50;
+/** ✏️ 닉네임 변경권: 첫 변경은 무료, 그다음부터 1장씩 */
+export const RENAME_PRICE = 100;
+
+/** 닉네임 정리: 앞뒤 공백 제거, 최대 12자. 비었으면 null */
+export function cleanName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const n = [...raw.trim()].slice(0, 12).join("");
+  return n.length > 0 ? n : null;
+}
+
+/** 이번 닉네임 변경이 무료인지 / 변경권을 쓰는지 / 못 바꾸는지 */
+export function renameCost(freeUsed: unknown, tickets: unknown): "free" | "ticket" | "none" {
+  if (freeUsed !== true) return "free";
+  return typeof tickets === "number" && tickets >= 1 ? "ticket" : "none";
+}
 /** ×3 점수 부스터 (소모품): 켜둔 상태로 랜덤 매칭이 시작되면 1개 사용, 이기면 얻는 점수 3배 (AI 대전엔 안 씀) */
 export const BOOST_PRICE = 50;
 export const BOOST_MULTIPLIER = 3;
@@ -12,18 +27,40 @@ export function winPoints(base: number, bonus: number, boosted: boolean): number
 /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
 export const MAX_REVIVES_PER_GAME = 3;
 
-/** 이번 판에서 쓸 수 있는 부활 수 = 가진 물약 수 (최대 3). */
-export function revivesForGame(potions: unknown): number {
+/** 랜덤 매칭(랭킹)에서는 한 판에 부활 1번까지 (물약을 쌓아 둔 사람만 이기지 않게) */
+export const RANKED_MAX_REVIVES = 1;
+
+/** 이번 판에서 쓸 수 있는 부활 수 = 가진 물약 수 (최대 [max], 기본 3). */
+export function revivesForGame(potions: unknown, max = MAX_REVIVES_PER_GAME): number {
   const n = typeof potions === "number" && potions > 0 ? Math.floor(potions) : 0;
-  return Math.min(MAX_REVIVES_PER_GAME, n);
+  return Math.min(max, n);
 }
 
 /** 동물 캐릭터 (소모품): 장착한 채 랜덤 매칭이 잡히면 1개를 쓰고, 그 판에 상대의 턴 시간을 줄입니다. */
 export const ANIMALS: Record<string, { price: number; opponentTurnMs: number }> = {
-  SHEEP: { price: 30, opponentTurnMs: 15_000 },
-  DOG: { price: 50, opponentTurnMs: 10_000 },
-  GIRAFFE: { price: 100, opponentTurnMs: 5_000 },
+  SHEEP: { price: 20, opponentTurnMs: 15_000 },
+  DOG: { price: 40, opponentTurnMs: 12_000 },
+  // 5초는 너무 빡빡해서 8초로 (손이 느려 지는 판이 없게)
+  GIRAFFE: { price: 70, opponentTurnMs: 8_000 },
 };
+
+/**
+ * 묶음 할인: 상품 → { 개수: 가격 }. 부활물약은 1·3·5·10개, 동물은 1·3개.
+ * (물약 3개 10% · 5개 20% · 10개 30% 할인, 동물 3개 약 15% 할인)
+ */
+export const BUNDLES: Record<string, Record<number, number>> = {
+  POTION: { 1: 50, 3: 135, 5: 200, 10: 350 },
+  SHEEP: { 1: 20, 3: 50 },
+  DOG: { 1: 40, 3: 100 },
+  GIRAFFE: { 1: 70, 3: 180 },
+};
+
+/** [item]을 [qty]개 살 때 가격. 없는 묶음이면 null */
+export function bundlePrice(item: string, qty: unknown): number | null {
+  const table = BUNDLES[item];
+  if (!table || typeof qty !== "number" || !Number.isInteger(qty)) return null;
+  return table[qty] ?? null;
+}
 
 /** 무료 캐릭터 (모습만 바뀌고 효과 없음, 소모되지 않음) */
 export const FREE_SKINS = ["HAMSTER"];

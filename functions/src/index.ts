@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -335,8 +335,9 @@ export const matchmake = onCall(async (req) => {
       ham: [1, 1],
       catSplits: MAX_SPLITS,
       hamSplits: MAX_SPLITS,
-      catRevives: revivesForGame(cat.get("potions")),
-      hamRevives: revivesForGame(ham.get("potions")),
+      // 랜덤 매칭은 부활 1번까지
+      catRevives: revivesForGame(cat.get("potions"), RANKED_MAX_REVIVES),
+      hamRevives: revivesForGame(ham.get("potions"), RANKED_MAX_REVIVES),
       catCountry: iAmCat ? myCountry : cleanCountry(opp.get("country")),
       hamCountry: iAmCat ? cleanCountry(opp.get("country")) : myCountry,
       catSkin: catAnimal,
@@ -693,10 +694,16 @@ export const admobSsv = onRequest(async (req, res) => {
 export const buyItem = onCall(async (req) => {
   const uid = requireUser(req);
   const item = (req.data as { item?: unknown } | null)?.item;
-  if (typeof item !== "string" || (item !== "POTION" && item !== "BOOST" && !ANIMALS[item] && !isCosmetic(item))) {
+  const rawQty = (req.data as { qty?: unknown } | null)?.qty;
+  const qty = rawQty === undefined || rawQty === null ? 1 : rawQty;
+  if (typeof item !== "string" || (item !== "POTION" && item !== "BOOST" && item !== "RENAME" && !ANIMALS[item] && !isCosmetic(item))) {
     throw err("invalid-argument", "없는 상품이에요", "No such item");
   }
-  const price = item === "POTION" ? POTION_PRICE : item === "BOOST" ? BOOST_PRICE
+  // 물약·동물은 묶음 할인 (1·3·5·10개), 나머지는 1개씩
+  const bundle = BUNDLES[item] ? bundlePrice(item, qty) : (qty === 1 ? 0 : null);
+  if (bundle === null) throw err("invalid-argument", "없는 묶음이에요", "No such bundle");
+  const count = BUNDLES[item] ? (qty as number) : 1;
+  const price = BUNDLES[item] ? bundle : item === "POTION" ? POTION_PRICE : item === "BOOST" ? BOOST_PRICE : item === "RENAME" ? RENAME_PRICE
     : isCosmetic(item) ? COSMETIC_SKINS[item] : ANIMALS[item].price;
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
@@ -714,17 +721,20 @@ export const buyItem = onCall(async (req) => {
     tx.update(
       userRef,
       item === "POTION"
-        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(1) }
+        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(count) }
         : isCosmetic(item)
         // 유료 스킨: 한 번 사면 계속 (바로 장착)
         ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), skins: FieldValue.arrayUnion(item), equipped: item }
+        : item === "RENAME"
+        // ✏️ 닉네임 변경권 1장
+        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), renameTickets: FieldValue.increment(1) }
         : item === "BOOST"
         // 부스터: 1개 추가하고 바로 켬
         ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), boosts: FieldValue.increment(1), boostOn: true }
         : {
           // 동물은 소모품: 1개 추가하고 바로 장착
           score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins),
-          [`animals.${item}`]: FieldValue.increment(1), equipped: item,
+          [`animals.${item}`]: FieldValue.increment(count), equipped: item,
         },
     );
   });
@@ -1224,6 +1234,29 @@ export const joinFriendRoom = onCall(async (req) => {
     if (myCountry && myProfile.get("country") !== myCountry) tx.update(myProfile.ref, { country: myCountry });
     tx.update(roomRef, { status: "matched", gameId: gameRef.id, guest: uid });
     return { gameId: gameRef.id, rated };
+  });
+});
+
+/**
+ * ✏️ 닉네임 바꾸기: 처음 한 번은 무료, 그다음부터는 닉네임 변경권 1장 사용.
+ * (예전에는 앱이 직접 바꿨지만 이제 서버만 바꿈 — firestore.rules에서 막음)
+ */
+export const rename = onCall(async (req) => {
+  const uid = requireUser(req);
+  const name = cleanName((req.data as { name?: unknown } | null)?.name);
+  if (!name) throw err("invalid-argument", "닉네임을 입력해 주세요", "Please enter a nickname");
+  const ref = db.collection("users").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const u = await tx.get(ref);
+    if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    if (u.get("name") === name) return { used: "same" };
+    const cost = renameCost(u.get("freeRenameUsed"), u.get("renameTickets"));
+    if (cost === "none") throw err("failed-precondition", "닉네임 변경권이 필요해요 (상점)", "You need a rename ticket (shop)");
+    tx.update(ref, {
+      name,
+      ...(cost === "free" ? { freeRenameUsed: true } : { renameTickets: FieldValue.increment(-1) }),
+    });
+    return { used: cost };
   });
 });
 

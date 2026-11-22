@@ -298,7 +298,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
-    fun buy(item: String, label: String) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉")) { repo.buyItem(item) }
+    fun buy(item: String, label: String, qty: Int = 1) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉")) { repo.buyItem(item, qty) }
 
     fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character", zh = "已换回默认角色", hi = "डिफ़ॉल्ट किरदार पर वापस", es = "Volviste al personaje por defecto", fr = "Retour au personnage par défaut", ar = "تمت العودة إلى الشخصية الافتراضية", de = "Zurück zur Standardfigur", pt = "Voltou ao personagem padrão", ru = "Возвращён обычный персонаж", ja = "デフォルトのキャラに戻しました") else tr("${animal.label} 장착!", "${animal.label} equipped!", zh = "已装备${animal.label}！", hi = "${animal.label} लगा दिया!", es = "¡${animal.label} equipado!", fr = "${animal.label} équipé !", ar = "تم تجهيز ${animal.label}!", de = "${animal.label} ausgerüstet!", pt = "${animal.label} equipado!", ru = "${animal.label}: надето!", ja = "${animal.label}を装備しました！")) {
         repo.equipAnimal(animal)
@@ -594,10 +594,11 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         }
     }
 
+    /** 닉네임 바꾸기: 첫 변경은 무료, 그다음은 ✏️ 변경권 1장 (서버가 판단) */
     fun rename(name: String) {
-        val id = uid ?: return
-        if (name.isBlank()) return
-        viewModelScope.launch { runCatching { repo.setNickname(id, name) } }
+        if (uid == null || name.isBlank()) return
+        shopAction(tr("✏️ 닉네임을 바꿨어요!", "✏️ Nickname changed!", zh = "✏️ 昵称已更改！", es = "✏️ ¡Apodo cambiado!", fr = "✏️ Pseudo modifié !",
+            de = "✏️ Spitzname geändert!", pt = "✏️ Apelido alterado!", ru = "✏️ Ник изменён!", ja = "✏️ ニックネームを変更しました！")) { repo.rename(name) }
     }
 
     // ---------- 랜덤 매칭 ----------

@@ -178,6 +178,8 @@ final class OnlineService: ObservableObject {
     @Published var info: String? = nil
     /// 승급 축하 화면 (새 점수)
     @Published var rankUpScore: Int? = nil
+    /// 계급이 내려갔을 때 안내 팝업: (예전 계급, 지금 점수)
+    @Published var rankDown: (from: Rank, score: Int)? = nil
     /// 출석 완료 축하 팝업 (몇 일째, 💰, 💖 물약)
     @Published var checkin: CheckinReward? = nil
     /// 미션 완료 축하 팝업 (미션 이름, 💰)
@@ -591,7 +593,9 @@ final class OnlineService: ObservableObject {
         guard let p else { return }
         Ads.shared.noAds = p.noAds
         // 같은 계정에서 계급이 올라가면 축하 화면
-        if let old, old.uid == p.uid, p.rank.rawValue > old.rank.rawValue { rankUpScore = p.score }
+        if let old, old.uid == p.uid, p.rank.rawValue > old.rank.rawValue { rankUpScore = p.score; rankDown = nil }
+        // 계급이 내려가면 응원 팝업
+        if let old, old.uid == p.uid, p.rank.rawValue < old.rank.rawValue { rankDown = (old.rank, p.score) }
         if old == nil { redeemPendingInvite(p) }
         refreshMyRanking()
     }

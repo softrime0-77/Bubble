@@ -1479,3 +1479,86 @@ struct WinRain: View {
         .allowsHitTesting(false)
     }
 }
+
+
+// ======================= 강등 팝업 =======================
+
+/// 계급이 내려갔을 때: 빗방울이 톡톡, 예전 배지 → 지금 배지, 얼마나 더 얻으면 돌아가는지 (응원)
+struct RankDownNotice: View {
+    let from: Rank
+    let score: Int
+    let onClose: () -> Void
+    @State private var pop = false
+    @State private var drop = false
+
+    private static let drops = fxParts(40, seed: 141)
+
+    var body: some View {
+        let now = Rank.of(score)
+        let need = max(1, from.minScore - score)
+        return ZStack {
+            LinearGradient(colors: [Color(hex: 0x303A55, alpha: 0.88), Color(hex: 0x1D2234, alpha: 0.93)], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
+            TimelineView(.animation) { tl in
+                Canvas { ctx, size in
+                    let rain = CGFloat(tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.8) / 1.8)
+                    for q in Self.drops {
+                        let y: CGFloat = ((rain * (0.8 + q.s * 0.6) + q.a).truncatingRemainder(dividingBy: 1)) * (size.height + 60) - 30
+                        let x: CGFloat = CGFloat(q.k % 997) / 997 * size.width
+                        let len: CGFloat = 10 + q.s * 14
+                        var line = Path()
+                        line.move(to: CGPoint(x: x, y: y))
+                        line.addLine(to: CGPoint(x: x - len * 0.15, y: y + len))
+                        ctx.stroke(line, with: .color(Color(hex: 0x9FC3FF).opacity(0.45)), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    }
+                }
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            VStack(spacing: 0) {
+                Text("😢").font(.system(size: 56))
+                Text(tr("계급이 내려갔어요", "Your rank went down", zh: "等级下降了", es: "Bajaste de rango", fr: "Ton rang a baissé",
+                        de: "Dein Rang ist gesunken", pt: "Seu rank caiu", ru: "Ранг понизился", ja: "ランクが下がりました"))
+                    .font(.system(size: 24, weight: .black)).foregroundColor(UiColor.text).padding(.top, 6)
+                HStack(spacing: 8) {
+                    RankBadge(score: from.minScore).opacity(0.55)
+                    Text("➜").font(.system(size: 22, weight: .black)).foregroundColor(UiColor.text.opacity(0.6))
+                    // 지금 배지는 위에서 툭 떨어짐
+                    RankBadge(score: score).offset(y: drop ? 0 : -24).scaleEffect(drop ? 1 : 0.8)
+                }
+                .padding(.top, 16)
+                Text(tr("\(need)점만 더 얻으면 다시 \(from.label)!", "Just \(need) more pts to get back to \(from.label)!",
+                        zh: "再得 \(need) 分就能回到\(from.label)！", es: "¡Solo \(need) pts para volver a \(from.label)!",
+                        fr: "Plus que \(need) pts pour revenir en \(from.label) !", de: "Nur noch \(need) Pkt bis \(from.label)!",
+                        pt: "Só mais \(need) pts para voltar ao \(from.label)!", ru: "Ещё \(need) очк. — и снова \(from.label)!",
+                        ja: "あと\(need)点で\(from.label)に戻れます！"))
+                    .font(.system(size: 16, weight: .bold)).foregroundColor(UiColor.accent).multilineTextAlignment(.center).padding(.top, 16)
+                Text(tr("지금은 \(now.label) 계급 · 계급 보너스 +\(now.bonusPercent)%", "Now \(now.label) · rank bonus +\(now.bonusPercent)%",
+                        zh: "当前\(now.label) · 等级奖励 +\(now.bonusPercent)%", es: "Ahora \(now.label) · bonus +\(now.bonusPercent)%",
+                        fr: "Maintenant \(now.label) · bonus +\(now.bonusPercent)%", de: "Jetzt \(now.label) · Bonus +\(now.bonusPercent)%",
+                        pt: "Agora \(now.label) · bônus +\(now.bonusPercent)%", ru: "Сейчас \(now.label) · бонус +\(now.bonusPercent)%",
+                        ja: "今は\(now.label) · ランクボーナス +\(now.bonusPercent)%"))
+                    .font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.65)).padding(.top, 4)
+                Button(action: onClose) {
+                    Text(tr("다시 도전! 💪", "Let's climb back! 💪", zh: "再来挑战！💪", es: "¡A recuperarlo! 💪", fr: "On remonte ! 💪",
+                            de: "Zurück nach oben! 💪", pt: "Bora subir! 💪", ru: "Вернём ранг! 💪", ja: "もう一度！💪"))
+                        .font(.system(size: 18, weight: .black)).foregroundColor(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(Capsule().fill(LinearGradient(colors: [UiColor.accent, UiColor.primary], startPoint: .leading, endPoint: .trailing)))
+                }
+                .padding(.top, 18)
+            }
+            .padding(.horizontal, 24).padding(.vertical, 24)
+            .background(RoundedRectangle(cornerRadius: 30).fill(LinearGradient(colors: [Color(hex: 0xF4F7FF), Color(hex: 0xE9ECFA)], startPoint: .top, endPoint: .bottom)))
+            .padding(28)
+            .scaleEffect(pop ? 1 : 0.7)
+            .opacity(pop ? 1 : 0)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onClose)
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) { pop = true }
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.4).delay(0.45)) { drop = true }
+        }
+    }
+}

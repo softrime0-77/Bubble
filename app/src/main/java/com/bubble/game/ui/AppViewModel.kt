@@ -135,6 +135,8 @@ data class LobbyUi(
     val info: String? = null,
     /** 계급이 올랐을 때 축하 화면을 띄울 점수 */
     val rankUpScore: Int? = null,
+    /** 계급이 내려갔을 때 안내 팝업: (예전 계급, 지금 점수) */
+    val rankDown: Pair<Rank, Int>? = null,
     /** 상점 구매/장착 처리 중 */
     val shopBusy: Boolean = false,
     /** 출석 완료 축하 팝업 */
@@ -182,6 +184,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var lastRank: Rank? = null
 
     fun dismissRankUp() = _lobby.update { it.copy(rankUpScore = null) }
+    fun dismissRankDown() = _lobby.update { it.copy(rankDown = null) }
 
     fun dismissWelcome() = _lobby.update { it.copy(welcome = null) }
 
@@ -445,6 +448,7 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                         val rank = p?.rank
                         val prev = lastRank
                         val rankedUp = rank != null && prev != null && rank.ordinal > prev.ordinal
+                        val rankedDown = rank != null && prev != null && rank.ordinal < prev.ordinal
                         if (rank != null) lastRank = rank
                         if (p != null) tryRedeemPendingInvite(p)
                         if (p != null) tryJoinPendingBattle()
@@ -453,6 +457,7 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                                 profile = p,
                                 loading = false,
                                 rankUpScore = if (rankedUp) p!!.score else it.rankUpScore,
+                                rankDown = if (rankedDown) prev!! to p!!.score else if (rankedUp) null else it.rankDown,
                             )
                         }
                         refreshMyRanking()

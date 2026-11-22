@@ -216,6 +216,8 @@ struct TurnTimerView: View {
     let deadline: Date
     let totalSec: Int
     let mine: Bool
+    /// ❄️ 눈송이 · ✨ 황금 햄스터: 내 시간일 때 게이지 테마 (모습만)
+    var skin: Animal? = nil
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.1)) { tl in
@@ -225,23 +227,36 @@ struct TurnTimerView: View {
             let urgent = left <= 5
             let color: Color = urgent ? UiColor.danger : (fraction > 0.5 ? Color(hex: 0x43A047) : Color(hex: 0xFF9800))
             let blink = urgent ? (Int(tl.date.timeIntervalSinceReferenceDate * 4) % 2 == 0 ? 1.0 : 0.3) : 1.0
+            let theme = mine ? TimerTheme.of(skin) : nil
+            let drift = tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 2.4) / 2.4
             VStack(spacing: 4) {
                 HStack(spacing: 8) {
                     Text(mine ? t("내 시간") : t("상대 시간"))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(UiColor.text.opacity(0.7))
-                    Text("⏱ \(Int(left.rounded(.up)))")
+                    Text("\(theme?.icon ?? "⏱") \(Int(left.rounded(.up)))")
                         .font(.system(size: urgent ? 40 : 32, weight: .black))
-                        .foregroundColor(color)
+                        .foregroundColor(theme != nil && !urgent ? theme!.colors[2] : color)
                         .opacity(blink)
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.7))
-                        Capsule().fill(color).frame(width: geo.size.width * fraction).opacity(blink)
+                        if let th = theme, !urgent {
+                            Capsule().fill(LinearGradient(colors: th.colors, startPoint: .leading, endPoint: .trailing))
+                                .frame(width: geo.size.width * fraction).opacity(blink)
+                        } else {
+                            Capsule().fill(color).frame(width: geo.size.width * fraction).opacity(blink)
+                        }
                     }
                 }
                 .frame(height: 12)
+                .overlay {
+                    // 게이지 위로 눈송이 / 금화가 흩날림
+                    if let th = theme {
+                        TimerFlakes(theme: th, fraction: CGFloat(fraction), drift: drift).frame(height: 26).offset(y: -2)
+                    }
+                }
             }
             .padding(.horizontal, 24)
         }

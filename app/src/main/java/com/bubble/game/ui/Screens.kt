@@ -1225,6 +1225,8 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
         Modifier.fillMaxSize().background(Color(0x88302040)),
         contentAlignment = Alignment.Center,
     ) {
+        // 이기면 내 스킨 테마로 하트 · 달 · 눈송이 · 금가루가 쏟아짐 (모습만)
+        if (won && g.mySkin?.cosmetic == true) WinRain(g.mySide, g.mySkin)
         Card(
             shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -1233,7 +1235,7 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
             Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Critter(
                     g.mySide, Modifier.size(120.dp).offset(y = (if (won) -jump * 16 else 0f).dp),
-                    happy = won,
+                    happy = won, skin = g.mySkin, ribbons = g.myRibbons,
                 )
                 Text(
                     if (won) tr("승리! 🎉", "You win! 🎉", zh = "你赢了！🎉", hi = "आप जीत गए! 🎉", es = "¡Ganaste! 🎉", fr = "Victoire ! 🎉", ar = "لقد فزت! 🎉", de = "Gewonnen! 🎉", pt = "Você venceu! 🎉", ru = "Победа! 🎉", ja = "勝利！🎉") else tr("아쉬운 패배…", "So close…", zh = "差一点…", hi = "बस थोड़ा सा रह गया…", es = "Casi…", fr = "Presque…", ar = "كدت تفوز…", de = "Knapp daneben…", pt = "Quase…", ru = "Почти…", ja = "惜しい…"),
@@ -2430,6 +2432,18 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
             ru = "🐉 💰 +${Shop.DRAGON_POP_COINS} за каждый лопнутый пузырь соперника\n(макс. $mx в день · сегодня $today/$mx) · навсегда",
             ja = "🐉 相手の泡を割るたびに 💰 +${Shop.DRAGON_POP_COINS}\n（1日最大$mx · 今日 $today/$mx）· 永久")
     }
+    Animal.PINK_CAT -> tr("✨ 영구 스킨 · 💗 이기면 하트 비가 내려요 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart rain when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · 💗 获胜时下起爱心雨（不影响胜负）", es = "✨ Aspecto permanente · 💗 Lluvia de corazones al ganar", fr = "✨ Skin permanent · 💗 Pluie de cœurs à la victoire",
+        de = "✨ Dauerhafter Skin · 💗 Herzregen beim Sieg", pt = "✨ Skin permanente · 💗 Chuva de corações ao vencer", ru = "✨ Навсегда · 💗 Дождь из сердечек при победе", ja = "✨ 永久スキン · 💗 勝つとハートの雨")
+    Animal.BLACK_CAT -> tr("✨ 영구 스킨 · 🌙 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Moons and stars rain when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · 🌙 获胜时月亮星星落下（不影响胜负）", es = "✨ Aspecto permanente · 🌙 Lluvia de lunas y estrellas al ganar", fr = "✨ Skin permanent · 🌙 Pluie de lunes et d’étoiles à la victoire",
+        de = "✨ Dauerhafter Skin · 🌙 Monde und Sterne beim Sieg", pt = "✨ Skin permanente · 🌙 Chuva de luas e estrelas ao vencer", ru = "✨ Навсегда · 🌙 Луны и звёзды при победе", ja = "✨ 永久スキン · 🌙 勝つと月と星が降る")
+    Animal.SNOW_HAMSTER -> tr("✨ 영구 스킨 · ❄️ 내 타이머가 얼음 게이지로, 이기면 눈송이 비 (승패 영향 없음)", "✨ Permanent skin · ❄️ Icy timer, snow rain when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · ❄️ 冰雪计时条，获胜时下雪（不影响胜负）", es = "✨ Aspecto permanente · ❄️ Temporizador de hielo y nieve al ganar", fr = "✨ Skin permanent · ❄️ Minuteur de glace, neige à la victoire",
+        de = "✨ Dauerhafter Skin · ❄️ Eis-Timer, Schnee beim Sieg", pt = "✨ Skin permanente · ❄️ Timer de gelo e neve ao vencer", ru = "✨ Навсегда · ❄️ Ледяной таймер, снег при победе", ja = "✨ 永久スキン · ❄️ 氷のタイマー、勝つと雪")
+    Animal.GOLD_HAMSTER -> tr("✨ 영구 스킨 · 🏆 황금 타이머, 이기면 금가루 폭죽이 팡팡 (승패 영향 없음)", "✨ Permanent skin · 🏆 Golden timer, gold fireworks when you win (no effect on winning)",
+        zh = "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es = "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr = "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
+        de = "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt = "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru = "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja = "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
     Animal.RABBIT -> tr("🐰 연승할수록 리본이 하나씩 (최대 ${Shop.RABBIT_MAX_RIBBONS}개, 지면 처음부터) · 지금 ${p.winStreak}연승",
         "🐰 A new ribbon for every win in a row (max ${Shop.RABBIT_MAX_RIBBONS}, resets on a loss) · streak ${p.winStreak}",
         zh = "🐰 每连胜一场多一个蝴蝶结（最多 ${Shop.RABBIT_MAX_RIBBONS} 个，输了重来）· 当前 ${p.winStreak} 连胜",
@@ -2804,6 +2818,9 @@ private fun TurnTimer(g: GameUi, now: Long) {
     val blink by t.animateFloat(1f, 0.25f, infiniteRepeatable(tween(250), RepeatMode.Reverse), label = "blink")
     val alpha = if (urgent) blink else 1f
     val mine = g.turn == g.mySide
+    // ❄️ 눈송이 · ✨ 황금 햄스터: 내 시간일 때 게이지 테마 (모습만, 시간은 그대로)
+    val theme = if (mine) timerTheme(g.mySkin) else null
+    val drift by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "drift")
 
     Column(
         Modifier.fillMaxWidth().padding(top = 10.dp, start = 24.dp, end = 24.dp),
@@ -2819,10 +2836,10 @@ private fun TurnTimer(g: GameUi, now: Long) {
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                "⏱ $leftSec",
+                "${theme?.icon ?: "⏱"} $leftSec",
                 fontSize = if (urgent) 40.sp else 32.sp,
                 fontWeight = FontWeight.Black,
-                color = color,
+                color = if (theme != null && !urgent) theme.colors[2] else color,
                 modifier = Modifier.alpha(alpha),
             )
         }
@@ -2838,8 +2855,21 @@ private fun TurnTimer(g: GameUi, now: Long) {
                     .fillMaxWidth(fraction)
                     .fillMaxHeight()
                     .alpha(alpha)
-                    .background(color, RoundedCornerShape(50)),
+                    .then(
+                        if (theme != null && !urgent) Modifier.background(Brush.horizontalGradient(theme.colors), RoundedCornerShape(50))
+                        else Modifier.background(color, RoundedCornerShape(50)),
+                    ),
             )
+        }
+        // 게이지 위로 눈송이 / 금화가 흩날림
+        if (theme != null) {
+            androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(26.dp).offset(y = (-19).dp)) {
+                for (i in 0 until 7) {
+                    val x = size.width * fraction * ((i + drift) / 7f)
+                    val y = size.height * (0.5f + 0.4f * kotlin.math.sin((drift * 6.28f) + i * 1.7f))
+                    fxShape(theme.flake, androidx.compose.ui.geometry.Offset(x, y), 4.dp.toPx() + (i % 3) * 1.dp.toPx(), theme.colors[1 + i % 2].copy(alpha = 0.9f), drift * 360f + i * 40f)
+                }
+            }
         }
     }
 }

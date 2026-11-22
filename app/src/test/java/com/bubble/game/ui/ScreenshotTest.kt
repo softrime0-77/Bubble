@@ -439,4 +439,34 @@ class ScreenshotTest {
         vm.openShop()
         shot("shop_tall", 900)
     }
+
+    /** 황금 햄스터로 이기면 금가루 폭죽 + 금화 비 */
+    @Test
+    fun winGold() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(2, 0), ham = listOf(0, 0)), mySide = Side.CAT, finished = true, winner = Side.CAT,
+                reason = "normal", busy = false, showIntro = false, mySkin = com.bubble.game.game.Animal.GOLD_HAMSTER)
+        }
+        shot("win_gold", 900)
+    }
+
+    /** 눈송이 햄스터: 내 시간 게이지가 얼음 테마 */
+    @Test
+    fun timerSnow() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(2, 3), ham = listOf(1, 2)), mySide = Side.CAT, turn = Side.CAT, busy = false, showIntro = false,
+                mySkin = com.bubble.game.game.Animal.SNOW_HAMSTER, turnSec = 15, turnDeadline = System.currentTimeMillis() + 11_000)
+        }
+        shot("timer_snow", 600)
+    }
 }

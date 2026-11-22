@@ -1147,3 +1147,85 @@ struct ReviveFx: View {
         .allowsHitTesting(false)
     }
 }
+
+
+// ======================= 스킨별 승리 효과 · 타이머 테마 =======================
+
+/// 타이머 테마: ❄️ 눈송이 햄스터 = 얼음 게이지 · ✨ 황금 햄스터 = 황금 게이지
+struct TimerTheme {
+    let icon: String
+    let colors: [Color]
+    let flake: FxShape
+
+    static func of(_ skin: Animal?) -> TimerTheme? {
+        switch skin {
+        case .snowHamster: return TimerTheme(icon: "❄️", colors: [Color(hex: 0xBFE9FF), Color(hex: 0x5CC8FF), Color(hex: 0x3A8DFF)], flake: .snow)
+        case .goldHamster: return TimerTheme(icon: "✨", colors: [Color(hex: 0xFFF4B0), Color(hex: 0xFFC21A), Color(hex: 0xFF9F1C)], flake: .coin)
+        default: return nil
+        }
+    }
+}
+
+/// 타이머 게이지 위로 흩날리는 눈송이 / 금화
+struct TimerFlakes: View {
+    let theme: TimerTheme
+    let fraction: CGFloat
+    let drift: Double
+
+    var body: some View {
+        Canvas { ctx, size in
+            let d = CGFloat(drift)
+            for i in 0..<7 {
+                let fi = CGFloat(i)
+                let x: CGFloat = size.width * fraction * ((fi + d) / 7)
+                let y: CGFloat = size.height * (0.5 + 0.4 * fsin(d * tau + fi * 1.7))
+                drawFx(&ctx, theme.flake, CGPoint(x: x, y: y), 4 + CGFloat(i % 3), theme.colors[1 + i % 2].opacity(0.9), rot: d * 360 + fi * 40)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// 이겼을 때 내 스킨 테마로 쏟아지는 비. 🐹 황금 햄스터는 금가루 폭죽. 승패에는 영향 없음 (모습만)
+struct WinRain: View {
+    let side: Side
+    let skin: Animal?
+
+    private static let drops = fxParts(46, seed: 111)
+    private static let fireParts = fxParts(26, seed: 121)
+    private static let goldTheme = FxTheme(colors: [Color(hex: 0xFFC21A), Color(hex: 0xFFF4B0), .white, Color(hex: 0xFF9F1C)], shapes: [.coin, .star], emoji: "✨")
+
+    private static func draw(_ ctx: inout GraphicsContext, _ size: CGSize, _ theme: FxTheme, _ gold: Bool, _ now: Double) {
+        let fall = CGFloat(now.truncatingRemainder(dividingBy: 4.2) / 4.2)
+        for (i, q) in drops.enumerated() {
+            let y: CGFloat = ((fall * (0.7 + q.s * 0.6) + q.a).truncatingRemainder(dividingBy: 1)) * (size.height + 120) - 60
+            let x: CGFloat = CGFloat(q.k % 997) / 997 * size.width + fsin(fall * tau * (1 + q.spin) + CGFloat(i)) * 26
+            let shape = theme.shape(q.k)
+            // 하얀 금화는 빈 고리처럼 보여서 테마 색으로
+            let c0 = theme.color(q.k)
+            let color = (shape == .coin && q.k % theme.colors.count == 2) ? theme.main : c0
+            drawFx(&ctx, shape, CGPoint(x: x, y: y), 7 + q.s * 9, color.opacity(0.9), rot: fall * 360 * q.spin + CGFloat(q.k))
+        }
+        if gold {
+            let boom = CGFloat(now.truncatingRemainder(dividingBy: 1.4) / 1.4)
+            let round = Int(fall * 3)
+            for k in 0..<3 {
+                let p: CGFloat = (boom + CGFloat(k) / 3).truncatingRemainder(dividingBy: 1)
+                let seed = (round * 7 + k * 13) % 10
+                let c = CGPoint(x: size.width * (0.2 + 0.3 * CGFloat(k) + CGFloat(seed - 5) * 0.01),
+                                y: size.height * (0.18 + 0.07 * CGFloat((seed + k) % 4)))
+                drawBurst(&ctx, c, min(size.width, size.height) * 0.16, p, goldTheme, fireParts, rays: 12)
+            }
+        }
+    }
+
+    var body: some View {
+        let theme = FxTheme.of(side, skin)
+        let gold = skin == .goldHamster
+        return TimelineView(.animation) { tl in
+            Canvas { ctx, size in Self.draw(&ctx, size, theme, gold, tl.date.timeIntervalSinceReferenceDate) }
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+}

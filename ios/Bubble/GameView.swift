@@ -88,7 +88,7 @@ struct GameView<M: GameModel>: View {
                 Spacer(minLength: 8)
                 turnBanner
                 if let d = game.deadline, !game.finished {
-                    TurnTimerView(deadline: d, totalSec: game.turnSec, mine: game.turn == me)
+                    TurnTimerView(deadline: d, totalSec: game.turnSec, mine: game.turn == me, skin: game.mySkin)
                         .padding(.top, 10)
                 }
                 Spacer(minLength: 8)
@@ -125,7 +125,7 @@ struct GameView<M: GameModel>: View {
             ForEach(revives) { ReviveFx(burst: $0) }
 
             if game.finished, let w = game.winner {
-                ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
+                ResultOverlay(won: w == me, side: me, skin: game.mySkin, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
                               online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
                               share: w == me ? winShare : nil,
                               onLobby: onLeave, onAgain: onAgain)
@@ -362,6 +362,8 @@ struct GameView<M: GameModel>: View {
 struct ResultOverlay: View {
     let won: Bool
     let side: Side
+    /// 내 스킨 (이기면 스킨 테마로 비가 쏟아짐)
+    var skin: Animal? = nil
     let reason: String
     var delta: Int? = nil
     var online = false
@@ -377,8 +379,10 @@ struct ResultOverlay: View {
     var body: some View {
         ZStack {
             Color(hex: 0x302040, alpha: 0.53).ignoresSafeArea()
+            // 이기면 내 스킨 테마로 하트 · 달 · 눈송이 · 금가루가 쏟아짐 (모습만)
+            if won, let s = skin, s.cosmetic { WinRain(side: side, skin: s) }
             VStack(spacing: 8) {
-                Critter(side: side, happy: won).frame(width: 120, height: 120)
+                Critter(side: side, skin: skin, happy: won).frame(width: 120, height: 120)
                 Text(won ? t("승리! 🎉") : t("아쉬운 패배…"))
                     .font(.system(size: 32, weight: .black))
                     .foregroundColor(won ? UiColor.primaryDark : UiColor.text)

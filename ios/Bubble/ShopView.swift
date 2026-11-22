@@ -361,7 +361,7 @@ struct ShopView: View {
         let owned: String? = on ? tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", es: "✅ Equipado", fr: "✅ Équipé", de: "✅ Ausgerüstet", pt: "✅ Equipado", ru: "✅ Надето", ja: "✅ 装備中")
             : have ? tr("💎 보유 중", "💎 Owned", zh: "💎 已拥有", es: "💎 Tuyo", fr: "💎 Possédé", de: "💎 Im Besitz", pt: "💎 Seu", ru: "💎 Есть", ja: "💎 所持中") : nil
         return shopCard(title: a.label,
-                        desc: [.octopus, .penguin, .panda, .dragon, .rabbit].contains(a) ? specialDesc(a, p) : a.lucky ? luckyDesc(p) : tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
+                        desc: [.octopus, .penguin, .panda, .dragon, .rabbit, .pinkCat, .blackCat, .snowHamster, .goldHamster].contains(a) ? specialDesc(a, p) : a.lucky ? luckyDesc(p) : tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
                                  fr: "✨ Skin permanent · aucun effet", de: "✨ Dauerhafter Skin · kein Effekt", pt: "✨ Skin permanente · sem efeito",
                                  ru: "✨ Навсегда · без эффекта", ja: "✨ 永久スキン · 効果なし"),
                         price: have ? nil : a.price, owned: owned,
@@ -385,6 +385,22 @@ struct ShopView: View {
     /// 🐙 🐧 🐼 🐉 🐰 효과 설명 (조건은 숫자 그대로)
     private func specialDesc(_ a: Animal, _ p: Profile) -> String {
         switch a {
+        case .pinkCat:
+            return tr("✨ 영구 스킨 · 💗 이기면 하트 비가 내려요 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart rain when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · 💗 获胜时下起爱心雨（不影响胜负）", es: "✨ Aspecto permanente · 💗 Lluvia de corazones al ganar", fr: "✨ Skin permanent · 💗 Pluie de cœurs à la victoire",
+                      de: "✨ Dauerhafter Skin · 💗 Herzregen beim Sieg", pt: "✨ Skin permanente · 💗 Chuva de corações ao vencer", ru: "✨ Навсегда · 💗 Дождь из сердечек при победе", ja: "✨ 永久スキン · 💗 勝つとハートの雨")
+        case .blackCat:
+            return tr("✨ 영구 스킨 · 🌙 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Moons and stars rain when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · 🌙 获胜时月亮星星落下（不影响胜负）", es: "✨ Aspecto permanente · 🌙 Lluvia de lunas y estrellas al ganar", fr: "✨ Skin permanent · 🌙 Pluie de lunes et d’étoiles à la victoire",
+                      de: "✨ Dauerhafter Skin · 🌙 Monde und Sterne beim Sieg", pt: "✨ Skin permanente · 🌙 Chuva de luas e estrelas ao vencer", ru: "✨ Навсегда · 🌙 Луны и звёзды при победе", ja: "✨ 永久スキン · 🌙 勝つと月と星が降る")
+        case .snowHamster:
+            return tr("✨ 영구 스킨 · ❄️ 내 타이머가 얼음 게이지로, 이기면 눈송이 비 (승패 영향 없음)", "✨ Permanent skin · ❄️ Icy timer, snow rain when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · ❄️ 冰雪计时条，获胜时下雪（不影响胜负）", es: "✨ Aspecto permanente · ❄️ Temporizador de hielo y nieve al ganar", fr: "✨ Skin permanent · ❄️ Minuteur de glace, neige à la victoire",
+                      de: "✨ Dauerhafter Skin · ❄️ Eis-Timer, Schnee beim Sieg", pt: "✨ Skin permanente · ❄️ Timer de gelo e neve ao vencer", ru: "✨ Навсегда · ❄️ Ледяной таймер, снег при победе", ja: "✨ 永久スキン · ❄️ 氷のタイマー、勝つと雪")
+        case .goldHamster:
+            return tr("✨ 영구 스킨 · 🏆 황금 타이머, 이기면 금가루 폭죽이 팡팡 (승패 영향 없음)", "✨ Permanent skin · 🏆 Golden timer, gold fireworks when you win (no effect on winning)",
+                      zh: "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es: "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr: "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
+                      de: "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt: "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru: "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja: "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
         case .octopus:
             return tr("🐙 분할하면 먹물이 퍽! · 모습·효과만", "🐙 Ink splash when you split · looks only", zh: "🐙 分裂时喷墨！· 仅外观",
                       es: "🐙 ¡Tinta al dividir! · solo aspecto", fr: "🐙 Jet d’encre en divisant · look seulement", de: "🐙 Tinte beim Teilen · nur Look",

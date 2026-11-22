@@ -961,3 +961,52 @@ fun ReviveFx(r: ReviveBurst, onDone: (ReviveBurst) -> Unit) {
         )
     }
 }
+
+// ======================= 스킨별 승리 효과 · 타이머 테마 =======================
+
+/**
+ * 이겼을 때 내 스킨 테마로 쏟아지는 비 (하트 · 달 · 눈송이 · 금화 …).
+ * 🐹 황금 햄스터는 금가루 폭죽이 여기저기서 팡팡 터짐. 승패에는 영향 없음 (모습만).
+ */
+@Composable
+fun WinRain(side: Side, skin: Animal?) {
+    val theme = remember(side, skin) { fxTheme(side, skin) }
+    val t = rememberInfiniteTransition(label = "winRain")
+    val fall by t.animateFloat(0f, 1f, infiniteRepeatable(tween(4_200, easing = LinearEasing)), label = "fall")
+    val boom by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_400, easing = LinearEasing)), label = "boom")
+    val drops = remember { parts(46) }
+    val gold = skin == Animal.GOLD_HAMSTER
+    val goldTheme = remember { FxTheme(listOf(Color(0xFFFFC21A), Color(0xFFFFF4B0), Color.White, Color(0xFFFF9F1C)), listOf(FxShape.COIN, FxShape.STAR), "✨") }
+    val fireParts = remember { parts(26) }
+    Canvas(Modifier.fillMaxSize()) {
+        drops.forEachIndexed { i, q ->
+            val y = ((fall * (0.7f + q.s * 0.6f) + q.a) % 1f) * (size.height + 120f) - 60f
+            val x = ((q.k % 997) / 997f) * size.width + sin(fall * 2 * PI.toFloat() * (1 + q.spin) + i) * 26f
+            val r = (7f + q.s * 9f) * density
+            val shape = theme.shapes[q.k % theme.shapes.size]
+            val c0 = theme.colors[q.k % theme.colors.size]
+            // 하얀 금화는 빈 고리처럼 보여서 테마 색으로
+            val color = if (shape == FxShape.COIN && c0 == Color.White) theme.main else c0
+            fxShape(shape, Offset(x, y), r, color.copy(alpha = 0.9f), fall * 360f * q.spin + q.k)
+        }
+        // 🐹 황금 햄스터: 금가루 폭죽 (자리를 바꿔 가며 3군데)
+        if (gold) {
+            val round = (fall * 3).toInt()
+            for (k in 0 until 3) {
+                val p = ((boom + k / 3f) % 1f)
+                val seed = (round * 7 + k * 13) % 10
+                val c = Offset(size.width * (0.2f + 0.3f * k + (seed - 5) * 0.01f), size.height * (0.18f + 0.07f * ((seed + k) % 4)))
+                burst(c, size.minDimension * 0.16f, p, goldTheme, fireParts, rays = 12)
+            }
+        }
+    }
+}
+
+/** 타이머 테마: ❄️ 눈송이 햄스터 = 얼음 게이지 · ✨ 황금 햄스터 = 황금 게이지. 그 외 null */
+data class TimerTheme(val icon: String, val colors: List<Color>, val flake: FxShape)
+
+fun timerTheme(skin: Animal?): TimerTheme? = when (skin) {
+    Animal.SNOW_HAMSTER -> TimerTheme("❄️", listOf(Color(0xFFBFE9FF), Color(0xFF5CC8FF), Color(0xFF3A8DFF)), FxShape.SNOW)
+    Animal.GOLD_HAMSTER -> TimerTheme("✨", listOf(Color(0xFFFFF4B0), Color(0xFFFFC21A), Color(0xFFFF9F1C)), FxShape.COIN)
+    else -> null
+}

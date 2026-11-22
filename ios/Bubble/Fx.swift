@@ -1197,7 +1197,35 @@ struct WinRain: View {
     private static let fireParts = fxParts(26, seed: 121)
     private static let goldTheme = FxTheme(colors: [Color(hex: 0xFFC21A), Color(hex: 0xFFF4B0), .white, Color(hex: 0xFF9F1C)], shapes: [.coin, .star], emoji: "✨")
 
-    private static func draw(_ ctx: inout GraphicsContext, _ size: CGSize, _ theme: FxTheme, _ gold: Bool, _ now: Double) {
+    private static let flakes = fxParts(34, seed: 131)
+
+    /// ❄️ 눈송이 햄스터: 가장자리 서리 + 큰 눈꽃이 바람에 휘날림
+    private static func drawSnowstorm(_ ctx: inout GraphicsContext, _ size: CGSize, _ fall: CGFloat) {
+        let frost = Color(hex: 0xDFF4FF)
+        let w = size.width, h = size.height
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: w, height: h * 0.22)),
+                 with: .linearGradient(Gradient(colors: [frost.opacity(0.75), .clear]), startPoint: .zero, endPoint: CGPoint(x: 0, y: h * 0.22)))
+        ctx.fill(Path(CGRect(x: 0, y: h * 0.8, width: w, height: h * 0.2)),
+                 with: .linearGradient(Gradient(colors: [.clear, frost.opacity(0.6)]), startPoint: CGPoint(x: 0, y: h * 0.8), endPoint: CGPoint(x: 0, y: h)))
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: w * 0.18, height: h)),
+                 with: .linearGradient(Gradient(colors: [frost.opacity(0.5), .clear]), startPoint: .zero, endPoint: CGPoint(x: w * 0.18, y: 0)))
+        ctx.fill(Path(CGRect(x: w * 0.82, y: 0, width: w * 0.18, height: h)),
+                 with: .linearGradient(Gradient(colors: [.clear, frost.opacity(0.5)]), startPoint: CGPoint(x: w * 0.82, y: 0), endPoint: CGPoint(x: w, y: 0)))
+        for (i, q) in flakes.enumerated() {
+            let fi = CGFloat(i)
+            let tt: CGFloat = (fall * (0.8 + q.s * 0.5) + q.a).truncatingRemainder(dividingBy: 1)
+            let x: CGFloat = -60 + tt * (w + 160) + fsin(tt * 9 + fi) * 40
+            let y: CGFloat = (q.spin + 1) / 2 * h * 0.9 + tt * h * 0.35 - h * 0.1 + fcos(tt * 7 + fi) * 30
+            let r: CGFloat = 10 + q.s * 14
+            let color: Color = i % 3 == 0 ? Color(hex: 0x7FD3FF) : .white
+            drawFx(&ctx, .snow, CGPoint(x: x, y: y), r, color.opacity(0.95), rot: tt * 540 + fi * 20)
+            if i % 4 == 0 {
+                ctx.fill(sparklePath(CGPoint(x: x + r, y: y - r), r * 0.5 * (0.5 + 0.5 * fsin(fall * 40 + fi))), with: .color(.white))
+            }
+        }
+    }
+
+    private static func draw(_ ctx: inout GraphicsContext, _ size: CGSize, _ theme: FxTheme, _ gold: Bool, _ snow: Bool, _ now: Double) {
         let fall = CGFloat(now.truncatingRemainder(dividingBy: 4.2) / 4.2)
         for (i, q) in drops.enumerated() {
             let y: CGFloat = ((fall * (0.7 + q.s * 0.6) + q.a).truncatingRemainder(dividingBy: 1)) * (size.height + 120) - 60
@@ -1208,6 +1236,7 @@ struct WinRain: View {
             let color = (shape == .coin && q.k % theme.colors.count == 2) ? theme.main : c0
             drawFx(&ctx, shape, CGPoint(x: x, y: y), 7 + q.s * 9, color.opacity(0.9), rot: fall * 360 * q.spin + CGFloat(q.k))
         }
+        if snow { drawSnowstorm(&ctx, size, fall) }
         if gold {
             let boom = CGFloat(now.truncatingRemainder(dividingBy: 1.4) / 1.4)
             let round = Int(fall * 3)
@@ -1224,8 +1253,9 @@ struct WinRain: View {
     var body: some View {
         let theme = FxTheme.of(side, skin)
         let gold = skin == .goldHamster
+        let snow = skin == .snowHamster
         return TimelineView(.animation) { tl in
-            Canvas { ctx, size in Self.draw(&ctx, size, theme, gold, tl.date.timeIntervalSinceReferenceDate) }
+            Canvas { ctx, size in Self.draw(&ctx, size, theme, gold, snow, tl.date.timeIntervalSinceReferenceDate) }
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)

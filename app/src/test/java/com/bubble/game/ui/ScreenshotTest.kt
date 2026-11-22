@@ -469,4 +469,19 @@ class ScreenshotTest {
         }
         shot("timer_snow", 600)
     }
+
+    /** 눈송이 햄스터로 이기면 눈보라 */
+    @Test
+    fun winSnow() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(2, 0), ham = listOf(0, 0)), mySide = Side.CAT, finished = true, winner = Side.CAT,
+                reason = "normal", busy = false, showIntro = false, mySkin = com.bubble.game.game.Animal.SNOW_HAMSTER)
+        }
+        shot("win_snow", 900)
+    }
 }

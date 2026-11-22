@@ -978,7 +978,26 @@ fun WinRain(side: Side, skin: Animal?) {
     val gold = skin == Animal.GOLD_HAMSTER
     val goldTheme = remember { FxTheme(listOf(Color(0xFFFFC21A), Color(0xFFFFF4B0), Color.White, Color(0xFFFF9F1C)), listOf(FxShape.COIN, FxShape.STAR), "✨") }
     val fireParts = remember { parts(26) }
+    val snow = skin == Animal.SNOW_HAMSTER
+    val flakes = remember { parts(34) }
     Canvas(Modifier.fillMaxSize()) {
+        // ❄️ 눈송이 햄스터: 가장자리에 서리가 끼고, 큰 눈꽃이 바람에 휘날림
+        if (snow) {
+            val frost = Color(0xFFDFF4FF)
+            drawRect(Brush.verticalGradient(listOf(frost.copy(alpha = 0.75f), Color.Transparent), 0f, size.height * 0.22f))
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent, frost.copy(alpha = 0.6f)), size.height * 0.8f, size.height))
+            drawRect(Brush.horizontalGradient(listOf(frost.copy(alpha = 0.5f), Color.Transparent), 0f, size.width * 0.18f))
+            drawRect(Brush.horizontalGradient(listOf(Color.Transparent, frost.copy(alpha = 0.5f)), size.width * 0.82f, size.width))
+            flakes.forEachIndexed { i, q ->
+                // 왼쪽 위에서 오른쪽 아래로 휘몰아치며 빙글빙글
+                val tt = (fall * (0.8f + q.s * 0.5f) + q.a) % 1f
+                val x = -60f + tt * (size.width + 160f) + sin(tt * 9f + i) * 40f
+                val y = q.spin.let { (it + 1f) / 2f } * size.height * 0.9f + tt * size.height * 0.35f - size.height * 0.1f + kotlin.math.cos(tt * 7f + i) * 30f
+                val r = (10f + q.s * 14f) * density
+                fxShape(FxShape.SNOW, Offset(x, y), r, (if (i % 3 == 0) Color(0xFF7FD3FF) else Color.White).copy(alpha = 0.95f), tt * 540f + i * 20f)
+                if (i % 4 == 0) sparkle(Offset(x + r, y - r), r * 0.5f * (0.5f + 0.5f * sin(fall * 40f + i)), Color.White)
+            }
+        }
         drops.forEachIndexed { i, q ->
             val y = ((fall * (0.7f + q.s * 0.6f) + q.a) % 1f) * (size.height + 120f) - 60f
             val x = ((q.k % 997) / 997f) * size.width + sin(fall * 2 * PI.toFloat() * (1 + q.spin) + i) * 26f

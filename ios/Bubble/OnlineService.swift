@@ -103,6 +103,9 @@ struct OnlineGameDoc {
     var hamBoost: Bool
     var vsFriend: Bool = false
     var rated: Bool = false
+    /// 마지막 수와 둔 쪽 (방울이 날아가는 효과용)
+    var lastMove: Move? = nil
+    var lastBy: Side? = nil
 
     func side(of uid: String) -> Side? { uid == catUid ? .cat : uid == hamUid ? .hamster : nil }
     func name(_ s: Side) -> String { s == .cat ? catName : hamName }
@@ -157,6 +160,8 @@ final class OnlineService: ObservableObject {
     @Published var info: String? = nil
     /// 승급 축하 화면 (새 점수)
     @Published var rankUpScore: Int? = nil
+    /// 출석 완료 축하 팝업 (몇 일째, 💰, 💖 물약)
+    @Published var checkin: CheckinReward? = nil
 
     private var appleNonce: String? = nil
     private var infoTask: Task<Void, Never>? = nil
@@ -438,9 +443,7 @@ final class OnlineService: ObservableObject {
             let r = try await call("claimDaily")
             let day = Self.int(r["day"]) ?? 1, coins = Self.int(r["coins"]) ?? 0
             let potion = r["potion"] as? Bool ?? false
-            show(tr("📅 \(day)일째 출석! 💰 +\(coins)", "📅 Day \(day) check-in! 💰 +\(coins)", zh: "📅 第 \(day) 天签到！💰 +\(coins)",
-                    es: "📅 ¡Día \(day)! 💰 +\(coins)", fr: "📅 Jour \(day) ! 💰 +\(coins)", de: "📅 Tag \(day)! 💰 +\(coins)",
-                    pt: "📅 Dia \(day)! 💰 +\(coins)", ru: "📅 День \(day)! 💰 +\(coins)", ja: "📅 \(day)日目の出席！💰 +\(coins)") + (potion ? " · 💖 +1" : ""))
+            checkin = CheckinReward(day: day, coins: coins, potion: potion)
         }
     }
 
@@ -693,7 +696,9 @@ final class OnlineService: ObservableObject {
             catBoost: d["catBoost"] as? Bool ?? false,
             hamBoost: d["hamBoost"] as? Bool ?? false,
             vsFriend: d["vsFriend"] as? Bool ?? false,
-            rated: d["rated"] as? Bool ?? false
+            rated: d["rated"] as? Bool ?? false,
+            lastMove: (d["lastMove"] as? String).flatMap(Move.decode),
+            lastBy: side("lastBy")
         )
     }
 
@@ -705,4 +710,11 @@ final class OnlineService: ObservableObject {
         return ["Fluffy", "Sleepy", "Hungry", "Brave", "Shy", "Chubby", "Bouncy", "Sassy", "Cozy", "Zippy"].randomElement()!
             + ["Cat", "Hammy", "Kitty", "Paws", "Whisker", "Nibbles"].randomElement()! + String(Int.random(in: 10..<100))
     }
+}
+
+/// 출석 보상 받은 결과 (축하 팝업용)
+struct CheckinReward: Equatable {
+    let day: Int
+    let coins: Int
+    let potion: Bool
 }

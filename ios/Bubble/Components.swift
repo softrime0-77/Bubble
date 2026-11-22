@@ -74,6 +74,9 @@ struct SetBubbleView: View {
             let shake = danger ? sin(now * 2 * .pi / 0.18) * 2.2 : 0
             let pulse = (sin(now * 2 * .pi / 1.8) + 1) / 2
             ZStack {
+                if mode == .selected && !dead {
+                    SelectedSparkles(side: side, skin: skin, time: now)
+                }
                 bubble(pulse: pulse)
                     .scaleEffect(dead ? 0.9 : breathe * bounce)
                 if !dead {
@@ -82,8 +85,9 @@ struct SetBubbleView: View {
                     Text(t("텅…")).font(.system(size: 14)).foregroundColor(UiColor.text.opacity(0.45))
                 }
                 if let start = boomStart {
-                    let p = min(1, tl.date.timeIntervalSince(start) / 0.9)
-                    if p < 1 { explosion(p) }
+                    let p = min(1, tl.date.timeIntervalSince(start) / 1.2)
+                    // 캐릭터마다 다른 모양으로 화려하게 터짐
+                    if p < 1 { PopBurst(side: side, skin: skin, p: p) }
                 }
                 if let preview {
                     Text(preview)
@@ -159,36 +163,6 @@ struct SetBubbleView: View {
                     .position(x: half + half * o.x * 1.25, y: half + half * o.y * 1.25)
                     .transition(.scale)
             }
-        }
-    }
-
-    private func explosion(_ p: Double) -> some View {
-        ZStack {
-            Canvas { ctx, sz in
-                let r = min(sz.width, sz.height) / 2
-                let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
-                let ring = r * (0.6 + p * 0.9)
-                ctx.stroke(Path(ellipseIn: CGRect(x: c.x - ring, y: c.y - ring, width: ring * 2, height: ring * 2)),
-                           with: .color(.white.opacity((1 - p) * 0.9)), lineWidth: (1 - p) * 14)
-                let colors = [UiColor.primary, UiColor.gold, UiColor.accent, .white]
-                for i in 0..<18 {
-                    let ang = Double(i) / 18 * 2 * .pi
-                    let dist = r * (0.4 + p * (1.0 + Double(i % 5) * 0.16))
-                    let pos = CGPoint(x: c.x + cos(ang) * dist, y: c.y + sin(ang) * dist)
-                    let color = colors[i % 4]
-                    if i % 2 == 0 {
-                        ctx.fill(sparklePath(pos, (1 - p) * (6 + Double(i % 4) * 2)), with: .color(color))
-                    } else {
-                        let rr = (1 - p) * (3 + Double(i % 3) * 2)
-                        ctx.fill(Path(ellipseIn: CGRect(x: pos.x - rr, y: pos.y - rr, width: rr * 2, height: rr * 2)), with: .color(color.opacity(1 - p)))
-                    }
-                }
-            }
-            Text(t("펑!"))
-                .font(.system(size: 34, weight: .black))
-                .foregroundColor(UiColor.danger)
-                .scaleEffect(0.6 + p)
-                .opacity(1 - p)
         }
     }
 }

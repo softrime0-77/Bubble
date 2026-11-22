@@ -10,6 +10,11 @@ struct GameView<M: GameModel>: View {
     var rewardOffer: Int? = nil
 
     @State private var confirmLeave = false
+    /// 날아가는 방울들, 방울 가운데 위치, 화면 흔들림, 내 방울이 날아가는 중인 시각
+    @State private var shots: [FlyingShot] = []
+    @State private var centers: [String: CGPoint] = [:]
+    @State private var shakes: CGFloat = 0
+    @State private var inFlightUntil = Date.distantPast
 
     /// 승리 공유 카드 내용 (추천 코드 링크 포함 → 친구가 들어오면 둘 다 +30점)
     private var winShare: WinShare {
@@ -109,6 +114,9 @@ struct GameView<M: GameModel>: View {
                 logView
             }
             .padding(.vertical, 12)
+            .modifier(ShakeEffect(animatableData: shakes))
+
+            ForEach(shots) { ShotFx(shot: $0) }
 
             if game.finished, let w = game.winner {
                 ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
@@ -116,6 +124,12 @@ struct GameView<M: GameModel>: View {
                               share: w == me ? winShare : nil,
                               onLobby: onLeave, onAgain: onAgain)
             }
+        }
+        .coordinateSpace(name: "game")
+        .onPreferenceChange(BubbleCentersKey.self) { centers = $0 }
+        .onChange(of: game.lastShot) { s in
+            // 상대가 둔 수: 방울을 날림 (판은 부딪힌 뒤에 바뀜)
+            if let s, s.side != me { fire(side: s.side, from: s.from, toOpponent: s.toOpponent, to: s.to) }
         }
         .alert(t("게임에서 나갈까요?"), isPresented: $confirmLeave) {
             Button(t("계속하기"), role: .cancel) {}
@@ -144,18 +158,59 @@ struct GameView<M: GameModel>: View {
         return ex.1
     }
 
+    /// [side]의 [from] 방울이 [to] 방울로 반짝이 꼬리를 남기며 날아가 부딪힘
+    private func fire(side: Side, from: Int, toOpponent: Bool, to: Int) {
+        let target = toOpponent ? side.opponent : side
+        guard let a = centers["\(side)\(from)"], let b = centers["\(target)\(to)"] else { return }
+        let power = game.board.sets(side)[from]
+        guard power > 0 else { return }
+        let shot = FlyingShot(from: a, to: b, side: side, skin: side == me ? game.mySkin : game.opponentSkin, power: power,
+                              attack: toOpponent, boom: game.board.sets(target)[to] + power >= GameLogic.explodeAt)
+        shots.append(shot)
+        DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) {
+            if shot.attack || shot.boom {
+                withAnimation(.linear(duration: shot.boom ? 0.6 : 0.42)) { shakes += 1 }
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec + FlyingShot.impactSec + 0.05) {
+            shots.removeAll { $0.id == shot.id }
+        }
+    }
+
+    /// 내 방울을 날려서 치기. 연습 게임은 부딪힌 뒤에 판이 바뀌고, 서버 대전은 바로 보냄 (응답이 오는 동안 날아감).
+    private func shoot(from: Int, toOpponent: Bool, to: Int) {
+        guard Date() >= inFlightUntil else { return }
+        fire(side: me, from: from, toOpponent: toOpponent, to: to)
+        inFlightUntil = Date().addingTimeInterval(FlyingShot.flySec)
+        game.selected = nil
+        let move = Move.add(from: from, toOpponent: toOpponent, to: to)
+        if game.isOnline {
+            game.play(move)
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) { game.play(move) }
+        }
+    }
+
+    private func centerReader(_ side: Side, _ i: Int) -> some View {
+        GeometryReader { geo in
+            let f = geo.frame(in: .named("game"))
+            Color.clear.preference(key: BubbleCentersKey.self, value: ["\(side)\(i)": CGPoint(x: f.midX, y: f.midY)])
+        }
+    }
+
     private func opponentBubble(_ i: Int) -> some View {
         let count = game.board.sets(opp)[i]
         let target = game.selected != nil && count > 0
         var action: (() -> Void)? = nil
         if target {
-            action = { if let s = game.selected { game.play(.add(from: s, toOpponent: true, to: i)) } }
+            action = { if let s = game.selected { shoot(from: s, toOpponent: true, to: i) } }
         }
         return SetBubbleView(
             side: opp, count: count, title: setName(i), mode: target ? .target : .normal, size: 140,
             preview: target ? previewFor(count) : nil, explodeKey: explodeKey(opp, i),
-            onTap: action
+            skin: game.opponentSkin, onTap: action
         )
+        .background(centerReader(opp, i))
     }
 
     private func myBubble(_ i: Int) -> some View {
@@ -167,14 +222,16 @@ struct GameView<M: GameModel>: View {
         return SetBubbleView(
             side: me, count: mine[i], title: setName(i), mode: mode, size: 150,
             preview: boostTarget ? "💪 " + previewFor(mine[i]) : nil, explodeKey: explodeKey(me, i),
+            skin: game.mySkin,
             onTap: {
                 if boostTarget, let s = game.selected {
-                    game.play(.add(from: s, toOpponent: false, to: i))
-                } else if pickable {
+                    shoot(from: s, toOpponent: false, to: i)
+                } else if pickable && Date() >= inFlightUntil {
                     game.selected = isSel ? nil : i
                 }
             }
         )
+        .background(centerReader(me, i))
     }
 
     private var turnBanner: some View {
@@ -337,5 +394,13 @@ struct ResultOverlay: View {
         case "timeout": return won ? t("상대가 시간을 넘겼어요") : t("시간을 넘겼어요")
         default: return won ? t("상대 방울을 모두 터뜨렸어요!") : t("내 방울이 모두 터졌어요")
         }
+    }
+}
+
+/// 방울 가운데 위치 (날아가는 효과의 출발·도착점)
+private struct BubbleCentersKey: PreferenceKey {
+    static let defaultValue: [String: CGPoint] = [:]
+    static func reduce(value: inout [String: CGPoint], nextValue: () -> [String: CGPoint]) {
+        value.merge(nextValue()) { $1 }
     }
 }

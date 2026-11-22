@@ -133,6 +133,9 @@ data class OnlineGame(
     /** 이번 판에 ×3 부스터를 쓴 사람 */
     val catBoost: Boolean,
     val hamBoost: Boolean,
+    /** 마지막 수와 둔 쪽 (방울이 날아가는 효과용) */
+    val lastMove: Move? = null,
+    val lastBy: Side? = null,
     /** 친구 대전이면 true, 점수가 걸린 판이면 rated */
     val vsFriend: Boolean = false,
     val rated: Boolean = false,
@@ -468,6 +471,8 @@ class OnlineRepository(context: Context) {
             explodedSide = getString("explodedSide")?.let { Side.valueOf(it) },
             explodedIndex = (getLong("explodedIndex") ?: -1).toInt(),
             moveNo = (getLong("moveNo") ?: 0).toInt(),
+            lastMove = getString("lastMove")?.let { Move.decode(it) },
+            lastBy = getString("lastBy")?.let { runCatching { Side.valueOf(it) }.getOrNull() },
             turnStartedAt = getLong("turnStartedAt") ?: System.currentTimeMillis(),
             catDelta = getLong("catDelta")?.toInt(),
             hamDelta = getLong("hamDelta")?.toInt(),

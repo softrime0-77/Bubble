@@ -117,6 +117,7 @@ fun SetBubble(
     explodeKey: Int? = null,
     onClick: (() -> Unit)? = null,
     skin: com.bubble.game.game.Animal? = null,
+    modifier: Modifier = Modifier,
 ) {
     val t = rememberInfiniteTransition(label = "bubble")
     val breathe by t.animateFloat(
@@ -149,14 +150,13 @@ fun SetBubble(
         if (explodeKey != null && explodeKey != lastBoom) {
             lastBoom = explodeKey
             boom.snapTo(0f)
-            boom.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
+            boom.animateTo(1f, tween(1_200, easing = FastOutSlowInEasing))
         }
     }
-    val particles = remember { List(18) { Random.nextFloat() to Random.nextFloat() } }
 
     val click = onClick
     Box(
-        Modifier
+        modifier
             .size(size)
             .graphicsLayer {
                 translationY = lift * density
@@ -216,6 +216,9 @@ fun SetBubble(
             }
         }
 
+        // 고른 방울: 빙글빙글 반짝이
+        if (mode == BubbleMode.SELECTED && !dead) SelectedSparkles(side, skin)
+
         // 캐릭터들
         if (!dead) {
             BoxWithConstraints(Modifier.fillMaxSize().scale(bubbleScale)) {
@@ -244,29 +247,8 @@ fun SetBubble(
             Text(tr("텅…", "Empty…", zh = "空…", hi = "खाली…", es = "Vacía…", fr = "Vide…", ar = "فارغة…", de = "Leer…", pt = "Vazia…", ru = "Пусто…", ja = "からっぽ…"), color = Ui.text.copy(alpha = 0.45f), fontSize = 14.sp)
         }
 
-        // 펑!
-        if (boom.value < 1f) {
-            val p = boom.value
-            Canvas(Modifier.fillMaxSize()) {
-                val r = this.size.minDimension / 2
-                drawCircle(Color.White.copy(alpha = (1f - p) * 0.9f), r * (0.6f + p * 0.9f), center, style = Stroke(width = (1f - p) * 14.dp.toPx()))
-                particles.forEachIndexed { i, (a, s) ->
-                    val ang = (i / particles.size.toFloat() + a * 0.1f) * 2 * PI
-                    val dist = r * (0.4f + p * (1.0f + s * 0.8f))
-                    val pos = center + Offset((cos(ang) * dist).toFloat(), (sin(ang) * dist).toFloat())
-                    val color = listOf(Ui.primary, Ui.gold, Ui.accent, Color.White)[i % 4]
-                    if (i % 2 == 0) {
-                        sparkle(pos, (1f - p) * (6f + s * 8f) * density, color)
-                    } else {
-                        drawCircle(color.copy(alpha = 1f - p), (1f - p) * (3f + s * 5f) * density, pos)
-                    }
-                }
-            }
-            Text(
-                tr("펑!", "POP!", zh = "啪！", hi = "फट!", es = "¡PUM!", fr = "POP !", ar = "بوب!", de = "PLOPP!", pt = "POP!", ru = "ХЛОП!", ja = "パン！"), fontSize = 34.sp, fontWeight = FontWeight.Black, color = Ui.danger,
-                modifier = Modifier.scale(0.6f + p * 1.0f).alpha(1f - p),
-            )
-        }
+        // 펑! (캐릭터마다 다른 모양으로 터짐)
+        if (boom.value < 1f) PopBurst(side, skin, boom.value)
 
         // 결과 미리보기 말풍선
         if (preview != null) {

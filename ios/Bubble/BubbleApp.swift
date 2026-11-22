@@ -92,6 +92,9 @@ struct RootView: View {
                         online.show(t("📺 광고 보상 확인 중… 곧 점수가 돌아와요"))
                     }, done: {})
                 })
+            } else if let c = online.checkin, screen.key == "lobby" {
+                CheckinCelebration(day: c.day, coins: c.coins, potion: c.potion) { online.checkin = nil }
+                    .transition(.opacity)
             } else if let score = online.rankUpScore, screen.key == "lobby" {
                 RankUpCelebration(score: score) { online.rankUpScore = nil }
             }
@@ -287,6 +290,9 @@ struct RootView: View {
         case "rankup":
             online.setDemoProfile(profile)
             online.rankUpScore = 2000
+        case "checkin":
+            online.setDemoProfile(profile)
+            online.checkin = CheckinReward(day: 7, coins: 100, potion: true)
         default:
             break
         }

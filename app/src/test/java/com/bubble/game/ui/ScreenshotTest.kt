@@ -246,4 +246,61 @@ class ScreenshotTest {
         }
         shot("game", 1200)
     }
+
+    @Test
+    fun checkin() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215), checkin = CheckinReward(7, 100, true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("checkin_stamp", 560)
+        shot("checkin", 1400)
+    }
+
+    /** 상대 방울이 날아와 내 방울을 치는 효과 + 캐릭터별 터짐 */
+    @Test
+    fun shotFx() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(2, 3), ham = listOf(4, 2)),
+                mySide = Side.CAT, turn = Side.HAMSTER, busy = false, showIntro = false,
+                mySkin = com.bubble.game.game.Animal.PINK_CAT, opponentSkin = com.bubble.game.game.Animal.SNOW_HAMSTER,
+            )
+        }
+        rule.mainClock.advanceTimeBy(500)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(0, 3), ham = listOf(4, 2)), turn = Side.CAT,
+                lastShot = Shot(Side.HAMSTER, 0, true, 0, 1),
+                explosion = Explosion(Side.CAT, 0, 99),
+            )
+        }
+        shot("shot_fly", 330)
+        shot("shot_hit", 330)
+        shot("shot_pop", 200)
+    }
+
+    @Test
+    fun selectedSparkles() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(2, 3), ham = listOf(1, 2)),
+                mySide = Side.CAT, turn = Side.CAT, busy = false, showIntro = false,
+                mySkin = com.bubble.game.game.Animal.BLACK_CAT, opponentSkin = com.bubble.game.game.Animal.GOLD_HAMSTER,
+            )
+        }
+        rule.mainClock.advanceTimeBy(300)
+        rule.onNodeWithText("1번 세트 · 2마리").performClick()
+        shot("selected", 700)
+    }
 }

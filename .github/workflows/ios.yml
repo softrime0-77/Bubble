@@ -103,6 +103,7 @@ jobs:
           shot shop_ko -lang ko -demo shop
           shot revive_ko -lang ko -demo revive
           shot rankup_ko -lang ko -demo rankup
+          shot checkin_ko -lang ko -demo checkin
           shot game_ko -lang ko -demo game
           shot lobby_ja -lang ja
           shot shop_en -lang en -demo shop

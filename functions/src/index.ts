@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -106,6 +106,9 @@ interface Game {
   /** 이번 판에 ✖️3 부스터를 쓴 사람 */
   catBoost?: boolean;
   hamBoost?: boolean;
+  /** 이번 판에 장착한 캐릭터 (모습, 복냥이 효과 판정에도 씀) */
+  catSkin?: string | null;
+  hamSkin?: string | null;
   moveNo: number;
   turnStartedAt: number;
 }
@@ -386,12 +389,16 @@ export const submitMove = onCall(async (req) => {
 
     // 부활물약은 실제로 가진 물약을 하나 소모 (읽기는 쓰기보다 먼저)
     const myRef = db.collection("users").doc(uid);
-    if (move.kind === "revive") {
-      const mine = await tx.get(myRef);
-      if (((mine.get("potions") as number | undefined) ?? 0) < 1) {
-        throw err("failed-precondition", "부활물약이 없어요", "You have no revive potions");
-      }
+    const mySkin = side === "CAT" ? game.catSkin : game.hamSkin;
+    const luckyAttack = mySkin === LUCKY_SKIN && move.kind === "add" && move.toOpponent;
+    const mine = move.kind === "revive" || luckyAttack ? await tx.get(myRef) : null;
+    if (move.kind === "revive" && (((mine?.get("potions") as number | undefined) ?? 0) < 1)) {
+      throw err("failed-precondition", "부활물약이 없어요", "You have no revive potions");
     }
+    // 💰 복냥이: 공격하면 50% 확률로 상점 포인트 +1 (하루 최대 30, 판정은 서버에서만)
+    const today = dayKey(Date.now());
+    const luckyToday = mine && mine.get("luckyDay") === today ? ((mine.get("luckyCoins") as number | undefined) ?? 0) : 0;
+    const lucky = luckyAttack && mine !== null && luckyRoll(luckyToday, Math.random());
     const r = applyMove(board, side, move);
     const update = {
       cat: r.board.cat,
@@ -411,12 +418,14 @@ export const submitMove = onCall(async (req) => {
       lastLeft: r.info.splitsLeft,
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
+      lastLucky: lucky,
       moveNo: game.moveNo + 1,
       turnStartedAt: Date.now(),
     };
     const win = winner(r.board);
     const players = win ? await readPlayers(tx, game) : null;
     if (move.kind === "revive") tx.update(myRef, { potions: FieldValue.increment(-1) });
+    if (lucky) tx.update(myRef, { coins: FieldValue.increment(1), luckyDay: today, luckyCoins: luckyToday + 1 });
     if (win && players) {
       finishGame(tx, ref, game, win, "normal", players, update);
     } else {
@@ -464,6 +473,7 @@ async function aiTurn(gameId: string) {
       lastLeft: r.info.splitsLeft,
       explodedSide: r.exploded?.side ?? null,
       explodedIndex: r.exploded?.index ?? -1,
+      lastLucky: false,
       moveNo: game.moveNo + 1,
       turnStartedAt: Date.now(),
     };

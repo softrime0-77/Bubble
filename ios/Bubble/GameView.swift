@@ -15,6 +15,10 @@ struct GameView<M: GameModel>: View {
     @State private var centers: [String: CGPoint] = [:]
     @State private var shakes: CGFloat = 0
     @State private var inFlightUntil = Date.distantPast
+    /// 💰 복냥이 동전
+    @State private var coins: [CoinPop] = []
+    /// 💖 부활 효과
+    @State private var revives: [ReviveBurst] = []
 
     /// 승리 공유 카드 내용 (추천 코드 링크 포함 → 친구가 들어오면 둘 다 +30점)
     private var winShare: WinShare {
@@ -117,6 +121,8 @@ struct GameView<M: GameModel>: View {
             .modifier(ShakeEffect(animatableData: shakes))
 
             ForEach(shots) { ShotFx(shot: $0) }
+            ForEach(coins) { CoinPopFx(pop: $0) }
+            ForEach(revives) { ReviveFx(burst: $0) }
 
             if game.finished, let w = game.winner {
                 ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
@@ -127,9 +133,21 @@ struct GameView<M: GameModel>: View {
         }
         .coordinateSpace(name: "game")
         .onPreferenceChange(BubbleCentersKey.self) { centers = $0 }
+        .onChange(of: game.lucky) { l in
+            // 맞은 방울에서 금화가 튀어나옴 (판이 바뀌는 순간 = 방울이 부딪힌 순간)
+            guard let l, let at = centers["\(l.side.opponent)\(l.to)"] else { return }
+            let pop = CoinPop(at: at)
+            coins.append(pop)
+            DispatchQueue.main.asyncAfter(deadline: .now() + CoinPop.sec + 0.05) { coins.removeAll { $0.id == pop.id } }
+        }
         .onChange(of: game.lastShot) { s in
-            // 상대가 둔 수: 방울을 날림 (판은 부딪힌 뒤에 바뀜)
-            if let s, s.side != me { fire(side: s.side, from: s.from, toOpponent: s.toOpponent, to: s.to) }
+            // 상대가 둔 수: 효과를 보여줌 (판은 효과가 끝난 뒤에 바뀜). 내 수는 누를 때 이미 보여줌
+            guard let s, s.side != me else { return }
+            switch s.kind {
+            case .add: fire(side: s.side, from: s.from, toOpponent: s.toOpponent, to: s.to)
+            case .split: fire(side: s.side, from: s.from, toOpponent: false, to: s.to, split: true)
+            case .revive: revive(side: s.side, index: s.to)
+            }
         }
         .alert(t("게임에서 나갈까요?"), isPresented: $confirmLeave) {
             Button(t("계속하기"), role: .cancel) {}
@@ -159,13 +177,15 @@ struct GameView<M: GameModel>: View {
     }
 
     /// [side]의 [from] 방울이 [to] 방울로 반짝이 꼬리를 남기며 날아가 부딪힘
-    private func fire(side: Side, from: Int, toOpponent: Bool, to: Int) {
+    private func fire(side: Side, from: Int, toOpponent: Bool, to: Int, split: Bool = false) {
         let target = toOpponent ? side.opponent : side
         guard let a = centers["\(side)\(from)"], let b = centers["\(target)\(to)"] else { return }
-        let power = game.board.sets(side)[from]
+        // 분할은 절반이 옆 방울로 날아감
+        let count = game.board.sets(side)[from]
+        let power = split ? count / 2 : count
         guard power > 0 else { return }
         let shot = FlyingShot(from: a, to: b, side: side, skin: side == me ? game.mySkin : game.opponentSkin, power: power,
-                              attack: toOpponent, boom: game.board.sets(target)[to] + power >= GameLogic.explodeAt)
+                              attack: toOpponent, boom: !split && game.board.sets(target)[to] + power >= GameLogic.explodeAt, split: split)
         shots.append(shot)
         DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) {
             if shot.attack || shot.boom {
@@ -174,6 +194,32 @@ struct GameView<M: GameModel>: View {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec + FlyingShot.impactSec + 0.05) {
             shots.removeAll { $0.id == shot.id }
+        }
+    }
+
+    /// 💖 부활: 빛기둥 · 물약 · 하트
+    private func revive(side: Side, index: Int) {
+        guard let at = centers["\(side)\(index)"] else { return }
+        let b = ReviveBurst(at: at)
+        revives.append(b)
+        DispatchQueue.main.asyncAfter(deadline: .now() + ReviveBurst.sec + 0.05) { revives.removeAll { $0.id == b.id } }
+    }
+
+    /// 내 분할·부활: 효과를 먼저 보여주고 (연습 게임은 효과가 끝난 뒤에) 수를 둠
+    private func playWithFx(_ move: Move) {
+        guard Date() >= inFlightUntil else { return }
+        var hold = FlyingShot.flySec
+        switch move {
+        case let .split(from): fire(side: me, from: from, toOpponent: false, to: 1 - from, split: true)
+        case let .revive(index): revive(side: me, index: index); hold = ReviveBurst.dropSec
+        case .add: break
+        }
+        inFlightUntil = Date().addingTimeInterval(hold)
+        game.selected = nil
+        if game.isOnline {
+            game.play(move)
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + hold) { game.play(move) }
         }
     }
 
@@ -259,7 +305,7 @@ struct GameView<M: GameModel>: View {
         if let s = game.selected, GameLogic.splitShapeOk(game.board, me, s) {
             let left = game.board.splitsLeft(me)
             Button {
-                game.play(.split(from: s))
+                playWithFx(.split(from: s))
             } label: {
                 Text(left > 0
                      ? tr("✂️ 분할하기 (\(power / 2) + \(power / 2)) · 남은 \(left)회", "✂️ Split (\(power / 2) + \(power / 2)) · \(left) left",
@@ -283,8 +329,7 @@ struct GameView<M: GameModel>: View {
     @ViewBuilder private var reviveButton: some View {
         if game.myTurn, let target = (0..<GameLogic.setCount).first(where: { GameLogic.canRevive(game.board, me, $0) }) {
             Button {
-                game.selected = nil
-                game.play(.revive(index: target))
+                playWithFx(.revive(index: target))
             } label: {
                 Text(tf("💖 부활물약으로 {0} 살리기 · 남은 {1}개", setName(target), game.board.revivesLeft(me)))
                     .font(.system(size: 15, weight: .bold)).foregroundColor(.white)

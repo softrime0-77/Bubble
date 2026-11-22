@@ -74,6 +74,10 @@ fun Critter(
                 Animal.BLACK_CAT -> drawCat(eyesClosed, happy, fur = Color(0xFF5B5662), stripe = Color(0xFF38343E), muzzle = Color(0xFFCFC8D6))
                 Animal.SNOW_HAMSTER -> drawHamster(eyesClosed, happy, fur = Color(0xFFF4F6FB), belly = Color.White, inner = Color(0xFFBFD8FF), sparkles = Color(0xFFBFE6FF))
                 Animal.GOLD_HAMSTER -> drawHamster(eyesClosed, happy, fur = Color(0xFFFFC94D), belly = Color(0xFFFFF3C4), inner = Color(0xFFFFB38A), sparkles = Color(0xFFFFF59D))
+                Animal.LUCKY_CAT -> {
+                    drawCat(eyesClosed, happy, fur = Color(0xFFFFFBF2), stripe = Color(0xFFF2A33A), muzzle = Color(0xFFFFFFFF))
+                    drawLuckyCharm()
+                }
                 null -> if (side == Side.CAT) drawCat(eyesClosed, happy) else drawHamster(eyesClosed, happy)
             }
         }
@@ -159,6 +163,29 @@ private fun DrawScope.drawCat(
             strokeWidth = r * 0.04f, cap = StrokeCap.Round,
         )
     }
+}
+
+/** 복냥이: 빨간 목줄 + 금화 방울 + 이마의 복 무늬 */
+private fun DrawScope.drawLuckyCharm() {
+    val w = size.width
+    val h = size.height
+    val cx = w / 2
+    val cy = h * 0.58f
+    val r = w * 0.36f
+    // 이마 얼룩 (삼색이 느낌)
+    drawOval(Color(0xFF4A3B3B).copy(alpha = 0.85f), Offset(cx + r * 0.25f, cy - r * 0.9f), Size(r * 0.55f, r * 0.38f))
+    // 빨간 목줄
+    val collar = Path().apply {
+        moveTo(cx - r * 0.85f, cy + r * 0.72f)
+        quadraticTo(cx, cy + r * 1.08f, cx + r * 0.85f, cy + r * 0.72f)
+    }
+    drawPath(collar, Color(0xFFE5303F), style = Stroke(width = r * 0.17f, cap = StrokeCap.Round))
+    // 금화 방울
+    val bell = Offset(cx, cy + r * 1.0f)
+    drawCircle(Color(0xFFFFC21A), r * 0.25f, bell)
+    drawCircle(Color(0xFFE59A00), r * 0.25f, bell, style = Stroke(width = r * 0.05f))
+    drawCircle(Color(0xFFE59A00), r * 0.12f, bell, style = Stroke(width = r * 0.04f))
+    drawCircle(Color.White.copy(alpha = 0.8f), r * 0.06f, bell + Offset(-r * 0.09f, -r * 0.09f))
 }
 
 private fun DrawScope.drawHamster(

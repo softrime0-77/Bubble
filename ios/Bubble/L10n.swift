@@ -128,6 +128,7 @@ extension Animal {
         case .blackCat: return pick(["까망 고양이", "Black Cat", "小黑猫", "काली बिल्ली", "Gato negro", "Chat noir", "قطة سوداء", "Schwarze Katze", "Gato preto", "Чёрный котик", "くろネコ"])
         case .snowHamster: return pick(["눈송이 햄스터", "Snow Hamster", "雪花仓鼠", "स्नो हैम्स्टर", "Hámster nieve", "Hamster neige", "هامستر الثلج", "Schneehamster", "Hamster neve", "Снежный хомяк", "ゆきハムスター"])
         case .goldHamster: return pick(["황금 햄스터", "Golden Hamster", "黄金仓鼠", "गोल्डन हैम्स्टर", "Hámster dorado", "Hamster doré", "هامستر ذهبي", "Goldhamster", "Hamster dourado", "Золотой хомяк", "きんハムスター"])
+        case .luckyCat: return pick(["복냥이", "Lucky Cat", "招财猫", "लकी बिल्ली", "Gato de la suerte", "Chat porte-bonheur", "قطة الحظ", "Glückskatze", "Gato da sorte", "Котик удачи", "まねきネコ"])
         }
     }
 }

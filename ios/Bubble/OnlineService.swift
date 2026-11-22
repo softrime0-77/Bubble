@@ -35,6 +35,9 @@ struct Profile: Equatable {
     var firstBuyDone = false
     /// 가입 시각 (ms). 첫 구매 2배는 가입 후 7일 동안만
     var createdAt: Int? = nil
+    /// 💰 복냥이로 오늘 받은 포인트 (luckyDay가 오늘일 때만 유효)
+    var luckyDay: String? = nil
+    var luckyCoins = 0
     /// 출석: 마지막으로 받은 날(한국 시간)과 연속 일수
     var checkinDay: String? = nil
     var checkinStreak = 0
@@ -108,6 +111,8 @@ struct OnlineGameDoc {
     /// 마지막 수와 둔 쪽 (방울이 날아가는 효과용)
     var lastMove: Move? = nil
     var lastBy: Side? = nil
+    /// 마지막 공격에서 💰 복냥이 효과가 터졌는지
+    var lastLucky: Bool = false
 
     func side(of uid: String) -> Side? { uid == catUid ? .cat : uid == hamUid ? .hamster : nil }
     func name(_ s: Side) -> String { s == .cat ? catName : hamName }
@@ -659,6 +664,8 @@ final class OnlineService: ObservableObject {
             noAds: d["noAds"] as? Bool ?? false,
             firstBuyDone: d["firstBuyDone"] as? Bool ?? false,
             createdAt: int(d["createdAt"]),
+            luckyDay: d["luckyDay"] as? String,
+            luckyCoins: int(d["luckyCoins"]) ?? 0,
             checkinDay: d["checkinDay"] as? String,
             checkinStreak: int(d["checkinStreak"]) ?? 0,
             missionDay: d["missionDay"] as? String,
@@ -712,7 +719,8 @@ final class OnlineService: ObservableObject {
             vsFriend: d["vsFriend"] as? Bool ?? false,
             rated: d["rated"] as? Bool ?? false,
             lastMove: (d["lastMove"] as? String).flatMap(Move.decode),
-            lastBy: side("lastBy")
+            lastBy: side("lastBy"),
+            lastLucky: d["lastLucky"] as? Bool ?? false
         )
     }
 

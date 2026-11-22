@@ -67,6 +67,9 @@ data class Profile(
     val firstBuyDone: Boolean = false,
     /** 가입 시각 (ms). 첫 구매 2배는 가입 후 7일 동안만 */
     val createdAt: Long? = null,
+    /** 💰 복냥이로 오늘 받은 포인트 (luckyDay가 오늘일 때만 유효) */
+    val luckyDay: String? = null,
+    val luckyCoins: Int = 0,
     /** 출석: 마지막으로 받은 날(한국 시간)과 연속 일수 */
     val checkinDay: String? = null,
     val checkinStreak: Int = 0,
@@ -138,6 +141,8 @@ data class OnlineGame(
     /** 마지막 수와 둔 쪽 (방울이 날아가는 효과용) */
     val lastMove: Move? = null,
     val lastBy: Side? = null,
+    /** 마지막 공격에서 💰 복냥이 효과가 터졌는지 */
+    val lastLucky: Boolean = false,
     /** 친구 대전이면 true, 점수가 걸린 판이면 rated */
     val vsFriend: Boolean = false,
     val rated: Boolean = false,
@@ -408,6 +413,8 @@ class OnlineRepository(context: Context) {
         noAds = getBoolean("noAds") ?: false,
         firstBuyDone = getBoolean("firstBuyDone") ?: false,
         createdAt = getLong("createdAt"),
+        luckyDay = getString("luckyDay"),
+        luckyCoins = (getLong("luckyCoins") ?: 0).toInt(),
         checkinDay = getString("checkinDay"),
         checkinStreak = (getLong("checkinStreak") ?: 0).toInt(),
         missionDay = getString("missionDay"),
@@ -476,6 +483,7 @@ class OnlineRepository(context: Context) {
             moveNo = (getLong("moveNo") ?: 0).toInt(),
             lastMove = getString("lastMove")?.let { Move.decode(it) },
             lastBy = getString("lastBy")?.let { runCatching { Side.valueOf(it) }.getOrNull() },
+            lastLucky = getBoolean("lastLucky") ?: false,
             turnStartedAt = getLong("turnStartedAt") ?: System.currentTimeMillis(),
             catDelta = getLong("catDelta")?.toInt(),
             hamDelta = getLong("hamDelta")?.toInt(),

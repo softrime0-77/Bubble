@@ -380,7 +380,7 @@ struct ResultOverlay: View {
         ZStack {
             Color(hex: 0x302040, alpha: 0.53).ignoresSafeArea()
             // 이기면 내 스킨 테마로 하트 · 달 · 눈송이 · 금가루가 쏟아짐 (모습만)
-            if won, let s = skin, s.cosmetic { WinRain(side: side, skin: s) }
+            if won { WinRain(side: side, skin: skin) }
             VStack(spacing: 8) {
                 Critter(side: side, skin: skin, happy: won).frame(width: 120, height: 120)
                 Text(won ? t("승리! 🎉") : t("아쉬운 패배…"))

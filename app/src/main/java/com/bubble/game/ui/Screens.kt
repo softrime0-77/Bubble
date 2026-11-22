@@ -1255,7 +1255,7 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
         contentAlignment = Alignment.Center,
     ) {
         // 이기면 내 스킨 테마로 하트 · 달 · 눈송이 · 금가루가 쏟아짐 (모습만)
-        if (won && g.mySkin?.cosmetic == true) WinRain(g.mySide, g.mySkin)
+        if (won) WinRain(g.mySide, g.mySkin)
         Card(
             shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),

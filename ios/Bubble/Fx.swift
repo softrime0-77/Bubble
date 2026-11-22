@@ -378,8 +378,23 @@ struct ShotFx: View {
                 ctx.fill(sparklePath(pos, orb * 0.2 * fade), with: .color(.white.opacity(Double(fade))))
             }
         }
-        // 빛나는 방울
         let head = shot.at(f)
+        if shot.skin == .penguin {
+            // 🐧 썰매: 얼음 위 두 줄 스키 자국 + 썰매
+            for off: CGFloat in [-0.18, 0.18] {
+                var track = Path()
+                for k in 0...18 {
+                    let tk: CGFloat = max(0, f - CGFloat(k) * 0.03)
+                    let b = shot.at(tk)
+                    let pt = CGPoint(x: b.x + perp.x * orb * off, y: b.y + perp.y * orb * off + orb * 0.55)
+                    if k == 0 { track.move(to: pt) } else { track.addLine(to: pt) }
+                }
+                ctx.stroke(track, with: .color(Color(hex: 0xBFE9FF).opacity(0.8)), style: StrokeStyle(lineWidth: orb * 0.08, lineCap: .round))
+            }
+            drawSled(&ctx, CGPoint(x: head.x, y: head.y + orb * 0.15), orb * 0.62)
+            return
+        }
+        // 빛나는 방울
         let glow = Gradient(colors: [.white, theme.main.opacity(0.7), theme.main.opacity(0)])
         ctx.fill(circle(head, orb * 1.1), with: .radialGradient(glow, center: head, startRadius: 0, endRadius: orb * 1.1))
         ctx.stroke(circle(head, orb * 0.62), with: .color(.white.opacity(0.95)), lineWidth: orb * 0.07)
@@ -453,7 +468,8 @@ struct ShotFx: View {
     }
 
     private func critter(_ f: CGFloat) -> some View {
-        let spin: Double = Double(f) * 360 * (shot.attack ? 1 : -1)
+        // 🐧 펭귄은 썰매에 탄 채 살짝 기울기만, 나머지는 빙글빙글
+        let spin: Double = shot.skin == .penguin ? Double(fsin(f * 18) * 10) : Double(f) * 360 * (shot.attack ? 1 : -1)
         return Critter(side: shot.side, skin: shot.skin, happy: true)
             .frame(width: shot.orb, height: shot.orb)
             .scaleEffect(0.8 + f * 0.3)
@@ -1188,74 +1204,232 @@ struct TimerFlakes: View {
     }
 }
 
-/// 이겼을 때 내 스킨 테마로 쏟아지는 비. 🐹 황금 햄스터는 금가루 폭죽. 승패에는 영향 없음 (모습만)
+/// 승리 효과 겹(layer) 종류: 캐릭터마다 몇 개를 골라 씀
+enum WinFx { case fireworks, storm, rainbow, night, paws, ink, sled, clouds, flames }
+
+/// 캐릭터별 승리 효과 (테마 비는 모두 공통)
+func winFx(_ side: Side, _ skin: Animal?) -> [WinFx] {
+    switch skin ?? (side == .cat ? nil : .hamster) {
+    case nil: return [.paws]                       // 🐾 고양이: 발자국이 콩콩
+    case .hamster: return [.fireworks]             // 🌻 해바라기씨 폭죽
+    case .pinkCat: return [.fireworks]             // 💗 하트 폭죽
+    case .blackCat: return [.night]                // 🌙 밤하늘 + 별똥별
+    case .snowHamster: return [.storm]             // ❄️ 눈보라
+    case .goldHamster: return [.fireworks]         // ✨ 금가루 폭죽
+    case .luckyCat: return [.fireworks, .paws]     // 💰 금화 폭죽 + 복 발자국
+    case .octopus: return [.ink]                   // 🐙 먹물이 퍽퍽
+    case .penguin: return [.sled, .storm]          // 🐧 썰매가 쌩 + 눈
+    case .panda: return [.storm]                   // 🐼 대나무잎 회오리
+    case .dragon: return [.flames, .fireworks]     // 🐉 불꽃이 활활
+    case .rabbit: return [.fireworks]              // 🐰 리본·하트 폭죽
+    case .unicorn: return [.rainbow, .fireworks]   // 🦄 무지개 + 별
+    case .sheep: return [.clouds]                  // ☁️ 구름이 둥실
+    case .dog: return [.paws]                      // 🦴 발자국
+    case .giraffe: return [.storm]                 // 🍃 잎사귀 회오리
+    }
+}
+
+/// 🐧 썰매: 빨간 판 + 휘어진 날
+func drawSled(_ ctx: inout GraphicsContext, _ c: CGPoint, _ r: CGFloat) {
+    var runner = Path()
+    runner.move(to: CGPoint(x: c.x - r * 1.1, y: c.y + r * 0.62))
+    runner.addLine(to: CGPoint(x: c.x + r * 0.9, y: c.y + r * 0.62))
+    runner.addQuadCurve(to: CGPoint(x: c.x + r * 1.25, y: c.y + r * 0.2), control: CGPoint(x: c.x + r * 1.35, y: c.y + r * 0.62))
+    let steel = Color(hex: 0x8A9BB5)
+    ctx.stroke(runner, with: .color(steel), style: StrokeStyle(lineWidth: r * 0.12, lineCap: .round))
+    for dx: CGFloat in [-0.6, 0.5] {
+        var leg = Path()
+        leg.move(to: CGPoint(x: c.x + dx * r, y: c.y + r * 0.62))
+        leg.addLine(to: CGPoint(x: c.x + dx * r, y: c.y + r * 0.35))
+        ctx.stroke(leg, with: .color(steel), lineWidth: r * 0.1)
+    }
+    ctx.fill(Path(roundedRect: CGRect(x: c.x - r * 1.05, y: c.y + r * 0.15, width: r * 2.1, height: r * 0.28), cornerRadius: r * 0.1), with: .color(Color(hex: 0xE5303F)))
+    ctx.fill(Path(roundedRect: CGRect(x: c.x - r * 0.95, y: c.y + r * 0.18, width: r * 1.9, height: r * 0.07), cornerRadius: r * 0.05), with: .color(.white.opacity(0.4)))
+}
+
+/// 이겼을 때 내 캐릭터 테마로 쏟아지는 비 + 캐릭터별 효과 (폭죽 · 눈보라 · 무지개 · 별똥별 · 발자국 · 먹물 · 썰매 · 구름 · 불꽃). 모습만
 struct WinRain: View {
     let side: Side
     let skin: Animal?
 
     private static let drops = fxParts(46, seed: 111)
     private static let fireParts = fxParts(26, seed: 121)
-    private static let goldTheme = FxTheme(colors: [Color(hex: 0xFFC21A), Color(hex: 0xFFF4B0), .white, Color(hex: 0xFF9F1C)], shapes: [.coin, .star], emoji: "✨")
-
     private static let flakes = fxParts(34, seed: 131)
 
-    /// ❄️ 눈송이 햄스터: 가장자리 서리 + 큰 눈꽃이 바람에 휘날림
-    private static func drawSnowstorm(_ ctx: inout GraphicsContext, _ size: CGSize, _ fall: CGFloat) {
-        let frost = Color(hex: 0xDFF4FF)
-        let w = size.width, h = size.height
+    private static func night(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat) {
+        ctx.fill(Path(CGRect(x: 0, y: 0, width: w, height: h * 0.7)),
+                 with: .linearGradient(Gradient(colors: [Color(hex: 0x1B1240, alpha: 0.8), Color(hex: 0x3B2A6B, alpha: 0.33), .clear]),
+                                       startPoint: .zero, endPoint: CGPoint(x: 0, y: h * 0.7)))
+        for i in 0..<3 {
+            let tt: CGFloat = (fall * 1.6 + CGFloat(i) / 3).truncatingRemainder(dividingBy: 1)
+            let start = CGPoint(x: w * (0.95 - CGFloat(i) * 0.25), y: h * (0.05 + CGFloat(i) * 0.08))
+            let head = CGPoint(x: start.x - w * 0.6 * tt, y: start.y + h * 0.35 * tt)
+            let tail = CGPoint(x: head.x + w * 0.18, y: head.y - h * 0.1)
+            var line = Path()
+            line.move(to: tail)
+            line.addLine(to: head)
+            ctx.stroke(line, with: .linearGradient(Gradient(colors: [.clear, Color(hex: 0xFFE680).opacity(Double(1 - tt))]), startPoint: tail, endPoint: head),
+                       style: StrokeStyle(lineWidth: 4 * (1 - tt), lineCap: .round))
+            ctx.fill(sparklePath(head, 10 * (1 - tt * 0.5)), with: .color(.white.opacity(Double(1 - tt))))
+        }
+        drawFx(&ctx, .moon, CGPoint(x: w * 0.82, y: h * 0.12), 30, Color(hex: 0xFFE680))
+    }
+
+    private static func rainbow(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat) {
+        let colors: [Color] = [Color(hex: 0xFF7EB3), Color(hex: 0xFFB86B), Color(hex: 0xFFE066), Color(hex: 0x7DDB9B), Color(hex: 0x7FC8FF), Color(hex: 0xB98CFF)]
+        let grow: CGFloat = min(1, fall * 2)
+        for (i, c) in colors.enumerated() {
+            let r: CGFloat = w * (0.62 - CGFloat(i) * 0.045)
+            var arc = Path()
+            arc.addArc(center: CGPoint(x: w / 2, y: h * 0.42), radius: r, startAngle: .degrees(180), endAngle: .degrees(Double(180 + 180 * grow)), clockwise: false)
+            ctx.stroke(arc, with: .color(c.opacity(0.55)), lineWidth: w * 0.04)
+        }
+    }
+
+    private static func storm(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat, _ theme: FxTheme, _ skin: Animal?) {
+        let icy = skin == .snowHamster || skin == .penguin
+        let frost: Color = icy ? Color(hex: 0xDFF4FF) : theme.main.opacity(0.6)
         ctx.fill(Path(CGRect(x: 0, y: 0, width: w, height: h * 0.22)),
-                 with: .linearGradient(Gradient(colors: [frost.opacity(0.75), .clear]), startPoint: .zero, endPoint: CGPoint(x: 0, y: h * 0.22)))
+                 with: .linearGradient(Gradient(colors: [frost.opacity(0.7), .clear]), startPoint: .zero, endPoint: CGPoint(x: 0, y: h * 0.22)))
         ctx.fill(Path(CGRect(x: 0, y: h * 0.8, width: w, height: h * 0.2)),
-                 with: .linearGradient(Gradient(colors: [.clear, frost.opacity(0.6)]), startPoint: CGPoint(x: 0, y: h * 0.8), endPoint: CGPoint(x: 0, y: h)))
+                 with: .linearGradient(Gradient(colors: [.clear, frost.opacity(0.55)]), startPoint: CGPoint(x: 0, y: h * 0.8), endPoint: CGPoint(x: 0, y: h)))
         ctx.fill(Path(CGRect(x: 0, y: 0, width: w * 0.18, height: h)),
-                 with: .linearGradient(Gradient(colors: [frost.opacity(0.5), .clear]), startPoint: .zero, endPoint: CGPoint(x: w * 0.18, y: 0)))
+                 with: .linearGradient(Gradient(colors: [frost.opacity(0.45), .clear]), startPoint: .zero, endPoint: CGPoint(x: w * 0.18, y: 0)))
         ctx.fill(Path(CGRect(x: w * 0.82, y: 0, width: w * 0.18, height: h)),
-                 with: .linearGradient(Gradient(colors: [.clear, frost.opacity(0.5)]), startPoint: CGPoint(x: w * 0.82, y: 0), endPoint: CGPoint(x: w, y: 0)))
+                 with: .linearGradient(Gradient(colors: [.clear, frost.opacity(0.45)]), startPoint: CGPoint(x: w * 0.82, y: 0), endPoint: CGPoint(x: w, y: 0)))
+        let big: FxShape = (skin == .panda || skin == .giraffe) ? .leaf : .snow
         for (i, q) in flakes.enumerated() {
             let fi = CGFloat(i)
             let tt: CGFloat = (fall * (0.8 + q.s * 0.5) + q.a).truncatingRemainder(dividingBy: 1)
             let x: CGFloat = -60 + tt * (w + 160) + fsin(tt * 9 + fi) * 40
             let y: CGFloat = (q.spin + 1) / 2 * h * 0.9 + tt * h * 0.35 - h * 0.1 + fcos(tt * 7 + fi) * 30
             let r: CGFloat = 10 + q.s * 14
-            let color: Color = i % 3 == 0 ? Color(hex: 0x7FD3FF) : .white
-            drawFx(&ctx, .snow, CGPoint(x: x, y: y), r, color.opacity(0.95), rot: tt * 540 + fi * 20)
+            let color: Color = big == .snow ? (i % 3 == 0 ? Color(hex: 0x7FD3FF) : .white) : theme.color(i)
+            drawFx(&ctx, big, CGPoint(x: x, y: y), r, color.opacity(0.95), rot: tt * 540 + fi * 20)
             if i % 4 == 0 {
                 ctx.fill(sparklePath(CGPoint(x: x + r, y: y - r), r * 0.5 * (0.5 + 0.5 * fsin(fall * 40 + fi))), with: .color(.white))
             }
         }
     }
 
-    private static func draw(_ ctx: inout GraphicsContext, _ size: CGSize, _ theme: FxTheme, _ gold: Bool, _ snow: Bool, _ now: Double) {
+    private static func paws(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat, _ color: Color) {
+        for row in 0..<2 {
+            let y0: CGFloat = h * (0.2 + CGFloat(row) * 0.62)
+            let step: CGFloat = (fall * 12 + CGFloat(row) * 6).truncatingRemainder(dividingBy: 12)
+            for k in 0..<12 {
+                let fk = CGFloat(k)
+                if fk > step { continue }
+                let a: CGFloat = clamp01(1 - (step - fk) / 12)
+                let p = CGPoint(x: w * (0.04 + fk * 0.085), y: y0 + (k % 2 == 0 ? -14 : 14))
+                drawFx(&ctx, .paw, p, 11, color.opacity(Double(0.8 * a)), rot: 90)
+            }
+        }
+    }
+
+    private static func ink(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat) {
+        for i in 0..<7 {
+            let q = drops[i * 5]
+            let p: CGFloat = (fall * 1.5 + CGFloat(i) / 7).truncatingRemainder(dividingBy: 1)
+            let c = CGPoint(x: w * (0.08 + q.a * 0.84), y: h * (0.08 + q.s * 0.84))
+            let grow: CGFloat = p < 0.15 ? p / 0.15 : 1
+            let a: CGFloat = p < 0.7 ? 0.85 : (1 - p) / 0.3 * 0.85
+            drawFx(&ctx, .ink, c, (26 + q.s * 22) * grow, Color(hex: 0x2E1F4D).opacity(Double(a)), rot: q.spin * 90)
+        }
+    }
+
+    private static func flames(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat) {
+        for i in 0..<14 {
+            let q = drops[i * 3]
+            let fi = CGFloat(i)
+            let p: CGFloat = (fall * 2.2 + q.a).truncatingRemainder(dividingBy: 1)
+            let x: CGFloat = w * (fi + 0.5) / 14 + fsin(p * 12 + fi) * 10
+            let y: CGFloat = h - p * h * 0.45
+            let r: CGFloat = (16 + q.s * 18) * (1 - p * 0.6)
+            let color: Color = i % 2 == 0 ? Color(hex: 0xFF6A2B) : Color(hex: 0xFFC21A)
+            drawFx(&ctx, .flame, CGPoint(x: x, y: y), r, color.opacity(Double(1 - p)), rot: fsin(p * 8 + fi) * 12)
+        }
+    }
+
+    private static func clouds(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat) {
+        for i in 0..<5 {
+            let fi = CGFloat(i)
+            let x: CGFloat = (fall * (0.6 + fi * 0.15) + fi * 0.27).truncatingRemainder(dividingBy: 1.3) * (w + 300) - 200
+            drawFx(&ctx, .cloud, CGPoint(x: x, y: h * (0.08 + fi * 0.17)), (34 + fi * 6) / 2.2, .white.opacity(0.85))
+        }
+    }
+
+    /// 썰매 위치 (펭귄 그림도 같은 자리에)
+    static func sledPoint(_ w: CGFloat, _ h: CGFloat, _ fall: CGFloat) -> CGPoint {
+        CGPoint(x: -120 + fall * (w + 240), y: h * 0.86)
+    }
+
+    private static func sled(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat) {
+        let c = sledPoint(w, h, fall)
+        for dy: CGFloat in [22, 30] {
+            var track = Path()
+            track.move(to: CGPoint(x: 0, y: c.y + dy))
+            track.addLine(to: CGPoint(x: c.x, y: c.y + dy))
+            ctx.stroke(track, with: .color(Color(hex: 0xBFE9FF)), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+        }
+        drawSled(&ctx, c, 34)
+        for k in 0..<6 {
+            let fk = CGFloat(k)
+            let puff = CGPoint(x: c.x - (fk + 1) * 26, y: c.y + 20 - fsin(fall * 30 + fk) * 8)
+            drawFx(&ctx, .snow, puff, max(2, 8 - fk), .white.opacity(Double(1 - fk / 6)), rot: fall * 400)
+        }
+    }
+
+    private static func draw(_ ctx: inout GraphicsContext, _ size: CGSize, _ theme: FxTheme, _ skin: Animal?, _ layers: [WinFx], _ now: Double) {
+        let w = size.width, h = size.height
         let fall = CGFloat(now.truncatingRemainder(dividingBy: 4.2) / 4.2)
+        if layers.contains(.night) { night(&ctx, w, h, fall) }
+        if layers.contains(.rainbow) { rainbow(&ctx, w, h, fall) }
+        if layers.contains(.clouds) { clouds(&ctx, w, h, fall) }
+        // 공통: 테마 비
         for (i, q) in drops.enumerated() {
-            let y: CGFloat = ((fall * (0.7 + q.s * 0.6) + q.a).truncatingRemainder(dividingBy: 1)) * (size.height + 120) - 60
-            let x: CGFloat = CGFloat(q.k % 997) / 997 * size.width + fsin(fall * tau * (1 + q.spin) + CGFloat(i)) * 26
+            let y: CGFloat = ((fall * (0.7 + q.s * 0.6) + q.a).truncatingRemainder(dividingBy: 1)) * (h + 120) - 60
+            let x: CGFloat = CGFloat(q.k % 997) / 997 * w + fsin(fall * tau * (1 + q.spin) + CGFloat(i)) * 26
             let shape = theme.shape(q.k)
             // 하얀 금화는 빈 고리처럼 보여서 테마 색으로
-            let c0 = theme.color(q.k)
-            let color = (shape == .coin && q.k % theme.colors.count == 2) ? theme.main : c0
+            let color = (shape == .coin && q.k % theme.colors.count == 2) ? theme.main : theme.color(q.k)
             drawFx(&ctx, shape, CGPoint(x: x, y: y), 7 + q.s * 9, color.opacity(0.9), rot: fall * 360 * q.spin + CGFloat(q.k))
         }
-        if snow { drawSnowstorm(&ctx, size, fall) }
-        if gold {
+        if layers.contains(.storm) { storm(&ctx, w, h, fall, theme, skin) }
+        if layers.contains(.paws) { paws(&ctx, w, h, fall, skin == .luckyCat ? Color(hex: 0xFFC21A) : theme.main) }
+        if layers.contains(.ink) { ink(&ctx, w, h, fall) }
+        if layers.contains(.flames) { flames(&ctx, w, h, fall) }
+        if layers.contains(.sled) { sled(&ctx, w, h, fall) }
+        if layers.contains(.fireworks) {
             let boom = CGFloat(now.truncatingRemainder(dividingBy: 1.4) / 1.4)
             let round = Int(fall * 3)
             for k in 0..<3 {
                 let p: CGFloat = (boom + CGFloat(k) / 3).truncatingRemainder(dividingBy: 1)
                 let seed = (round * 7 + k * 13) % 10
-                let c = CGPoint(x: size.width * (0.2 + 0.3 * CGFloat(k) + CGFloat(seed - 5) * 0.01),
-                                y: size.height * (0.18 + 0.07 * CGFloat((seed + k) % 4)))
-                drawBurst(&ctx, c, min(size.width, size.height) * 0.16, p, goldTheme, fireParts, rays: 12)
+                let c = CGPoint(x: w * (0.2 + 0.3 * CGFloat(k) + CGFloat(seed - 5) * 0.01),
+                                y: h * (0.18 + 0.07 * CGFloat((seed + k) % 4)))
+                drawBurst(&ctx, c, min(w, h) * 0.16, p, theme, fireParts, rays: 12)
             }
         }
     }
 
     var body: some View {
         let theme = FxTheme.of(side, skin)
-        let gold = skin == .goldHamster
-        let snow = skin == .snowHamster
-        return TimelineView(.animation) { tl in
-            Canvas { ctx, size in Self.draw(&ctx, size, theme, gold, snow, tl.date.timeIntervalSinceReferenceDate) }
+        let layers = winFx(side, skin)
+        return GeometryReader { geo in
+            TimelineView(.animation) { tl in
+                let now = tl.date.timeIntervalSinceReferenceDate
+                ZStack(alignment: .topLeading) {
+                    Canvas { ctx, size in Self.draw(&ctx, size, theme, skin, layers, now) }
+                    // 🐧 썰매 위의 펭귄
+                    if layers.contains(.sled) {
+                        let fall = CGFloat(now.truncatingRemainder(dividingBy: 4.2) / 4.2)
+                        let c = Self.sledPoint(geo.size.width, geo.size.height, fall)
+                        Critter(side: .cat, skin: .penguin, happy: true)
+                            .frame(width: 56, height: 56)
+                            .position(x: c.x, y: c.y - 56 * 0.35)
+                    }
+                }
+            }
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)

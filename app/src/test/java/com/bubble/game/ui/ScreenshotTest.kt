@@ -484,4 +484,41 @@ class ScreenshotTest {
         }
         shot("win_snow", 900)
     }
+
+    private fun winShot(name: String, skin: com.bubble.game.game.Animal?) {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(2, 0), ham = listOf(0, 0)), mySide = Side.CAT, finished = true, winner = Side.CAT,
+                reason = "normal", busy = false, showIntro = false, mySkin = skin)
+        }
+        shot(name, 1500)
+    }
+
+    @Test fun winPenguin() = winShot("win_penguin", com.bubble.game.game.Animal.PENGUIN)
+    @Test fun winUnicorn() = winShot("win_unicorn", com.bubble.game.game.Animal.UNICORN)
+    @Test fun winDragon() = winShot("win_dragon", com.bubble.game.game.Animal.DRAGON)
+    @Test fun winOctopus() = winShot("win_octopus", com.bubble.game.game.Animal.OCTOPUS)
+    @Test fun winBlackCat() = winShot("win_blackcat", com.bubble.game.game.Animal.BLACK_CAT)
+    @Test fun winCat() = winShot("win_cat", null)
+
+    /** 펭귄 공격: 썰매를 타고 날아감 */
+    @Test
+    fun penguinShot() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(2, 3), ham = listOf(2, 2)), mySide = Side.CAT, turn = Side.HAMSTER, busy = false, showIntro = false,
+                opponentSkin = com.bubble.game.game.Animal.PENGUIN)
+        }
+        rule.mainClock.advanceTimeBy(500)
+        vm.debugSetGame { it.copy(board = Board(cat = listOf(4, 3), ham = listOf(2, 2)), turn = Side.CAT, lastShot = Shot(Side.HAMSTER, 0, true, 0, 1)) }
+        shot("penguin_fly", 360)
+    }
 }

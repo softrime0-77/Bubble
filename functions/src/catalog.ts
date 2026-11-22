@@ -23,11 +23,29 @@ export function revivesForGame(potions: unknown, max = MAX_REVIVES_PER_GAME): nu
 
 /** 동물 캐릭터 (소모품): 장착한 채 랜덤 매칭이 잡히면 1개를 쓰고, 그 판에 상대의 턴 시간을 줄입니다. */
 export const ANIMALS: Record<string, { price: number; opponentTurnMs: number }> = {
-  SHEEP: { price: 30, opponentTurnMs: 15_000 },
-  DOG: { price: 50, opponentTurnMs: 12_000 },
+  SHEEP: { price: 20, opponentTurnMs: 15_000 },
+  DOG: { price: 40, opponentTurnMs: 12_000 },
   // 5초는 너무 빡빡해서 8초로 (손이 느려 지는 판이 없게)
-  GIRAFFE: { price: 100, opponentTurnMs: 8_000 },
+  GIRAFFE: { price: 70, opponentTurnMs: 8_000 },
 };
+
+/**
+ * 묶음 할인: 상품 → { 개수: 가격 }. 부활물약은 1·3·5·10개, 동물은 1·3개.
+ * (물약 3개 10% · 5개 20% · 10개 30% 할인, 동물 3개 약 15% 할인)
+ */
+export const BUNDLES: Record<string, Record<number, number>> = {
+  POTION: { 1: 50, 3: 135, 5: 200, 10: 350 },
+  SHEEP: { 1: 20, 3: 50 },
+  DOG: { 1: 40, 3: 100 },
+  GIRAFFE: { 1: 70, 3: 180 },
+};
+
+/** [item]을 [qty]개 살 때 가격. 없는 묶음이면 null */
+export function bundlePrice(item: string, qty: unknown): number | null {
+  const table = BUNDLES[item];
+  if (!table || typeof qty !== "number" || !Number.isInteger(qty)) return null;
+  return table[qty] ?? null;
+}
 
 /** 무료 캐릭터 (모습만 바뀌고 효과 없음, 소모되지 않음) */
 export const FREE_SKINS = ["HAMSTER"];

@@ -333,8 +333,8 @@ final class OnlineService: ObservableObject {
         }
     }
 
-    func buy(_ item: String, label: String) async {
-        await shopAction(tf("{0} 구매 완료! 🎉", label)) { _ = try await call("buyItem", ["item": item]) }
+    func buy(_ item: String, label: String, qty: Int = 1) async {
+        await shopAction(tf("{0} 구매 완료! 🎉", label)) { _ = try await call("buyItem", ["item": item, "qty": qty]) }
     }
 
     func equip(_ animal: Animal?) async {

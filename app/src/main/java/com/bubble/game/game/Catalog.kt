@@ -62,9 +62,9 @@ enum class Animal(
     /** 유료 스킨: 한 번 사면 계속 쓰고, 모습만 바뀜 (효과 없음) */
     val cosmetic: Boolean = false,
 ) {
-    SHEEP("양", "Sheep", 30, 15),
-    DOG("강아지", "Puppy", 50, 12),
-    GIRAFFE("기린", "Giraffe", 100, 8),
+    SHEEP("양", "Sheep", 20, 15),
+    DOG("강아지", "Puppy", 40, 12),
+    GIRAFFE("기린", "Giraffe", 70, 8),
     /** 무료 캐릭터: 모습만 햄스터로 바뀌고 효과 없음, 소모되지 않음 */
     HAMSTER("햄스터", "Hamster", 0, Shop.DEFAULT_TURN_SEC),
     // 유료 스킨 (functions/src/catalog.ts COSMETIC_SKINS와 같은 가격)
@@ -143,6 +143,18 @@ object Shop {
     const val LUCKY_DAILY_MAX = 30
 
     /** 🐼 출석 판다 보너스, 🐉 아기 용 (터뜨릴 때 💰, 하루 최대), 🐰 리본 최대 (functions/src/catalog.ts와 같게) */
+    /**
+     * 묶음 할인 (개수 → 가격). functions/src/catalog.ts BUNDLES와 같게.
+     * 부활물약 1·3·5·10개, 동물 1·3개.
+     */
+    fun bundles(item: String): List<Pair<Int, Int>> = when (item) {
+        "POTION" -> listOf(1 to 50, 3 to 135, 5 to 200, 10 to 350)
+        "SHEEP" -> listOf(1 to 20, 3 to 50)
+        "DOG" -> listOf(1 to 40, 3 to 100)
+        "GIRAFFE" -> listOf(1 to 70, 3 to 180)
+        else -> emptyList()
+    }
+
     const val PANDA_CHECKIN_BONUS = 5
     const val DRAGON_POP_COINS = 2
     const val DRAGON_DAILY_MAX = 10

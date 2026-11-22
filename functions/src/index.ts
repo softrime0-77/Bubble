@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RANKED_MAX_REVIVES } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -694,10 +694,16 @@ export const admobSsv = onRequest(async (req, res) => {
 export const buyItem = onCall(async (req) => {
   const uid = requireUser(req);
   const item = (req.data as { item?: unknown } | null)?.item;
+  const rawQty = (req.data as { qty?: unknown } | null)?.qty;
+  const qty = rawQty === undefined || rawQty === null ? 1 : rawQty;
   if (typeof item !== "string" || (item !== "POTION" && item !== "BOOST" && !ANIMALS[item] && !isCosmetic(item))) {
     throw err("invalid-argument", "없는 상품이에요", "No such item");
   }
-  const price = item === "POTION" ? POTION_PRICE : item === "BOOST" ? BOOST_PRICE
+  // 물약·동물은 묶음 할인 (1·3·5·10개), 나머지는 1개씩
+  const bundle = BUNDLES[item] ? bundlePrice(item, qty) : (qty === 1 ? 0 : null);
+  if (bundle === null) throw err("invalid-argument", "없는 묶음이에요", "No such bundle");
+  const count = BUNDLES[item] ? (qty as number) : 1;
+  const price = BUNDLES[item] ? bundle : item === "POTION" ? POTION_PRICE : item === "BOOST" ? BOOST_PRICE
     : isCosmetic(item) ? COSMETIC_SKINS[item] : ANIMALS[item].price;
   const userRef = db.collection("users").doc(uid);
   await db.runTransaction(async (tx) => {
@@ -715,7 +721,7 @@ export const buyItem = onCall(async (req) => {
     tx.update(
       userRef,
       item === "POTION"
-        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(1) }
+        ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), potions: FieldValue.increment(count) }
         : isCosmetic(item)
         // 유료 스킨: 한 번 사면 계속 (바로 장착)
         ? { score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins), skins: FieldValue.arrayUnion(item), equipped: item }
@@ -725,7 +731,7 @@ export const buyItem = onCall(async (req) => {
         : {
           // 동물은 소모품: 1개 추가하고 바로 장착
           score: FieldValue.increment(-fromScore), coins: FieldValue.increment(-fromCoins),
-          [`animals.${item}`]: FieldValue.increment(1), equipped: item,
+          [`animals.${item}`]: FieldValue.increment(count), equipped: item,
         },
     );
   });

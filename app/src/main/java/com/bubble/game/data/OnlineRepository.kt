@@ -379,8 +379,8 @@ class OnlineRepository(context: Context) {
     }
 
     /** 상점 구매: "POTION" 또는 동물 이름(SHEEP/DOG/GIRAFFE). 점수 차감은 서버가 함. */
-    suspend fun buyItem(item: String) {
-        call("buyItem", mapOf("item" to item))
+    suspend fun buyItem(item: String, qty: Int = 1) {
+        call("buyItem", mapOf("item" to item, "qty" to qty))
     }
 
     /** ×3 부스터 켜기/끄기 */

@@ -427,4 +427,16 @@ class ScreenshotTest {
         }
         shot("new_critters", 300)
     }
+
+    /** 긴 화면으로 상점 전체 (묶음 할인 버튼 확인) */
+    @Test
+    @Config(sdk = [34], qualifiers = "w400dp-h3200dp-xhdpi")
+    fun shopTall() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent { BubbleApp(vm) }
+        vm.openShop()
+        shot("shop_tall", 900)
+    }
 }

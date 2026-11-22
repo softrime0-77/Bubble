@@ -1577,7 +1577,7 @@ private fun ShopScreen(vm: AppViewModel) {
     val ui by vm.lobby.collectAsState()
     val p = ui.profile
     BackHandler(onBack = vm::closeShop)
-    var confirm by remember { mutableStateOf<Triple<String, String, Int>?>(null) }
+    var confirm by remember { mutableStateOf<Purchase?>(null) }
 
     Column(
         Modifier
@@ -1632,12 +1632,11 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             art = { PotionArt(Modifier.size(84.dp)) },
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Button(
-                    onClick = { confirm = Triple("POTION", tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬"), Shop.POTION_PRICE) },
-                    enabled = !ui.shopBusy && p.score + p.coins >= Shop.POTION_PRICE,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                ) { Text(tr("${Shop.POTION_PRICE}점에 사기", "Buy for ${Shop.POTION_PRICE} pts", zh = "${Shop.POTION_PRICE} 分购买", hi = "${Shop.POTION_PRICE} अंक में खरीदें", es = "Comprar por ${Shop.POTION_PRICE} pts", fr = "Acheter pour ${Shop.POTION_PRICE} pts", ar = "اشترِ مقابل ${Shop.POTION_PRICE} نقطة", de = "Für ${Shop.POTION_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.POTION_PRICE} pts", ru = "Купить за ${Shop.POTION_PRICE} очк.", ja = "${Shop.POTION_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
+                // 묶음 할인: 1 · 3 · 5 · 10개
+                BundleButtons("POTION", p.score + p.coins, !ui.shopBusy) { qty, price ->
+                    val name = tr("부활물약", "Revive Potion", zh = "复活药水", hi = "रिवाइव पोशन", es = "Poción de revivir", fr = "Potion de résurrection", ar = "جرعة الإحياء", de = "Wiederbelebungstrank", pt = "Poção de reviver", ru = "Зелье оживления", ja = "復活薬")
+                    confirm = Purchase("POTION", if (qty == 1) name else "$name ×$qty", price, qty)
+                }
                 PotionAdButton(vm, p)
             }
         }
@@ -1672,7 +1671,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Button(
-                    onClick = { confirm = Triple("BOOST", tr("×3 부스터", "x3 booster", zh = "×3 加成", hi = "×3 बूस्टर", es = "potenciador x3",
+                    onClick = { confirm = Purchase("BOOST", tr("×3 부스터", "x3 booster", zh = "×3 加成", hi = "×3 बूस्टर", es = "potenciador x3",
                         fr = "booster x3", ar = "المضاعِف ×3", de = "x3-Booster", pt = "impulso x3", ru = "бустер x3", ja = "×3 ブースター"), Shop.BOOST_PRICE) },
                     enabled = !ui.shopBusy && p.score + p.coins >= Shop.BOOST_PRICE,
                     shape = RoundedCornerShape(16.dp),
@@ -1790,7 +1789,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
                     ) { Text(tr("장착하기", "Equip", zh = "装备", hi = "लगाएँ", es = "Equipar", fr = "Équiper", ar = "تجهيز", de = "Ausrüsten", pt = "Equipar", ru = "Надеть", ja = "装備する"), fontWeight = FontWeight.Bold) }
                     else -> Button(
-                        onClick = { confirm = Triple(a.name, a.label, a.price) },
+                        onClick = { confirm = Purchase(a.name, a.label, a.price) },
                         enabled = !ui.shopBusy && p.score + p.coins >= a.price,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
@@ -1856,14 +1855,11 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
                 },
                 art = { Critter(Side.CAT, Modifier.size(84.dp), skin = a, happy = on) },
             ) {
+                // 묶음 할인: 1 · 3개
+                BundleButtons(a.name, p.score + p.coins, !ui.shopBusy) { qty, price ->
+                    confirm = Purchase(a.name, if (qty == 1) a.label else "${a.label} ×$qty", price, qty)
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Button(
-                        onClick = { confirm = Triple(a.name, a.label, a.price) },
-                        enabled = !ui.shopBusy && p.score + p.coins >= a.price,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
                     if (on) {
                         OutlinedButton(onClick = { vm.equip(null) }, enabled = !ui.shopBusy, shape = RoundedCornerShape(16.dp)) {
                             Text(tr("장착 해제", "Unequip", zh = "卸下", hi = "हटाएँ", es = "Quitar", fr = "Retirer", ar = "إزالة", de = "Ablegen", pt = "Desequipar", ru = "Снять", ja = "外す"), color = Ui.text)
@@ -1879,7 +1875,7 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
         }
     }
 
-    confirm?.let { (item, label, price) ->
+    confirm?.let { (item, label, price, qty) ->
         // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙)
         val fromCoins = minOf(p?.coins ?: 0, price)
         val fromScore = price - fromCoins
@@ -1912,9 +1908,46 @@ zh = "⚠️ 你的等级会从${p.rank.label}降到${Rank.of(after).label}", hi
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { vm.buy(item, label); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
+            confirmButton = { TextButton(onClick = { vm.buy(item, label, qty); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
+    }
+}
+
+/** 상점에서 살 것 (묶음이면 qty개) */
+private data class Purchase(val item: String, val label: String, val price: Int, val qty: Int = 1)
+
+/** 묶음 할인 버튼들: "1개 50점", "3개 135점 −10%" … 두 개씩 한 줄 */
+@Composable
+private fun BundleButtons(item: String, budget: Int, enabled: Boolean, onPick: (qty: Int, price: Int) -> Unit) {
+    val list = Shop.bundles(item)
+    val unit = list.first().second
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        list.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.forEach { (qty, price) ->
+                    val off = 100 - price * 100 / (unit * qty)
+                    Button(
+                        onClick = { onPick(qty, price) },
+                        enabled = enabled && budget >= price,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (qty == 1) Ui.primary else Ui.accent),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                tr("${qty}개 · ${price}점", "×$qty · $price pts", zh = "${qty} 个 · ${price} 分", es = "×$qty · $price pts", fr = "×$qty · $price pts",
+                                    de = "×$qty · $price Pkt", pt = "×$qty · $price pts", ru = "×$qty · $price очк.", ja = "${qty}個 · ${price}点"),
+                                fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1,
+                            )
+                            if (off > 0) Text("🔥 −$off%", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Ui.gold)
+                        }
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
     }
 }
 

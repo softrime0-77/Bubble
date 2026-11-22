@@ -8,7 +8,7 @@ struct ShopView: View {
     @ObservedObject var ads = Ads.shared
     let onClose: () -> Void
 
-    @State private var confirm: (item: String, label: String, price: Int)? = nil
+    @State private var confirm: (item: String, label: String, price: Int, qty: Int)? = nil
 
     var body: some View {
         ScrollView {
@@ -38,7 +38,8 @@ struct ShopView: View {
                              desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 (랜덤 매칭 1번) · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
                              price: Shop.potionPrice, owned: tf("보유 {0}개", p.potions), art: AnyView(PotionArt().frame(width: 84, height: 84))) {
                         VStack(alignment: .leading, spacing: 6) {
-                            buyButton("POTION", t("부활물약"), Shop.potionPrice, p)
+                            // 묶음 할인: 1 · 3 · 5 · 10개
+                            bundleButtons("POTION", t("부활물약"), p)
                             potionAdButton(p)
                         }
                     }
@@ -99,8 +100,9 @@ struct ShopView: View {
                                  price: a.price,
                                  owned: count > 0 ? tf("보유 {0}개", count) + (on ? t("  ·  ✅ 장착 중") : "") : nil,
                                  art: AnyView(Critter(side: .cat, skin: a, happy: on).frame(width: 84, height: 84))) {
+                            // 묶음 할인: 1 · 3개
+                            bundleButtons(a.rawValue, a.label, p)
                             HStack(spacing: 6) {
-                                buyButton(a.rawValue, a.label, a.price, p)
                                 if on {
                                     outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
                                 } else if count > 0 {
@@ -126,7 +128,7 @@ struct ShopView: View {
         .alert(confirm.map { tf("{0} 살까요?", $0.label) } ?? "", isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
             Button(t("취소"), role: .cancel) { confirm = nil }
             Button(t("살게요")) {
-                if let c = confirm { Task { await online.buy(c.item, label: c.label) } }
+                if let c = confirm { Task { await online.buy(c.item, label: c.label, qty: c.qty) } }
                 confirm = nil
             }
         } message: {
@@ -468,13 +470,49 @@ struct ShopView: View {
     }
 
     private func buyButton(_ item: String, _ label: String, _ price: Int, _ p: Profile) -> some View {
-        Button { confirm = (item, label, price) } label: {
+        Button { confirm = (item, label, price, 1) } label: {
             Text(tf("{0}점에 사기", price)).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
                 .lineLimit(1).minimumScaleFactor(0.7)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Capsule().fill(UiColor.primary.opacity(p.score + p.coins >= price ? 1 : 0.4)))
         }
         .disabled(online.busy || p.score + p.coins < price)
+    }
+
+    /// 묶음 할인 버튼들: "1개 · 50점", "3개 · 135점 🔥−10%" … 두 개씩 한 줄
+    private func bundleButtons(_ item: String, _ label: String, _ p: Profile) -> some View {
+        let list = Shop.bundles(item)
+        let unit = list.first?.price ?? 1
+        let rows: [[(qty: Int, price: Int)]] = stride(from: 0, to: list.count, by: 2).map { Array(list[$0..<min($0 + 2, list.count)]) }
+        return VStack(alignment: .leading, spacing: 6) {
+            ForEach(0..<rows.count, id: \.self) { r in
+                HStack(spacing: 6) {
+                    ForEach(0..<rows[r].count, id: \.self) { k in
+                        bundleButton(item, label, rows[r][k].qty, rows[r][k].price, unit, p)
+                    }
+                }
+            }
+        }
+    }
+
+    private func bundleButton(_ item: String, _ label: String, _ qty: Int, _ price: Int, _ unit: Int, _ p: Profile) -> some View {
+        let off = 100 - price * 100 / (unit * qty)
+        let canBuy = p.score + p.coins >= price
+        let title = tr("\(qty)개 · \(price)점", "×\(qty) · \(price) pts", zh: "\(qty) 个 · \(price) 分", es: "×\(qty) · \(price) pts",
+                       fr: "×\(qty) · \(price) pts", de: "×\(qty) · \(price) Pkt", pt: "×\(qty) · \(price) pts", ru: "×\(qty) · \(price) очк.", ja: "\(qty)個 · \(price)点")
+        return Button { confirm = (item, qty == 1 ? label : "\(label) ×\(qty)", price, qty) } label: {
+            VStack(spacing: 1) {
+                Text(title).font(.system(size: 13, weight: .bold)).lineLimit(1).minimumScaleFactor(0.7)
+                if off > 0 {
+                    Text("🔥 −\(off)%").font(.system(size: 11, weight: .black)).foregroundColor(UiColor.gold)
+                }
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .padding(.horizontal, 6).padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 14).fill((qty == 1 ? UiColor.primary : UiColor.accent).opacity(canBuy ? 1 : 0.4)))
+        }
+        .disabled(online.busy || !canBuy)
     }
 
     private func outlineButton(_ label: String, _ action: @escaping () -> Void) -> some View {

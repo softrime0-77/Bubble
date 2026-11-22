@@ -32,7 +32,11 @@ class CatalogTest {
     @Test
     fun animalsMatchServerCatalog() {
         val paid = Animal.entries.filter { it.consumable }
-        assertEquals(listOf(30, 50, 100), paid.map { it.price })
+        assertEquals(listOf(20, 40, 70), paid.map { it.price })
+        // 묶음 할인 (서버 BUNDLES와 같게)
+        assertEquals(listOf(1 to 50, 3 to 135, 5 to 200, 10 to 350), Shop.bundles("POTION"))
+        assertEquals(listOf(1 to 70, 3 to 180), Shop.bundles("GIRAFFE"))
+        assertEquals(paid.map { it.price }, paid.map { Shop.bundles(it.name).first().second })
         assertEquals(listOf(15, 12, 8), paid.map { it.opponentTurnSec })
         // 무료 햄스터: 효과 없음 (상대 턴 시간 그대로)
         assertEquals(listOf(Animal.HAMSTER), Animal.entries.filter { it.free })

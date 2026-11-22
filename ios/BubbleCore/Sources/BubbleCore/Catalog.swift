@@ -60,9 +60,9 @@ public enum Animal: String, CaseIterable, Sendable {
 
     public var price: Int {
         switch self {
-        case .sheep: return 30
-        case .dog: return 50
-        case .giraffe: return 100
+        case .sheep: return 20
+        case .dog: return 40
+        case .giraffe: return 70
         case .hamster: return 0
         case .pinkCat, .blackCat, .snowHamster: return 300
         case .goldHamster: return 500
@@ -113,6 +113,17 @@ public enum Shop {
     public static let luckyChancePct = 50
     public static let luckyDailyMax = 30
     /// 🐼 판다 보너스, 🐉 아기 용(터뜨릴 때 💰, 하루 최대), 🐰 리본 최대 (functions/src/catalog.ts와 같게)
+    /// 묶음 할인 (개수, 가격). functions/src/catalog.ts BUNDLES와 같게. 부활물약 1·3·5·10개, 동물 1·3개
+    public static func bundles(_ item: String) -> [(qty: Int, price: Int)] {
+        switch item {
+        case "POTION": return [(1, 50), (3, 135), (5, 200), (10, 350)]
+        case "SHEEP": return [(1, 20), (3, 50)]
+        case "DOG": return [(1, 40), (3, 100)]
+        case "GIRAFFE": return [(1, 70), (3, 180)]
+        default: return []
+        }
+    }
+
     public static let pandaCheckinBonus = 5
     public static let dragonPopCoins = 2
     public static let dragonDailyMax = 10

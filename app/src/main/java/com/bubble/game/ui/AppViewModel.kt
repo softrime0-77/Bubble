@@ -298,7 +298,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
-    fun buy(item: String, label: String) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉")) { repo.buyItem(item) }
+    fun buy(item: String, label: String, qty: Int = 1) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉")) { repo.buyItem(item, qty) }
 
     fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character", zh = "已换回默认角色", hi = "डिफ़ॉल्ट किरदार पर वापस", es = "Volviste al personaje por defecto", fr = "Retour au personnage par défaut", ar = "تمت العودة إلى الشخصية الافتراضية", de = "Zurück zur Standardfigur", pt = "Voltou ao personagem padrão", ru = "Возвращён обычный персонаж", ja = "デフォルトのキャラに戻しました") else tr("${animal.label} 장착!", "${animal.label} equipped!", zh = "已装备${animal.label}！", hi = "${animal.label} लगा दिया!", es = "¡${animal.label} equipado!", fr = "${animal.label} équipé !", ar = "تم تجهيز ${animal.label}!", de = "${animal.label} ausgerüstet!", pt = "${animal.label} equipado!", ru = "${animal.label}: надето!", ja = "${animal.label}を装備しました！")) {
         repo.equipAnimal(animal)

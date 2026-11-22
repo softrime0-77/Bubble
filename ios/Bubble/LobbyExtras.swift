@@ -388,7 +388,7 @@ struct DailyCard: View {
             if claimed {
                 Text("✅").font(.system(size: 18))
             } else {
-                Button { Task { await online.claimMission(m.id) } } label: {
+                Button { Task { await online.claimMission(m.id, label: m.label) } } label: {
                     Text(tr("받기", "Claim", zh: "领取", es: "Recoger", fr: "Prendre", de: "Holen", pt: "Pegar", ru: "Забрать", ja: "受け取る"))
                         .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
                         .padding(.horizontal, 10).padding(.vertical, 5)

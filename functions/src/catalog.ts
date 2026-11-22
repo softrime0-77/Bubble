@@ -101,3 +101,18 @@ export function cleanCountry(raw: unknown): string | null {
   const c = raw.trim().toUpperCase();
   return /^[A-Z]{2}$/.test(c) ? c : null;
 }
+
+/** 첫 구매 2배는 가입 후 7일 동안만 */
+export const FIRST_BUY_WINDOW_MS = 7 * 86_400_000;
+/** 7일 끝 무렵에 결제했는데 영수증 확인이 늦게 오는 경우를 위한 여유 (서버만) */
+export const FIRST_BUY_GRACE_MS = 86_400_000;
+
+/**
+ * 이번 포인트 결제가 첫 구매 2배인지: 아직 포인트를 산 적 없고, 가입(createdAt, ms) 후 7일(+여유) 안.
+ * 가입 시각을 모르는 옛 계정은 7일이 지난 것으로 봄.
+ */
+export function firstBuyBonus(firstBuyDone: unknown, createdAt: unknown, now: number): boolean {
+  if (firstBuyDone === true) return false;
+  if (typeof createdAt !== "number" || !Number.isFinite(createdAt)) return false;
+  return now - createdAt < FIRST_BUY_WINDOW_MS + FIRST_BUY_GRACE_MS;
+}

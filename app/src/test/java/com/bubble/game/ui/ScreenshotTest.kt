@@ -303,4 +303,26 @@ class ScreenshotTest {
         rule.onNodeWithText("1번 세트 · 2마리").performClick()
         shot("selected", 700)
     }
+
+    @Test
+    fun missionDone() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215), mission = MissionReward("2판 이기기", 30)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("mission_done", 1400)
+    }
+
+    @Test
+    fun shopFirstBuy() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby {
+            it.copy(onlineAvailable = true, loading = false,
+                profile = richProfile(1215).copy(firstBuyDone = false, createdAt = System.currentTimeMillis() - 2 * 86_400_000L - 3_600_000L))
+        }
+        rule.setContent { BubbleApp(vm) }
+        vm.openShop()
+        shot("shop_firstbuy", 800)
+    }
 }

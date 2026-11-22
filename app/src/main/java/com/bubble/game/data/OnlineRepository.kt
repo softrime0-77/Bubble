@@ -65,6 +65,8 @@ data class Profile(
     val noAds: Boolean = false,
     /** 첫 포인트 구매를 했는지 (안 했으면 첫 구매 2배) */
     val firstBuyDone: Boolean = false,
+    /** 가입 시각 (ms). 첫 구매 2배는 가입 후 7일 동안만 */
+    val createdAt: Long? = null,
     /** 출석: 마지막으로 받은 날(한국 시간)과 연속 일수 */
     val checkinDay: String? = null,
     val checkinStreak: Int = 0,
@@ -405,6 +407,7 @@ class OnlineRepository(context: Context) {
         skins = (get("skins") as? List<*>).orEmpty().mapNotNull { Animal.of(it as? String) }.toSet(),
         noAds = getBoolean("noAds") ?: false,
         firstBuyDone = getBoolean("firstBuyDone") ?: false,
+        createdAt = getLong("createdAt"),
         checkinDay = getString("checkinDay"),
         checkinStreak = (getLong("checkinStreak") ?: 0).toInt(),
         missionDay = getString("missionDay"),
@@ -516,6 +519,15 @@ class OnlineRepository(context: Context) {
         const val FRIEND_WAIT_MS = 10 * 60_000L
         /** 출석 7일 보상 💰 (functions/src/rewards.ts CHECKIN_COINS와 같게). 7일째는 💖도 */
         val CHECKIN_COINS = listOf(20, 20, 30, 30, 50, 50, 100)
+        /** 첫 구매 2배 기간: 가입 후 7일 (functions/src/catalog.ts FIRST_BUY_WINDOW_MS와 같게) */
+        const val FIRST_BUY_WINDOW_MS = 7 * 86_400_000L
+
+        /** 첫 구매 2배가 끝나기까지 남은 시간 (ms). 이미 샀거나 기간이 지났으면 null */
+        fun firstBuyLeftMs(p: Profile?, now: Long = System.currentTimeMillis()): Long? {
+            if (p == null || p.firstBuyDone) return null
+            val joined = p.createdAt ?: return null
+            return (joined + FIRST_BUY_WINDOW_MS - now).takeIf { it > 0 }
+        }
         /** 광고 보고 물약: 하루 최대 */
         const val POTION_ADS_PER_DAY = 3
 

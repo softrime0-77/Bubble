@@ -133,6 +133,16 @@ fun BubbleApp(vm: AppViewModel) {
             if (checkin != null) last.value = checkin
             last.value?.let { CheckinCelebration(it.day, it.coins, it.potion, onDismiss = vm::dismissCheckin) }
         }
+        val mission = lobby.mission
+        androidx.compose.animation.AnimatedVisibility(
+            mission != null && screen == Screen.Lobby,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(250)),
+        ) {
+            val last = remember { mutableStateOf(mission) }
+            if (mission != null) last.value = mission
+            last.value?.let { MissionCelebration(it.label, it.coins, onDismiss = vm::dismissMission) }
+        }
     }
     }
 }
@@ -2155,7 +2165,7 @@ private fun DailyCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: B
                     Text("✅", fontSize = 18.sp)
                 } else {
                     Button(
-                        onClick = { vm.claimMission(id) },
+                        onClick = { vm.claimMission(id, label) },
                         enabled = !busy && ready,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
@@ -2296,12 +2306,32 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
 }
 
 
+/** "⏰ 가입 후 7일 한정 · N일 M시간 남음" */
+private fun firstBuyLeftText(ms: Long): String {
+    val h = (ms / 3_600_000L).coerceAtLeast(0)
+    val d = h / 24
+    val hh = h % 24
+    val m = (ms / 60_000L) % 60
+    return when {
+        d > 0 -> tr("⏰ 가입 후 7일 한정 · ${d}일 ${hh}시간 남음", "⏰ First 7 days only · ${d}d ${hh}h left", zh = "⏰ 注册后 7 天内有效 · 剩 ${d} 天 ${hh} 小时",
+            es = "⏰ Solo los 7 primeros días · quedan ${d} d ${hh} h", fr = "⏰ 7 premiers jours seulement · encore ${d} j ${hh} h",
+            de = "⏰ Nur in den ersten 7 Tagen · noch ${d} T ${hh} Std", pt = "⏰ Só nos 7 primeiros dias · faltam ${d} d ${hh} h",
+            ru = "⏰ Только первые 7 дней · осталось ${d} д ${hh} ч", ja = "⏰ 登録から7日間限定 · 残り${d}日${hh}時間")
+        else -> tr("⏰ 가입 후 7일 한정 · ${hh}시간 ${m}분 남음!", "⏰ First 7 days only · ${hh}h ${m}m left!", zh = "⏰ 注册后 7 天内有效 · 剩 ${hh} 小时 ${m} 分！",
+            es = "⏰ Solo los 7 primeros días · ¡quedan ${hh} h ${m} min!", fr = "⏰ 7 premiers jours seulement · plus que ${hh} h ${m} min !",
+            de = "⏰ Nur in den ersten 7 Tagen · noch ${hh} Std ${m} Min!", pt = "⏰ Só nos 7 primeiros dias · faltam ${hh} h ${m} min!",
+            ru = "⏰ Только первые 7 дней · осталось ${hh} ч ${m} мин!", ja = "⏰ 登録から7日間限定 · 残り${hh}時間${m}分！")
+    }
+}
+
 /** 상점 맨 위: 포인트 충전 (Google Play 결제). 100 · 500 · 1000 · 2000점 */
 @Composable
 private fun PointsCard(vm: AppViewModel) {
     val prices by vm.billing.prices.collectAsState()
     val lobby by vm.lobby.collectAsState()
-    val firstBuy = lobby.profile?.firstBuyDone == false
+    // 첫 구매 2배는 가입 후 7일 동안만 (남은 시간 표시)
+    val firstBuyLeft = OnlineRepository.firstBuyLeftMs(lobby.profile)
+    val firstBuy = firstBuyLeft != null
     val activity = LocalContext.current as Activity
     SoftCard {
         Text(
@@ -2332,8 +2362,8 @@ private fun PointsCard(vm: AppViewModel) {
                     es = "🎁 ¡Primera compra x2! Tu primera recarga vale el doble", fr = "🎁 Premier achat x2 ! Ta première recharge est doublée",
                     ar = "🎁 الشراء الأول ×2! أول شحن يُضاعف", de = "🎁 Erster Kauf x2! Deine erste Aufladung wird verdoppelt",
                     pt = "🎁 Primeira compra x2! Sua primeira recarga vale em dobro", ru = "🎁 Первая покупка x2! Первое пополнение удваивается",
-                    ja = "🎁 初回購入2倍！最初のチャージは2倍になります"),
-                fontWeight = FontWeight.Black, fontSize = 14.sp, color = Ui.danger,
+                    ja = "🎁 初回購入2倍！最初のチャージは2倍になります") + "\n" + firstBuyLeftText(firstBuyLeft ?: 0),
+                fontWeight = FontWeight.Black, fontSize = 14.sp, color = Ui.danger, lineHeight = 19.sp,
                 modifier = Modifier.fillMaxWidth().background(Ui.danger.copy(alpha = 0.08f), RoundedCornerShape(12.dp)).padding(8.dp),
             )
         }

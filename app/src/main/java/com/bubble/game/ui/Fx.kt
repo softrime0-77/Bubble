@@ -389,8 +389,6 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
 @Composable
 fun CheckinCelebration(day: Int, coins: Int, potion: Boolean, onDismiss: () -> Unit) {
     val t = rememberInfiniteTransition(label = "checkin")
-    val spin by t.animateFloat(0f, 1f, infiniteRepeatable(tween(9_000, easing = LinearEasing)), label = "spin")
-    val fall by t.animateFloat(0f, 1f, infiniteRepeatable(tween(3_600, easing = LinearEasing)), label = "fall")
     val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_600, easing = LinearEasing)), label = "tw")
 
     val pop = remember { Animatable(0f) }
@@ -407,8 +405,6 @@ fun CheckinCelebration(day: Int, coins: Int, potion: Boolean, onDismiss: () -> U
         kotlinx.coroutines.delay(650)
         count.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
     }
-    val confetti = remember { List(70) { Part(Random.nextFloat(), Random.nextFloat(), Random.nextFloat() * 2 - 1, Random.nextInt(1000)) } }
-    val confettiColors = listOf(Ui.primary, Ui.gold, Ui.accent, Color(0xFF5CD6B4), Color(0xFF6EC1FF), Color(0xFFFF8A65), Color.White)
     val burstTheme = FxTheme(listOf(Ui.gold, Ui.primary, Color.White, Ui.accent), listOf(FxShape.STAR, FxShape.HEART, FxShape.COIN), "🎉")
     val burstParts = remember { parts(34) }
 
@@ -419,34 +415,7 @@ fun CheckinCelebration(day: Int, coins: Int, potion: Boolean, onDismiss: () -> U
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
         contentAlignment = Alignment.Center,
     ) {
-        // 회전하는 빛줄기 + 색종이
-        Canvas(Modifier.fillMaxSize()) {
-            val c = Offset(size.width / 2, size.height * 0.42f)
-            val big = size.maxDimension
-            for (i in 0 until 16) {
-                val a0 = (spin + i / 16f) * 2 * PI
-                val a1 = a0 + PI / 22
-                val path = Path().apply {
-                    moveTo(c.x, c.y)
-                    lineTo(c.x + (cos(a0) * big).toFloat(), c.y + (sin(a0) * big).toFloat())
-                    lineTo(c.x + (cos(a1) * big).toFloat(), c.y + (sin(a1) * big).toFloat())
-                    close()
-                }
-                drawPath(path, Brush.radialGradient(listOf(Ui.gold.copy(alpha = 0.32f * pop.value), Color.Transparent), c, big * 0.6f))
-            }
-            confetti.forEachIndexed { i, q ->
-                val y = ((fall + q.a) % 1f) * (size.height + 80f) - 40f
-                val x = q.s * size.width + sin((fall * 2 * PI * (1 + q.spin) + i).toDouble()).toFloat() * 30f
-                val color = confettiColors[q.k % confettiColors.size]
-                val rot = (fall * 720f * q.spin) + q.k
-                val sz = 5.dp.toPx() + q.s * 4.dp.toPx()
-                when (q.k % 3) {
-                    0 -> rotate(rot, Offset(x, y)) { drawRect(color, Offset(x - sz, y - sz * 0.45f), Size(sz * 2, sz * 0.9f)) }
-                    1 -> drawCircle(color, sz * 0.6f, Offset(x, y))
-                    else -> sparkle(Offset(x, y), sz, color)
-                }
-            }
-        }
+        CelebrationBackdrop(pop.value)
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -567,5 +536,142 @@ private fun RewardChip(icon: String, text: String, color: Color, modifier: Modif
         Text(icon, fontSize = 24.sp)
         Spacer(Modifier.size(6.dp))
         Text(text, fontSize = 24.sp, fontWeight = FontWeight.Black, color = Ui.text)
+    }
+}
+
+/** 축하 팝업 뒤: 회전하는 금빛 빛줄기 + 떨어지는 색종이 */
+@Composable
+private fun CelebrationBackdrop(shine: Float) {
+    val t = rememberInfiniteTransition(label = "backdrop")
+    val spin by t.animateFloat(0f, 1f, infiniteRepeatable(tween(9_000, easing = LinearEasing)), label = "spin")
+    val fall by t.animateFloat(0f, 1f, infiniteRepeatable(tween(3_600, easing = LinearEasing)), label = "fall")
+    val confetti = remember { List(70) { Part(Random.nextFloat(), Random.nextFloat(), Random.nextFloat() * 2 - 1, Random.nextInt(1000)) } }
+    val confettiColors = listOf(Ui.primary, Ui.gold, Ui.accent, Color(0xFF5CD6B4), Color(0xFF6EC1FF), Color(0xFFFF8A65), Color.White)
+    Canvas(Modifier.fillMaxSize()) {
+        val c = Offset(size.width / 2, size.height * 0.42f)
+        val big = size.maxDimension
+        for (i in 0 until 16) {
+            val a0 = (spin + i / 16f) * 2 * PI
+            val a1 = a0 + PI / 22
+            val path = Path().apply {
+                moveTo(c.x, c.y)
+                lineTo(c.x + (cos(a0) * big).toFloat(), c.y + (sin(a0) * big).toFloat())
+                lineTo(c.x + (cos(a1) * big).toFloat(), c.y + (sin(a1) * big).toFloat())
+                close()
+            }
+            drawPath(path, Brush.radialGradient(listOf(Ui.gold.copy(alpha = 0.32f * shine), Color.Transparent), c, big * 0.6f))
+        }
+        confetti.forEachIndexed { i, q ->
+            val y = ((fall + q.a) % 1f) * (size.height + 80f) - 40f
+            val x = q.s * size.width + sin((fall * 2 * PI * (1 + q.spin) + i).toDouble()).toFloat() * 30f
+            val color = confettiColors[q.k % confettiColors.size]
+            val rot = (fall * 720f * q.spin) + q.k
+            val sz = 5.dp.toPx() + q.s * 4.dp.toPx()
+            when (q.k % 3) {
+                0 -> rotate(rot, Offset(x, y)) { drawRect(color, Offset(x - sz, y - sz * 0.45f), Size(sz * 2, sz * 0.9f)) }
+                1 -> drawCircle(color, sz * 0.6f, Offset(x, y))
+                else -> sparkle(Offset(x, y), sz, color)
+            }
+        }
+    }
+}
+
+// ======================= 미션 완료 팝업 =======================
+
+/** 미션 보상 받기! 과녁이 빙글 돌며 튀어나오고 팡 터짐 · 💰 숫자 올라가기 */
+@Composable
+fun MissionCelebration(label: String, coins: Int, onDismiss: () -> Unit) {
+    val t = rememberInfiniteTransition(label = "mission")
+    val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_600, easing = LinearEasing)), label = "tw")
+    val pop = remember { Animatable(0f) }
+    val badge = remember { Animatable(0f) }
+    val burstP = remember { Animatable(0f) }
+    val count = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessLow)) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(250)
+        badge.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessMediumLow))
+    }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(420)
+        burstP.animateTo(1f, tween(1_100, easing = FastOutSlowInEasing))
+    }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(500)
+        count.animateTo(1f, tween(800, easing = FastOutSlowInEasing))
+    }
+    val burstTheme = FxTheme(listOf(Ui.gold, Color(0xFF5CD6B4), Color.White, Ui.primary), listOf(FxShape.COIN, FxShape.STAR), "🎯")
+    val burstParts = remember { parts(30) }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.radialGradient(listOf(Color(0xCC1F3A5C), Color(0xEE0B1622))))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        CelebrationBackdrop(pop.value)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .padding(28.dp)
+                .scale(0.6f + 0.4f * pop.value)
+                .alpha(pop.value.coerceIn(0f, 1f))
+                .background(Brush.verticalGradient(listOf(Color(0xFFF4FFFB), Color(0xFFEFF3FF))), RoundedCornerShape(30.dp))
+                .border(3.dp, Brush.sweepGradient(listOf(Color(0xFF5CD6B4), Ui.gold, Ui.accent, Color(0xFF6EC1FF), Color(0xFF5CD6B4))), RoundedCornerShape(30.dp))
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+                .padding(horizontal = 22.dp, vertical = 24.dp),
+        ) {
+            Box(Modifier.size(130.dp), contentAlignment = Alignment.Center) {
+                Canvas(Modifier.size(220.dp).graphicsLayer { clip = false }) {
+                    if (burstP.value > 0f && burstP.value < 1f) burst(center, size.minDimension / 2 * 0.75f, burstP.value, burstTheme, burstParts, rays = 16)
+                    for (i in 0 until 6) {
+                        val ang = (twinkle + i / 6f) * 2 * PI
+                        val rr = size.minDimension * 0.36f
+                        val tw = 0.5f + 0.5f * sin(twinkle * 4 * PI + i * 1.3).toFloat()
+                        sparkle(center + Offset((cos(ang) * rr).toFloat(), (sin(ang) * rr).toFloat()), 9.dp.toPx() * tw, listOf(Ui.gold, Color(0xFF5CD6B4), Ui.accent)[i % 3])
+                    }
+                }
+                Box(
+                    Modifier
+                        .size(108.dp)
+                        .graphicsLayer {
+                            scaleX = badge.value; scaleY = badge.value
+                            rotationZ = (1f - badge.value) * -360f
+                        }
+                        .background(Brush.radialGradient(listOf(Color(0xFF7BE3C4), Color(0xFF2FB58F))), CircleShape)
+                        .border(4.dp, Color.White, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("🎯", fontSize = 54.sp)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                tr("미션 완료!", "Mission complete!", zh = "任务完成！", es = "¡Misión cumplida!", fr = "Mission réussie !", de = "Mission geschafft!", pt = "Missão cumprida!", ru = "Задание выполнено!", ja = "ミッション達成！"),
+                fontSize = 30.sp, fontWeight = FontWeight.Black,
+                style = TextStyle(brush = Brush.horizontalGradient(listOf(Color(0xFF1F9E7A), Ui.accent)), shadow = Shadow(Ui.gold.copy(alpha = 0.6f), Offset(0f, 3f), 10f)),
+            )
+            Spacer(Modifier.height(6.dp))
+            Text("✅ $label", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ui.text.copy(alpha = 0.8f))
+            Spacer(Modifier.height(16.dp))
+            RewardChip("💰", "+${(coins * count.value).roundToInt()}", Ui.gold, Modifier.scale(0.85f + 0.15f * count.value))
+            Spacer(Modifier.height(10.dp))
+            Text(
+                tr("상점에서 쓸 수 있는 💰 포인트가 들어왔어요", "💰 shop points added — spend them in the shop", zh = "💰 商店积分已到账", es = "💰 Puntos de tienda añadidos", fr = "💰 Points boutique ajoutés", de = "💰 Shop-Punkte gutgeschrieben", pt = "💰 Pontos da loja adicionados", ru = "💰 Очки магазина начислены", ja = "💰 ショップポイントが入りました"),
+                fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f), fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(16.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Brush.horizontalGradient(listOf(Color(0xFF3CC9A0), Ui.accent)), RoundedCornerShape(50))
+                    .clickable(onClick = onDismiss)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(tr("좋아요! 💕", "Yay! 💕", zh = "太好了！💕", es = "¡Genial! 💕", fr = "Super ! 💕", de = "Juhu! 💕", pt = "Oba! 💕", ru = "Ура! 💕", ja = "やった！💕"), color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            }
+        }
     }
 }

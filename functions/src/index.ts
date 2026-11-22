@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -830,7 +830,7 @@ const REMOVE_ADS = "remove_ads";
 
 /**
  * 영수증 한 건을 계정에 반영 (트랜잭션 안).
- * - 포인트 상품: 상점 포인트 지급. 이 계정의 첫 포인트 구매면 2배 (스타터 혜택)
+ * - 포인트 상품: 상점 포인트 지급. 가입 후 7일 안의 첫 포인트 구매면 2배 (스타터 혜택)
  * - 광고 제거: noAds = true
  * 돌려주는 값: 지급한 포인트 (광고 제거는 0)
  */
@@ -840,7 +840,8 @@ function grantPurchase(tx: Transaction, user: DocumentSnapshot, productId: strin
     return 0;
   }
   const base = PRODUCTS[productId] ?? 0;
-  const first = user.get("firstBuyDone") !== true;
+  // 첫 구매 2배: 가입 후 7일 안에 처음 사는 포인트만
+  const first = firstBuyBonus(user.get("firstBuyDone"), user.get("createdAt"), Date.now());
   const points = first ? base * 2 : base;
   tx.update(user.ref, { coins: FieldValue.increment(points), firstBuyDone: true });
   return points;

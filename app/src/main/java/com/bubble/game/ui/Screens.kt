@@ -654,18 +654,18 @@ zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，�
 ) +
                     tr(
                     "   상대가 양·강아지·기린을 썼다면 내 턴이 15·12·8초로 줄어요.\n" +
-                        "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 5초. 시간을 넘기면 패배!\n\n",
+                        "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 8초. 시간을 넘기면 패배!\n\n",
                     "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 12 or 8s.\n" +
-                        "• Your turn vs AI: Easy 20s · Normal 15s · Hard 5s. Run out of time and you lose!\n\n",
-                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、12 或 8 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 5 秒。超时判负！\n\n",
-                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 12 या 8 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 5से। समय खत्म तो हार!\n\n",
-                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 12 o 8 s.\n• Tu turno contra la IA: Fácil 20 s · Normal 15 s · Difícil 5 s. ¡Si se acaba el tiempo, pierdes!\n\n",
-                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 12 ou 8 s.\n• Ton tour contre l’IA : Facile 20 s · Normal 15 s · Difficile 5 s. Temps écoulé = défaite !\n\n",
-                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 12 أو 8 ثوانٍ.\n• دورك ضد الذكاء الاصطناعي: سهل 20ث · عادي 15ث · صعب 5ث. إذا انتهى الوقت تخسر!\n\n",
-                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 12 oder 8 s.\n• Dein Zug gegen die KI: Leicht 20 s · Normal 15 s · Schwer 5 s. Zeit abgelaufen = verloren!\n\n",
-                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 12 ou 8 s.\n• Seu turno contra a IA: Fácil 20 s · Normal 15 s · Difícil 5 s. Acabou o tempo, você perde!\n\n",
-                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 12 или 8 с.\n• Ваш ход против ИИ: Легко 20 с · Нормально 15 с · Сложно 5 с. Время вышло — поражение!\n\n",
-                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・12・8秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい5秒。時間切れで負け！\n\n",
+                        "• Your turn vs AI: Easy 20s · Normal 15s · Hard 8s. Run out of time and you lose!\n\n",
+                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、12 或 8 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 8 秒。超时判负！\n\n",
+                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 12 या 8 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 8से। समय खत्म तो हार!\n\n",
+                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 12 o 8 s.\n• Tu turno contra la IA: Fácil 20 s · Normal 15 s · Difícil 8 s. ¡Si se acaba el tiempo, pierdes!\n\n",
+                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 12 ou 8 s.\n• Ton tour contre l’IA : Facile 20 s · Normal 15 s · Difficile 8 s. Temps écoulé = défaite !\n\n",
+                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 12 أو 8 ثوانٍ.\n• دورك ضد الذكاء الاصطناعي: سهل 20ث · عادي 15ث · صعب 8ث. إذا انتهى الوقت تخسر!\n\n",
+                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 12 oder 8 s.\n• Dein Zug gegen die KI: Leicht 20 s · Normal 15 s · Schwer 8 s. Zeit abgelaufen = verloren!\n\n",
+                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 12 ou 8 s.\n• Seu turno contra a IA: Fácil 20 s · Normal 15 s · Difícil 8 s. Acabou o tempo, você perde!\n\n",
+                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 12 или 8 с.\n• Ваш ход против ИИ: Легко 20 с · Нормально 15 с · Сложно 8 с. Время вышло — поражение!\n\n",
+                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・12・8秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい8秒。時間切れで負け！\n\n",
                 ) +
                     tr(
                         "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1401) → 금(2001) → 루비(4001) → 사파이어(7001) → 다이아(10001) → 핑크다이아(50001)",

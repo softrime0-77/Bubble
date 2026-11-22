@@ -16,8 +16,8 @@ enum class AiLevel(
     val turnSec: Int,
 ) {
     EASY("쉬움", "Easy", 1, 0.45, 1, 0, 20),
-    NORMAL("보통", "Normal", 4, 0.12, 5, -3, 15),
-    HARD("어려움", "Hard", 9, 0.0, 10, -5, 5),
+    NORMAL("보통", "Normal", 4, 0.12, 5, -1, 15),
+    HARD("어려움", "Hard", 9, 0.0, 10, -2, 8),
     ;
 
     /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */

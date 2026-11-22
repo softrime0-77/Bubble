@@ -47,12 +47,12 @@ const AD_REFUND_POINTS = 8;
 /** AI 대전 점수 (난이도별 승리/패배). 승패 기록(wins/losses)에는 넣지 않음. */
 const AI_POINTS: Record<AiLevel, { win: number; lose: number }> = {
   EASY: { win: 1, lose: 0 },
-  NORMAL: { win: 5, lose: -3 },
-  HARD: { win: 10, lose: -5 },
+  NORMAL: { win: 5, lose: -1 },
+  HARD: { win: 10, lose: -2 },
 };
 const AI_UID = "AI";
 /** AI 대전에서 사람 쪽 턴 시간 (난이도별) */
-const AI_TURN_MS: Record<AiLevel, number> = { EASY: 20_000, NORMAL: 15_000, HARD: 5_000 };
+const AI_TURN_MS: Record<AiLevel, number> = { EASY: 20_000, NORMAL: 15_000, HARD: 8_000 };
 const AI_LABEL: Record<AiLevel, string> = { EASY: "쉬움", NORMAL: "보통", HARD: "어려움" };
 const AI_THINK_MS = 900;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

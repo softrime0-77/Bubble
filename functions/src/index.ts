@@ -31,6 +31,10 @@ function err(code: ConstructorParameters<typeof HttpsError>[0], ko: string, en: 
 
 setGlobalOptions({ region: "asia-northeast3", maxInstances: 10 });
 
+/** 서버 버전 (로그 확인용). 바꾸면 모든 함수가 다시 배포되어 공개 호출 권한도 다시 설정됨 */
+const SERVER_VERSION = "2026-11-22";
+logger.debug("server version", { SERVER_VERSION });
+
 const START_SCORE = 1000;
 const WIN_POINTS = 30;
 const LOSE_POINTS = 10;

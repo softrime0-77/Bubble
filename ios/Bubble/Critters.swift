@@ -450,7 +450,18 @@ private func drawRabbit(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: 
         CGPoint(x: cx, y: cy - r * 0.82),
     ]
     let colors: [Color] = [Color(hex: 0xFF5C8A), Color(hex: 0x7C6CF2), Color(hex: 0xFFC94D), Color(hex: 0x5CD6B4), Color(hex: 0xFF8A3D)]
-    for i in 0..<min(max(ribbons, 0), spots.count) { bow(&ctx, spots[i], r * 0.2, colors[i]) }
+    // 5연승: 리본이 모두 금빛으로 빛남
+    let golden = ribbons >= spots.count
+    for i in 0..<min(max(ribbons, 0), spots.count) {
+        if golden {
+            let g = r * 0.45
+            ctx.fill(Path(ellipseIn: CGRect(x: spots[i].x - g, y: spots[i].y - g, width: g * 2, height: g * 2)),
+                     with: .radialGradient(Gradient(colors: [Color(hex: 0xFFE27A).opacity(0.67), .clear]), center: spots[i], startRadius: 0, endRadius: g))
+            bow(&ctx, spots[i], r * 0.22, Color(hex: 0xFFC107))
+        } else {
+            bow(&ctx, spots[i], r * 0.2, colors[i])
+        }
+    }
 }
 
 /// 작은 리본 매듭

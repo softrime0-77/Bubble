@@ -91,6 +91,9 @@ data class GameUi(
     val scoreDelta: Int? = null,
     /** scoreDelta 중 계급 보너스 */
     val scoreBonus: Int = 0,
+    /** 🐰 내가 연승 토끼로 이겼을 때: 이번 판으로 된 연승과 받은 💰 */
+    val rabbitStreak: Int = 0,
+    val rabbitCoins: Int = 0,
     /** 서버가 수를 거절했을 때 등 잠깐 보여줄 안내 문구. */
     val notice: String? = null,
     val busy: Boolean = false,
@@ -736,6 +739,8 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             opponentSkin = og.skinOf(side.opponent),
             scoreDelta = og.deltaFor(side),
             scoreBonus = og.bonusFor(side),
+            rabbitStreak = if (og.winner == side) og.rabbitStreak else 0,
+            rabbitCoins = if (og.winner == side) og.rabbitCoins else 0,
             notice = if (newMove) null else notice,
             busy = false,
         )

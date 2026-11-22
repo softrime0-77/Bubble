@@ -30,8 +30,8 @@ public enum AiLevel: String, CaseIterable, Sendable {
     public var losePoints: Int {
         switch self {
         case .easy: return 0
-        case .normal: return -3
-        case .hard: return -5
+        case .normal: return -1
+        case .hard: return -2
         }
     }
     /// 내 턴 시간(초)
@@ -39,7 +39,7 @@ public enum AiLevel: String, CaseIterable, Sendable {
         switch self {
         case .easy: return 20
         case .normal: return 15
-        case .hard: return 5
+        case .hard: return 8
         }
     }
 }

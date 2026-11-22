@@ -524,7 +524,16 @@ private fun DrawScope.drawRabbit(closed: Boolean, happy: Boolean, ribbons: Int) 
         Offset(cx, cy - r * 0.82f),
     )
     val colors = listOf(Color(0xFFFF5C8A), Color(0xFF7C6CF2), Color(0xFFFFC94D), Color(0xFF5CD6B4), Color(0xFFFF8A3D))
-    for (i in 0 until ribbons.coerceIn(0, spots.size)) bow(spots[i], r * 0.2f, colors[i])
+    // 5연승: 리본이 모두 금빛으로 빛남
+    val golden = ribbons >= spots.size
+    for (i in 0 until ribbons.coerceIn(0, spots.size)) {
+        if (golden) {
+            drawCircle(Brush.radialGradient(listOf(Color(0xAAFFE27A), Color.Transparent), center = spots[i], radius = r * 0.45f), r * 0.45f, spots[i])
+            bow(spots[i], r * 0.22f, Color(0xFFFFC107))
+        } else {
+            bow(spots[i], r * 0.2f, colors[i])
+        }
+    }
 }
 
 /** 작은 리본 매듭 */

@@ -56,6 +56,16 @@ struct GameView<M: GameModel>: View {
             message: message)
     }
 
+    private func resultOverlay(_ w: Side) -> ResultOverlay {
+        let won = w == me
+        let delta: Int? = game.isOnline ? game.scoreDelta : nil
+        return ResultOverlay(won: won, side: me, skin: game.mySkin, reason: game.reason, delta: delta,
+                             online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
+                             rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins,
+                             share: won ? winShare : nil,
+                             onLobby: onLeave, onAgain: onAgain)
+    }
+
     private var me: Side { game.mySide }
     private var opp: Side { game.mySide.opponent }
 
@@ -125,10 +135,7 @@ struct GameView<M: GameModel>: View {
             ForEach(revives) { ReviveFx(burst: $0) }
 
             if game.finished, let w = game.winner {
-                ResultOverlay(won: w == me, side: me, skin: game.mySkin, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
-                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
-                              share: w == me ? winShare : nil,
-                              onLobby: onLeave, onAgain: onAgain)
+                resultOverlay(w)
             }
         }
         .coordinateSpace(name: "game")
@@ -371,10 +378,43 @@ struct ResultOverlay: View {
     var boosted = false
     var friendly = false
     var rewardOffer: Int? = nil
+    var rabbitStreak = 0
+    var rabbitCoins = 0
     /// 이겼으면 승리 공유 카드
     var share: WinShare? = nil
     let onLobby: () -> Void
     let onAgain: (() -> Void)?
+
+    /// 🐰 연승 보상 또는 다음 보상 안내
+    private var rabbitResult: some View {
+        let n = rabbitStreak, c = rabbitCoins
+        let text: String
+        if c > 0 {
+            text = tr("🐰 \(n)연승 보상 💰+\(c)!", "🐰 \(n)-win streak reward 💰+\(c)!", zh: "🐰 \(n)连胜奖励 💰+\(c)！",
+                      es: "🐰 ¡Premio por \(n) seguidas 💰+\(c)!", fr: "🐰 Récompense \(n) victoires 💰+\(c) !", de: "🐰 \(n) Siege in Folge 💰+\(c)!",
+                      pt: "🐰 Prêmio por \(n) seguidas 💰+\(c)!", ru: "🐰 Награда за \(n) побед подряд 💰+\(c)!", ja: "🐰 \(n)連勝ボーナス 💰+\(c)！")
+        } else if n < 3 {
+            let a = Shop.rabbit3Coins
+            text = tr("🐰 \(n)연승! 3연승이면 💰+\(a)", "🐰 \(n) in a row! 3 wins = 💰+\(a)", zh: "🐰 \(n)连胜！3连胜 💰+\(a)",
+                      es: "🐰 ¡\(n) seguidas! 3 = 💰+\(a)", fr: "🐰 \(n) d’affilée ! 3 = 💰+\(a)", de: "🐰 \(n) in Folge! 3 = 💰+\(a)",
+                      pt: "🐰 \(n) seguidas! 3 = 💰+\(a)", ru: "🐰 \(n) подряд! 3 = 💰+\(a)", ja: "🐰 \(n)連勝！3連勝で 💰+\(a)")
+        } else if n == 4 {
+            let b = Shop.rabbit5Coins
+            text = tr("🐰 4연승! 한 번 더 이기면 💰+\(b)", "🐰 4 in a row! One more win = 💰+\(b)", zh: "🐰 4连胜！再赢一次 💰+\(b)",
+                      es: "🐰 ¡4 seguidas! Una más = 💰+\(b)", fr: "🐰 4 d’affilée ! Encore une = 💰+\(b)", de: "🐰 4 in Folge! Noch einer = 💰+\(b)",
+                      pt: "🐰 4 seguidas! Mais uma = 💰+\(b)", ru: "🐰 4 подряд! Ещё одна = 💰+\(b)", ja: "🐰 4連勝！あと1勝で 💰+\(b)")
+        } else {
+            text = tr("🐰 \(n)연승! 오늘 연승 보상은 다 받았어요 (최대 💰\(Shop.rabbitDailyMax))", "🐰 \(n) in a row! Today's streak rewards are maxed (💰\(Shop.rabbitDailyMax))",
+                      zh: "🐰 \(n)连胜！今天的连胜奖励已领满", es: "🐰 ¡\(n) seguidas! Premios de hoy al máximo", fr: "🐰 \(n) d’affilée ! Récompenses du jour au max",
+                      de: "🐰 \(n) in Folge! Tagesmaximum erreicht", pt: "🐰 \(n) seguidas! Prêmios de hoje no máximo", ru: "🐰 \(n) подряд! Лимит наград на сегодня", ja: "🐰 \(n)連勝！今日の連勝ボーナスは上限です")
+        }
+        return Text(text)
+            .font(.system(size: c > 0 ? 17 : 14, weight: .black)).multilineTextAlignment(.center)
+            .foregroundColor(c > 0 ? Color(hex: 0xC77700) : UiColor.primaryDark)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(RoundedRectangle(cornerRadius: 14).fill(c > 0 ? Color(hex: 0xFFF3C4) : Color(hex: 0xFFE6F2)))
+            .padding(.top, 6)
+    }
 
     var body: some View {
         ZStack {
@@ -397,6 +437,7 @@ struct ResultOverlay: View {
                                 pt: "✨ Inclui bônus de rank +\(bonus)", ru: "✨ С бонусом ранга +\(bonus)", ja: "✨ ランクボーナス +\(bonus) 込み"))
                             .font(.system(size: 14, weight: .bold)).foregroundColor(Color(hex: 0xD08A00))
                     }
+                    if won && rabbitStreak > 0 { rabbitResult }
                     if friendly {
                         Text(tr("🤝 친선전 (오늘 이 친구와는 점수가 걸린 \(Shop.friendRatedPerDay)판을 다 했어요)",
                                 "🤝 Friendly match (you've played today's \(Shop.friendRatedPerDay) scored games with this friend)",

@@ -162,6 +162,11 @@ object Shop {
     const val DRAGON_POP_COINS = 2
     const val DRAGON_DAILY_MAX = 10
     const val RABBIT_MAX_RIBBONS = 5
+    /** 🐰 연승 보상: 3연승 💰5 · 5연승 💰15 · 6연승부터 💰2, 하루 최대 30 (functions/src/catalog.ts rabbitCoins와 같게) */
+    const val RABBIT_3_COINS = 5
+    const val RABBIT_5_COINS = 15
+    const val RABBIT_MORE_COINS = 2
+    const val RABBIT_DAILY_MAX = 30
 
     /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
     const val MAX_REVIVES_PER_GAME = 3

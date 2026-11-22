@@ -72,6 +72,19 @@ class ScreenshotTest {
     }
 
     @Test
+    fun rabbitRibbons() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            androidx.compose.foundation.layout.Row(androidx.compose.ui.Modifier.background(androidx.compose.ui.graphics.Color.White).padding(16.dp)) {
+                listOf(2, 4, 5).forEach { n ->
+                    com.bubble.game.ui.Critter(Side.HAMSTER, androidx.compose.ui.Modifier.size(110.dp), skin = com.bubble.game.game.Animal.RABBIT, ribbons = n)
+                }
+            }
+        }
+        shot("rabbit_ribbons", 500)
+    }
+
+    @Test
     fun rankingRows() {
         rule.mainClock.autoAdvance = false
         rule.setContent {
@@ -462,7 +475,7 @@ class ScreenshotTest {
 
     /** 긴 화면으로 상점 전체 (묶음 할인 버튼 확인) */
     @Test
-    @Config(sdk = [34], qualifiers = "w400dp-h3200dp-xhdpi")
+    @Config(sdk = [34], qualifiers = "w400dp-h4800dp-xhdpi")
     fun shopTall() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

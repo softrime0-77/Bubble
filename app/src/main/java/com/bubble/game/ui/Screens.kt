@@ -654,18 +654,18 @@ zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，�
 ) +
                     tr(
                     "   상대가 양·강아지·기린을 썼다면 내 턴이 15·12·8초로 줄어요.\n" +
-                        "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 5초. 시간을 넘기면 패배!\n\n",
+                        "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 8초. 시간을 넘기면 패배!\n\n",
                     "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 12 or 8s.\n" +
-                        "• Your turn vs AI: Easy 20s · Normal 15s · Hard 5s. Run out of time and you lose!\n\n",
-                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、12 或 8 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 5 秒。超时判负！\n\n",
-                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 12 या 8 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 5से। समय खत्म तो हार!\n\n",
-                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 12 o 8 s.\n• Tu turno contra la IA: Fácil 20 s · Normal 15 s · Difícil 5 s. ¡Si se acaba el tiempo, pierdes!\n\n",
-                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 12 ou 8 s.\n• Ton tour contre l’IA : Facile 20 s · Normal 15 s · Difficile 5 s. Temps écoulé = défaite !\n\n",
-                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 12 أو 8 ثوانٍ.\n• دورك ضد الذكاء الاصطناعي: سهل 20ث · عادي 15ث · صعب 5ث. إذا انتهى الوقت تخسر!\n\n",
-                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 12 oder 8 s.\n• Dein Zug gegen die KI: Leicht 20 s · Normal 15 s · Schwer 5 s. Zeit abgelaufen = verloren!\n\n",
-                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 12 ou 8 s.\n• Seu turno contra a IA: Fácil 20 s · Normal 15 s · Difícil 5 s. Acabou o tempo, você perde!\n\n",
-                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 12 или 8 с.\n• Ваш ход против ИИ: Легко 20 с · Нормально 15 с · Сложно 5 с. Время вышло — поражение!\n\n",
-                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・12・8秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい5秒。時間切れで負け！\n\n",
+                        "• Your turn vs AI: Easy 20s · Normal 15s · Hard 8s. Run out of time and you lose!\n\n",
+                    zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、12 或 8 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 8 秒。超时判负！\n\n",
+                    hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 12 या 8 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 8से। समय खत्म तो हार!\n\n",
+                    es = "   Si tu rival usa una oveja, un perrito o una jirafa, tu turno baja a 15, 12 o 8 s.\n• Tu turno contra la IA: Fácil 20 s · Normal 15 s · Difícil 8 s. ¡Si se acaba el tiempo, pierdes!\n\n",
+                    fr = "   Si ton adversaire utilise un mouton, un chiot ou une girafe, ton tour passe à 15, 12 ou 8 s.\n• Ton tour contre l’IA : Facile 20 s · Normal 15 s · Difficile 8 s. Temps écoulé = défaite !\n\n",
+                    ar = "   إذا استخدم خصمك خروفًا أو جروًا أو زرافة، يقل دورك إلى 15 أو 12 أو 8 ثوانٍ.\n• دورك ضد الذكاء الاصطناعي: سهل 20ث · عادي 15ث · صعب 8ث. إذا انتهى الوقت تخسر!\n\n",
+                    de = "   Nutzt dein Gegner Schaf, Welpe oder Giraffe, sinkt dein Zug auf 15, 12 oder 8 s.\n• Dein Zug gegen die KI: Leicht 20 s · Normal 15 s · Schwer 8 s. Zeit abgelaufen = verloren!\n\n",
+                    pt = "   Se o rival usar ovelha, cachorrinho ou girafa, seu turno cai para 15, 12 ou 8 s.\n• Seu turno contra a IA: Fácil 20 s · Normal 15 s · Difícil 8 s. Acabou o tempo, você perde!\n\n",
+                    ru = "   Если соперник использует овечку, щенка или жирафа, ваш ход сокращается до 15, 12 или 8 с.\n• Ваш ход против ИИ: Легко 20 с · Нормально 15 с · Сложно 8 с. Время вышло — поражение!\n\n",
+                    ja = "   相手がヒツジ・子イヌ・キリンを使うと、自分のターンが15・12・8秒になります。\n• AI対戦の自分のターン：かんたん20秒 · ふつう15秒 · むずかしい8秒。時間切れで負け！\n\n",
                 ) +
                     tr(
                         "• 계급: 1000점 이하 흙 → 구리(1001) → 은(1401) → 금(2001) → 루비(4001) → 사파이어(7001) → 다이아(10001) → 핑크다이아(50001)",
@@ -1317,6 +1317,7 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
                             fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Ui.gold.copy(red = 0.85f, green = 0.6f, blue = 0f),
                         )
                     }
+                    if (won && g.rabbitStreak > 0) RabbitResult(g.rabbitStreak, g.rabbitCoins)
                     if (rewardOffer != null) {
                         Text(
                             tr(
@@ -2512,18 +2513,56 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
     Animal.GOLD_HAMSTER -> tr("✨ 영구 스킨 · 🏆 황금 타이머, 이기면 금가루 폭죽이 팡팡 (승패 영향 없음)", "✨ Permanent skin · 🏆 Golden timer, gold fireworks when you win (no effect on winning)",
         zh = "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es = "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr = "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
         de = "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt = "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru = "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja = "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
-    Animal.RABBIT -> tr("🐰 연승할수록 리본이 하나씩 (최대 ${Shop.RABBIT_MAX_RIBBONS}개, 지면 처음부터) · 지금 ${p.winStreak}연승 · 이기면 하트 폭죽",
-        "🐰 A new ribbon for every win in a row (max ${Shop.RABBIT_MAX_RIBBONS}, resets on a loss) · streak ${p.winStreak}",
-        zh = "🐰 每连胜一场多一个蝴蝶结（最多 ${Shop.RABBIT_MAX_RIBBONS} 个，输了重来）· 当前 ${p.winStreak} 连胜",
-        es = "🐰 Un lazo por cada victoria seguida (máx. ${Shop.RABBIT_MAX_RIBBONS}) · racha ${p.winStreak}",
-        fr = "🐰 Un ruban par victoire d’affilée (max ${Shop.RABBIT_MAX_RIBBONS}) · série ${p.winStreak}",
-        de = "🐰 Eine Schleife pro Sieg in Folge (max. ${Shop.RABBIT_MAX_RIBBONS}) · Serie ${p.winStreak}",
-        pt = "🐰 Um laço por vitória seguida (máx. ${Shop.RABBIT_MAX_RIBBONS}) · sequência ${p.winStreak}",
-        ru = "🐰 Бантик за каждую победу подряд (макс. ${Shop.RABBIT_MAX_RIBBONS}) · серия ${p.winStreak}",
-        ja = "🐰 連勝ごとにリボンが1つ（最大${Shop.RABBIT_MAX_RIBBONS}個、負けるとリセット）· 今${p.winStreak}連勝")
+    Animal.RABBIT -> rabbitDesc(p)
     else -> tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh = "✨ 永久皮肤 · 无效果", es = "✨ Aspecto permanente · sin efecto",
         fr = "✨ Skin permanent · aucun effet", de = "✨ Dauerhafter Skin · kein Effekt", pt = "✨ Skin permanente · sem efeito",
         ru = "✨ Навсегда · без эффекта", ja = "✨ 永久スキン · 効果なし")
+}
+
+/** 🐰 연승 토끼 상점 설명: 연승 보상 숫자 + 지금 연승 + 오늘 받은 양 */
+private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
+    val today = if (p.rabbitDay == OnlineRepository.today()) p.rabbitCoins else 0
+    val mx = Shop.RABBIT_DAILY_MAX
+    val a = Shop.RABBIT_3_COINS
+    val b = Shop.RABBIT_5_COINS
+    val c = Shop.RABBIT_MORE_COINS
+    val n = p.winStreak
+    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전만 · 지금 ${n}연승",
+        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random & scored friend matches · streak $n",
+        zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配和计分好友对战 · 当前 ${n} 连胜",
+        es = "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
+        fr = "🐰 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",
+        de = "🐰 Siegesserien bringen 💰!\n· 3 Siege +$a · 5 Siege +$b · ab 6 +$c pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. $mx pro Tag (heute $today/$mx)\n· Eine Schleife pro Sieg, golden ab 5 · Serie $n",
+        pt = "🐰 Sequências dão 💰!\n· 3 vitórias +$a · 5 vitórias +$b · a partir de 6, +$c por vitória\n· Perder zera a sequência\n· Máx. $mx por dia (hoje $today/$mx)\n· Um laço por vitória, dourados aos 5 · sequência $n",
+        ru = "🐰 Серии побед дают 💰!\n· 3 победы +$a · 5 побед +$b · с 6-й +$c за победу\n· Поражение обнуляет серию\n· Макс. $mx в день (сегодня $today/$mx)\n· Бантик за победу, золотые на 5 · серия $n",
+        ja = "🐰 連勝するほど 💰！\n· 3連勝 +$a · 5連勝 +$b · 6連勝からは勝つたびに +$c\n· 負けると連勝はリセット（また3連勝で +$a）\n· 1日最大$mx（今日 $today/$mx）\n· 連勝ごとにリボン、5連勝で金色 · 今${n}連勝")
+}
+
+/** 🐰 결과 화면: 연승 보상 또는 다음 보상 안내 */
+@Composable
+private fun RabbitResult(streak: Int, coins: Int) {
+    val text = when {
+        coins > 0 -> tr("🐰 ${streak}연승 보상 💰+$coins!", "🐰 $streak-win streak reward 💰+$coins!", zh = "🐰 ${streak}连胜奖励 💰+$coins！",
+            es = "🐰 ¡Premio por $streak seguidas 💰+$coins!", fr = "🐰 Récompense $streak victoires 💰+$coins !", de = "🐰 $streak Siege in Folge 💰+$coins!",
+            pt = "🐰 Prêmio por $streak seguidas 💰+$coins!", ru = "🐰 Награда за $streak побед подряд 💰+$coins!", ja = "🐰 ${streak}連勝ボーナス 💰+$coins！")
+        streak < 3 -> tr("🐰 ${streak}연승! 3연승이면 💰+${Shop.RABBIT_3_COINS}", "🐰 $streak in a row! 3 wins = 💰+${Shop.RABBIT_3_COINS}",
+            zh = "🐰 ${streak}连胜！3连胜 💰+${Shop.RABBIT_3_COINS}", es = "🐰 ¡$streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", fr = "🐰 $streak d’affilée ! 3 = 💰+${Shop.RABBIT_3_COINS}",
+            de = "🐰 $streak in Folge! 3 = 💰+${Shop.RABBIT_3_COINS}", pt = "🐰 $streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", ru = "🐰 $streak подряд! 3 = 💰+${Shop.RABBIT_3_COINS}", ja = "🐰 ${streak}連勝！3連勝で 💰+${Shop.RABBIT_3_COINS}")
+        streak == 4 -> tr("🐰 4연승! 한 번 더 이기면 💰+${Shop.RABBIT_5_COINS}", "🐰 4 in a row! One more win = 💰+${Shop.RABBIT_5_COINS}",
+            zh = "🐰 4连胜！再赢一次 💰+${Shop.RABBIT_5_COINS}", es = "🐰 ¡4 seguidas! Una más = 💰+${Shop.RABBIT_5_COINS}", fr = "🐰 4 d’affilée ! Encore une = 💰+${Shop.RABBIT_5_COINS}",
+            de = "🐰 4 in Folge! Noch einer = 💰+${Shop.RABBIT_5_COINS}", pt = "🐰 4 seguidas! Mais uma = 💰+${Shop.RABBIT_5_COINS}", ru = "🐰 4 подряд! Ещё одна = 💰+${Shop.RABBIT_5_COINS}", ja = "🐰 4連勝！あと1勝で 💰+${Shop.RABBIT_5_COINS}")
+        else -> tr("🐰 ${streak}연승! 오늘 연승 보상은 다 받았어요 (최대 💰${Shop.RABBIT_DAILY_MAX})", "🐰 $streak in a row! Today's streak rewards are maxed (💰${Shop.RABBIT_DAILY_MAX})",
+            zh = "🐰 ${streak}连胜！今天的连胜奖励已领满（💰${Shop.RABBIT_DAILY_MAX}）", es = "🐰 ¡$streak seguidas! Premios de hoy al máximo", fr = "🐰 $streak d’affilée ! Récompenses du jour au max",
+            de = "🐰 $streak in Folge! Tagesmaximum erreicht", pt = "🐰 $streak seguidas! Prêmios de hoje no máximo", ru = "🐰 $streak подряд! Лимит наград на сегодня", ja = "🐰 ${streak}連勝！今日の連勝ボーナスは上限です")
+    }
+    Text(
+        text, fontSize = if (coins > 0) 17.sp else 14.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
+        color = if (coins > 0) Color(0xFFC77700) else Ui.primaryDark,
+        modifier = Modifier
+            .padding(top = 6.dp)
+            .background(if (coins > 0) Color(0xFFFFF3C4) else Color(0xFFFFE6F2), RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
 }
 
 /** 💰 복냥이 상점 설명: 확률·하루 최대를 숫자 그대로 표시 (확률 정보 공개) + 오늘 받은 양 */
@@ -2823,6 +2862,34 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
                         pt = "✨ Seu ${a.label}: turno do rival ${a.opponentTurnSec} s", ru = "✨ Ваш ${a.label}: ход соперника ${a.opponentTurnSec} с",
                         ja = "✨ 自分の${a.label}効果！相手のターン${a.opponentTurnSec}秒"),
                     Ui.accent,
+                )
+            }
+            // 🐰 연승 토끼 5연승 이상이면 알림
+            if (g.opponentSkin == Animal.RABBIT && g.opponentRibbons >= Shop.RABBIT_MAX_RIBBONS) {
+                Spacer(Modifier.height(10.dp))
+                VsNotice(
+                    tr("🔥 상대가 연승 토끼로 5연승 이상 중!", "🔥 Your rival's Streak Bunny is on a 5+ win streak!",
+                        zh = "🔥 对手的连胜兔已经 5 连胜以上！", es = "🔥 ¡El conejo de tu rival lleva 5+ victorias seguidas!", fr = "🔥 Le lapin adverse est sur 5+ victoires d’affilée !",
+                        de = "🔥 Der Siegeshase deines Gegners hat 5+ Siege in Folge!", pt = "🔥 O coelho do rival está com 5+ vitórias seguidas!", ru = "🔥 Зайка соперника — серия 5+ побед!", ja = "🔥 相手の連勝ウサギが5連勝以上中！"),
+                    Color(0xFFFF8A3D),
+                )
+            }
+            if (g.mySkin == Animal.RABBIT && g.myRibbons > 0) {
+                Spacer(Modifier.height(10.dp))
+                val n = g.myRibbons
+                VsNotice(
+                    if (n >= Shop.RABBIT_MAX_RIBBONS) {
+                        tr("🔥 내 연승 토끼 5연승 이상! 이기면 💰+${Shop.RABBIT_MORE_COINS}", "🔥 Your bunny is on 5+ wins! Win = 💰+${Shop.RABBIT_MORE_COINS}",
+                            zh = "🔥 我的连胜兔 5 连胜以上！赢了 💰+${Shop.RABBIT_MORE_COINS}", es = "🔥 ¡Tu conejo lleva 5+! Gana = 💰+${Shop.RABBIT_MORE_COINS}", fr = "🔥 Ton lapin est à 5+ ! Victoire = 💰+${Shop.RABBIT_MORE_COINS}",
+                            de = "🔥 Dein Hase hat 5+ Siege! Sieg = 💰+${Shop.RABBIT_MORE_COINS}", pt = "🔥 Seu coelho está com 5+! Vitória = 💰+${Shop.RABBIT_MORE_COINS}", ru = "🔥 Ваш зайка: 5+ побед! Победа = 💰+${Shop.RABBIT_MORE_COINS}", ja = "🔥 自分のウサギが5連勝以上！勝つと 💰+${Shop.RABBIT_MORE_COINS}")
+                    } else {
+                        val next = if (n < 2) 3 else 5
+                        val coins = if (next == 3) Shop.RABBIT_3_COINS else Shop.RABBIT_5_COINS
+                        tr("🐰 지금 ${n}연승 · ${next}연승이면 💰+$coins", "🐰 $n in a row · $next wins = 💰+$coins",
+                            zh = "🐰 当前${n}连胜 · ${next}连胜 💰+$coins", es = "🐰 $n seguidas · $next = 💰+$coins", fr = "🐰 $n d’affilée · $next = 💰+$coins",
+                            de = "🐰 $n in Folge · $next = 💰+$coins", pt = "🐰 $n seguidas · $next = 💰+$coins", ru = "🐰 $n подряд · $next = 💰+$coins", ja = "🐰 今${n}連勝 · ${next}連勝で 💰+$coins")
+                    },
+                    Color(0xFFFF7EB3),
                 )
             }
         }

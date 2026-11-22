@@ -135,4 +135,7 @@ public enum Shop {
     public static let rabbit5Coins = 15
     public static let rabbitMoreCoins = 2
     public static let rabbitDailyMax = 30
+    /// 🦄 유니콘 무지개 축복: 이길 때마다 💰3, 하루 최대 30 (functions/src/catalog.ts와 같게)
+    public static let unicornWinCoins = 3
+    public static let unicornDailyMax = 30
 }

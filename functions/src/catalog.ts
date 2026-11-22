@@ -135,6 +135,16 @@ export function dragonCoins(todayCoins: number): number {
   return Math.max(0, Math.min(DRAGON_POP_COINS, DRAGON_DAILY_MAX - todayCoins));
 }
 
+/** 🦄 유니콘 무지개 축복: 이길 때마다 💰, 하루 최대 */
+export const UNICORN_SKIN = "UNICORN";
+export const UNICORN_WIN_COINS = 3;
+export const UNICORN_DAILY_MAX = 30;
+
+/** 이번 승리로 유니콘이 받을 💰 (오늘 이미 받은 [todayCoins] 기준, 하루 최대를 넘지 않게) */
+export function unicornCoins(todayCoins: number): number {
+  return Math.max(0, Math.min(UNICORN_WIN_COINS, UNICORN_DAILY_MAX - todayCoins));
+}
+
 /** 장착한 판다를 실제로 가졌는지 */
 export function pandaEquipped(equipped: unknown, ownedSkins: unknown): boolean {
   return equipped === PANDA_SKIN && Array.isArray(ownedSkins) && ownedSkins.includes(PANDA_SKIN);

@@ -44,6 +44,9 @@ struct Profile: Equatable {
     /// 🐰 연승 토끼로 오늘 받은 포인트 (rabbitDay가 오늘일 때만 유효)
     var rabbitDay: String? = nil
     var rabbitCoins = 0
+    /// 🦄 유니콘 무지개 축복으로 오늘 받은 포인트 (unicornDay가 오늘일 때만 유효)
+    var unicornDay: String? = nil
+    var unicornCoins = 0
     var winStreak = 0
     /// ✏️ 닉네임: 첫 무료 변경을 썼는지, 가진 변경권 수
     var freeRenameUsed = false
@@ -134,6 +137,8 @@ struct OnlineGameDoc {
     /// 🐰 이긴 쪽이 이 판으로 된 연승과 받은 💰 (연승 토끼일 때만)
     var rabbitStreak: Int = 0
     var rabbitCoins: Int = 0
+    /// 🦄 이긴 쪽이 유니콘 무지개 축복으로 받은 💰
+    var unicornCoins: Int = 0
 
     func side(of uid: String) -> Side? { uid == catUid ? .cat : uid == hamUid ? .hamster : nil }
     func name(_ s: Side) -> String { s == .cat ? catName : hamName }
@@ -726,6 +731,8 @@ final class OnlineService: ObservableObject {
             dragonCoins: int(d["dragonCoins"]) ?? 0,
             rabbitDay: d["rabbitDay"] as? String,
             rabbitCoins: int(d["rabbitCoins"]) ?? 0,
+            unicornDay: d["unicornDay"] as? String,
+            unicornCoins: int(d["unicornCoins"]) ?? 0,
             winStreak: int(d["winStreak"]) ?? 0,
             freeRenameUsed: d["freeRenameUsed"] as? Bool ?? false,
             renameTickets: int(d["renameTickets"]) ?? 0,
@@ -788,7 +795,8 @@ final class OnlineService: ObservableObject {
             catStreak: int(d["catStreak"]) ?? 0,
             hamStreak: int(d["hamStreak"]) ?? 0,
             rabbitStreak: int(d["rabbitStreak"]) ?? 0,
-            rabbitCoins: int(d["rabbitCoins"]) ?? 0
+            rabbitCoins: int(d["rabbitCoins"]) ?? 0,
+            unicornCoins: int(d["unicornCoins"]) ?? 0
         )
     }
 

@@ -22,6 +22,8 @@ protocol GameModel: ObservableObject {
     /// 🐰 내가 연승 토끼로 이겼을 때: 이번 판으로 된 연승과 받은 💰
     var rabbitStreak: Int { get }
     var rabbitCoins: Int { get }
+    /// 🦄 내가 유니콘으로 이겼을 때 받은 💰
+    var unicornCoins: Int { get }
     var deadline: Date? { get }
     /// 이번 차례 제한 시간 (초)
     var turnSec: Int { get }

@@ -1318,6 +1318,7 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
                         )
                     }
                     if (won && g.rabbitStreak > 0) RabbitResult(g.rabbitStreak, g.rabbitCoins)
+                    if (won && g.unicornCoins > 0) UnicornResult(g.unicornCoins)
                     if (rewardOffer != null) {
                         Text(
                             tr(
@@ -1863,11 +1864,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             val on = p.equipped == a
             ShopCard(
                 title = a.label,
-                desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(${a.rankMin}점)부터 무료로 장착 · 이기면 무지개와 별 폭죽", "🌈 Not for sale · free from 💎 Diamond rank (${a.rankMin} pts)",
-                    zh = "🌈 非卖品 · 💎 钻石段位（${a.rankMin} 分）起免费装备", es = "🌈 No se vende · gratis desde 💎 Diamante (${a.rankMin} pts)",
-                    fr = "🌈 Pas à vendre · gratuit dès 💎 Diamant (${a.rankMin} pts)", de = "🌈 Nicht käuflich · gratis ab 💎 Diamant (${a.rankMin} Pkt)",
-                    pt = "🌈 Não vende · grátis a partir de 💎 Diamante (${a.rankMin} pts)", ru = "🌈 Не продаётся · бесплатно с 💎 Алмаза (${a.rankMin} очк.)",
-                    ja = "🌈 非売品 · 💎 ダイヤ（${a.rankMin}点）から無料で装備"),
+                desc = unicornDesc(p, a.rankMin),
                 price = null,
                 owned = when {
                     on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", es = "✅ Equipado", fr = "✅ Équipé", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
@@ -2519,6 +2516,22 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
         ru = "✨ Навсегда · без эффекта", ja = "✨ 永久スキン · 効果なし")
 }
 
+/** 🦄 유니콘 상점 설명: 무지개 축복 */
+private fun unicornDesc(p: com.bubble.game.data.Profile, min: Int): String {
+    val today = if (p.unicornDay == OnlineRepository.today()) p.unicornCoins else 0
+    val c = Shop.UNICORN_WIN_COINS
+    val mx = Shop.UNICORN_DAILY_MAX
+    return tr("🌈 무지개 축복!\n· 이길 때마다 💰 +$c (하루 최대 $mx · 오늘 $today/$mx)\n· 매칭되면 상대에게 \"다이아 전용 유니콘 등장!\"\n· 랭킹에서 닉네임이 무지개색 · 이기면 무지개와 별 폭죽\n· 판매하지 않아요: 💎 다이아 계급(${min}점)부터 무료로 장착\n· 랜덤 매칭·점수 걸린 친구 대전만",
+        "🌈 Rainbow blessing!\n· 💰 +$c per win (max $mx a day · today $today/$mx)\n· Rivals see \"A Diamond-only Unicorn appears!\"\n· Rainbow name on the leaderboard · rainbow & star fireworks when you win\n· Not for sale: free from 💎 Diamond (${min} pts)\n· Random & scored friend matches",
+        zh = "🌈 彩虹祝福！\n· 每胜 💰 +$c（每天最多 $mx · 今天 $today/$mx）\n· 匹配时对手会看到“钻石专属独角兽登场！”\n· 排行榜上名字变彩虹色\n· 非卖品：💎 钻石（${min} 分）起免费装备",
+        es = "🌈 ¡Bendición arcoíris!\n· 💰 +$c por victoria (máx. $mx al día · hoy $today/$mx)\n· Tu rival verá el aviso del unicornio\n· Nombre arcoíris en la clasificación\n· No se vende: gratis desde 💎 Diamante (${min} pts)",
+        fr = "🌈 Bénédiction arc-en-ciel !\n· 💰 +$c par victoire (max $mx par jour · aujourd’hui $today/$mx)\n· L’adversaire voit l’arrivée de la licorne\n· Pseudo arc-en-ciel au classement\n· Pas à vendre : gratuit dès 💎 Diamant (${min} pts)",
+        de = "🌈 Regenbogensegen!\n· 💰 +$c pro Sieg (max. $mx pro Tag · heute $today/$mx)\n· Gegner sehen: Diamant-Einhorn erscheint\n· Regenbogenname in der Bestenliste\n· Nicht käuflich: gratis ab 💎 Diamant (${min} Pkt)",
+        pt = "🌈 Bênção arco-íris!\n· 💰 +$c por vitória (máx. $mx por dia · hoje $today/$mx)\n· O rival vê o aviso do unicórnio\n· Nome arco-íris no ranking\n· Não vende: grátis a partir de 💎 Diamante (${min} pts)",
+        ru = "🌈 Радужное благословение!\n· 💰 +$c за победу (макс. $mx в день · сегодня $today/$mx)\n· Соперник увидит появление единорога\n· Радужное имя в рейтинге\n· Не продаётся: бесплатно с 💎 Алмаза (${min} очк.)",
+        ja = "🌈 にじの祝福！\n· 勝つたびに 💰 +$c（1日最大$mx · 今日 $today/$mx）\n· マッチすると相手に「ダイヤ専用ユニコーン登場！」\n· ランキングで名前が虹色\n· 非売品：💎 ダイヤ（${min}点）から無料で装備")
+}
+
 /** 🐰 연승 토끼 상점 설명: 연승 보상 숫자 + 지금 연승 + 오늘 받은 양 */
 private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
     val today = if (p.rabbitDay == OnlineRepository.today()) p.rabbitCoins else 0
@@ -2537,6 +2550,29 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
         ru = "🐰 Серии побед дают 💰!\n· 3 победы +$a · 5 побед +$b · с 6-й +$c за победу\n· Поражение обнуляет серию\n· Макс. $mx в день (сегодня $today/$mx)\n· Бантик за победу, золотые на 5 · серия $n",
         ja = "🐰 連勝するほど 💰！\n· 3連勝 +$a · 5連勝 +$b · 6連勝からは勝つたびに +$c\n· 負けると連勝はリセット（また3連勝で +$a）\n· 1日最大$mx（今日 $today/$mx）\n· 連勝ごとにリボン、5連勝で金色 · 今${n}連勝")
 }
+
+/** 🦄 결과 화면: 무지개 축복 💰 (무지개색으로 흐르는 글자) */
+@Composable
+private fun UnicornResult(coins: Int) {
+    val t = rememberInfiniteTransition(label = "uni")
+    val x by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "x")
+    Text(
+        tr("🦄 무지개 축복 💰+$coins!", "🦄 Rainbow blessing 💰+$coins!", zh = "🦄 彩虹祝福 💰+$coins！", es = "🦄 ¡Bendición arcoíris 💰+$coins!",
+            fr = "🦄 Bénédiction arc-en-ciel 💰+$coins !", de = "🦄 Regenbogensegen 💰+$coins!", pt = "🦄 Bênção arco-íris 💰+$coins!",
+            ru = "🦄 Радужное благословение 💰+$coins!", ja = "🦄 にじの祝福 💰+$coins！"),
+        style = androidx.compose.ui.text.TextStyle(
+            brush = Brush.linearGradient(rainbowText, start = androidx.compose.ui.geometry.Offset(x * 600f - 300f, 0f), end = androidx.compose.ui.geometry.Offset(x * 600f, 0f), tileMode = androidx.compose.ui.graphics.TileMode.Mirror),
+            fontSize = 17.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
+        ),
+        modifier = Modifier
+            .padding(top = 6.dp)
+            .background(Color(0xFFF6EEFF), RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+}
+
+/** 무지개 글자색 (진하게: 흰 바탕에서 읽히게) */
+internal val rainbowText = listOf(Color(0xFFE5397A), Color(0xFFE07A00), Color(0xFF2E9E4F), Color(0xFF2B7FD6), Color(0xFF7B4BD8))
 
 /** 🐰 결과 화면: 연승 보상 또는 다음 보상 안내 */
 @Composable
@@ -2862,6 +2898,25 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
                         pt = "✨ Seu ${a.label}: turno do rival ${a.opponentTurnSec} s", ru = "✨ Ваш ${a.label}: ход соперника ${a.opponentTurnSec} с",
                         ja = "✨ 自分の${a.label}効果！相手のターン${a.opponentTurnSec}秒"),
                     Ui.accent,
+                )
+            }
+            // 🦄 유니콘 등장 / 내 무지개 축복
+            if (g.opponentSkin == Animal.UNICORN) {
+                Spacer(Modifier.height(10.dp))
+                VsNotice(
+                    tr("🦄 다이아 전용 유니콘 등장!", "🦄 A Diamond-only Unicorn appears!", zh = "🦄 钻石专属独角兽登场！", es = "🦄 ¡Aparece un unicornio exclusivo de Diamante!",
+                        fr = "🦄 Une licorne réservée au Diamant apparaît !", de = "🦄 Ein Diamant-Einhorn erscheint!", pt = "🦄 Surge um unicórnio exclusivo do Diamante!",
+                        ru = "🦄 Появился единорог для Алмазов!", ja = "🦄 ダイヤ専用ユニコーン登場！"),
+                    Color(0xFF8E6CF0),
+                )
+            }
+            if (g.mySkin == Animal.UNICORN) {
+                Spacer(Modifier.height(10.dp))
+                VsNotice(
+                    tr("🌈 무지개 축복: 이기면 💰+${Shop.UNICORN_WIN_COINS}", "🌈 Rainbow blessing: win = 💰+${Shop.UNICORN_WIN_COINS}", zh = "🌈 彩虹祝福：赢了 💰+${Shop.UNICORN_WIN_COINS}",
+                        es = "🌈 Bendición arcoíris: gana = 💰+${Shop.UNICORN_WIN_COINS}", fr = "🌈 Bénédiction : victoire = 💰+${Shop.UNICORN_WIN_COINS}", de = "🌈 Regenbogensegen: Sieg = 💰+${Shop.UNICORN_WIN_COINS}",
+                        pt = "🌈 Bênção arco-íris: vitória = 💰+${Shop.UNICORN_WIN_COINS}", ru = "🌈 Благословение: победа = 💰+${Shop.UNICORN_WIN_COINS}", ja = "🌈 にじの祝福：勝つと 💰+${Shop.UNICORN_WIN_COINS}"),
+                    Color(0xFFFF7EB3),
                 )
             }
             // 🐰 연승 토끼 5연승 이상이면 알림

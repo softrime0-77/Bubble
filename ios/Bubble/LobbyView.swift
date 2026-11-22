@@ -13,6 +13,7 @@ struct LobbyView: View {
     var onShop: () -> Void
 
     @State private var showRules = false
+    @State private var cardOf: RankedPlayer?
 
     /// 닉네임: 첫 변경은 무료, 그다음은 변경권이 있어야
     private var canRename: Bool {
@@ -179,8 +180,15 @@ struct LobbyView: View {
                                 ja: "🎁 毎週月曜0時（韓国時間）TOP100に 💰：1位1000 · 2位700 · 3位500 · 4〜10位300 · 11〜100位100"))
                             .font(.system(size: 11)).foregroundColor(UiColor.text.opacity(0.7))
                             .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(tr("🔄 1분마다 갱신 · 이름을 누르면 프로필 카드", "🔄 Updates every minute · tap a name for their card",
+                                zh: "🔄 每分钟更新 · 点名字查看名片", es: "🔄 Se actualiza cada minuto · toca un nombre", fr: "🔄 Mis à jour chaque minute · touche un nom",
+                                de: "🔄 Jede Minute aktualisiert · Namen antippen", pt: "🔄 Atualiza a cada minuto · toque num nome",
+                                ru: "🔄 Обновляется каждую минуту · нажмите на имя", ja: "🔄 1分ごとに更新 · 名前をタップでカード"))
+                            .font(.system(size: 11)).foregroundColor(UiColor.text.opacity(0.55))
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         ForEach(Array(online.leaderboard.enumerated()), id: \.element.uid) { i, p in
-                            leaderRow(i + 1, p.name, p.country, p.score, me: p.uid == online.profile?.uid)
+                            let r = p.ranked(i + 1)
+                            RankingRowView(p: r, me: p.uid == online.profile?.uid) { cardOf = r }
                         }
                         // TOP 100 밖이면 내 순위와 위아래 10명
                         if let r = online.myRank, !online.aroundMe.isEmpty {
@@ -190,7 +198,7 @@ struct LobbyView: View {
                                 .font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.text)
                                 .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 10)
                             ForEach(online.aroundMe) { row in
-                                leaderRow(row.rank, row.name, row.country, row.score, me: row.uid == online.profile?.uid)
+                                RankingRowView(p: row.ranked, me: row.uid == online.profile?.uid) { cardOf = row.ranked }
                             }
                         }
                     }
@@ -198,6 +206,11 @@ struct LobbyView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+        }
+        .overlay {
+            if let c = cardOf {
+                PlayerCardView(p: c, me: c.uid == online.profile?.uid) { cardOf = nil }
+            }
         }
         .sheet(isPresented: $showRules) { RulesSheet { showRules = false } }
         .sheet(isPresented: $showAdmin) { AdminSheet { showAdmin = false } }
@@ -238,21 +251,6 @@ struct LobbyView: View {
         } message: {
             Text(welcomeText)
         }
-    }
-
-    /// 랭킹 한 줄: 순위 · 국기 · 닉네임 · 계급 · 점수
-    private func leaderRow(_ position: Int, _ name: String, _ country: String?, _ score: Int, me: Bool) -> some View {
-        HStack(spacing: 6) {
-            Text(position == 1 ? "🥇" : position == 2 ? "🥈" : position == 3 ? "🥉" : "\(position)")
-                .font(.system(size: 15, weight: .bold)).lineLimit(1).minimumScaleFactor(0.7).frame(width: 40, alignment: .leading)
-            Text(flag(country)).font(.system(size: 16)).frame(width: 24)
-            Text(name + (me ? t(" (나)") : "")).foregroundColor(UiColor.text).lineLimit(1)
-            Spacer()
-            RankBadge(score: score)
-            Text(pts(score)).font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.primaryDark)
-        }
-        .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(RoundedRectangle(cornerRadius: 10).fill(me ? UiColor.primary.opacity(0.15) : .clear))
     }
 
     private var deleteWarning: String {

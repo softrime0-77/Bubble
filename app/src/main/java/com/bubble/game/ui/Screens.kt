@@ -160,6 +160,8 @@ private fun LobbyScreen(vm: AppViewModel) {
     var showRanks by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var showAdmin by remember { mutableStateOf(false) }
+    var cardOf by remember { mutableStateOf<RankedPlayer?>(null) }
+    cardOf?.let { c -> PlayerCardDialog(c, me = c.uid == ui.profile?.uid) { cardOf = null } }
 
     Column(
         Modifier
@@ -421,8 +423,17 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
                     fontSize = 11.sp, color = Ui.text.copy(alpha = 0.7f), lineHeight = 15.sp,
                 )
                 Spacer(Modifier.height(6.dp))
+                Text(
+                    tr("🔄 1분마다 갱신 · 이름을 누르면 프로필 카드", "🔄 Updates every minute · tap a name for their card",
+                        zh = "🔄 每分钟更新 · 点名字查看名片", es = "🔄 Se actualiza cada minuto · toca un nombre", fr = "🔄 Mis à jour chaque minute · touche un nom",
+                        de = "🔄 Jede Minute aktualisiert · Namen antippen", pt = "🔄 Atualiza a cada minuto · toque num nome",
+                        ru = "🔄 Обновляется каждую минуту · нажмите на имя", ja = "🔄 1分ごとに更新 · 名前をタップでカード"),
+                    fontSize = 11.sp, color = Ui.text.copy(alpha = 0.55f),
+                )
+                Spacer(Modifier.height(6.dp))
                 ui.leaderboard.forEachIndexed { i, p ->
-                    LeaderRow(i + 1, p.name, p.country, p.score, me = p.uid == ui.profile?.uid)
+                    val r = p.ranked(i + 1)
+                    RankingRow(r, me = p.uid == ui.profile?.uid) { cardOf = r }
                 }
                 // TOP 100 밖이면 내 순위와 위아래 10명
                 if (ui.myRank != null && ui.aroundMe.isNotEmpty()) {
@@ -432,8 +443,9 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
                         fontWeight = FontWeight.Bold, color = Ui.text,
                     )
                     Spacer(Modifier.height(4.dp))
-                    ui.aroundMe.forEach { r ->
-                        LeaderRow(r.rank, r.name, r.country, r.score, me = r.uid == ui.profile?.uid)
+                    ui.aroundMe.forEach { row ->
+                        val r = row.ranked()
+                        RankingRow(r, me = row.uid == ui.profile?.uid) { cardOf = r }
                     }
                 }
             }
@@ -675,31 +687,6 @@ zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，�
             )
         },
     )
-}
-
-/** 랭킹 한 줄: 순위 · 국기 · 닉네임 · 계급 · 점수 */
-@Composable
-private fun LeaderRow(position: Int, name: String, country: String?, score: Int, me: Boolean) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(if (me) Ui.primary.copy(alpha = 0.15f) else Color.Transparent, RoundedCornerShape(10.dp))
-            .padding(horizontal = 8.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            when (position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "$position" },
-            modifier = Modifier.width(40.dp), color = Ui.text, fontWeight = FontWeight.Bold, maxLines = 1,
-        )
-        Text(Country.flag(country), fontSize = 16.sp, modifier = Modifier.width(26.dp))
-        Text(
-            name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else "",
-            modifier = Modifier.weight(1f), color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
-        )
-        RankBadge(score)
-        Spacer(Modifier.width(8.dp))
-        Text(tr("${score}점", "${score} pts", zh = "${score} 分", hi = "${score} अंक", es = "${score} pts", fr = "${score} pts", ar = "${score} نقطة", de = "${score} Pkt", pt = "${score} pts", ru = "${score} очк.", ja = "${score}点"), color = Ui.primaryDark, fontWeight = FontWeight.Bold)
-    }
 }
 
 // ======================= 친구 대전 기다리기 =======================

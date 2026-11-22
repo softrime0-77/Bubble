@@ -105,7 +105,12 @@ data class Profile(
 data class WeeklyReward(val week: String, val rank: Int, val coins: Int, val seen: Boolean)
 
 /** 랭킹 한 줄 (내 주변 순위) */
-data class RankRow(val uid: String, val rank: Int, val name: String, val score: Int, val country: String?)
+data class RankRow(
+    val uid: String, val rank: Int, val name: String, val score: Int, val country: String?,
+    val wins: Int? = null, val losses: Int? = null,
+    /** 지금 보이는 캐릭터 (null이면 기본 고양이) */
+    val look: Animal? = null,
+)
 
 /** 친구 대전방 상태: 친구가 들어왔으면 gameId, 방이 끝났으면 expired */
 data class FriendRoomState(val gameId: String?, val expired: Boolean)
@@ -288,6 +293,9 @@ class OnlineRepository(context: Context) {
             name = this["name"] as? String ?: "Player",
             score = (this["score"] as? Number)?.toInt() ?: START_SCORE,
             country = this["country"] as? String,
+            wins = (this["wins"] as? Number)?.toInt(),
+            losses = (this["losses"] as? Number)?.toInt(),
+            look = Animal.of(this["look"] as? String),
         )
     }
 

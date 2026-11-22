@@ -1186,7 +1186,8 @@ export const joinFriendRoom = onCall(async (req) => {
 // ======================= 출석 · 일일 미션 · 주간 랭킹 보상 =======================
 
 /** 오늘 출석 보상 받기 (한국 시간 하루 한 번). 7일 주기, 7일째는 💖 부활물약도 */
-export const claimDaily = onCall(async (req) => {
+// 첫 배포 때 공개 호출 권한 설정이 실패했던 함수: 배포할 때마다 권한을 확실히 다시 설정하도록 명시
+export const claimDaily = onCall({ invoker: "public" }, async (req) => {
   const uid = requireUser(req);
   const ref = db.collection("users").doc(uid);
   return db.runTransaction(async (tx) => {
@@ -1206,7 +1207,8 @@ export const claimDaily = onCall(async (req) => {
 });
 
 /** 일일 미션 보상 받기 */
-export const claimMission = onCall(async (req) => {
+// 첫 배포 때 공개 호출 권한 설정이 실패했던 함수: 배포할 때마다 권한을 확실히 다시 설정하도록 명시
+export const claimMission = onCall({ invoker: "public" }, async (req) => {
   const uid = requireUser(req);
   const id = (req.data as { id?: unknown } | null)?.id;
   const m = typeof id === "string" ? MISSIONS[id] : undefined;
@@ -1227,7 +1229,8 @@ export const claimMission = onCall(async (req) => {
 });
 
 /** 주간 랭킹 보상 안내를 봤다고 표시 */
-export const ackWeeklyReward = onCall(async (req) => {
+// 첫 배포 때 공개 호출 권한 설정이 실패했던 함수: 배포할 때마다 권한을 확실히 다시 설정하도록 명시
+export const ackWeeklyReward = onCall({ invoker: "public" }, async (req) => {
   const uid = requireUser(req);
   await db.collection("users").doc(uid).update({ "weeklyReward.seen": true });
   return { ok: true };

@@ -17,6 +17,7 @@ final class OnlineGame: GameModel {
     @Published private(set) var reason = ""
     @Published private(set) var log: [String] = []
     @Published private(set) var explosion: (Explosion, Int)? = nil
+    @Published private(set) var lastShot: ShotInfo? = nil
     @Published private(set) var deadline: Date? = nil
     @Published private(set) var turnSec = Shop.defaultTurnSec
     @Published private(set) var busy = true
@@ -40,6 +41,9 @@ final class OnlineGame: GameModel {
     @Published private(set) var friendRated = false
 
     private var lastMove = -1
+    /// 상대 방울이 날아가는 동안 들어온 서버 상태 (부딪힌 뒤에 반영)
+    private var holding = false
+    private var heldDoc: OnlineGameDoc?
     private var listener: ListenerRegistration?
     private var timerTask: Task<Void, Never>?
 
@@ -68,6 +72,29 @@ final class OnlineGame: GameModel {
     }
 
     private func merge(_ g: OnlineGameDoc) {
+        if holding { heldDoc = g; return }
+        guard let side = g.side(of: myUid) else { return }
+        // 상대가 더하기를 했으면: 방울을 먼저 날리고, 부딪힌 뒤에 판을 바꿈
+        if g.moveNo != lastMove, lastMove >= 0, let by = g.lastBy, by != side,
+           case let .add(from, toOpponent, to)? = g.lastMove {
+            lastShot = ShotInfo(side: by, from: from, toOpponent: toOpponent, to: to, id: g.moveNo)
+            holding = true
+            heldDoc = g
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(FlyingShot.flySec * 1_000_000_000))
+                guard let self else { return }
+                self.holding = false
+                if let d = self.heldDoc {
+                    self.heldDoc = nil
+                    self.apply(d)
+                }
+            }
+            return
+        }
+        apply(g)
+    }
+
+    private func apply(_ g: OnlineGameDoc) {
         guard let side = g.side(of: myUid) else { return }
         let newMove = g.moveNo != lastMove && g.moveNo > 0
         if newMove && !g.lastText.isEmpty { log = Array(([g.lastText] + log).prefix(30)) }

@@ -12,6 +12,8 @@ protocol GameModel: ObservableObject {
     var reason: String { get }
     var log: [String] { get }
     var explosion: (Explosion, Int)? { get }
+    /// 상대가 방금 둔 "더하기" 수 (방울이 날아가는 효과). 판은 날아가 부딪힌 뒤에 바뀜.
+    var lastShot: ShotInfo? { get }
     var deadline: Date? { get }
     /// 이번 차례 제한 시간 (초)
     var turnSec: Int { get }
@@ -34,4 +36,13 @@ protocol GameModel: ObservableObject {
     /// 친구 대전인데 하루 제한을 넘겨 점수가 없는 친선전인지
     var friendlyMatch: Bool { get }
     func play(_ move: Move)
+}
+
+/// [side]가 [from] 방울로 (상대 or 자기) [to] 방울을 침. [id]가 바뀔 때마다 한 번 날림.
+struct ShotInfo: Equatable {
+    let side: Side
+    let from: Int
+    let toOpponent: Bool
+    let to: Int
+    let id: Int
 }

@@ -48,6 +48,12 @@ sealed interface Screen {
 /** 터짐 애니메이션을 한 번만 틀기 위한 표식. */
 data class Explosion(val side: Side, val index: Int, val id: Int)
 
+/** 방울이 날아가 부딪히는 효과를 한 번만 틀기 위한 표식: [side]가 [from] 방울로 (상대 or 자기) [to] 방울을 침 */
+data class Shot(val side: Side, val from: Int, val toOpponent: Boolean, val to: Int, val id: Int)
+
+/** 출석 보상 받은 결과 (축하 팝업용) */
+data class CheckinReward(val day: Int, val coins: Int, val potion: Boolean)
+
 data class GameUi(
     val online: Boolean,
     val board: Board = Board(),
@@ -61,6 +67,8 @@ data class GameUi(
     val reason: String = "",
     val log: List<String> = emptyList(),
     val explosion: Explosion? = null,
+    /** 마지막으로 둔 "더하기" 수 (방울이 날아가는 효과) */
+    val lastShot: Shot? = null,
     val turnDeadline: Long? = null,
     val scoreDelta: Int? = null,
     /** scoreDelta 중 계급 보너스 */
@@ -108,6 +116,8 @@ data class LobbyUi(
     val rankUpScore: Int? = null,
     /** 상점 구매/장착 처리 중 */
     val shopBusy: Boolean = false,
+    /** 출석 완료 축하 팝업 */
+    val checkin: CheckinReward? = null,
     /** 가입 환영 팝업: ("new" / "returning" / "admin", 시작 점수) */
     val welcome: Pair<String, Int>? = null,
     /** 동시 접속자 수 (관리자만) */
@@ -638,7 +648,10 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         } else {
             explosion
         }
+        val shot = (og.lastMove as? Move.Add)?.takeIf { newMove && lastMove >= 0 && og.lastBy != null }
+            ?.let { Shot(og.lastBy!!, it.from, it.toOpponent, it.to, og.moveNo) }
         return copy(
+            lastShot = shot ?: lastShot,
             board = og.board,
             mySide = side,
             turn = og.turn,
@@ -765,6 +778,7 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
             turnDeadline = if (w == null && side.opponent == g.mySide) System.currentTimeMillis() + (g.aiLevel?.turnSec ?: 20) * 1000L else null,
             turnSec = if (w == null && side.opponent == g.mySide) g.aiLevel?.turnSec else null,
             explosion = r.exploded?.let { Explosion(it.first, it.second, id) } ?: g.explosion,
+            lastShot = (move as? Move.Add)?.let { Shot(side, it.from, it.toOpponent, it.to, (g.lastShot?.id ?: 0) + 1) } ?: g.lastShot,
             busy = false,
         )
     }
@@ -781,14 +795,23 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
 
     // ---------- 출석 · 일일 미션 · 주간 보상 · 광고 보고 물약 ----------
 
-    fun claimDaily() = rewardAction { 
-        val (day, coins, potion) = repo.claimDaily()
-        tr("📅 ${day}일째 출석! 💰 +$coins" + if (potion) " · 💖 +1" else "", "📅 Day $day check-in! 💰 +$coins" + if (potion) " · 💖 +1" else "",
-            zh = "📅 第 $day 天签到！💰 +$coins" + if (potion) " · 💖 +1" else "", es = "📅 ¡Día $day! 💰 +$coins" + if (potion) " · 💖 +1" else "",
-            fr = "📅 Jour $day ! 💰 +$coins" + if (potion) " · 💖 +1" else "", de = "📅 Tag $day! 💰 +$coins" + if (potion) " · 💖 +1" else "",
-            pt = "📅 Dia $day! 💰 +$coins" + if (potion) " · 💖 +1" else "", ru = "📅 День $day! 💰 +$coins" + if (potion) " · 💖 +1" else "",
-            ja = "📅 ${day}日目の出席！💰 +$coins" + if (potion) " · 💖 +1" else "")
+    /** 출석 보상 받기 → 화려한 축하 팝업 */
+    fun claimDaily() {
+        if (_lobby.value.shopBusy) return
+        _lobby.update { it.copy(shopBusy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val (day, coins, potion) = repo.claimDaily()
+                _lobby.update { it.copy(shopBusy = false, checkin = CheckinReward(day, coins, potion)) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _lobby.update { it.copy(shopBusy = false, error = e.message) }
+            }
+        }
     }
+
+    fun dismissCheckin() = _lobby.update { it.copy(checkin = null) }
 
     fun claimMission(id: String) = rewardAction {
         val coins = repo.claimMission(id)

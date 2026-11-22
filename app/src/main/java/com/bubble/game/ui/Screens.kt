@@ -74,6 +74,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -117,6 +122,17 @@ fun BubbleApp(vm: AppViewModel) {
         val lobby by vm.lobby.collectAsState()
         val rankUp = lobby.rankUpScore
         if (rankUp != null && screen == Screen.Lobby) RankUpCelebration(rankUp, onDismiss = vm::dismissRankUp)
+        val checkin = lobby.checkin
+        androidx.compose.animation.AnimatedVisibility(
+            checkin != null && screen == Screen.Lobby,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(250)),
+        ) {
+            // 사라지는 동안에도 마지막 내용을 보여줌
+            val last = remember { mutableStateOf(checkin) }
+            if (checkin != null) last.value = checkin
+            last.value?.let { CheckinCelebration(it.day, it.coins, it.potion, onDismiss = vm::dismissCheckin) }
+        }
     }
     }
 }
@@ -769,7 +785,48 @@ private fun MatchingScreen(startedAt: Long, onCancel: () -> Unit) {
 
 @Composable
 private fun GameScreen(vm: AppViewModel) {
-    val g by vm.game.collectAsState()
+    val live by vm.game.collectAsState()
+    // 화면에 보여주는 판: 방울이 날아가 부딪힐 때까지 바뀐 판을 잠깐 늦게 보여줌
+    var g by remember { mutableStateOf(live) }
+    val shots = remember { mutableStateListOf<FlyingShot>() }
+    var landAt by remember { mutableLongStateOf(0L) }
+    val centers = remember { mutableStateMapOf<String, androidx.compose.ui.geometry.Offset>() }
+    var layerOrigin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val shake = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    var firedShot by remember { mutableStateOf(live.lastShot?.id) }
+
+    /** [side]의 [from] 방울이 [to] 방울로 날아가는 효과 */
+    fun fire(side: Side, from: Int, toOpp: Boolean, to: Int, pre: GameUi) {
+        val targetSide = if (toOpp) side.opponent else side
+        val a = centers["$side$from"] ?: return
+        val b = centers["$targetSide$to"] ?: return
+        val power = pre.board.sets(side).getOrElse(from) { 0 }
+        if (power <= 0) return
+        val targetCount = pre.board.sets(targetSide).getOrElse(to) { 0 }
+        shots += FlyingShot(
+            key = System.nanoTime(),
+            from = a - layerOrigin, to = b - layerOrigin,
+            side = side, skin = if (side == pre.mySide) pre.mySkin else pre.opponentSkin,
+            power = power, attack = toOpp, boom = targetCount + power >= GameLogic.EXPLODE_AT,
+        )
+        landAt = System.currentTimeMillis() + SHOT_FLY_MS
+    }
+
+    LaunchedEffect(live) {
+        val s = live.lastShot
+        if (s == null) {
+            firedShot = null
+        } else if (s.id != firedShot) {
+            firedShot = s.id
+            // 내 수는 누를 때 이미 날렸으니 상대 수만
+            if (s.side != live.mySide) fire(s.side, s.from, s.toOpponent, s.to, g)
+        }
+        val wait = landAt - System.currentTimeMillis()
+        if (wait > 0) delay(wait)
+        g = live
+    }
+
     var selected by remember { mutableStateOf<Int?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
 
@@ -790,11 +847,28 @@ private fun GameScreen(vm: AppViewModel) {
     val sel = selected
     val power = sel?.let { mine[it] } ?: 0
 
+    val inFlight = landAt > now
+    /** 내 방울을 날려서 치기 */
+    fun shoot(from: Int, toOpp: Boolean, to: Int) {
+        if (inFlight) return
+        fire(me, from, toOpp, to, g)
+        vm.play(Move.Add(from, toOpp, to))
+        selected = null
+    }
+
     fun previewFor(target: Int) = if (target + power >= GameLogic.EXPLODE_AT) tr("💥 펑!", "💥 POP!", zh = "💥 啪！", hi = "💥 फट!", es = "💥 ¡PUM!", fr = "💥 POP !", ar = "💥 بوب!", de = "💥 PLOPP!", pt = "💥 POP!", ru = "💥 ХЛОП!", ja = "💥 パン！") else "→ ${target + power}"
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().onGloballyPositioned { layerOrigin = it.positionInRoot() }) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp),
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    // 상대 방울을 치면 화면이 살짝 흔들림
+                    val k = shake.value
+                    translationX = kotlin.math.sin(k * 30f) * k * 7.dp.toPx()
+                    translationY = kotlin.math.cos(k * 23f) * k * 4.dp.toPx()
+                }
+                .statusBarsPadding().navigationBarsPadding().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // 상단 바
@@ -823,7 +897,10 @@ private fun GameScreen(vm: AppViewModel) {
                         skin = g.opponentSkin,
                         preview = if (target) previewFor(theirs[i]) else null,
                         explodeKey = g.explosion?.takeIf { it.side == opp && it.index == i }?.id,
-                        onClick = if (target) ({ vm.play(Move.Add(sel!!, true, i)); selected = null }) else null,
+                        onClick = if (target) ({ shoot(sel!!, true, i) }) else null,
+                        modifier = Modifier.onGloballyPositioned { c ->
+                            centers["$opp$i"] = c.positionInRoot() + androidx.compose.ui.geometry.Offset(c.size.width / 2f, c.size.height / 2f)
+                        },
                     )
                 }
             }
@@ -852,9 +929,12 @@ private fun GameScreen(vm: AppViewModel) {
                         skin = g.mySkin,
                         preview = if (boostTarget) "💪 " + previewFor(mine[i]) else null,
                         explodeKey = g.explosion?.takeIf { it.side == me && it.index == i }?.id,
+                        modifier = Modifier.onGloballyPositioned { c ->
+                            centers["$me$i"] = c.positionInRoot() + androidx.compose.ui.geometry.Offset(c.size.width / 2f, c.size.height / 2f)
+                        },
                         onClick = when {
-                            boostTarget -> ({ vm.play(Move.Add(sel!!, false, i)); selected = null })
-                            pickable -> ({ selected = if (isSel) null else i })
+                            boostTarget -> ({ shoot(sel!!, false, i) })
+                            pickable && !inFlight -> ({ selected = if (isSel) null else i })
                             else -> null
                         },
                     )
@@ -932,6 +1012,18 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
                 )
             }
         }
+
+        // 날아가는 방울들
+        ShotLayer(
+            shots,
+            onImpact = { s ->
+                if (s.attack || s.boom) scope.launch {
+                    shake.snapTo(if (s.boom) 1f else 0.6f)
+                    shake.animateTo(0f, tween(if (s.boom) 650 else 420))
+                }
+            },
+            onDone = { s -> shots.remove(s) },
+        )
 
         // 매칭되면 3초 동안 VS 소개 (나라·계급)
         var showVs by remember { mutableStateOf(false) }

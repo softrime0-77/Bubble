@@ -1,6 +1,16 @@
 // 상점 상품과 계급. 앱의 game/Catalog.kt와 같은 값이어야 합니다.
 
 export const POTION_PRICE = 50;
+/** 관리자가 넣을 수 있는 값 범위 (실수로 엄청 큰 값을 넣지 않게) */
+export const ADMIN_MAX_VALUE = 10_000_000;
+
+/** 관리자 수정 값 확인: 0 이상 정수만, 없으면 undefined(안 바꿈), 잘못되면 null */
+export function adminValue(raw: unknown): number | undefined | null {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0 || raw > ADMIN_MAX_VALUE) return null;
+  return raw;
+}
+
 /** ✏️ 닉네임 변경권: 첫 변경은 무료, 그다음부터 1장씩 */
 export const RENAME_PRICE = 100;
 

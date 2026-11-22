@@ -309,6 +309,29 @@ final class OnlineService: ObservableObject {
 
     // MARK: 닉네임 · 상점 · 초대
 
+    /// 🛠 관리자: 닉네임(정확히)이나 uid로 찾기. 빈 칸이면 나
+    func adminFind(_ query: String) async -> [AdminUser] {
+        do {
+            let r = try await call("adminFindUser", ["query": query.trimmingCharacters(in: .whitespaces)])
+            let list = r["users"] as? [[String: Any]] ?? []
+            return list.compactMap { m in
+                guard let uid = m["uid"] as? String else { return nil }
+                return AdminUser(uid: uid, name: m["name"] as? String ?? "", score: Self.int(m["score"]) ?? 0,
+                                 coins: Self.int(m["coins"]) ?? 0, potions: Self.int(m["potions"]) ?? 0)
+            }
+        } catch {
+            self.error = error.localizedDescription
+            return []
+        }
+    }
+
+    /// 🛠 관리자: 점수 · 💰 · 💖 를 넣은 값으로 바꿈
+    func adminSet(_ u: AdminUser, score: Int, coins: Int, potions: Int) async {
+        await shopAction("🛠 \(u.name) 수정 완료 (점수 \(score) · 💰 \(coins) · 💖 \(potions))") {
+            _ = try await call("adminSetPoints", ["uid": u.uid, "score": score, "coins": coins, "potions": potions])
+        }
+    }
+
     /// 닉네임 바꾸기 (서버): 첫 변경은 무료, 그다음은 ✏️ 변경권 1장
     func rename(_ raw: String) {
         let name = String(raw.trimmingCharacters(in: .whitespacesAndNewlines).prefix(12))
@@ -775,4 +798,14 @@ struct CheckinReward: Equatable {
 struct MissionReward: Equatable {
     let label: String
     let coins: Int
+}
+
+/// 🛠 관리자 화면에서 고칠 사용자
+struct AdminUser: Identifiable, Equatable {
+    var id: String { uid }
+    let uid: String
+    let name: String
+    let score: Int
+    let coins: Int
+    let potions: Int
 }

@@ -13,6 +13,29 @@ struct LobbyView: View {
     var onShop: () -> Void
 
     @State private var showRules = false
+
+    /// 닉네임: 첫 변경은 무료, 그다음은 변경권이 있어야
+    private var canRename: Bool {
+        guard let p = online.profile else { return true }
+        return !p.freeRenameUsed || p.renameTickets > 0
+    }
+
+    private var renameNote: String {
+        guard let p = online.profile, p.freeRenameUsed else {
+            return tr("🎁 첫 변경은 무료예요!", "🎁 Your first change is free!", zh: "🎁 第一次修改免费！", es: "🎁 ¡El primer cambio es gratis!",
+                      fr: "🎁 Le premier changement est gratuit !", de: "🎁 Die erste Änderung ist gratis!", pt: "🎁 A primeira troca é grátis!", ru: "🎁 Первая смена бесплатно!", ja: "🎁 最初の変更は無料！")
+        }
+        if p.renameTickets > 0 {
+            return tr("✏️ 변경권 1장을 써요 (보유 \(p.renameTickets)장)", "✏️ Uses 1 rename ticket (you have \(p.renameTickets))",
+                      zh: "✏️ 使用 1 张改名券（拥有 \(p.renameTickets) 张）", es: "✏️ Usa 1 cupón de cambio (tienes \(p.renameTickets))", fr: "✏️ Utilise 1 ticket (tu en as \(p.renameTickets))",
+                      de: "✏️ Nutzt 1 Namensticket (du hast \(p.renameTickets))", pt: "✏️ Usa 1 cupom de troca (você tem \(p.renameTickets))", ru: "✏️ Тратится 1 талон (у вас \(p.renameTickets))", ja: "✏️ 変更券を1枚使います（所持\(p.renameTickets)枚）")
+        }
+        let price = Shop.renamePrice
+        return tr("✏️ 닉네임 변경권이 필요해요 · 상점에서 \(price)점", "✏️ You need a rename ticket · \(price) pts in the shop",
+                  zh: "✏️ 需要改名券 · 商店 \(price) 分", es: "✏️ Necesitas un cupón de cambio · \(price) pts en la tienda", fr: "✏️ Il faut un ticket de pseudo · \(price) pts en boutique",
+                  de: "✏️ Du brauchst ein Namensticket · \(price) Pkt im Shop", pt: "✏️ Precisa de um cupom de troca · \(price) pts na loja", ru: "✏️ Нужен талон смены ника · \(price) очк. в магазине",
+                  ja: "✏️ ニックネーム変更券が必要です · ショップで\(price)点")
+    }
     @State private var showRanks = false
     @State private var renaming = false
     @State private var newName = ""
@@ -172,7 +195,14 @@ struct LobbyView: View {
         .alert(t("닉네임"), isPresented: $renaming) {
             TextField(t("최대 12자"), text: $newName)
             Button(t("취소"), role: .cancel) {}
-            Button(t("저장")) { online.rename(newName) }
+            if canRename {
+                Button(t("저장")) { online.rename(newName) }
+            } else {
+                Button(tr("🛒 상점 가기", "🛒 Go to shop", zh: "🛒 去商店", es: "🛒 Ir a la tienda", fr: "🛒 Aller à la boutique", de: "🛒 Zum Shop",
+                          pt: "🛒 Ir à loja", ru: "🛒 В магазин", ja: "🛒 ショップへ")) { onShop() }
+            }
+        } message: {
+            Text(renameNote)
         }
         .alert(t("정말 계정을 삭제할까요?"), isPresented: $confirmDelete) {
             Button(t("취소"), role: .cancel) {}

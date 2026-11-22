@@ -1008,5 +1008,7 @@ data class TimerTheme(val icon: String, val colors: List<Color>, val flake: FxSh
 fun timerTheme(skin: Animal?): TimerTheme? = when (skin) {
     Animal.SNOW_HAMSTER -> TimerTheme("❄️", listOf(Color(0xFFBFE9FF), Color(0xFF5CC8FF), Color(0xFF3A8DFF)), FxShape.SNOW)
     Animal.GOLD_HAMSTER -> TimerTheme("✨", listOf(Color(0xFFFFF4B0), Color(0xFFFFC21A), Color(0xFFFF9F1C)), FxShape.COIN)
+    Animal.PINK_CAT -> TimerTheme("💗", listOf(Color(0xFFFFD6EC), Color(0xFFFF8FC4), Color(0xFFFF4FA0)), FxShape.HEART)
+    Animal.BLACK_CAT -> TimerTheme("🌙", listOf(Color(0xFF9B8CFF), Color(0xFF6A4DE0), Color(0xFF3B2A6B)), FxShape.STAR)
     else -> null
 }

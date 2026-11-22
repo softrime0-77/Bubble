@@ -1,6 +1,21 @@
 // 상점 상품과 계급. 앱의 game/Catalog.kt와 같은 값이어야 합니다.
 
 export const POTION_PRICE = 50;
+/** ✏️ 닉네임 변경권: 첫 변경은 무료, 그다음부터 1장씩 */
+export const RENAME_PRICE = 100;
+
+/** 닉네임 정리: 앞뒤 공백 제거, 최대 12자. 비었으면 null */
+export function cleanName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const n = [...raw.trim()].slice(0, 12).join("");
+  return n.length > 0 ? n : null;
+}
+
+/** 이번 닉네임 변경이 무료인지 / 변경권을 쓰는지 / 못 바꾸는지 */
+export function renameCost(freeUsed: unknown, tickets: unknown): "free" | "ticket" | "none" {
+  if (freeUsed !== true) return "free";
+  return typeof tickets === "number" && tickets >= 1 ? "ticket" : "none";
+}
 /** ×3 점수 부스터 (소모품): 켜둔 상태로 랜덤 매칭이 시작되면 1개 사용, 이기면 얻는 점수 3배 (AI 대전엔 안 씀) */
 export const BOOST_PRICE = 50;
 export const BOOST_MULTIPLIER = 3;

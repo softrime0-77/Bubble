@@ -14,12 +14,8 @@ service cloud.firestore {
       allow read: if signedInWithGoogle();
       // 프로필 생성은 서버(ensureProfile)만: 시작 점수(1000 / 재가입 0 / 관리자 5000)를 서버가 정함
       allow create: if false;
-      allow update: if signedInWithGoogle()
-        && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 12;
+      // 닉네임도 서버(rename)만 바꿈: 첫 변경 무료, 그다음은 변경권 필요
+      allow update: if false;
     }
 
     // 접속 신호: 본인 문서에 시각(at)만 쓸 수 있음. 읽기는 서버(관리자 통계)만.

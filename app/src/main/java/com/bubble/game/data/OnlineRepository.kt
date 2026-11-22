@@ -75,6 +75,9 @@ data class Profile(
     val dragonCoins: Int = 0,
     /** 🐰 연승 (랜덤 매칭·점수 걸린 친구 대전) */
     val winStreak: Int = 0,
+    /** ✏️ 닉네임: 첫 무료 변경을 썼는지, 가진 변경권 수 */
+    val freeRenameUsed: Boolean = false,
+    val renameTickets: Int = 0,
     /** 출석: 마지막으로 받은 날(한국 시간)과 연속 일수 */
     val checkinDay: String? = null,
     val checkinStreak: Int = 0,
@@ -229,9 +232,9 @@ class OnlineRepository(context: Context) {
     suspend fun onlineCount(): Int =
         (call("onlineCount")["online"] as? Number)?.toInt() ?: 0
 
-    suspend fun setNickname(uid: String, name: String) {
-        users.document(uid).update("name", name.trim().take(12)).await()
-    }
+    /** 닉네임 바꾸기 (서버): 첫 변경 무료, 그다음은 변경권 1장. 돌려주는 값: "free" / "ticket" / "same" */
+    suspend fun rename(name: String): String =
+        (call("rename", mapOf("name" to name.trim().take(12)))["used"] as? String) ?: "free"
 
     fun profileFlow(uid: String): Flow<Profile?> = callbackFlow {
         val reg = users.document(uid).addSnapshotListener { s, _ ->
@@ -433,6 +436,8 @@ class OnlineRepository(context: Context) {
         dragonDay = getString("dragonDay"),
         dragonCoins = (getLong("dragonCoins") ?: 0).toInt(),
         winStreak = (getLong("winStreak") ?: 0).toInt(),
+        freeRenameUsed = getBoolean("freeRenameUsed") ?: false,
+        renameTickets = (getLong("renameTickets") ?: 0).toInt(),
         checkinDay = getString("checkinDay"),
         checkinStreak = (getLong("checkinStreak") ?: 0).toInt(),
         missionDay = getString("missionDay"),

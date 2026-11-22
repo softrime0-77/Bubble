@@ -1161,6 +1161,8 @@ struct TimerTheme {
         switch skin {
         case .snowHamster: return TimerTheme(icon: "❄️", colors: [Color(hex: 0xBFE9FF), Color(hex: 0x5CC8FF), Color(hex: 0x3A8DFF)], flake: .snow)
         case .goldHamster: return TimerTheme(icon: "✨", colors: [Color(hex: 0xFFF4B0), Color(hex: 0xFFC21A), Color(hex: 0xFF9F1C)], flake: .coin)
+        case .pinkCat: return TimerTheme(icon: "💗", colors: [Color(hex: 0xFFD6EC), Color(hex: 0xFF8FC4), Color(hex: 0xFF4FA0)], flake: .heart)
+        case .blackCat: return TimerTheme(icon: "🌙", colors: [Color(hex: 0x9B8CFF), Color(hex: 0x6A4DE0), Color(hex: 0x3B2A6B)], flake: .star)
         default: return nil
         }
     }

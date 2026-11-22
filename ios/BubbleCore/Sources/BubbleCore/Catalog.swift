@@ -99,6 +99,8 @@ public enum Animal: String, CaseIterable, Sendable {
 
 public enum Shop {
     public static let potionPrice = 50
+    /// ✏️ 닉네임 변경권 (첫 변경은 무료). functions/src/catalog.ts RENAME_PRICE와 같게
+    public static let renamePrice = 100
     public static let boostPrice = 50
     public static let boostMultiplier = 3
     public static let maxRevivesPerGame = 3

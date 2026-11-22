@@ -484,9 +484,38 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             onDismissRequest = { renaming = false },
             title = { Text(tr("닉네임", "Nickname", zh = "昵称", hi = "निकनेम", es = "Apodo", fr = "Pseudo", ar = "اللقب", de = "Spitzname", pt = "Apelido", ru = "Ник", ja = "ニックネーム")) },
             text = {
-                OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text(tr("최대 12자", "Up to 12 characters", zh = "最多 12 个字符", hi = "अधिकतम 12 अक्षर", es = "Hasta 12 caracteres", fr = "12 caractères max.", ar = "حتى 12 حرفًا", de = "Bis zu 12 Zeichen", pt = "Até 12 caracteres", ru = "До 12 символов", ja = "12文字まで")) })
+                Column {
+                    OutlinedTextField(name, { name = it.take(12) }, singleLine = true, label = { Text(tr("최대 12자", "Up to 12 characters", zh = "最多 12 个字符", hi = "अधिकतम 12 अक्षर", es = "Hasta 12 caracteres", fr = "12 caractères max.", ar = "حتى 12 حرفًا", de = "Bis zu 12 Zeichen", pt = "Até 12 caracteres", ru = "До 12 символов", ja = "12文字まで")) })
+                    Spacer(Modifier.height(8.dp))
+                    // 첫 변경은 무료, 그다음은 ✏️ 변경권
+                    val p0 = ui.profile
+                    Text(
+                        when {
+                            p0 == null || !p0.freeRenameUsed -> tr("🎁 첫 변경은 무료예요!", "🎁 Your first change is free!", zh = "🎁 第一次修改免费！", es = "🎁 ¡El primer cambio es gratis!",
+                                fr = "🎁 Le premier changement est gratuit !", de = "🎁 Die erste Änderung ist gratis!", pt = "🎁 A primeira troca é grátis!", ru = "🎁 Первая смена бесплатно!", ja = "🎁 最初の変更は無料！")
+                            p0.renameTickets > 0 -> tr("✏️ 변경권 1장을 써요 (보유 ${p0.renameTickets}장)", "✏️ Uses 1 rename ticket (you have ${p0.renameTickets})",
+                                zh = "✏️ 使用 1 张改名券（拥有 ${p0.renameTickets} 张）", es = "✏️ Usa 1 cupón de cambio (tienes ${p0.renameTickets})", fr = "✏️ Utilise 1 ticket (tu en as ${p0.renameTickets})",
+                                de = "✏️ Nutzt 1 Namensticket (du hast ${p0.renameTickets})", pt = "✏️ Usa 1 cupom de troca (você tem ${p0.renameTickets})", ru = "✏️ Тратится 1 талон (у вас ${p0.renameTickets})", ja = "✏️ 変更券を1枚使います（所持${p0.renameTickets}枚）")
+                            else -> tr("✏️ 닉네임 변경권이 필요해요 · 상점에서 ${Shop.RENAME_PRICE}점", "✏️ You need a rename ticket · ${Shop.RENAME_PRICE} pts in the shop",
+                                zh = "✏️ 需要改名券 · 商店 ${Shop.RENAME_PRICE} 分", es = "✏️ Necesitas un cupón de cambio · ${Shop.RENAME_PRICE} pts en la tienda",
+                                fr = "✏️ Il faut un ticket de pseudo · ${Shop.RENAME_PRICE} pts en boutique", de = "✏️ Du brauchst ein Namensticket · ${Shop.RENAME_PRICE} Pkt im Shop",
+                                pt = "✏️ Precisa de um cupom de troca · ${Shop.RENAME_PRICE} pts na loja", ru = "✏️ Нужен талон смены ника · ${Shop.RENAME_PRICE} очк. в магазине",
+                                ja = "✏️ ニックネーム変更券が必要です · ショップで${Shop.RENAME_PRICE}点")
+                        },
+                        fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        color = if (p0 != null && p0.freeRenameUsed && p0.renameTickets == 0) Ui.danger else Ui.accent,
+                    )
+                }
             },
-            confirmButton = { TextButton(onClick = { vm.rename(name); renaming = false }) { Text(tr("저장", "Save", zh = "保存", hi = "सेव करें", es = "Guardar", fr = "Enregistrer", ar = "حفظ", de = "Speichern", pt = "Salvar", ru = "Сохранить", ja = "保存")) } },
+            confirmButton = {
+                val p0 = ui.profile
+                val canRename = p0 == null || !p0.freeRenameUsed || p0.renameTickets > 0
+                if (canRename) {
+                    TextButton(onClick = { vm.rename(name); renaming = false }) { Text(tr("저장", "Save", zh = "保存", hi = "सेव करें", es = "Guardar", fr = "Enregistrer", ar = "حفظ", de = "Speichern", pt = "Salvar", ru = "Сохранить", ja = "保存")) }
+                } else {
+                    TextButton(onClick = { renaming = false; vm.openShop() }) { Text(tr("🛒 상점 가기", "🛒 Go to shop", zh = "🛒 去商店", es = "🛒 Ir a la tienda", fr = "🛒 Aller à la boutique", de = "🛒 Zum Shop", pt = "🛒 Ir à loja", ru = "🛒 В магазин", ja = "🛒 ショップへ"), fontWeight = FontWeight.Bold) }
+                }
+            },
             dismissButton = { TextButton(onClick = { renaming = false }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
     }
@@ -1643,6 +1672,30 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             }
         }
 
+        // ✏️ 닉네임 변경권
+        ShopCard(
+            title = tr("✏️ 닉네임 변경권", "✏️ Rename Ticket", zh = "✏️ 改名券", es = "✏️ Cupón de cambio de apodo", fr = "✏️ Ticket de pseudo",
+                de = "✏️ Namensticket", pt = "✏️ Cupom de troca de apelido", ru = "✏️ Талон смены ника", ja = "✏️ ニックネーム変更券"),
+            desc = tr("닉네임을 한 번 바꿀 수 있어요. 첫 변경은 무료!", "Change your nickname once. Your first change is free!",
+                zh = "可以修改一次昵称。第一次免费！", es = "Cambia tu apodo una vez. ¡El primer cambio es gratis!", fr = "Change ton pseudo une fois. Le premier est gratuit !",
+                de = "Ändere deinen Namen einmal. Die erste Änderung ist gratis!", pt = "Troque seu apelido uma vez. A primeira é grátis!",
+                ru = "Смените ник один раз. Первая смена бесплатно!", ja = "ニックネームを1回変更できます。最初の変更は無料！") +
+                (if (!p.freeRenameUsed) "\n" + tr("🎁 아직 무료 변경이 남아 있어요", "🎁 You still have a free change", zh = "🎁 你还有一次免费修改", es = "🎁 Aún tienes un cambio gratis",
+                    fr = "🎁 Il te reste un changement gratuit", de = "🎁 Du hast noch eine Gratis-Änderung", pt = "🎁 Você ainda tem uma troca grátis",
+                    ru = "🎁 У вас ещё есть бесплатная смена", ja = "🎁 無料変更がまだ残っています") else ""),
+            price = Shop.RENAME_PRICE,
+            owned = if (p.renameTickets > 0) tr("보유 ${p.renameTickets}장", "Owned: ${p.renameTickets}", zh = "拥有 ${p.renameTickets} 张", es = "Tienes: ${p.renameTickets}",
+                fr = "Possédés : ${p.renameTickets}", de = "Im Besitz: ${p.renameTickets}", pt = "Você tem: ${p.renameTickets}", ru = "Есть: ${p.renameTickets}", ja = "所持 ${p.renameTickets}枚") else null,
+            art = { Text("✏️", fontSize = 54.sp) },
+        ) {
+            Button(
+                onClick = { confirm = Purchase("RENAME", tr("닉네임 변경권", "Rename Ticket", zh = "改名券", es = "Cupón de cambio", fr = "Ticket de pseudo", de = "Namensticket", pt = "Cupom de troca", ru = "Талон смены ника", ja = "変更券"), Shop.RENAME_PRICE) },
+                enabled = !ui.shopBusy && p.score + p.coins >= Shop.RENAME_PRICE,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+            ) { Text(tr("${Shop.RENAME_PRICE}점에 사기", "Buy for ${Shop.RENAME_PRICE} pts", zh = "${Shop.RENAME_PRICE} 分购买", es = "Comprar por ${Shop.RENAME_PRICE} pts", fr = "Acheter pour ${Shop.RENAME_PRICE} pts", de = "Für ${Shop.RENAME_PRICE} Pkt kaufen", pt = "Comprar por ${Shop.RENAME_PRICE} pts", ru = "Купить за ${Shop.RENAME_PRICE} очк.", ja = "${Shop.RENAME_PRICE}点で買う"), fontWeight = FontWeight.Bold) }
+        }
+
         // ×3 점수 부스터
         ShopCard(
             title = tr("×3 점수 부스터", "x3 Score Booster", zh = "×3 分数加成", hi = "×3 स्कोर बूस्टर", es = "Potenciador x3",
@@ -2432,10 +2485,10 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
             ru = "🐉 💰 +${Shop.DRAGON_POP_COINS} за каждый лопнутый пузырь соперника\n(макс. $mx в день · сегодня $today/$mx) · навсегда",
             ja = "🐉 相手の泡を割るたびに 💰 +${Shop.DRAGON_POP_COINS}\n（1日最大$mx · 今日 $today/$mx）· 永久")
     }
-    Animal.PINK_CAT -> tr("✨ 영구 스킨 · 💗 이기면 하트 비가 내려요 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart rain when you win (no effect on winning)",
+    Animal.PINK_CAT -> tr("✨ 영구 스킨 · 💗 하트 타이머, 이기면 하트 비 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart timer, heart rain when you win (no effect on winning)",
         zh = "✨ 永久皮肤 · 💗 获胜时下起爱心雨（不影响胜负）", es = "✨ Aspecto permanente · 💗 Lluvia de corazones al ganar", fr = "✨ Skin permanent · 💗 Pluie de cœurs à la victoire",
         de = "✨ Dauerhafter Skin · 💗 Herzregen beim Sieg", pt = "✨ Skin permanente · 💗 Chuva de corações ao vencer", ru = "✨ Навсегда · 💗 Дождь из сердечек при победе", ja = "✨ 永久スキン · 💗 勝つとハートの雨")
-    Animal.BLACK_CAT -> tr("✨ 영구 스킨 · 🌙 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Moons and stars rain when you win (no effect on winning)",
+    Animal.BLACK_CAT -> tr("✨ 영구 스킨 · 🌙 밤하늘 타이머, 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Night-sky timer, moons and stars rain when you win (no effect on winning)",
         zh = "✨ 永久皮肤 · 🌙 获胜时月亮星星落下（不影响胜负）", es = "✨ Aspecto permanente · 🌙 Lluvia de lunas y estrellas al ganar", fr = "✨ Skin permanent · 🌙 Pluie de lunes et d’étoiles à la victoire",
         de = "✨ Dauerhafter Skin · 🌙 Monde und Sterne beim Sieg", pt = "✨ Skin permanente · 🌙 Chuva de luas e estrelas ao vencer", ru = "✨ Навсегда · 🌙 Луны и звёзды при победе", ja = "✨ 永久スキン · 🌙 勝つと月と星が降る")
     Animal.SNOW_HAMSTER -> tr("✨ 영구 스킨 · ❄️ 내 타이머가 얼음 게이지로, 이기면 눈송이 비 (승패 영향 없음)", "✨ Permanent skin · ❄️ Icy timer, snow rain when you win (no effect on winning)",

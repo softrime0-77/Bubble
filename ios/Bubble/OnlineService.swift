@@ -42,6 +42,9 @@ struct Profile: Equatable {
     var dragonDay: String? = nil
     var dragonCoins = 0
     var winStreak = 0
+    /// ✏️ 닉네임: 첫 무료 변경을 썼는지, 가진 변경권 수
+    var freeRenameUsed = false
+    var renameTickets = 0
     /// 출석: 마지막으로 받은 날(한국 시간)과 연속 일수
     var checkinDay: String? = nil
     var checkinStreak = 0
@@ -304,10 +307,16 @@ final class OnlineService: ObservableObject {
 
     // MARK: 닉네임 · 상점 · 초대
 
+    /// 닉네임 바꾸기 (서버): 첫 변경은 무료, 그다음은 ✏️ 변경권 1장
     func rename(_ raw: String) {
         let name = String(raw.trimmingCharacters(in: .whitespacesAndNewlines).prefix(12))
-        guard let id = uid, !name.isEmpty else { return }
-        Task { try? await db.collection("users").document(id).updateData(["name": name]) }
+        guard uid != nil, !name.isEmpty else { return }
+        Task {
+            await shopAction(tr("✏️ 닉네임을 바꿨어요!", "✏️ Nickname changed!", zh: "✏️ 昵称已更改！", es: "✏️ ¡Apodo cambiado!", fr: "✏️ Pseudo modifié !",
+                                de: "✏️ Spitzname geändert!", pt: "✏️ Apelido alterado!", ru: "✏️ Ник изменён!", ja: "✏️ ニックネームを変更しました！")) {
+                _ = try await call("rename", ["name": name])
+            }
+        }
     }
 
     /// 잠깐 보여주는 안내
@@ -677,6 +686,8 @@ final class OnlineService: ObservableObject {
             dragonDay: d["dragonDay"] as? String,
             dragonCoins: int(d["dragonCoins"]) ?? 0,
             winStreak: int(d["winStreak"]) ?? 0,
+            freeRenameUsed: d["freeRenameUsed"] as? Bool ?? false,
+            renameTickets: int(d["renameTickets"]) ?? 0,
             checkinDay: d["checkinDay"] as? String,
             checkinStreak: int(d["checkinStreak"]) ?? 0,
             missionDay: d["missionDay"] as? String,

@@ -134,6 +134,9 @@ enum class Animal(
 object Shop {
     const val POTION_PRICE = 50
 
+    /** ✏️ 닉네임 변경권 (첫 변경은 무료). functions/src/catalog.ts RENAME_PRICE와 같게 */
+    const val RENAME_PRICE = 100
+
     /** ×3 점수 부스터 (소모품). functions/src/catalog.ts의 BOOST_PRICE와 같게 */
     const val BOOST_PRICE = 50
     const val BOOST_MULTIPLIER = 3

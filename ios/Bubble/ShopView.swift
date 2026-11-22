@@ -43,6 +43,23 @@ struct ShopView: View {
                             potionAdButton(p)
                         }
                     }
+                    // ✏️ 닉네임 변경권
+                    shopCard(title: tr("✏️ 닉네임 변경권", "✏️ Rename Ticket", zh: "✏️ 改名券", es: "✏️ Cupón de cambio de apodo", fr: "✏️ Ticket de pseudo",
+                                       de: "✏️ Namensticket", pt: "✏️ Cupom de troca de apelido", ru: "✏️ Талон смены ника", ja: "✏️ ニックネーム変更券"),
+                             desc: tr("닉네임을 한 번 바꿀 수 있어요. 첫 변경은 무료!", "Change your nickname once. Your first change is free!",
+                                      zh: "可以修改一次昵称。第一次免费！", es: "Cambia tu apodo una vez. ¡El primer cambio es gratis!", fr: "Change ton pseudo une fois. Le premier est gratuit !",
+                                      de: "Ändere deinen Namen einmal. Die erste Änderung ist gratis!", pt: "Troque seu apelido uma vez. A primeira é grátis!",
+                                      ru: "Смените ник один раз. Первая смена бесплатно!", ja: "ニックネームを1回変更できます。最初の変更は無料！")
+                                + (p.freeRenameUsed ? "" : "\n" + tr("🎁 아직 무료 변경이 남아 있어요", "🎁 You still have a free change", zh: "🎁 你还有一次免费修改",
+                                                                     es: "🎁 Aún tienes un cambio gratis", fr: "🎁 Il te reste un changement gratuit", de: "🎁 Du hast noch eine Gratis-Änderung",
+                                                                     pt: "🎁 Você ainda tem uma troca grátis", ru: "🎁 У вас ещё есть бесплатная смена", ja: "🎁 無料変更がまだ残っています")),
+                             price: Shop.renamePrice,
+                             owned: p.renameTickets > 0 ? tr("보유 \(p.renameTickets)장", "Owned: \(p.renameTickets)", zh: "拥有 \(p.renameTickets) 张", es: "Tienes: \(p.renameTickets)",
+                                                            fr: "Possédés : \(p.renameTickets)", de: "Im Besitz: \(p.renameTickets)", pt: "Você tem: \(p.renameTickets)", ru: "Есть: \(p.renameTickets)", ja: "所持 \(p.renameTickets)枚") : nil,
+                             art: AnyView(Text("✏️").font(.system(size: 54)))) {
+                        buyButton("RENAME", tr("닉네임 변경권", "Rename Ticket", zh: "改名券", es: "Cupón de cambio", fr: "Ticket de pseudo", de: "Namensticket",
+                                              pt: "Cupom de troca", ru: "Талон смены ника", ja: "変更券"), Shop.renamePrice, p)
+                    }
                     shopCard(title: t("×3 점수 부스터"),
                              desc: t("켜두면 다음 랜덤 매칭에서 1개를 쓰고, 이기면 얻는 점수가 3배! (AI 대전에는 쓰지 않아요)"),
                              price: Shop.boostPrice,
@@ -386,11 +403,11 @@ struct ShopView: View {
     private func specialDesc(_ a: Animal, _ p: Profile) -> String {
         switch a {
         case .pinkCat:
-            return tr("✨ 영구 스킨 · 💗 이기면 하트 비가 내려요 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart rain when you win (no effect on winning)",
+            return tr("✨ 영구 스킨 · 💗 하트 타이머, 이기면 하트 비 (승패 영향 없음)", "✨ Permanent skin · 💗 Heart timer, heart rain when you win (no effect on winning)",
                       zh: "✨ 永久皮肤 · 💗 获胜时下起爱心雨（不影响胜负）", es: "✨ Aspecto permanente · 💗 Lluvia de corazones al ganar", fr: "✨ Skin permanent · 💗 Pluie de cœurs à la victoire",
                       de: "✨ Dauerhafter Skin · 💗 Herzregen beim Sieg", pt: "✨ Skin permanente · 💗 Chuva de corações ao vencer", ru: "✨ Навсегда · 💗 Дождь из сердечек при победе", ja: "✨ 永久スキン · 💗 勝つとハートの雨")
         case .blackCat:
-            return tr("✨ 영구 스킨 · 🌙 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Moons and stars rain when you win (no effect on winning)",
+            return tr("✨ 영구 스킨 · 🌙 밤하늘 타이머, 이기면 달과 별이 쏟아져요 (승패 영향 없음)", "✨ Permanent skin · 🌙 Night-sky timer, moons and stars rain when you win (no effect on winning)",
                       zh: "✨ 永久皮肤 · 🌙 获胜时月亮星星落下（不影响胜负）", es: "✨ Aspecto permanente · 🌙 Lluvia de lunas y estrellas al ganar", fr: "✨ Skin permanent · 🌙 Pluie de lunes et d’étoiles à la victoire",
                       de: "✨ Dauerhafter Skin · 🌙 Monde und Sterne beim Sieg", pt: "✨ Skin permanente · 🌙 Chuva de luas e estrelas ao vencer", ru: "✨ Навсегда · 🌙 Луны и звёзды при победе", ja: "✨ 永久スキン · 🌙 勝つと月と星が降る")
         case .snowHamster:

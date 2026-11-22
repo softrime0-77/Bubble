@@ -594,10 +594,11 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         }
     }
 
+    /** 닉네임 바꾸기: 첫 변경은 무료, 그다음은 ✏️ 변경권 1장 (서버가 판단) */
     fun rename(name: String) {
-        val id = uid ?: return
-        if (name.isBlank()) return
-        viewModelScope.launch { runCatching { repo.setNickname(id, name) } }
+        if (uid == null || name.isBlank()) return
+        shopAction(tr("✏️ 닉네임을 바꿨어요!", "✏️ Nickname changed!", zh = "✏️ 昵称已更改！", es = "✏️ ¡Apodo cambiado!", fr = "✏️ Pseudo modifié !",
+            de = "✏️ Spitzname geändert!", pt = "✏️ Apelido alterado!", ru = "✏️ Ник изменён!", ja = "✏️ ニックネームを変更しました！")) { repo.rename(name) }
     }
 
     // ---------- 랜덤 매칭 ----------

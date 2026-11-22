@@ -77,8 +77,8 @@ public enum Animal: String, CaseIterable, Sendable {
     public var opponentTurnSec: Int {
         switch self {
         case .sheep: return 15
-        case .dog: return 10
-        case .giraffe: return 5
+        case .dog: return 12
+        case .giraffe: return 8
         case .hamster, .pinkCat, .blackCat, .snowHamster, .goldHamster, .luckyCat, .octopus, .penguin, .panda, .dragon, .rabbit, .unicorn: return Shop.defaultTurnSec
         }
     }

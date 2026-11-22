@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RANKED_MAX_REVIVES } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -335,8 +335,9 @@ export const matchmake = onCall(async (req) => {
       ham: [1, 1],
       catSplits: MAX_SPLITS,
       hamSplits: MAX_SPLITS,
-      catRevives: revivesForGame(cat.get("potions")),
-      hamRevives: revivesForGame(ham.get("potions")),
+      // 랜덤 매칭은 부활 1번까지
+      catRevives: revivesForGame(cat.get("potions"), RANKED_MAX_REVIVES),
+      hamRevives: revivesForGame(ham.get("potions"), RANKED_MAX_REVIVES),
       catCountry: iAmCat ? myCountry : cleanCountry(opp.get("country")),
       hamCountry: iAmCat ? cleanCountry(opp.get("country")) : myCountry,
       catSkin: catAnimal,

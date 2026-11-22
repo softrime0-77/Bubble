@@ -35,7 +35,7 @@ struct ShopView: View {
                     pointsCard
                     itemUsageCard
                     shopCard(title: t("💖 부활물약"),
-                             desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
+                             desc: tf("내 차례에 터진(0마리) 방울 하나를 1마리로 살려요.\n한 판에 최대 {0}번 (랜덤 매칭 1번) · 쓸 때마다 1개 소모 · 온라인 대전 전용", Shop.maxRevivesPerGame),
                              price: Shop.potionPrice, owned: tf("보유 {0}개", p.potions), art: AnyView(PotionArt().frame(width: 84, height: 84))) {
                         VStack(alignment: .leading, spacing: 6) {
                             buyButton("POTION", t("부활물약"), Shop.potionPrice, p)

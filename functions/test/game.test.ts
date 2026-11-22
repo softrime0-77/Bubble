@@ -73,13 +73,16 @@ test("revives per game are capped at three and follow potions owned", () => {
   assert.equal(revivesForGame(undefined), 0);
   assert.equal(revivesForGame(2), 2);
   assert.equal(revivesForGame(10), 3);
+  // 랜덤 매칭은 1번까지
+  assert.equal(revivesForGame(10, 1), 1);
+  assert.equal(revivesForGame(0, 1), 0);
 });
 
 test("opponent animal shortens my turn", () => {
   assert.equal(turnLimitAgainst(null), 20_000);
   assert.equal(turnLimitAgainst("SHEEP"), 15_000);
-  assert.equal(turnLimitAgainst("DOG"), 10_000);
-  assert.equal(turnLimitAgainst("GIRAFFE"), 5_000);
+  assert.equal(turnLimitAgainst("DOG"), 12_000);
+  assert.equal(turnLimitAgainst("GIRAFFE"), 8_000);
   assert.equal(turnLimitAgainst("DRAGON"), 20_000);
 });
 

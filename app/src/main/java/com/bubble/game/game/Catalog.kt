@@ -63,8 +63,8 @@ enum class Animal(
     val cosmetic: Boolean = false,
 ) {
     SHEEP("양", "Sheep", 30, 15),
-    DOG("강아지", "Puppy", 50, 10),
-    GIRAFFE("기린", "Giraffe", 100, 5),
+    DOG("강아지", "Puppy", 50, 12),
+    GIRAFFE("기린", "Giraffe", 100, 8),
     /** 무료 캐릭터: 모습만 햄스터로 바뀌고 효과 없음, 소모되지 않음 */
     HAMSTER("햄스터", "Hamster", 0, Shop.DEFAULT_TURN_SEC),
     // 유료 스킨 (functions/src/catalog.ts COSMETIC_SKINS와 같은 가격)

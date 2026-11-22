@@ -113,7 +113,7 @@ struct ShopView: View {
                         let count = p.animalCount(a)
                         let on = p.equipped == a && count > 0
                         shopCard(title: a.label,
-                                 desc: tf("⏱ 상대 턴 시간 {0}초 → {1}초", Shop.defaultTurnSec, a.opponentTurnSec),
+                                 desc: tf("⏱ 상대 턴 시간 {0}초 → {1}초", Shop.defaultTurnSec, a.opponentTurnSec) + (a == .sheep ? tr(" · 이기면 구름 둥실", " · win: floating clouds") : a == .dog ? tr(" · 이기면 발자국 콩콩", " · win: paw prints") : tr(" · 이기면 잎사귀 회오리", " · win: leaf whirl")),
                                  price: a.price,
                                  owned: count > 0 ? tf("보유 {0}개", count) + (on ? t("  ·  ✅ 장착 중") : "") : nil,
                                  art: AnyView(Critter(side: .cat, skin: a, happy: on).frame(width: 84, height: 84))) {
@@ -419,16 +419,22 @@ struct ShopView: View {
                       zh: "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es: "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr: "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
                       de: "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt: "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru: "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja: "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
         case .octopus:
-            return tr("🐙 분할하면 먹물이 퍽! · 모습·효과만", "🐙 Ink splash when you split · looks only", zh: "🐙 分裂时喷墨！· 仅外观",
+            return tr("🐙 분할하면 먹물이 퍽! · 이기면 화면에 먹물이 퍽퍽 · 승패 영향 없음", "🐙 Ink splash when you split · ink splats when you win · no effect on winning", zh: "🐙 分裂时喷墨！· 仅外观",
                       es: "🐙 ¡Tinta al dividir! · solo aspecto", fr: "🐙 Jet d’encre en divisant · look seulement", de: "🐙 Tinte beim Teilen · nur Look",
                       pt: "🐙 Tinta ao dividir · só visual", ru: "🐙 Чернила при делении · только вид", ja: "🐙 分割でスミがぷしゅっ · 見た目だけ")
         case .penguin:
-            return tr("🐧 공격하면 얼음 썰매가 쌩! · 모습·효과만", "🐧 Icy sled attacks · looks only", zh: "🐧 攻击时冰雪滑行！· 仅外观",
-                      es: "🐧 ¡Ataques en trineo de hielo! · solo aspecto", fr: "🐧 Attaques en luge de glace · look seulement", de: "🐧 Eis-Schlitten-Angriffe · nur Look",
-                      pt: "🐧 Ataques de trenó de gelo · só visual", ru: "🐧 Ледяные сани в атаке · только вид", ja: "🐧 攻撃でこおりソリ · 見た目だけ")
+            return tr("🐧 공격하면 빨간 썰매를 타고 쌩! 눈가루·얼음 조각이 튀고 부딪히면 얼음이 와장창\n이기면 썰매 퍼레이드와 눈보라 · 승패 영향 없음",
+                      "🐧 Attacks ride a red sled — snow spray, ice shards and an icy crash\nWin: sled parade in a snowstorm · no effect on winning",
+                      zh: "🐧 攻击时坐红色雪橇冲过去！雪粉冰片飞溅，撞上时冰块碎裂\n获胜：雪橇游行与暴风雪 · 不影响胜负",
+                      es: "🐧 Ataca en trineo rojo: nieve, esquirlas de hielo y choque helado\nVictoria: desfile en trineo con nevada · sin efecto",
+                      fr: "🐧 Attaque en luge rouge : neige, éclats de glace et choc glacé\nVictoire : parade en luge sous la neige · aucun effet",
+                      de: "🐧 Angriff auf rotem Schlitten: Schnee, Eissplitter, eisiger Aufprall\nSieg: Schlittenparade im Schneesturm · kein Effekt",
+                      pt: "🐧 Ataca de trenó vermelho: neve, lascas de gelo e choque gelado\nVitória: desfile de trenó na nevasca · sem efeito",
+                      ru: "🐧 Атака на красных санках: снег, осколки льда, ледяной удар\nПобеда: парад на санках в метель · без эффекта",
+                      ja: "🐧 攻撃は赤いソリでシュー！雪と氷のかけら、当たると氷がパリーン\n勝利：ソリのパレードと吹雪 · 勝敗に影響なし")
         case .panda:
             let b = Shop.pandaCheckinBonus
-            return tr("🐼 장착하고 출석하면 💰 +\(b) 더 (하루 1번) · 영구", "🐼 Check in while equipped for 💰 +\(b) more (once a day) · permanent",
+            return tr("🐼 장착하고 출석하면 💰 +\(b) 더 (하루 1번) · 이기면 대나무잎 회오리 · 영구", "🐼 Check in while equipped for 💰 +\(b) more (once a day) · permanent",
                       zh: "🐼 装备后签到多得 💰 +\(b)（每天 1 次）· 永久", es: "🐼 Equipado: 💰 +\(b) extra al registrarte (1 al día) · permanente",
                       fr: "🐼 Équipé : 💰 +\(b) en plus à la présence (1/jour) · permanent", de: "🐼 Ausgerüstet: 💰 +\(b) beim Check-in (1×/Tag) · dauerhaft",
                       pt: "🐼 Equipado: 💰 +\(b) na presença (1 por dia) · permanente", ru: "🐼 Надета: +\(b) 💰 за вход (1 раз в день) · навсегда",
@@ -436,7 +442,7 @@ struct ShopView: View {
         case .dragon:
             let today = p.dragonDay == OnlineService.today() ? p.dragonCoins : 0
             let c = Shop.dragonPopCoins, mx = Shop.dragonDailyMax
-            return tr("🐉 상대 방울을 터뜨릴 때마다 💰 +\(c)\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 영구",
+            return tr("🐉 상대 방울을 터뜨릴 때마다 💰 +\(c)\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 이기면 불꽃이 활활 · 영구",
                       "🐉 💰 +\(c) every time you pop a rival bubble\n(max \(mx) a day · today \(today)/\(mx)) · permanent",
                       zh: "🐉 每次打爆对手泡泡 💰 +\(c)\n（每天最多 \(mx) · 今天 \(today)/\(mx)）· 永久",
                       es: "🐉 💰 +\(c) cada vez que revientas una burbuja rival\n(máx. \(mx) al día · hoy \(today)/\(mx)) · permanente",
@@ -447,7 +453,7 @@ struct ShopView: View {
                       ja: "🐉 相手の泡を割るたびに 💰 +\(c)\n（1日最大\(mx) · 今日 \(today)/\(mx)）· 永久")
         case .rabbit:
             let mx = Shop.rabbitMaxRibbons, n = p.winStreak
-            return tr("🐰 연승할수록 리본이 하나씩 (최대 \(mx)개, 지면 처음부터) · 지금 \(n)연승",
+            return tr("🐰 연승할수록 리본이 하나씩 (최대 \(mx)개, 지면 처음부터) · 지금 \(n)연승 · 이기면 하트 폭죽",
                       "🐰 A new ribbon for every win in a row (max \(mx), resets on a loss) · streak \(n)",
                       zh: "🐰 每连胜一场多一个蝴蝶结（最多 \(mx) 个）· 当前 \(n) 连胜", es: "🐰 Un lazo por cada victoria seguida (máx. \(mx)) · racha \(n)",
                       fr: "🐰 Un ruban par victoire d’affilée (max \(mx)) · série \(n)", de: "🐰 Eine Schleife pro Sieg in Folge (max. \(mx)) · Serie \(n)",
@@ -467,7 +473,7 @@ struct ShopView: View {
             : unlocked ? tr("💎 해금됨", "💎 Unlocked", zh: "💎 已解锁", es: "💎 Desbloqueado", fr: "💎 Débloqué", de: "💎 Freigeschaltet", pt: "💎 Desbloqueado", ru: "💎 Открыто", ja: "💎 解放済み")
             : tr("🔒 앞으로 \(need)점", "🔒 \(need) pts to go", zh: "🔒 还差 \(need) 分", es: "🔒 Faltan \(need) pts", fr: "🔒 Encore \(need) pts",
                  de: "🔒 Noch \(need) Pkt", pt: "🔒 Faltam \(need) pts", ru: "🔒 Ещё \(need) очк.", ja: "🔒 あと\(need)点")
-        let desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(\(a.rankMin)점)부터 무료로 장착", "🌈 Not for sale · free from 💎 Diamond rank (\(a.rankMin) pts)",
+        let desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(\(a.rankMin)점)부터 무료로 장착 · 이기면 무지개와 별 폭죽", "🌈 Not for sale · free from 💎 Diamond rank (\(a.rankMin) pts)",
                       zh: "🌈 非卖品 · 💎 钻石段位（\(a.rankMin) 分）起免费装备", es: "🌈 No se vende · gratis desde 💎 Diamante (\(a.rankMin) pts)",
                       fr: "🌈 Pas à vendre · gratuit dès 💎 Diamant (\(a.rankMin) pts)", de: "🌈 Nicht käuflich · gratis ab 💎 Diamant (\(a.rankMin) Pkt)",
                       pt: "🌈 Não vende · grátis a partir de 💎 Diamante (\(a.rankMin) pts)", ru: "🌈 Не продаётся · бесплатно с 💎 Алмаза (\(a.rankMin) очк.)",
@@ -491,7 +497,7 @@ struct ShopView: View {
     private func luckyDesc(_ p: Profile) -> String {
         let today = p.luckyDay == OnlineService.today() ? p.luckyCoins : 0
         let pct = Shop.luckyChancePct, mx = Shop.luckyDailyMax
-        return tr("💰 상대를 공격할 때마다 \(pct)% 확률로 상점 포인트 +1\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 영구 캐릭터",
+        return tr("💰 상대를 공격할 때마다 \(pct)% 확률로 상점 포인트 +1\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 이기면 금화 폭죽 · 영구 캐릭터",
                   "💰 Each attack has a \(pct)% chance to give +1 shop point\n(max \(mx) a day · today \(today)/\(mx)) · permanent",
                   zh: "💰 每次攻击有 \(pct)% 概率获得 1 商店积分\n（每天最多 \(mx) · 今天 \(today)/\(mx)）· 永久",
                   es: "💰 Cada ataque tiene un \(pct)% de dar +1 punto de tienda\n(máx. \(mx) al día · hoy \(today)/\(mx)) · permanente",

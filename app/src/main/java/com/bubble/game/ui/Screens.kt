@@ -1859,7 +1859,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             val on = p.equipped == a
             ShopCard(
                 title = a.label,
-                desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(${a.rankMin}점)부터 무료로 장착", "🌈 Not for sale · free from 💎 Diamond rank (${a.rankMin} pts)",
+                desc = tr("🌈 판매하지 않아요 · 💎 다이아 계급(${a.rankMin}점)부터 무료로 장착 · 이기면 무지개와 별 폭죽", "🌈 Not for sale · free from 💎 Diamond rank (${a.rankMin} pts)",
                     zh = "🌈 非卖品 · 💎 钻石段位（${a.rankMin} 分）起免费装备", es = "🌈 No se vende · gratis desde 💎 Diamante (${a.rankMin} pts)",
                     fr = "🌈 Pas à vendre · gratuit dès 💎 Diamant (${a.rankMin} pts)", de = "🌈 Nicht käuflich · gratis ab 💎 Diamant (${a.rankMin} Pkt)",
                     pt = "🌈 Não vende · grátis a partir de 💎 Diamante (${a.rankMin} pts)", ru = "🌈 Не продаётся · бесплатно с 💎 Алмаза (${a.rankMin} очк.)",
@@ -1895,8 +1895,8 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             ShopCard(
                 title = a.label,
                 desc = tr(
-"⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초",
-"⏱ Opponent turn ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s",
+"⏱ 상대 턴 시간 ${Shop.DEFAULT_TURN_SEC}초 → ${a.opponentTurnSec}초" + when (a) { Animal.SHEEP -> " · 이기면 구름 둥실"; Animal.DOG -> " · 이기면 발자국 콩콩"; else -> " · 이기면 잎사귀 회오리" },
+"⏱ Opponent turn ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s" + when (a) { Animal.SHEEP -> " · win: floating clouds"; Animal.DOG -> " · win: paw prints"; else -> " · win: leaf whirl" },
 zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒", hi = "⏱ विरोधी की बारी ${Shop.DEFAULT_TURN_SEC}से → ${a.opponentTurnSec}से", es = "⏱ Turno del rival ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", fr = "⏱ Tour adverse ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", ar = "⏱ دور الخصم ${Shop.DEFAULT_TURN_SEC}ث ← ${a.opponentTurnSec}ث", de = "⏱ Gegnerzug ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", pt = "⏱ Turno do rival ${Shop.DEFAULT_TURN_SEC}s → ${a.opponentTurnSec}s", ru = "⏱ Ход соперника ${Shop.DEFAULT_TURN_SEC}с → ${a.opponentTurnSec}с", ja = "⏱ 相手のターン ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
 ),
                 price = a.price,
@@ -2461,13 +2461,19 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
 /** 스킨 상점 설명 (효과가 있는 캐릭터는 조건을 숫자 그대로) */
 private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when (a) {
     Animal.LUCKY_CAT -> luckyDesc(p)
-    Animal.OCTOPUS -> tr("🐙 분할하면 먹물이 퍽! · 모습·효과만", "🐙 Ink splash when you split · looks only", zh = "🐙 分裂时喷墨！· 仅外观",
+    Animal.OCTOPUS -> tr("🐙 분할하면 먹물이 퍽! · 이기면 화면에 먹물이 퍽퍽 · 승패 영향 없음", "🐙 Ink splash when you split · ink splats when you win · no effect on winning", zh = "🐙 分裂时喷墨！· 仅外观",
         es = "🐙 ¡Tinta al dividir! · solo aspecto", fr = "🐙 Jet d’encre en divisant · look seulement", de = "🐙 Tinte beim Teilen · nur Look",
         pt = "🐙 Tinta ao dividir · só visual", ru = "🐙 Чернила при делении · только вид", ja = "🐙 分割でスミがぷしゅっ · 見た目だけ")
-    Animal.PENGUIN -> tr("🐧 공격하면 얼음 썰매가 쌩! · 모습·효과만", "🐧 Icy sled attacks · looks only", zh = "🐧 攻击时冰雪滑行！· 仅外观",
-        es = "🐧 ¡Ataques en trineo de hielo! · solo aspecto", fr = "🐧 Attaques en luge de glace · look seulement", de = "🐧 Eis-Schlitten-Angriffe · nur Look",
-        pt = "🐧 Ataques de trenó de gelo · só visual", ru = "🐧 Ледяные сани в атаке · только вид", ja = "🐧 攻撃でこおりソリ · 見た目だけ")
-    Animal.PANDA -> tr("🐼 장착하고 출석하면 💰 +${Shop.PANDA_CHECKIN_BONUS} 더 (하루 1번) · 영구", "🐼 Check in while equipped for 💰 +${Shop.PANDA_CHECKIN_BONUS} more (once a day) · permanent",
+    Animal.PENGUIN -> tr("🐧 공격하면 빨간 썰매를 타고 쌩! 눈가루·얼음 조각이 튀고 부딪히면 얼음이 와장창\n이기면 썰매 퍼레이드와 눈보라 · 승패 영향 없음",
+        "🐧 Attacks ride a red sled — snow spray, ice shards and an icy crash\nWin: sled parade in a snowstorm · no effect on winning",
+        zh = "🐧 攻击时坐红色雪橇冲过去！雪粉冰片飞溅，撞上时冰块碎裂\n获胜：雪橇游行与暴风雪 · 不影响胜负",
+        es = "🐧 Ataca en trineo rojo: nieve, esquirlas de hielo y choque helado\nVictoria: desfile en trineo con nevada · sin efecto",
+        fr = "🐧 Attaque en luge rouge : neige, éclats de glace et choc glacé\nVictoire : parade en luge sous la neige · aucun effet",
+        de = "🐧 Angriff auf rotem Schlitten: Schnee, Eissplitter, eisiger Aufprall\nSieg: Schlittenparade im Schneesturm · kein Effekt",
+        pt = "🐧 Ataca de trenó vermelho: neve, lascas de gelo e choque gelado\nVitória: desfile de trenó na nevasca · sem efeito",
+        ru = "🐧 Атака на красных санках: снег, осколки льда, ледяной удар\nПобеда: парад на санках в метель · без эффекта",
+        ja = "🐧 攻撃は赤いソリでシュー！雪と氷のかけら、当たると氷がパリーン\n勝利：ソリのパレードと吹雪 · 勝敗に影響なし")
+    Animal.PANDA -> tr("🐼 장착하고 출석하면 💰 +${Shop.PANDA_CHECKIN_BONUS} 더 (하루 1번) · 이기면 대나무잎 회오리 · 영구", "🐼 Check in while equipped for 💰 +${Shop.PANDA_CHECKIN_BONUS} more (once a day) · permanent",
         zh = "🐼 装备后签到多得 💰 +${Shop.PANDA_CHECKIN_BONUS}（每天 1 次）· 永久", es = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} extra al registrarte (1 al día) · permanente",
         fr = "🐼 Équipé : 💰 +${Shop.PANDA_CHECKIN_BONUS} en plus à la présence (1/jour) · permanent", de = "🐼 Ausgerüstet: 💰 +${Shop.PANDA_CHECKIN_BONUS} beim Check-in (1×/Tag) · dauerhaft",
         pt = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} na presença (1 por dia) · permanente", ru = "🐼 Надета: +${Shop.PANDA_CHECKIN_BONUS} 💰 за вход (1 раз в день) · навсегда",
@@ -2475,7 +2481,7 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
     Animal.DRAGON -> {
         val today = if (p.dragonDay == OnlineRepository.today()) p.dragonCoins else 0
         val mx = Shop.DRAGON_DAILY_MAX
-        tr("🐉 상대 방울을 터뜨릴 때마다 💰 +${Shop.DRAGON_POP_COINS}\n(하루 최대 $mx · 오늘 $today/$mx) · 영구",
+        tr("🐉 상대 방울을 터뜨릴 때마다 💰 +${Shop.DRAGON_POP_COINS}\n(하루 최대 $mx · 오늘 $today/$mx) · 이기면 불꽃이 활활 · 영구",
             "🐉 💰 +${Shop.DRAGON_POP_COINS} every time you pop a rival bubble\n(max $mx a day · today $today/$mx) · permanent",
             zh = "🐉 每次打爆对手泡泡 💰 +${Shop.DRAGON_POP_COINS}\n（每天最多 $mx · 今天 $today/$mx）· 永久",
             es = "🐉 💰 +${Shop.DRAGON_POP_COINS} cada vez que revientas una burbuja rival\n(máx. $mx al día · hoy $today/$mx) · permanente",
@@ -2497,7 +2503,7 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
     Animal.GOLD_HAMSTER -> tr("✨ 영구 스킨 · 🏆 황금 타이머, 이기면 금가루 폭죽이 팡팡 (승패 영향 없음)", "✨ Permanent skin · 🏆 Golden timer, gold fireworks when you win (no effect on winning)",
         zh = "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es = "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr = "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
         de = "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt = "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru = "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja = "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
-    Animal.RABBIT -> tr("🐰 연승할수록 리본이 하나씩 (최대 ${Shop.RABBIT_MAX_RIBBONS}개, 지면 처음부터) · 지금 ${p.winStreak}연승",
+    Animal.RABBIT -> tr("🐰 연승할수록 리본이 하나씩 (최대 ${Shop.RABBIT_MAX_RIBBONS}개, 지면 처음부터) · 지금 ${p.winStreak}연승 · 이기면 하트 폭죽",
         "🐰 A new ribbon for every win in a row (max ${Shop.RABBIT_MAX_RIBBONS}, resets on a loss) · streak ${p.winStreak}",
         zh = "🐰 每连胜一场多一个蝴蝶结（最多 ${Shop.RABBIT_MAX_RIBBONS} 个，输了重来）· 当前 ${p.winStreak} 连胜",
         es = "🐰 Un lazo por cada victoria seguida (máx. ${Shop.RABBIT_MAX_RIBBONS}) · racha ${p.winStreak}",
@@ -2517,7 +2523,7 @@ private fun luckyDesc(p: com.bubble.game.data.Profile): String {
     val pct = Shop.LUCKY_CHANCE_PCT
     val max = Shop.LUCKY_DAILY_MAX
     return tr(
-        "💰 상대를 공격할 때마다 ${pct}% 확률로 상점 포인트 +1\n(하루 최대 $max · 오늘 $today/$max) · 영구 캐릭터",
+        "💰 상대를 공격할 때마다 ${pct}% 확률로 상점 포인트 +1\n(하루 최대 $max · 오늘 $today/$max) · 이기면 금화 폭죽 · 영구 캐릭터",
         "💰 Each attack has a ${pct}% chance to give +1 shop point\n(max $max a day · today $today/$max) · permanent",
         zh = "💰 每次攻击有 ${pct}% 概率获得 1 商店积分\n（每天最多 $max · 今天 $today/$max）· 永久",
         es = "💰 Cada ataque tiene un ${pct}% de dar +1 punto de tienda\n(máx. $max al día · hoy $today/$max) · permanente",

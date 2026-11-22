@@ -20,7 +20,7 @@ private func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /// 터질 때·날아갈 때 흩뿌리는 모양
-enum FxShape { case star, heart, paw, snow, coin, bone, leaf, cloud, moon, seed, ink, flame }
+enum FxShape { case star, heart, paw, snow, coin, bone, leaf, cloud, moon, seed, ink, flame, ice }
 
 /// 캐릭터마다 다른 반짝이 색과 모양, 터질 때 붙는 이모지
 struct FxTheme {
@@ -47,7 +47,7 @@ struct FxTheme {
         case .octopus:
             return FxTheme(colors: [Color(hex: 0x2E1F4D), Color(hex: 0xB57BEE), Color(hex: 0x8E52D6), .white], shapes: [.ink, .star], emoji: "🐙")
         case .penguin:
-            return FxTheme(colors: [Color(hex: 0x7FD3FF), .white, Color(hex: 0x3A4A68), Color(hex: 0xBFE9FF)], shapes: [.snow, .star], emoji: "🐧")
+            return FxTheme(colors: [Color(hex: 0x7FD3FF), .white, Color(hex: 0x5CC8FF), Color(hex: 0xBFE9FF)], shapes: [.ice, .snow, .star], emoji: "🐧")
         case .panda:
             return FxTheme(colors: [Color(hex: 0x6CCB5F), .white, Color(hex: 0x3B3B45), Color(hex: 0xB8F0A8)], shapes: [.leaf, .heart], emoji: "🐼")
         case .dragon:
@@ -152,6 +152,21 @@ func drawFx(_ ctx: inout GraphicsContext, _ shape: FxShape, _ c: CGPoint, _ r: C
         p.addPath(circle(CGPoint(x: r * 0.2, y: r * 0.95), r * 0.2))
         g.fill(p, with: .color(color))
         g.fill(circle(CGPoint(x: -r * 0.25, y: -r * 0.3), r * 0.2), with: .color(.white.opacity(0.35)))
+    case .ice:
+        // 얼음 조각: 길쭉한 마름모 + 반짝 면
+        var p = Path()
+        p.move(to: CGPoint(x: 0, y: -r * 1.2))
+        p.addLine(to: CGPoint(x: r * 0.45, y: 0))
+        p.addLine(to: CGPoint(x: 0, y: r * 1.2))
+        p.addLine(to: CGPoint(x: -r * 0.45, y: 0))
+        p.closeSubpath()
+        g.fill(p, with: .color(color))
+        var face = Path()
+        face.move(to: CGPoint(x: 0, y: -r * 1.2))
+        face.addLine(to: CGPoint(x: r * 0.45, y: 0))
+        face.addLine(to: .zero)
+        face.closeSubpath()
+        g.fill(face, with: .color(.white.opacity(0.55)))
     case .flame:
         var p = Path()
         p.move(to: CGPoint(x: 0, y: -r * 1.1))
@@ -380,7 +395,36 @@ struct ShotFx: View {
         }
         let head = shot.at(f)
         if shot.skin == .penguin {
-            // 🐧 썰매: 얼음 위 두 줄 스키 자국 + 썰매
+            // 🐧 서리 오라 + 속도선 + 날 밑에서 튀는 눈가루·얼음 조각
+            let aura = Gradient(colors: [Color(hex: 0xE6F8FF).opacity(0.95), Color(hex: 0x7FD3FF).opacity(0.45), .clear])
+            ctx.fill(circle(head, orb * 1.6), with: .radialGradient(aura, center: head, startRadius: 0, endRadius: orb * 1.6))
+            let prev = shot.at(max(0, f - 0.05))
+            let vx: CGFloat = prev.x - head.x, vy: CGFloat = prev.y - head.y
+            let vl: CGFloat = max(0.01, (vx * vx + vy * vy).squareRoot())
+            let back = CGPoint(x: vx / vl, y: vy / vl)
+            for k in 0..<6 {
+                let o: CGFloat = (CGFloat(k) - 2.5) * orb * 0.22
+                let a0 = CGPoint(x: head.x + back.x * orb * 0.9 + perp.x * o, y: head.y + back.y * orb * 0.9 + perp.y * o)
+                let len: CGFloat = orb * (1.2 + CGFloat(k % 3) * 0.5)
+                var line = Path()
+                line.move(to: a0)
+                line.addLine(to: CGPoint(x: a0.x + back.x * len, y: a0.y + back.y * len))
+                ctx.stroke(line, with: .color(.white.opacity(Double(0.75 - CGFloat(k) * 0.08))), style: StrokeStyle(lineWidth: orb * 0.05, lineCap: .round))
+            }
+            for (k, q) in trail.enumerated() where k < 12 {
+                let life: CGFloat = (f * 6 + q.a).truncatingRemainder(dividingBy: 1)
+                let dist: CGFloat = orb * (0.4 + life * 1.6)
+                let side: CGFloat = q.spin * orb * 0.8 * life
+                let spray = CGPoint(x: head.x + back.x * dist + perp.x * side,
+                                    y: head.y + orb * 0.55 + back.y * dist + perp.y * side - life * orb * (0.6 + q.s))
+                let a: CGFloat = 1 - life
+                if k % 3 == 0 {
+                    drawFx(&ctx, .ice, spray, orb * 0.16 * a, Color(hex: 0xBFE9FF).opacity(Double(a)), rot: q.spin * 200 + life * 300)
+                } else {
+                    ctx.fill(circle(spray, orb * (0.05 + q.s * 0.06)), with: .color(.white.opacity(Double(a * 0.9))))
+                }
+            }
+            // 썰매: 얼음 위 두 줄 스키 자국 + 썰매
             for off: CGFloat in [-0.18, 0.18] {
                 var track = Path()
                 for k in 0...18 {

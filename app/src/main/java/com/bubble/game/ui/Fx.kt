@@ -69,7 +69,7 @@ import kotlin.random.Random
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /** 터질 때·날아갈 때 흩뿌리는 모양 */
-enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED, INK, FLAME }
+enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED, INK, FLAME, ICE }
 
 /** 캐릭터마다 다른 반짝이 색과 모양, 터질 때 붙는 이모지 */
 data class FxTheme(val colors: List<Color>, val shapes: List<FxShape>, val emoji: String) {
@@ -84,7 +84,7 @@ fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (side == Side
     Animal.SNOW_HAMSTER -> FxTheme(listOf(Color(0xFF5CC8FF), Color(0xFFBFE9FF), Color.White, Color(0xFF9AB8FF)), listOf(FxShape.SNOW, FxShape.STAR), "❄️")
     Animal.GOLD_HAMSTER -> FxTheme(listOf(Color(0xFFFFB800), Color(0xFFFFE680), Color.White, Color(0xFFFF9F1C)), listOf(FxShape.COIN, FxShape.STAR), "✨")
     Animal.OCTOPUS -> FxTheme(listOf(Color(0xFF2E1F4D), Color(0xFFB57BEE), Color(0xFF8E52D6), Color.White), listOf(FxShape.INK, FxShape.STAR), "🐙")
-    Animal.PENGUIN -> FxTheme(listOf(Color(0xFF7FD3FF), Color.White, Color(0xFF3A4A68), Color(0xFFBFE9FF)), listOf(FxShape.SNOW, FxShape.STAR), "🐧")
+    Animal.PENGUIN -> FxTheme(listOf(Color(0xFF7FD3FF), Color.White, Color(0xFF5CC8FF), Color(0xFFBFE9FF)), listOf(FxShape.ICE, FxShape.SNOW, FxShape.STAR), "🐧")
     Animal.PANDA -> FxTheme(listOf(Color(0xFF6CCB5F), Color.White, Color(0xFF3B3B45), Color(0xFFB8F0A8)), listOf(FxShape.LEAF, FxShape.HEART), "🐼")
     Animal.DRAGON -> FxTheme(listOf(Color(0xFFFF6A2B), Color(0xFFFFC21A), Color(0xFFFF2D55), Color.White), listOf(FxShape.FLAME, FxShape.STAR), "🔥")
     Animal.RABBIT -> FxTheme(listOf(Color(0xFFFF8FB8), Color.White, Color(0xFFFFC94D), Color(0xFF7C6CF2)), listOf(FxShape.HEART, FxShape.STAR), "🐰")
@@ -174,6 +174,24 @@ fun DrawScope.fxShape(shape: FxShape, c: Offset, r: Float, color: Color, rot: Fl
                 drawCircle(color, r * 0.32f, c + Offset(-r * 0.65f, r * 0.45f))
                 drawCircle(color, r * 0.2f, c + Offset(r * 0.2f, r * 0.95f))
                 drawCircle(Color.White.copy(alpha = color.alpha * 0.35f), r * 0.2f, c + Offset(-r * 0.25f, -r * 0.3f))
+            }
+            FxShape.ICE -> {
+                // 얼음 조각: 길쭉한 마름모 + 반짝 면
+                val p = Path().apply {
+                    moveTo(c.x, c.y - r * 1.2f)
+                    lineTo(c.x + r * 0.45f, c.y)
+                    lineTo(c.x, c.y + r * 1.2f)
+                    lineTo(c.x - r * 0.45f, c.y)
+                    close()
+                }
+                drawPath(p, color)
+                val face = Path().apply {
+                    moveTo(c.x, c.y - r * 1.2f)
+                    lineTo(c.x + r * 0.45f, c.y)
+                    lineTo(c.x, c.y)
+                    close()
+                }
+                drawPath(face, Color.White.copy(alpha = color.alpha * 0.55f))
             }
             FxShape.FLAME -> {
                 val p = Path().apply {
@@ -387,7 +405,28 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
                 }
             }
             if (s.skin == Animal.PENGUIN) {
-                // 🐧 썰매: 얼음 위 두 줄 스키 자국 + 썰매
+                // 🐧 썰매: 서리 오라 + 속도선 + 날 밑에서 튀는 눈가루·얼음 조각 + 두 줄 스키 자국
+                drawCircle(
+                    Brush.radialGradient(listOf(Color(0xFFE6F8FF).copy(alpha = 0.95f), Color(0xFF7FD3FF).copy(alpha = 0.45f), Color.Transparent), head, orbPx * 1.6f),
+                    orbPx * 1.6f, head,
+                )
+                val back = (at((f - 0.05f).coerceAtLeast(0f)) - head).let { v ->
+                    val l = kotlin.math.sqrt(v.x * v.x + v.y * v.y).coerceAtLeast(0.01f); Offset(v.x / l, v.y / l)
+                }
+                for (k in 0 until 6) {
+                    val o = perp * ((k - 2.5f) * orbPx * 0.22f)
+                    val a0 = head + back * (orbPx * 0.9f) + o
+                    val a1 = a0 + back * (orbPx * (1.2f + (k % 3) * 0.5f))
+                    drawLine(Color.White.copy(alpha = 0.75f - k * 0.08f), a0, a1, orbPx * 0.05f, StrokeCap.Round)
+                }
+                trail.forEachIndexed { k, q ->
+                    if (k >= 12) return@forEachIndexed
+                    val life = ((f * 6f + q.a) % 1f)
+                    val spray = head + Offset(0f, orbPx * 0.55f) + back * (orbPx * (0.4f + life * 1.6f)) + Offset(0f, -life * orbPx * (0.6f + q.s)) + perp * ((q.spin) * orbPx * 0.8f * life)
+                    val a = 1f - life
+                    if (k % 3 == 0) fxShape(FxShape.ICE, spray, orbPx * 0.16f * a, Color(0xFFBFE9FF).copy(alpha = a), q.spin * 200f + life * 300f)
+                    else drawCircle(Color.White.copy(alpha = a * 0.9f), orbPx * (0.05f + q.s * 0.06f), spray)
+                }
                 for (off in listOf(-0.18f, 0.18f)) {
                     var prev: Offset? = null
                     for (k in 0..18) {

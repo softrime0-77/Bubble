@@ -537,11 +537,13 @@ struct ShopView: View {
     private func bundleButton(_ item: String, _ label: String, _ qty: Int, _ price: Int, _ unit: Int, _ p: Profile) -> some View {
         let off = 100 - price * 100 / (unit * qty)
         let canBuy = p.score + p.coins >= price
-        let title = tr("\(qty)개 · \(price)점", "×\(qty) · \(price) pts", zh: "\(qty) 个 · \(price) 分", es: "×\(qty) · \(price) pts",
-                       fr: "×\(qty) · \(price) pts", de: "×\(qty) · \(price) Pkt", pt: "×\(qty) · \(price) pts", ru: "×\(qty) · \(price) очк.", ja: "\(qty)個 · \(price)点")
+        // 글자 크기를 키운 폰에서도 잘리지 않게: 개수 / 가격 / 할인을 줄을 나눠 표시
+        let title = tr("\(qty)개", "×\(qty)", zh: "\(qty) 个", ja: "\(qty)個")
+        let cost = tr("\(price)점", "\(price) pts", zh: "\(price) 分", es: "\(price) pts", fr: "\(price) pts", de: "\(price) Pkt", pt: "\(price) pts", ru: "\(price) очк.", ja: "\(price)点")
         return Button { confirm = (item, qty == 1 ? label : "\(label) ×\(qty)", price, qty) } label: {
             VStack(spacing: 1) {
-                Text(title).font(.system(size: 13, weight: .bold)).lineLimit(1).minimumScaleFactor(0.7)
+                Text(title).font(.system(size: 14, weight: .black)).lineLimit(1).minimumScaleFactor(0.7)
+                Text(cost).font(.system(size: 13, weight: .bold)).lineLimit(1).minimumScaleFactor(0.7)
                 if off > 0 {
                     Text("🔥 −\(off)%").font(.system(size: 11, weight: .black)).foregroundColor(UiColor.gold)
                 }
@@ -573,7 +575,7 @@ struct ShopView: View {
                     HStack(spacing: 6) {
                         Text(title).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text).lineLimit(1).minimumScaleFactor(0.7)
                         if let price {
-                            Text(pts(price)).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                            Text(pts(price)).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.primaryDark).lineLimit(1).fixedSize()
                         }
                     }
                     Text(desc).font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.8)).fixedSize(horizontal: false, vertical: true)

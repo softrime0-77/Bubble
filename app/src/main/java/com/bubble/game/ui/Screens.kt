@@ -1993,13 +1993,18 @@ private fun BundleButtons(item: String, budget: Int, enabled: Boolean, onPick: (
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                         modifier = Modifier.weight(1f),
                     ) {
+                        // 글자 크기를 키운 폰에서도 잘리지 않게: 개수 / 가격 / 할인을 줄을 나눠 표시
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                tr("${qty}개 · ${price}점", "×$qty · $price pts", zh = "${qty} 个 · ${price} 分", es = "×$qty · $price pts", fr = "×$qty · $price pts",
-                                    de = "×$qty · $price Pkt", pt = "×$qty · $price pts", ru = "×$qty · $price очк.", ja = "${qty}個 · ${price}点"),
-                                fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1,
+                                tr("${qty}개", "×$qty", zh = "${qty} 个", ja = "${qty}個"),
+                                fontWeight = FontWeight.Black, fontSize = 14.sp, maxLines = 1, softWrap = false,
                             )
-                            if (off > 0) Text("🔥 −$off%", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Ui.gold)
+                            Text(
+                                tr("${price}점", "$price pts", zh = "${price} 分", es = "$price pts", fr = "$price pts",
+                                    de = "$price Pkt", pt = "$price pts", ru = "$price очк.", ja = "${price}点"),
+                                fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, softWrap = false,
+                            )
+                            if (off > 0) Text("🔥 −$off%", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Ui.gold, maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -2028,9 +2033,10 @@ private fun ShopCard(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text)
+                    // 제목이 길면 제목만 줄바꿈되고 가격은 한 줄로
+                    Text(title, fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text, modifier = Modifier.weight(1f, fill = false))
                     Spacer(Modifier.width(6.dp))
-if (price != null) Text(tr("${price}점", "${price} pts", zh = "${price} 分", hi = "${price} अंक", es = "${price} pts", fr = "${price} pts", ar = "${price} نقطة", de = "${price} Pkt", pt = "${price} pts", ru = "${price} очк.", ja = "${price}点"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
+if (price != null) Text(maxLines = 1, softWrap = false, text = tr("${price}점", "${price} pts", zh = "${price} 分", hi = "${price} अंक", es = "${price} pts", fr = "${price} pts", ar = "${price} نقطة", de = "${price} Pkt", pt = "${price} pts", ru = "${price} очк.", ja = "${price}点"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Ui.primaryDark)
                 }
                 Text(desc, fontSize = 13.sp, color = Ui.text.copy(alpha = 0.8f), lineHeight = 18.sp)
                 if (owned != null) Text(owned, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent)

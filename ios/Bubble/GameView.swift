@@ -8,8 +8,6 @@ struct GameView<M: GameModel>: View {
     var onAgain: (() -> Void)?
     /// 졌을 때 로비로 가며 광고를 보면 돌려받는 점수 (없으면 nil)
     var rewardOffer: Int? = nil
-    var rabbitStreak = 0
-    var rabbitCoins = 0
 
     @State private var confirmLeave = false
     /// 날아가는 방울들, 방울 가운데 위치, 화면 흔들림, 내 방울이 날아가는 중인 시각
@@ -56,6 +54,16 @@ struct GameView<M: GameModel>: View {
             skin: game.mySkin,
             footer: footer,
             message: message)
+    }
+
+    private func resultOverlay(_ w: Side) -> ResultOverlay {
+        let won = w == me
+        let delta: Int? = game.isOnline ? game.scoreDelta : nil
+        return ResultOverlay(won: won, side: me, skin: game.mySkin, reason: game.reason, delta: delta,
+                             online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
+                             rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins,
+                             share: won ? winShare : nil,
+                             onLobby: onLeave, onAgain: onAgain)
     }
 
     private var me: Side { game.mySide }
@@ -127,11 +135,7 @@ struct GameView<M: GameModel>: View {
             ForEach(revives) { ReviveFx(burst: $0) }
 
             if game.finished, let w = game.winner {
-                ResultOverlay(won: w == me, side: me, skin: game.mySkin, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
-                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
-                              rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins,
-                              share: w == me ? winShare : nil,
-                              onLobby: onLeave, onAgain: onAgain)
+                resultOverlay(w)
             }
         }
         .coordinateSpace(name: "game")
@@ -374,6 +378,8 @@ struct ResultOverlay: View {
     var boosted = false
     var friendly = false
     var rewardOffer: Int? = nil
+    var rabbitStreak = 0
+    var rabbitCoins = 0
     /// 이겼으면 승리 공유 카드
     var share: WinShare? = nil
     let onLobby: () -> Void

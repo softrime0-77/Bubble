@@ -337,10 +337,10 @@ struct ShopView: View {
                 fr: "✨ Skins (à vie)", de: "✨ Skins (für immer)", pt: "✨ Skins (para sempre)", ru: "✨ Скины (навсегда)", ja: "✨ スキン（買い切り）"))
             .font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
             .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
-        Text(tr("모습만 바뀌고 효과는 없어요. 모든 대전에서 보여요", "Look only, no effect. Shown in every battle",
-                zh: "只改变外观，没有效果。所有对战都会显示", es: "Solo aspecto, sin efecto. Se ve en todas las batallas",
-                fr: "Look seulement, aucun effet", de: "Nur Look, kein Effekt", pt: "Só visual, sem efeito", ru: "Только вид, без эффекта",
-                ja: "見た目だけで効果なし。すべての対戦で表示"))
+        Text(tr("모습만 바뀌어요 (💰 복냥이만 특별 효과). 모든 대전에서 보여요", "Looks only (except 💰 Lucky Cat). Shown in every battle",
+                zh: "只改变外观（💰 招财猫有特别效果）。所有对战都会显示", es: "Solo aspecto (salvo 💰 Gato de la suerte)",
+                fr: "Look seulement (sauf 💰 Chat porte-bonheur)", de: "Nur Look (außer 💰 Glückskatze)", pt: "Só visual (exceto 💰 Gato da sorte)",
+                ru: "Только вид (кроме 💰 Котика удачи)", ja: "見た目だけ（💰 まねきネコだけ特別効果）。すべての対戦で表示"))
             .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7))
             .frame(maxWidth: .infinity, alignment: .leading)
         ForEach(Animal.allCases.filter { $0.cosmetic }, id: \.self) { a in
@@ -354,7 +354,7 @@ struct ShopView: View {
         let owned: String? = on ? tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", es: "✅ Equipado", fr: "✅ Équipé", de: "✅ Ausgerüstet", pt: "✅ Equipado", ru: "✅ Надето", ja: "✅ 装備中")
             : have ? tr("💎 보유 중", "💎 Owned", zh: "💎 已拥有", es: "💎 Tuyo", fr: "💎 Possédé", de: "💎 Im Besitz", pt: "💎 Seu", ru: "💎 Есть", ja: "💎 所持中") : nil
         return shopCard(title: a.label,
-                        desc: tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
+                        desc: a.lucky ? luckyDesc(p) : tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
                                  fr: "✨ Skin permanent · aucun effet", de: "✨ Dauerhafter Skin · kein Effekt", pt: "✨ Skin permanente · sem efeito",
                                  ru: "✨ Навсегда · без эффекта", ja: "✨ 永久スキン · 効果なし"),
                         price: have ? nil : a.price, owned: owned,
@@ -372,6 +372,21 @@ struct ShopView: View {
                 buyButton(a.rawValue, a.label, a.price, p)
             }
         }
+    }
+
+    /// 💰 복냥이 설명: 확률·하루 최대를 숫자 그대로 (확률 정보 공개) + 오늘 받은 양
+    private func luckyDesc(_ p: Profile) -> String {
+        let today = p.luckyDay == OnlineService.today() ? p.luckyCoins : 0
+        let pct = Shop.luckyChancePct, mx = Shop.luckyDailyMax
+        return tr("💰 상대를 공격할 때마다 \(pct)% 확률로 상점 포인트 +1\n(하루 최대 \(mx) · 오늘 \(today)/\(mx)) · 영구 캐릭터",
+                  "💰 Each attack has a \(pct)% chance to give +1 shop point\n(max \(mx) a day · today \(today)/\(mx)) · permanent",
+                  zh: "💰 每次攻击有 \(pct)% 概率获得 1 商店积分\n（每天最多 \(mx) · 今天 \(today)/\(mx)）· 永久",
+                  es: "💰 Cada ataque tiene un \(pct)% de dar +1 punto de tienda\n(máx. \(mx) al día · hoy \(today)/\(mx)) · permanente",
+                  fr: "💰 Chaque attaque a \(pct)% de chances de donner +1 point boutique\n(max \(mx) par jour · aujourd’hui \(today)/\(mx)) · permanent",
+                  de: "💰 Jeder Angriff: \(pct)% Chance auf +1 Shop-Punkt\n(max. \(mx) pro Tag · heute \(today)/\(mx)) · dauerhaft",
+                  pt: "💰 Cada ataque tem \(pct)% de chance de dar +1 ponto da loja\n(máx. \(mx) por dia · hoje \(today)/\(mx)) · permanente",
+                  ru: "💰 Каждая атака: \(pct)% шанс +1 очко магазина\n(макс. \(mx) в день · сегодня \(today)/\(mx)) · навсегда",
+                  ja: "💰 攻撃するたびに\(pct)%の確率でショップポイント+1\n（1日最大\(mx) · 今日 \(today)/\(mx)）· 永久")
     }
 
     private func buyButton(_ item: String, _ label: String, _ price: Int, _ p: Profile) -> some View {

@@ -805,6 +805,9 @@ private fun GameScreen(vm: AppViewModel) {
     val shake = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     var firedShot by remember { mutableStateOf(live.lastShot?.id) }
+    // 💰 복냥이 동전
+    val coins = remember { mutableStateListOf<CoinPop>() }
+    var firedLucky by remember { mutableStateOf(live.lucky?.id) }
 
     /** [side]의 [from] 방울이 [to] 방울로 날아가는 효과 */
     fun fire(side: Side, from: Int, toOpp: Boolean, to: Int, pre: GameUi) {
@@ -835,6 +838,15 @@ private fun GameScreen(vm: AppViewModel) {
         val wait = landAt - System.currentTimeMillis()
         if (wait > 0) delay(wait)
         g = live
+    }
+
+    // 보여주는 판이 바뀌는 순간(= 방울이 부딪힌 순간) 맞은 방울에서 동전이 튀어나옴
+    LaunchedEffect(g.lucky) {
+        val l = g.lucky ?: return@LaunchedEffect
+        if (l.id == firedLucky) return@LaunchedEffect
+        firedLucky = l.id
+        val at = centers["${l.side.opponent}${l.to}"] ?: return@LaunchedEffect
+        coins += CoinPop(System.nanoTime(), at - layerOrigin, mine = l.side == g.mySide)
     }
 
     var selected by remember { mutableStateOf<Int?>(null) }
@@ -1034,6 +1046,7 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             },
             onDone = { s -> shots.remove(s) },
         )
+        coins.forEach { c -> androidx.compose.runtime.key(c.key) { CoinPopFx(c) { coins.remove(it) } } }
 
         // 매칭되면 3초 동안 VS 소개 (나라·계급)
         var showVs by remember { mutableStateOf(false) }
@@ -1724,21 +1737,21 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text, modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            tr("모습만 바뀌고 효과는 없어요. 모든 대전에서 보여요", "Look only, no effect. Shown in every battle",
-                zh = "只改变外观，没有效果。所有对战都会显示", es = "Solo aspecto, sin efecto. Se ve en todas las batallas",
-                fr = "Look seulement, aucun effet. Visible dans tous les combats", de = "Nur Look, kein Effekt. In jedem Duell sichtbar",
-                pt = "Só visual, sem efeito. Aparece em todas as batalhas", ru = "Только вид, без эффекта. Виден в любом бою",
-                ja = "見た目だけで効果なし。すべての対戦で表示"),
+            tr("모습만 바뀌어요 (💰 복냥이만 특별 효과). 모든 대전에서 보여요", "Looks only (except 💰 Lucky Cat). Shown in every battle",
+                zh = "只改变外观（💰 招财猫有特别效果）。所有对战都会显示", es = "Solo aspecto (salvo 💰 Gato de la suerte). Se ve en todas las batallas",
+                fr = "Look seulement (sauf 💰 Chat porte-bonheur). Visible dans tous les combats", de = "Nur Look (außer 💰 Glückskatze). In jedem Duell sichtbar",
+                pt = "Só visual (exceto 💰 Gato da sorte). Aparece em todas as batalhas", ru = "Только вид (кроме 💰 Котика удачи). Виден в любом бою",
+                ja = "見た目だけ（💰 まねきネコだけ特別効果）。すべての対戦で表示"),
             fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(6.dp))
         Animal.entries.filter { it.cosmetic }.forEach { a ->
             val have = a in p.skins
             val on = p.equipped == a
-            val side = if (a == Animal.PINK_CAT || a == Animal.BLACK_CAT) Side.CAT else Side.HAMSTER
+            val side = if (a.looksLikeCat) Side.CAT else Side.HAMSTER
             ShopCard(
                 title = a.label,
-                desc = tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh = "✨ 永久皮肤 · 无效果", es = "✨ Aspecto permanente · sin efecto",
+                desc = if (a.lucky) luckyDesc(p) else tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh = "✨ 永久皮肤 · 无效果", es = "✨ Aspecto permanente · sin efecto",
                     fr = "✨ Skin permanent · aucun effet", de = "✨ Dauerhafter Skin · kein Effekt", pt = "✨ Skin permanente · sem efeito",
                     ru = "✨ Навсегда · без эффекта", ja = "✨ 永久スキン · 効果なし"),
                 price = if (have) null else a.price,
@@ -2305,6 +2318,24 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
     }
 }
 
+
+/** 💰 복냥이 상점 설명: 확률·하루 최대를 숫자 그대로 표시 (확률 정보 공개) + 오늘 받은 양 */
+private fun luckyDesc(p: com.bubble.game.data.Profile): String {
+    val today = if (p.luckyDay == OnlineRepository.today()) p.luckyCoins else 0
+    val pct = Shop.LUCKY_CHANCE_PCT
+    val max = Shop.LUCKY_DAILY_MAX
+    return tr(
+        "💰 상대를 공격할 때마다 ${pct}% 확률로 상점 포인트 +1\n(하루 최대 $max · 오늘 $today/$max) · 영구 캐릭터",
+        "💰 Each attack has a ${pct}% chance to give +1 shop point\n(max $max a day · today $today/$max) · permanent",
+        zh = "💰 每次攻击有 ${pct}% 概率获得 1 商店积分\n（每天最多 $max · 今天 $today/$max）· 永久",
+        es = "💰 Cada ataque tiene un ${pct}% de dar +1 punto de tienda\n(máx. $max al día · hoy $today/$max) · permanente",
+        fr = "💰 Chaque attaque a ${pct}% de chances de donner +1 point boutique\n(max $max par jour · aujourd’hui $today/$max) · permanent",
+        de = "💰 Jeder Angriff: ${pct}% Chance auf +1 Shop-Punkt\n(max. $max pro Tag · heute $today/$max) · dauerhaft",
+        pt = "💰 Cada ataque tem ${pct}% de chance de dar +1 ponto da loja\n(máx. $max por dia · hoje $today/$max) · permanente",
+        ru = "💰 Каждая атака: ${pct}% шанс +1 очко магазина\n(макс. $max в день · сегодня $today/$max) · навсегда",
+        ja = "💰 攻撃するたびに${pct}%の確率でショップポイント+1\n（1日最大$max · 今日 $today/$max）· 永久",
+    )
+}
 
 /** "⏰ 가입 후 7일 한정 · N일 M시간 남음" */
 private fun firstBuyLeftText(ms: Long): String {

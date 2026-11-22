@@ -14,6 +14,8 @@ protocol GameModel: ObservableObject {
     var explosion: (Explosion, Int)? { get }
     /// 상대가 방금 둔 "더하기" 수 (방울이 날아가는 효과). 판은 날아가 부딪힌 뒤에 바뀜.
     var lastShot: ShotInfo? { get }
+    /// 마지막 💰 복냥이 효과 (맞은 방울에서 동전이 튀어나옴). 서버 대전만
+    var lucky: LuckyHit? { get }
     var deadline: Date? { get }
     /// 이번 차례 제한 시간 (초)
     var turnSec: Int { get }
@@ -43,6 +45,13 @@ struct ShotInfo: Equatable {
     let side: Side
     let from: Int
     let toOpponent: Bool
+    let to: Int
+    let id: Int
+}
+
+/// 💰 복냥이 효과가 터짐: [side]가 상대 [to] 방울을 쳐서 💰 +1
+struct LuckyHit: Equatable {
+    let side: Side
     let to: Int
     let id: Int
 }

@@ -18,6 +18,7 @@ final class OnlineGame: GameModel {
     @Published private(set) var log: [String] = []
     @Published private(set) var explosion: (Explosion, Int)? = nil
     @Published private(set) var lastShot: ShotInfo? = nil
+    @Published private(set) var lucky: LuckyHit? = nil
     @Published private(set) var deadline: Date? = nil
     @Published private(set) var turnSec = Shop.defaultTurnSec
     @Published private(set) var busy = true
@@ -99,6 +100,9 @@ final class OnlineGame: GameModel {
         let newMove = g.moveNo != lastMove && g.moveNo > 0
         if newMove && !g.lastText.isEmpty { log = Array(([g.lastText] + log).prefix(30)) }
         if newMove, let es = g.explodedSide { explosion = (Explosion(side: es, index: g.explodedIndex), g.moveNo) }
+        if newMove, g.lastLucky, let by = g.lastBy, case let .add(_, _, to)? = g.lastMove {
+            lucky = LuckyHit(side: by, to: to, id: g.moveNo)
+        }
         if newMove { notice = nil }
         lastMove = g.moveNo
         mySide = side

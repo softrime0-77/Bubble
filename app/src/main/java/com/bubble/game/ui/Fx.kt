@@ -83,6 +83,7 @@ fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (side == Side
     Animal.BLACK_CAT -> FxTheme(listOf(Color(0xFF7A4DFF), Color(0xFFFFD54A), Color.White, Color(0xFF3B2A6B)), listOf(FxShape.MOON, FxShape.STAR), "🌙")
     Animal.SNOW_HAMSTER -> FxTheme(listOf(Color(0xFF5CC8FF), Color(0xFFBFE9FF), Color.White, Color(0xFF9AB8FF)), listOf(FxShape.SNOW, FxShape.STAR), "❄️")
     Animal.GOLD_HAMSTER -> FxTheme(listOf(Color(0xFFFFB800), Color(0xFFFFE680), Color.White, Color(0xFFFF9F1C)), listOf(FxShape.COIN, FxShape.STAR), "✨")
+    Animal.LUCKY_CAT -> FxTheme(listOf(Color(0xFFFFC21A), Color(0xFFE5303F), Color.White, Color(0xFFFFE680)), listOf(FxShape.COIN, FxShape.STAR, FxShape.HEART), "💰")
     Animal.SHEEP -> FxTheme(listOf(Color(0xFF9EC9FF), Color.White, Color(0xFFFFC2DE), Color(0xFFE8F1FF)), listOf(FxShape.CLOUD, FxShape.STAR), "☁️")
     Animal.DOG -> FxTheme(listOf(Color(0xFFC98A4B), Color(0xFF7FD3FF), Color.White, Color(0xFFFFE0B0)), listOf(FxShape.BONE, FxShape.PAW, FxShape.STAR), "🦴")
     Animal.GIRAFFE -> FxTheme(listOf(Color(0xFFFFC53D), Color(0xFF6CCB5F), Color(0xFFD9893A), Color.White), listOf(FxShape.LEAF, FxShape.STAR), "🍃")
@@ -674,4 +675,122 @@ fun MissionCelebration(label: String, coins: Int, onDismiss: () -> Unit) {
             }
         }
     }
+}
+
+// ======================= 💰 복냥이 동전 =======================
+
+/** 복냥이 효과로 튀어나오는 동전 하나 (좌표는 [ShotLayer]와 같은 기준) */
+data class CoinPop(val key: Long, val at: Offset, val mine: Boolean)
+
+/** 금화 하나 (빙글 도는 정도 [spin]: 1이면 정면, 0에 가까우면 옆면) */
+private fun DrawScope.goldCoin(c: Offset, r: Float, spin: Float, alpha: Float = 1f) {
+    val w = r * spin.coerceIn(0.12f, 1f)
+    // 옆면 두께
+    drawOval(Color(0xFFC77800).copy(alpha = alpha), Offset(c.x - w + r * 0.08f, c.y - r + r * 0.06f), Size(w * 2, r * 2))
+    drawOval(
+        Brush.linearGradient(listOf(Color(0xFFFFF3A0), Color(0xFFFFC21A), Color(0xFFE59A00)), Offset(c.x - w, c.y - r), Offset(c.x + w, c.y + r)),
+        Offset(c.x - w, c.y - r), Size(w * 2, r * 2), alpha = alpha,
+    )
+    drawOval(Color(0xFFFFF7C2).copy(alpha = alpha * 0.9f), Offset(c.x - w * 0.72f, c.y - r * 0.72f), Size(w * 1.44f, r * 1.44f), style = Stroke(r * 0.09f))
+    // 가운데 ₩ 대신 반짝 별
+    if (spin > 0.45f) sparkle(c, r * 0.42f * spin, Color(0xFFFFFBE6).copy(alpha = alpha))
+}
+
+/**
+ * 💰 복냥이 동전 터짐: 금빛 햇살이 돌고, 큰 금화가 통 튀어 오르며 빙글빙글,
+ * 작은 금화들이 분수처럼 흩어졌다 떨어지고, 반짝이 가루와 "💰 +1"이 반짝.
+ */
+@Composable
+fun CoinPopFx(c: CoinPop, onDone: (CoinPop) -> Unit) {
+    val p = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        p.animateTo(1f, tween(1_700, easing = LinearEasing))
+        onDone(c)
+    }
+    val theme = remember { FxTheme(listOf(Color(0xFFFFC21A), Color(0xFFFFE680), Color.White, Color(0xFFFF8A3D)), listOf(FxShape.STAR, FxShape.COIN), "💰") }
+    val ps = remember { parts(22) }
+    // 분수처럼 튀는 작은 금화들: (방향, 세기, 회전 속도)
+    val fountain = remember { List(9) { i -> Triple(-PI / 2 + (i - 4) * 0.33 + (Random.nextDouble() - 0.5) * 0.2, 0.75f + Random.nextFloat() * 0.5f, 10f + Random.nextFloat() * 14f) } }
+    val dust = remember { parts(26) }
+    val density = LocalDensity.current
+    val t = p.value
+    val unit = with(density) { 1.dp.toPx() }
+    val coinR = 20f * unit
+    // 큰 금화: 위로 통 튀었다가 살짝 내려옴
+    val upT = (t / 0.8f).coerceAtMost(1f)
+    val headY = c.at.y - 110f * unit * (1f - (1f - upT) * (1f - upT)) + 20f * unit * (t * t)
+    val head = Offset(c.at.x, headY)
+
+    Canvas(Modifier.fillMaxSize()) {
+        // 1) 맞은 자리 폭발 (금빛)
+        if (t < 0.6f) burst(c.at, coinR * 3.4f, t / 0.6f, theme, ps, rays = 14)
+        // 2) 큰 금화 뒤로 도는 금빛 햇살
+        val glowA = (if (t < 0.15f) t / 0.15f else if (t > 0.75f) (1f - t) / 0.25f else 1f).coerceIn(0f, 1f)
+        for (i in 0 until 12) {
+            val a0 = t * 2.2 + i * 2 * PI / 12
+            val a1 = a0 + PI / 18
+            val len = coinR * (3.2f + 0.4f * sin(t * 20f + i))
+            val ray = Path().apply {
+                moveTo(head.x, head.y)
+                lineTo(head.x + (cos(a0) * len).toFloat(), head.y + (sin(a0) * len).toFloat())
+                lineTo(head.x + (cos(a1) * len).toFloat(), head.y + (sin(a1) * len).toFloat())
+                close()
+            }
+            drawPath(ray, Brush.radialGradient(listOf(Color(0xFFFFE680).copy(alpha = 0.75f * glowA), Color.Transparent), head, len))
+        }
+        drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF8D0).copy(alpha = 0.95f * glowA), Color(0xFFFFC21A).copy(alpha = 0.35f * glowA), Color.Transparent), head, coinR * 2.6f), coinR * 2.6f, head)
+        // 3) 분수 금화들 (중력으로 떨어지며 빙글빙글)
+        fountain.forEachIndexed { i, (ang, power, spinSpeed) ->
+            val ft = ((t - 0.05f) / 0.9f).coerceIn(0f, 1f)
+            if (ft <= 0f) return@forEachIndexed
+            val v = 210f * unit * power
+            val x = c.at.x + (cos(ang) * v * ft).toFloat()
+            val y = c.at.y + (sin(ang) * v * ft).toFloat() + 260f * unit * ft * ft
+            val a = if (ft < 0.7f) 1f else (1f - ft) / 0.3f
+            val spin = kotlin.math.abs(cos((ft * spinSpeed + i).toDouble())).toFloat()
+            goldCoin(Offset(x, y), coinR * 0.45f, spin, a)
+            if (i % 2 == 0) sparkle(Offset(x, y) - Offset(0f, coinR * 0.6f), coinR * 0.3f * a, Color.White.copy(alpha = a))
+        }
+        // 4) 반짝이 가루 (위로 날리며 깜빡)
+        dust.forEachIndexed { i, q ->
+            val dx = (q.a - 0.5f) * 180f * unit
+            val dy = -(40f + q.s * 160f) * unit * t
+            val tw = 0.5f + 0.5f * sin(t * 40f + i)
+            val a = (1f - t) * tw
+            val pos = c.at + Offset(dx * t, dy)
+            if (i % 3 == 0) sparkle(pos, (4f + q.s * 5f) * unit * a, Color(0xFFFFE680).copy(alpha = a))
+            else drawCircle(Color.White.copy(alpha = a), (1.5f + q.s * 2f) * unit, pos)
+        }
+        // 5) 큰 금화
+        if (t < 0.9f) {
+            val a = if (t < 0.8f) 1f else (0.9f - t) / 0.1f
+            val spin = kotlin.math.abs(cos(t * 16.0)).toFloat()
+            val pop = if (t < 0.1f) 0.4f + t / 0.1f * 0.8f else 1.2f - (t - 0.1f) * 0.25f
+            goldCoin(head, coinR * pop, spin, a)
+            // 금화 둘레 반짝이 4개
+            for (k in 0 until 4) {
+                val ang = t * 9.0 + k * PI / 2
+                val rr = coinR * 1.8f
+                sparkle(head + Offset((cos(ang) * rr).toFloat(), (sin(ang) * rr).toFloat()), coinR * 0.38f * a * (0.6f + 0.4f * sin(t * 30f + k)), Color.White.copy(alpha = a))
+            }
+        }
+    }
+    val tt = ((t - 0.08f) / 0.92f).coerceIn(0f, 1f)
+    val textPx = 46f * unit
+    Text(
+        "💰 +1",
+        fontSize = 28.sp, fontWeight = FontWeight.Black,
+        style = TextStyle(
+            brush = Brush.verticalGradient(listOf(Color(0xFFFFFBE0), Color(0xFFFFD43B), Color(0xFFFF9F1C))),
+            shadow = Shadow(Color(0xFF9A4A00), Offset(0f, 3f), 10f),
+        ),
+        modifier = Modifier
+            .offset { IntOffset(c.at.x.roundToInt(), (headY - textPx - tt * 24f * unit).roundToInt()) }
+            .graphicsLayer {
+                translationX = -size.width / 2; translationY = -size.height / 2
+                rotationZ = -6f + 6f * tt
+            }
+            .scale(if (tt < 0.12f) 0.3f + tt / 0.12f * 1.1f else 1.4f - (tt - 0.12f) * 0.35f)
+            .alpha(if (tt < 0.7f) 1f else ((1f - tt) / 0.3f).coerceIn(0f, 1f)),
+    )
 }

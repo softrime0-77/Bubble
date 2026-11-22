@@ -44,6 +44,8 @@ struct FxTheme {
             return FxTheme(colors: [Color(hex: 0x7A4DFF), Color(hex: 0xFFD54A), .white, Color(hex: 0x3B2A6B)], shapes: [.moon, .star], emoji: "🌙")
         case .snowHamster:
             return FxTheme(colors: [Color(hex: 0x5CC8FF), Color(hex: 0xBFE9FF), .white, Color(hex: 0x9AB8FF)], shapes: [.snow, .star], emoji: "❄️")
+        case .luckyCat:
+            return FxTheme(colors: [Color(hex: 0xFFC21A), Color(hex: 0xE5303F), .white, Color(hex: 0xFFE680)], shapes: [.coin, .star, .heart], emoji: "💰")
         case .goldHamster:
             return FxTheme(colors: [Color(hex: 0xFFB800), Color(hex: 0xFFE680), .white, Color(hex: 0xFF9F1C)], shapes: [.coin, .star], emoji: "✨")
         case .sheep:
@@ -819,5 +821,140 @@ private struct MissionFrame: View {
                 .padding(.vertical, 12)
                 .background(Capsule().fill(LinearGradient(colors: [Color(hex: 0x3CC9A0), UiColor.accent], startPoint: .leading, endPoint: .trailing)))
         }
+    }
+}
+
+// ======================= 💰 복냥이 동전 =======================
+
+/// 복냥이 효과로 튀어나오는 동전 (좌표는 게임 화면 기준)
+struct CoinPop: Identifiable, Equatable {
+    let id = UUID()
+    let at: CGPoint
+    let start = Date()
+    static let sec = 1.7
+}
+
+/// 금화 하나 ([spin]: 1이면 정면, 0에 가까우면 옆면)
+private func drawGoldCoin(_ ctx: inout GraphicsContext, _ c: CGPoint, _ r: CGFloat, _ spin: CGFloat, _ alpha: Double) {
+    let w: CGFloat = r * min(1, max(0.12, spin))
+    let edge = CGRect(x: c.x - w + r * 0.08, y: c.y - r + r * 0.06, width: w * 2, height: r * 2)
+    ctx.fill(Path(ellipseIn: edge), with: .color(Color(hex: 0xC77800).opacity(alpha)))
+    let face = CGRect(x: c.x - w, y: c.y - r, width: w * 2, height: r * 2)
+    let grad = Gradient(colors: [Color(hex: 0xFFF3A0).opacity(alpha), Color(hex: 0xFFC21A).opacity(alpha), Color(hex: 0xE59A00).opacity(alpha)])
+    ctx.fill(Path(ellipseIn: face), with: .linearGradient(grad, startPoint: CGPoint(x: face.minX, y: face.minY), endPoint: CGPoint(x: face.maxX, y: face.maxY)))
+    let rim = CGRect(x: c.x - w * 0.72, y: c.y - r * 0.72, width: w * 1.44, height: r * 1.44)
+    ctx.stroke(Path(ellipseIn: rim), with: .color(Color(hex: 0xFFF7C2).opacity(alpha * 0.9)), lineWidth: r * 0.09)
+    if spin > 0.45 {
+        ctx.fill(sparklePath(c, r * 0.42 * spin), with: .color(Color(hex: 0xFFFBE6).opacity(alpha)))
+    }
+}
+
+/// 💰 복냥이 동전 터짐: 금빛 햇살 · 통 튀어 오르는 큰 금화 · 분수처럼 흩어지는 작은 금화 · 반짝이 가루 · "💰 +1"
+struct CoinPopFx: View {
+    let pop: CoinPop
+
+    private static let theme = FxTheme(colors: [Color(hex: 0xFFC21A), Color(hex: 0xFFE680), .white, Color(hex: 0xFF8A3D)], shapes: [.star, .coin], emoji: "💰")
+    private static let parts = fxParts(22, seed: 51)
+    private static let dust = fxParts(26, seed: 61)
+    /// 분수 금화: (방향, 세기, 회전 속도)
+    private static let fountain: [(CGFloat, CGFloat, CGFloat)] = {
+        var g = SeededRandom(seed: 71)
+        return (0..<9).map { i in
+            let dir: CGFloat = -.pi / 2 + CGFloat(i - 4) * 0.33 + (g.next() - 0.5) * 0.2
+            return (dir, 0.75 + g.next() * 0.5, 10 + g.next() * 14)
+        }
+    }()
+    private static let coinR: CGFloat = 20
+
+    private static func headY(_ at: CGPoint, _ t: CGFloat) -> CGFloat {
+        let up = min(1, t / 0.8)
+        return at.y - 110 * (1 - (1 - up) * (1 - up)) + 20 * t * t
+    }
+
+    private static func draw(_ ctx: inout GraphicsContext, _ at: CGPoint, _ t: CGFloat) {
+        let coinR = Self.coinR
+        let head = CGPoint(x: at.x, y: headY(at, t))
+        // 1) 맞은 자리 금빛 폭발
+        if t < 0.6 { drawBurst(&ctx, at, coinR * 3.4, t / 0.6, theme, parts, rays: 14) }
+        // 2) 큰 금화 뒤 햇살
+        let glowA: CGFloat = t < 0.15 ? t / 0.15 : (t > 0.75 ? (1 - t) / 0.25 : 1)
+        for i in 0..<12 {
+            let a0: CGFloat = t * 2.2 + CGFloat(i) * tau / 12
+            let len: CGFloat = coinR * (3.2 + 0.4 * fsin(t * 20 + CGFloat(i)))
+            var ray = Path()
+            ray.move(to: head)
+            ray.addLine(to: polar(head, a0, len))
+            ray.addLine(to: polar(head, a0 + .pi / 18, len))
+            ray.closeSubpath()
+            let g = Gradient(colors: [Color(hex: 0xFFE680).opacity(Double(0.75 * glowA)), .clear])
+            ctx.fill(ray, with: .radialGradient(g, center: head, startRadius: 0, endRadius: len))
+        }
+        let haloR: CGFloat = coinR * 2.6
+        let halo = Gradient(colors: [Color(hex: 0xFFF8D0).opacity(Double(0.95 * glowA)), Color(hex: 0xFFC21A).opacity(Double(0.35 * glowA)), .clear])
+        ctx.fill(circle(head, haloR), with: .radialGradient(halo, center: head, startRadius: 0, endRadius: haloR))
+        // 3) 분수 금화
+        let ft: CGFloat = clamp01((t - 0.05) / 0.9)
+        if ft > 0 {
+            for (i, f) in fountain.enumerated() {
+                let v: CGFloat = 210 * f.1
+                let x: CGFloat = at.x + fcos(f.0) * v * ft
+                let y: CGFloat = at.y + fsin(f.0) * v * ft + 260 * ft * ft
+                let a: CGFloat = ft < 0.7 ? 1 : (1 - ft) / 0.3
+                let spin: CGFloat = abs(fcos(ft * f.2 + CGFloat(i)))
+                drawGoldCoin(&ctx, CGPoint(x: x, y: y), coinR * 0.45, spin, Double(a))
+                if i % 2 == 0 {
+                    ctx.fill(sparklePath(CGPoint(x: x, y: y - coinR * 0.6), coinR * 0.3 * a), with: .color(.white.opacity(Double(a))))
+                }
+            }
+        }
+        // 4) 반짝이 가루
+        for (i, q) in dust.enumerated() {
+            let tw: CGFloat = 0.5 + 0.5 * fsin(t * 40 + CGFloat(i))
+            let a: CGFloat = (1 - t) * tw
+            let pos = CGPoint(x: at.x + (q.a - 0.5) * 180 * t, y: at.y - (40 + q.s * 160) * t)
+            if i % 3 == 0 {
+                ctx.fill(sparklePath(pos, (4 + q.s * 5) * a), with: .color(Color(hex: 0xFFE680).opacity(Double(a))))
+            } else {
+                ctx.fill(circle(pos, 1.5 + q.s * 2), with: .color(.white.opacity(Double(a))))
+            }
+        }
+        // 5) 큰 금화 + 둘레 반짝이
+        if t < 0.9 {
+            let a: CGFloat = t < 0.8 ? 1 : (0.9 - t) / 0.1
+            let spin: CGFloat = abs(fcos(t * 16))
+            let grow: CGFloat = t < 0.1 ? 0.4 + t / 0.1 * 0.8 : 1.2 - (t - 0.1) * 0.25
+            drawGoldCoin(&ctx, head, coinR * grow, spin, Double(a))
+            for k in 0..<4 {
+                let ang: CGFloat = t * 9 + CGFloat(k) * .pi / 2
+                let sz: CGFloat = coinR * 0.38 * a * (0.6 + 0.4 * fsin(t * 30 + CGFloat(k)))
+                ctx.fill(sparklePath(polar(head, ang, coinR * 1.8), sz), with: .color(.white.opacity(Double(a))))
+            }
+        }
+    }
+
+    private func label(_ t: CGFloat) -> some View {
+        let tt: CGFloat = clamp01((t - 0.08) / 0.92)
+        let scale: CGFloat = tt < 0.12 ? 0.3 + tt / 0.12 * 1.1 : 1.4 - (tt - 0.12) * 0.35
+        let alpha: Double = tt < 0.7 ? 1 : Double(clamp01((1 - tt) / 0.3))
+        let y: CGFloat = Self.headY(pop.at, t) - 46 - tt * 24
+        return Text("💰 +1")
+            .font(.system(size: 28, weight: .black))
+            .foregroundStyle(LinearGradient(colors: [Color(hex: 0xFFFBE0), Color(hex: 0xFFD43B), Color(hex: 0xFF9F1C)], startPoint: .top, endPoint: .bottom))
+            .shadow(color: Color(hex: 0x9A4A00), radius: 5, y: 3)
+            .scaleEffect(scale)
+            .rotationEffect(.degrees(Double(-6 + 6 * tt)))
+            .opacity(alpha)
+            .position(x: pop.at.x, y: y)
+    }
+
+    var body: some View {
+        TimelineView(.animation) { tl in
+            let t = clamp01(CGFloat(tl.date.timeIntervalSince(pop.start) / CoinPop.sec))
+            ZStack(alignment: .topLeading) {
+                Canvas { ctx, _ in Self.draw(&ctx, pop.at, t) }
+                label(t)
+            }
+        }
+        .allowsHitTesting(false)
     }
 }

@@ -51,6 +51,9 @@ data class Explosion(val side: Side, val index: Int, val id: Int)
 /** 방울이 날아가 부딪히는 효과를 한 번만 틀기 위한 표식: [side]가 [from] 방울로 (상대 or 자기) [to] 방울을 침 */
 data class Shot(val side: Side, val from: Int, val toOpponent: Boolean, val to: Int, val id: Int)
 
+/** 💰 복냥이 효과가 터짐: [side]가 상대 [to] 방울을 쳐서 💰 +1 */
+data class LuckyHit(val side: Side, val to: Int, val id: Int)
+
 /** 출석 보상 받은 결과 (축하 팝업용) */
 data class CheckinReward(val day: Int, val coins: Int, val potion: Boolean)
 
@@ -72,6 +75,8 @@ data class GameUi(
     val explosion: Explosion? = null,
     /** 마지막으로 둔 "더하기" 수 (방울이 날아가는 효과) */
     val lastShot: Shot? = null,
+    /** 마지막 💰 복냥이 효과 (동전이 튀어나오는 효과) */
+    val lucky: LuckyHit? = null,
     val turnDeadline: Long? = null,
     val scoreDelta: Int? = null,
     /** scoreDelta 중 계급 보너스 */
@@ -655,8 +660,11 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         }
         val shot = (og.lastMove as? Move.Add)?.takeIf { newMove && lastMove >= 0 && og.lastBy != null }
             ?.let { Shot(og.lastBy!!, it.from, it.toOpponent, it.to, og.moveNo) }
+        val luckyHit = (og.lastMove as? Move.Add)?.takeIf { newMove && og.lastLucky && og.lastBy != null }
+            ?.let { LuckyHit(og.lastBy!!, it.to, og.moveNo) }
         return copy(
             lastShot = shot ?: lastShot,
+            lucky = luckyHit ?: lucky,
             board = og.board,
             mySide = side,
             turn = og.turn,

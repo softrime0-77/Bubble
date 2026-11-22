@@ -325,4 +325,40 @@ class ScreenshotTest {
         vm.openShop()
         shot("shop_firstbuy", 800)
     }
+
+    @Test
+    fun shopLucky() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby {
+            it.copy(onlineAvailable = true, loading = false,
+                profile = richProfile(1215).copy(skins = setOf(com.bubble.game.game.Animal.LUCKY_CAT), equipped = com.bubble.game.game.Animal.LUCKY_CAT,
+                    luckyDay = com.bubble.game.data.OnlineRepository.today(), luckyCoins = 7))
+        }
+        rule.setContent { BubbleApp(vm) }
+        vm.openShop()
+        rule.mainClock.advanceTimeBy(500)
+        shot("shop_lucky", 800)
+    }
+
+    /** 복냥이로 공격 → 맞은 방울에서 💰 +1 */
+    @Test
+    fun luckyCoin() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(2, 3), ham = listOf(2, 2)),
+                mySide = Side.CAT, turn = Side.HAMSTER, busy = false, showIntro = false,
+                mySkin = com.bubble.game.game.Animal.LUCKY_CAT, opponentSkin = com.bubble.game.game.Animal.HAMSTER,
+            )
+        }
+        rule.mainClock.advanceTimeBy(500)
+        vm.debugSetGame { it.copy(board = Board(cat = listOf(2, 3), ham = listOf(4, 2)), lucky = LuckyHit(Side.CAT, 0, 7)) }
+        shot("lucky_coin", 350)
+        shot("lucky_coin2", 450)
+    }
 }

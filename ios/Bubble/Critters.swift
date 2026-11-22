@@ -70,6 +70,9 @@ struct Critter: View {
                 case .blackCat: drawCat(&ctx, size, closed, happy, fur: Color(hex: 0x5B5662), stripe: Color(hex: 0x38343E), muzzle: Color(hex: 0xCFC8D6))
                 case .snowHamster: drawHamster(&ctx, size, closed, happy, fur: Color(hex: 0xF4F6FB), belly: .white, inner: Color(hex: 0xBFD8FF), sparkles: Color(hex: 0xBFE6FF))
                 case .goldHamster: drawHamster(&ctx, size, closed, happy, fur: Color(hex: 0xFFC94D), belly: Color(hex: 0xFFF3C4), inner: Color(hex: 0xFFB38A), sparkles: Color(hex: 0xFFF59D))
+                case .luckyCat:
+                    drawCat(&ctx, size, closed, happy, fur: Color(hex: 0xFFFBF2), stripe: Color(hex: 0xF2A33A), muzzle: .white)
+                    drawLuckyCharm(&ctx, size)
                 case nil: side == .cat ? drawCat(&ctx, size, closed, happy) : drawHamster(&ctx, size, closed, happy)
                 }
             }
@@ -118,6 +121,25 @@ private func line(_ ctx: inout GraphicsContext, _ a: CGPoint, _ b: CGPoint, _ co
 }
 
 // MARK: - 캐릭터
+
+/// 복냥이: 이마 얼룩 + 빨간 목줄 + 금화 방울
+private func drawLuckyCharm(_ ctx: inout GraphicsContext, _ size: CGSize) {
+    let cx: CGFloat = size.width / 2, cy: CGFloat = size.height * 0.58, r: CGFloat = size.width * 0.36
+    ctx.fill(Path(ellipseIn: CGRect(x: cx + r * 0.25, y: cy - r * 0.9, width: r * 0.55, height: r * 0.38)), with: .color(Color(hex: 0x4A3B3B).opacity(0.85)))
+    var collar = Path()
+    collar.move(to: CGPoint(x: cx - r * 0.85, y: cy + r * 0.72))
+    collar.addQuadCurve(to: CGPoint(x: cx + r * 0.85, y: cy + r * 0.72), control: CGPoint(x: cx, y: cy + r * 1.08))
+    ctx.stroke(collar, with: .color(Color(hex: 0xE5303F)), style: StrokeStyle(lineWidth: r * 0.17, lineCap: .round))
+    let b = CGPoint(x: cx, y: cy + r * 1.0)
+    let br: CGFloat = r * 0.25
+    let bell = Path(ellipseIn: CGRect(x: b.x - br, y: b.y - br, width: br * 2, height: br * 2))
+    ctx.fill(bell, with: .color(Color(hex: 0xFFC21A)))
+    ctx.stroke(bell, with: .color(Color(hex: 0xE59A00)), lineWidth: r * 0.05)
+    let ir: CGFloat = r * 0.12
+    ctx.stroke(Path(ellipseIn: CGRect(x: b.x - ir, y: b.y - ir, width: ir * 2, height: ir * 2)), with: .color(Color(hex: 0xE59A00)), lineWidth: r * 0.04)
+    let hr: CGFloat = r * 0.06
+    ctx.fill(Path(ellipseIn: CGRect(x: b.x - r * 0.09 - hr, y: b.y - r * 0.09 - hr, width: hr * 2, height: hr * 2)), with: .color(.white.opacity(0.8)))
+}
 
 private func drawCat(_ ctx: inout GraphicsContext, _ size: CGSize, _ closed: Bool, _ happy: Bool,
                      fur: Color = Palette.catFur, stripe: Color = Palette.catStripe, muzzle: Color = Palette.catInner) {

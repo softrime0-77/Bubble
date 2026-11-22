@@ -44,6 +44,8 @@ public enum Animal: String, CaseIterable, Sendable {
     case blackCat = "BLACK_CAT"
     case snowHamster = "SNOW_HAMSTER"
     case goldHamster = "GOLD_HAMSTER"
+    /// 💰 복냥이: 한 번 사면 계속. 공격할 때마다 50% 확률로 상점 포인트 +1 (하루 최대 30)
+    case luckyCat = "LUCKY_CAT"
 
     public var price: Int {
         switch self {
@@ -53,6 +55,7 @@ public enum Animal: String, CaseIterable, Sendable {
         case .hamster: return 0
         case .pinkCat, .blackCat, .snowHamster: return 300
         case .goldHamster: return 500
+        case .luckyCat: return 1000
         }
     }
     public var opponentTurnSec: Int {
@@ -60,15 +63,17 @@ public enum Animal: String, CaseIterable, Sendable {
         case .sheep: return 15
         case .dog: return 10
         case .giraffe: return 5
-        case .hamster, .pinkCat, .blackCat, .snowHamster, .goldHamster: return Shop.defaultTurnSec
+        case .hamster, .pinkCat, .blackCat, .snowHamster, .goldHamster, .luckyCat: return Shop.defaultTurnSec
         }
     }
     /// 유료 스킨 (한 번 사면 계속, 모습만)
-    public var cosmetic: Bool { [.pinkCat, .blackCat, .snowHamster, .goldHamster].contains(self) }
+    public var cosmetic: Bool { [.pinkCat, .blackCat, .snowHamster, .goldHamster, .luckyCat].contains(self) }
+    /// 효과가 있는 영구 캐릭터 (복냥이)
+    public var lucky: Bool { self == .luckyCat }
     /// 소모품 동물 (랜덤 매칭 1판에 1개)
     public var consumable: Bool { !free && !cosmetic }
     /// 그릴 때 고양이 모양인지 햄스터 모양인지 (상점 미리보기용)
-    public var looksLikeCat: Bool { self == .pinkCat || self == .blackCat }
+    public var looksLikeCat: Bool { self == .pinkCat || self == .blackCat || self == .luckyCat }
     /// 무료 캐릭터 (사지 않고 바로 장착, 효과 없음)
     public var free: Bool { price == 0 }
 }
@@ -85,4 +90,7 @@ public enum Shop {
     public static let friendWinPoints = 30
     public static let friendLosePoints = 10
     public static let friendRatedPerDay = 5
+    /// 💰 복냥이: 공격할 때 💰 +1 확률(%)과 하루 최대 (functions/src/catalog.ts LUCKY_*와 같게)
+    public static let luckyChancePct = 50
+    public static let luckyDailyMax = 30
 }

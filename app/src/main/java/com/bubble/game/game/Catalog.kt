@@ -72,7 +72,15 @@ enum class Animal(
     BLACK_CAT("까망 고양이", "Black Cat", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     SNOW_HAMSTER("눈송이 햄스터", "Snow Hamster", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     GOLD_HAMSTER("황금 햄스터", "Golden Hamster", 500, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    /** 💰 복냥이: 한 번 사면 계속. 공격할 때마다 50% 확률로 상점 포인트 +1 (하루 최대 30) */
+    LUCKY_CAT("복냥이", "Lucky Cat", 1000, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     ;
+
+    /** 효과가 있는 영구 캐릭터 (복냥이) */
+    val lucky: Boolean get() = this == LUCKY_CAT
+
+    /** 그릴 때 고양이 모양인지 (상점 미리보기용) */
+    val looksLikeCat: Boolean get() = this == PINK_CAT || this == BLACK_CAT || this == LUCKY_CAT
 
     /** 소모품 동물 (랜덤 매칭 1판에 1개, 상대 턴을 줄임) */
     val consumable: Boolean get() = !free && !cosmetic
@@ -91,6 +99,7 @@ enum class Animal(
             BLACK_CAT -> listOf("小黑猫", "काली बिल्ली", "Gato negro", "Chat noir", "قطة سوداء", "Schwarze Katze", "Gato preto", "Чёрный котик", "くろネコ")
             SNOW_HAMSTER -> listOf("雪花仓鼠", "स्नो हैम्स्टर", "Hámster nieve", "Hamster neige", "هامستر الثلج", "Schneehamster", "Hamster neve", "Снежный хомяк", "ゆきハムスター")
             GOLD_HAMSTER -> listOf("黄金仓鼠", "गोल्डन हैम्स्टर", "Hámster dorado", "Hamster doré", "هامستر ذهبي", "Goldhamster", "Hamster dourado", "Золотой хомяк", "きんハムスター")
+            LUCKY_CAT -> listOf("招财猫", "लकी बिल्ली", "Gato de la suerte", "Chat porte-bonheur", "قطة الحظ", "Glückskatze", "Gato da sorte", "Котик удачи", "まねきネコ")
         }
 
     val label: String get() = Lang.pick(listOf(ko, en) + others)
@@ -106,6 +115,10 @@ object Shop {
     /** ×3 점수 부스터 (소모품). functions/src/catalog.ts의 BOOST_PRICE와 같게 */
     const val BOOST_PRICE = 50
     const val BOOST_MULTIPLIER = 3
+
+    /** 💰 복냥이: 공격할 때 💰 +1 확률(%)과 하루 최대 (functions/src/catalog.ts LUCKY_*와 같게) */
+    const val LUCKY_CHANCE_PCT = 50
+    const val LUCKY_DAILY_MAX = 30
 
     /** 한 판에서 쓸 수 있는 부활물약 최대 개수 */
     const val MAX_REVIVES_PER_GAME = 3

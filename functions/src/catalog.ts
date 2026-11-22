@@ -38,7 +38,22 @@ export const COSMETIC_SKINS: Record<string, number> = {
   BLACK_CAT: 300,
   SNOW_HAMSTER: 300,
   GOLD_HAMSTER: 500,
+  // 💰 복냥이: 한 번 사면 계속. 공격할 때마다 50% 확률로 상점 포인트 +1 (하루 최대 30)
+  LUCKY_CAT: 1000,
 };
+
+/** 복냥이 효과 */
+export const LUCKY_SKIN = "LUCKY_CAT";
+export const LUCKY_CHANCE = 0.5;
+export const LUCKY_DAILY_MAX = 30;
+
+/**
+ * 복냥이 공격 한 번의 결과: 💰 +1을 받는지.
+ * [todayCount]는 오늘 이미 받은 개수 (하루 최대를 넘으면 굴리지 않음), [rand]는 0 이상 1 미만.
+ */
+export function luckyRoll(todayCount: number, rand: number): boolean {
+  return todayCount < LUCKY_DAILY_MAX && rand < LUCKY_CHANCE;
+}
 
 export function isCosmetic(id: unknown): id is string {
   return typeof id === "string" && COSMETIC_SKINS[id] !== undefined;

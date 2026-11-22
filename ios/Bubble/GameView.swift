@@ -15,6 +15,8 @@ struct GameView<M: GameModel>: View {
     @State private var centers: [String: CGPoint] = [:]
     @State private var shakes: CGFloat = 0
     @State private var inFlightUntil = Date.distantPast
+    /// 💰 복냥이 동전
+    @State private var coins: [CoinPop] = []
 
     /// 승리 공유 카드 내용 (추천 코드 링크 포함 → 친구가 들어오면 둘 다 +30점)
     private var winShare: WinShare {
@@ -117,6 +119,7 @@ struct GameView<M: GameModel>: View {
             .modifier(ShakeEffect(animatableData: shakes))
 
             ForEach(shots) { ShotFx(shot: $0) }
+            ForEach(coins) { CoinPopFx(pop: $0) }
 
             if game.finished, let w = game.winner {
                 ResultOverlay(won: w == me, side: me, reason: game.reason, delta: game.isOnline ? game.scoreDelta : nil,
@@ -127,6 +130,13 @@ struct GameView<M: GameModel>: View {
         }
         .coordinateSpace(name: "game")
         .onPreferenceChange(BubbleCentersKey.self) { centers = $0 }
+        .onChange(of: game.lucky) { l in
+            // 맞은 방울에서 금화가 튀어나옴 (판이 바뀌는 순간 = 방울이 부딪힌 순간)
+            guard let l, let at = centers["\(l.side.opponent)\(l.to)"] else { return }
+            let pop = CoinPop(at: at)
+            coins.append(pop)
+            DispatchQueue.main.asyncAfter(deadline: .now() + CoinPop.sec + 0.05) { coins.removeAll { $0.id == pop.id } }
+        }
         .onChange(of: game.lastShot) { s in
             // 상대가 둔 수: 방울을 날림 (판은 부딪힌 뒤에 바뀜)
             if let s, s.side != me { fire(side: s.side, from: s.from, toOpponent: s.toOpponent, to: s.to) }

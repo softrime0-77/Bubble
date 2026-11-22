@@ -75,14 +75,14 @@ final class OnlineGame: GameModel {
     private func merge(_ g: OnlineGameDoc) {
         if holding { heldDoc = g; return }
         guard let side = g.side(of: myUid) else { return }
-        // 상대가 더하기를 했으면: 방울을 먼저 날리고, 부딪힌 뒤에 판을 바꿈
-        if g.moveNo != lastMove, lastMove >= 0, let by = g.lastBy, by != side,
-           case let .add(from, toOpponent, to)? = g.lastMove {
-            lastShot = ShotInfo(side: by, from: from, toOpponent: toOpponent, to: to, id: g.moveNo)
+        // 상대가 둔 수: 효과(날아가기 · 분할 · 부활)를 먼저 보여주고, 끝난 뒤에 판을 바꿈
+        if g.moveNo != lastMove, lastMove >= 0, let by = g.lastBy, by != side, let mv = g.lastMove {
+            let shot = ShotInfo.of(by, mv, id: g.moveNo)
+            lastShot = shot
             holding = true
             heldDoc = g
             Task { [weak self] in
-                try? await Task.sleep(nanoseconds: UInt64(FlyingShot.flySec * 1_000_000_000))
+                try? await Task.sleep(nanoseconds: UInt64(shot.holdSec * 1_000_000_000))
                 guard let self else { return }
                 self.holding = false
                 if let d = self.heldDoc {

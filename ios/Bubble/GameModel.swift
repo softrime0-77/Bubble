@@ -47,7 +47,23 @@ struct ShotInfo: Equatable {
     let toOpponent: Bool
     let to: Int
     let id: Int
+    var kind: ShotKind = .add
+
+    /// 수 하나를 효과 표식으로 (분할은 빈 옆 방울로, 부활은 그 자리)
+    static func of(_ side: Side, _ move: Move, id: Int) -> ShotInfo {
+        switch move {
+        case let .add(from, toOpponent, to): return ShotInfo(side: side, from: from, toOpponent: toOpponent, to: to, id: id)
+        case let .split(from): return ShotInfo(side: side, from: from, toOpponent: false, to: 1 - from, id: id, kind: .split)
+        case let .revive(index): return ShotInfo(side: side, from: index, toOpponent: false, to: index, id: id, kind: .revive)
+        }
+    }
+
+    /// 판이 바뀌기 전에 효과를 보여줄 시간 (초)
+    var holdSec: Double { kind == .revive ? ReviveBurst.dropSec : FlyingShot.flySec }
 }
+
+/// 효과 종류: 더하기(날아가 치기) · 분할(가위로 잘라 옆으로) · 부활(물약)
+enum ShotKind { case add, split, revive }
 
 /// 💰 복냥이 효과가 터짐: [side]가 상대 [to] 방울을 쳐서 💰 +1
 struct LuckyHit: Equatable {

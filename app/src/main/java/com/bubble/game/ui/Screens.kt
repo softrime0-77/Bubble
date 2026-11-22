@@ -808,20 +808,25 @@ private fun GameScreen(vm: AppViewModel) {
     // 💰 복냥이 동전
     val coins = remember { mutableStateListOf<CoinPop>() }
     var firedLucky by remember { mutableStateOf(live.lucky?.id) }
+    // 💖 부활 효과
+    val revives = remember { mutableStateListOf<ReviveBurst>() }
+    var firedRevive by remember { mutableStateOf(live.lastShot?.takeIf { it.kind == ShotKind.REVIVE }?.id) }
 
     /** [side]의 [from] 방울이 [to] 방울로 날아가는 효과 */
-    fun fire(side: Side, from: Int, toOpp: Boolean, to: Int, pre: GameUi) {
+    fun fire(side: Side, from: Int, toOpp: Boolean, to: Int, pre: GameUi, split: Boolean = false) {
         val targetSide = if (toOpp) side.opponent else side
         val a = centers["$side$from"] ?: return
         val b = centers["$targetSide$to"] ?: return
-        val power = pre.board.sets(side).getOrElse(from) { 0 }
+        val count = pre.board.sets(side).getOrElse(from) { 0 }
+        // 분할은 절반이 옆 방울로 날아감
+        val power = if (split) count / 2 else count
         if (power <= 0) return
         val targetCount = pre.board.sets(targetSide).getOrElse(to) { 0 }
         shots += FlyingShot(
             key = System.nanoTime(),
             from = a - layerOrigin, to = b - layerOrigin,
             side = side, skin = if (side == pre.mySide) pre.mySkin else pre.opponentSkin,
-            power = power, attack = toOpp, boom = targetCount + power >= GameLogic.EXPLODE_AT,
+            power = power, attack = toOpp, boom = !split && targetCount + power >= GameLogic.EXPLODE_AT, split = split,
         )
         landAt = System.currentTimeMillis() + SHOT_FLY_MS
     }
@@ -832,8 +837,20 @@ private fun GameScreen(vm: AppViewModel) {
             firedShot = null
         } else if (s.id != firedShot) {
             firedShot = s.id
-            // 내 수는 누를 때 이미 날렸으니 상대 수만
-            if (s.side != live.mySide) fire(s.side, s.from, s.toOpponent, s.to, g)
+            when (s.kind) {
+                // 내 더하기는 누를 때 이미 날렸으니 상대 수만
+                ShotKind.ADD -> if (s.side != live.mySide) fire(s.side, s.from, s.toOpponent, s.to, g)
+                // 분할: 가위로 싹둑 → 절반이 옆 방울로 날아감 (내 수·상대 수 모두)
+                ShotKind.SPLIT -> fire(s.side, s.from, false, s.to, g, split = true)
+                // 부활: 물약이 떨어져 깨지는 순간에 살아난 방울이 보이게
+                ShotKind.REVIVE -> if (s.id != firedRevive) {
+                    firedRevive = s.id
+                    centers["${s.side}${s.to}"]?.let { at ->
+                        revives += ReviveBurst(System.nanoTime(), at - layerOrigin, s.side, if (s.side == g.mySide) g.mySkin else g.opponentSkin)
+                        landAt = System.currentTimeMillis() + REVIVE_DROP_MS
+                    }
+                }
+            }
         }
         val wait = landAt - System.currentTimeMillis()
         if (wait > 0) delay(wait)
@@ -1047,6 +1064,7 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             onDone = { s -> shots.remove(s) },
         )
         coins.forEach { c -> androidx.compose.runtime.key(c.key) { CoinPopFx(c) { coins.remove(it) } } }
+        revives.forEach { r -> androidx.compose.runtime.key(r.key) { ReviveFx(r) { revives.remove(it) } } }
 
         // 매칭되면 3초 동안 VS 소개 (나라·계급)
         var showVs by remember { mutableStateOf(false) }

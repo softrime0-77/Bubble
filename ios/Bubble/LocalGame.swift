@@ -105,12 +105,11 @@ final class LocalGame: GameModel {
                 try? await Task.sleep(nanoseconds: UInt64.random(in: 700_000_000...1_400_000_000))
                 guard let self, !self.finished else { return }
                 let m = self.ai.choose(self.board, self.turn)
-                // 방울이 날아가 부딪힌 뒤에 판을 바꿈
-                if case let .add(from, toOpponent, to) = m {
-                    self.lastShot = ShotInfo(side: self.turn, from: from, toOpponent: toOpponent, to: to, id: (self.lastShot?.id ?? 0) + 1)
-                    try? await Task.sleep(nanoseconds: UInt64(FlyingShot.flySec * 1_000_000_000))
-                    guard !self.finished else { return }
-                }
+                // 방울이 날아가 부딪힌 뒤(분할·부활도 효과가 끝난 뒤)에 판을 바꿈
+                let shot = ShotInfo.of(self.turn, m, id: (self.lastShot?.id ?? 0) + 1)
+                self.lastShot = shot
+                try? await Task.sleep(nanoseconds: UInt64(shot.holdSec * 1_000_000_000))
+                guard !self.finished else { return }
                 self.apply(self.turn, m)
                 self.busy = false
                 self.startTurn()

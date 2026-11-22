@@ -49,7 +49,17 @@ sealed interface Screen {
 data class Explosion(val side: Side, val index: Int, val id: Int)
 
 /** 방울이 날아가 부딪히는 효과를 한 번만 틀기 위한 표식: [side]가 [from] 방울로 (상대 or 자기) [to] 방울을 침 */
-data class Shot(val side: Side, val from: Int, val toOpponent: Boolean, val to: Int, val id: Int)
+data class Shot(val side: Side, val from: Int, val toOpponent: Boolean, val to: Int, val id: Int, val kind: ShotKind = ShotKind.ADD)
+
+/** 효과 종류: 더하기(날아가 치기) · 분할(가위로 잘라 옆으로 보내기) · 부활(물약) */
+enum class ShotKind { ADD, SPLIT, REVIVE }
+
+/** 수 하나를 효과 표식으로 (분할은 빈 옆 방울로, 부활은 그 자리) */
+fun shotOf(side: Side, move: Move, id: Int): Shot = when (move) {
+    is Move.Add -> Shot(side, move.from, move.toOpponent, move.to, id)
+    is Move.Split -> Shot(side, move.from, false, 1 - move.from, id, ShotKind.SPLIT)
+    is Move.Revive -> Shot(side, move.index, false, move.index, id, ShotKind.REVIVE)
+}
 
 /** 💰 복냥이 효과가 터짐: [side]가 상대 [to] 방울을 쳐서 💰 +1 */
 data class LuckyHit(val side: Side, val to: Int, val id: Int)
@@ -658,8 +668,8 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
         } else {
             explosion
         }
-        val shot = (og.lastMove as? Move.Add)?.takeIf { newMove && lastMove >= 0 && og.lastBy != null }
-            ?.let { Shot(og.lastBy!!, it.from, it.toOpponent, it.to, og.moveNo) }
+        val shot = og.lastMove?.takeIf { newMove && lastMove >= 0 && og.lastBy != null }
+            ?.let { shotOf(og.lastBy!!, it, og.moveNo) }
         val luckyHit = (og.lastMove as? Move.Add)?.takeIf { newMove && og.lastLucky && og.lastBy != null }
             ?.let { LuckyHit(og.lastBy!!, it.to, og.moveNo) }
         return copy(
@@ -791,7 +801,7 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
             turnDeadline = if (w == null && side.opponent == g.mySide) System.currentTimeMillis() + (g.aiLevel?.turnSec ?: 20) * 1000L else null,
             turnSec = if (w == null && side.opponent == g.mySide) g.aiLevel?.turnSec else null,
             explosion = r.exploded?.let { Explosion(it.first, it.second, id) } ?: g.explosion,
-            lastShot = (move as? Move.Add)?.let { Shot(side, it.from, it.toOpponent, it.to, (g.lastShot?.id ?: 0) + 1) } ?: g.lastShot,
+            lastShot = shotOf(side, move, (g.lastShot?.id ?: 0) + 1),
             busy = false,
         )
     }

@@ -286,6 +286,8 @@ data class FlyingShot(
     val attack: Boolean,
     /** 이 방울을 치면 터짐 */
     val boom: Boolean,
+    /** 분할: 가위로 싹둑 자른 절반이 옆 방울로 날아감 */
+    val split: Boolean = false,
 )
 
 const val SHOT_FLY_MS = 520L
@@ -330,6 +332,21 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
     val orbPx = with(density) { (34 + s.power * 4).dp.toPx() }
 
     Canvas(Modifier.fillMaxSize()) {
+        // ✂️ 분할: 원래 방울을 대각선으로 싹둑 (빛나는 칼자국 + 반짝이)
+        if (s.split) {
+            val sp = (fly.value / 0.55f).coerceIn(0f, 1f)
+            val slashT = (fly.value / 0.3f).coerceIn(0f, 1f)
+            val fadeS = if (fly.value < 0.55f) 1f else (1f - (fly.value - 0.55f) / 0.45f).coerceIn(0f, 1f) * (if (hit.value > 0f) 0f else 1f)
+            val len = orbPx * 2.2f
+            val dir = Offset(0.75f, -0.66f)
+            val a0 = s.from - dir * len
+            val a1 = a0 + dir * (len * 2 * slashT)
+            drawLine(theme.main.copy(alpha = 0.55f * fadeS), a0, a1, orbPx * 0.45f, StrokeCap.Round)
+            drawLine(Color.White.copy(alpha = fadeS), a0, a1, orbPx * 0.16f, StrokeCap.Round)
+            // 칼끝 반짝
+            sparkle(a1, orbPx * 0.55f * fadeS, Color.White.copy(alpha = fadeS))
+            if (sp > 0.3f) burst(s.from, orbPx * 1.6f, ((sp - 0.3f) / 0.7f).coerceIn(0f, 1f), theme, ps, rays = 10)
+        }
         if (hit.value == 0f) {
             // 꼬리: 반짝이 + 캐릭터 모양
             trail.forEachIndexed { k, q ->
@@ -356,6 +373,20 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
             burst(s.to, orbPx * (1.5f + s.power * 0.08f) * (if (s.boom) 1.2f else 1f), hit.value, theme, ps, rays = if (s.boom) 18 else 12)
         }
     }
+    // ✂️ 가위가 휙 지나감
+    if (s.split && hit.value == 0f && fly.value < 0.6f) {
+        val k = (fly.value / 0.6f).coerceIn(0f, 1f)
+        val scPx = with(density) { 30.dp.toPx() }
+        val travel = orbPx * 2.2f
+        Text(
+            "✂️", fontSize = 44.sp,
+            modifier = Modifier
+                .offset { IntOffset((s.from.x - travel * 0.75f + travel * 1.5f * k).roundToInt(), (s.from.y + travel * 0.66f - travel * 1.32f * k - scPx).roundToInt()) }
+                .graphicsLayer { translationX = -size.width / 2; rotationZ = -40f + 30f * sin(k * 12f) }
+                .scale(0.6f + 0.8f * sin(k * PI.toFloat()))
+                .alpha(if (k < 0.8f) 1f else (1f - k) / 0.2f),
+        )
+    }
     // 방울 안의 캐릭터 (빙글빙글)
     if (hit.value == 0f) {
         val sizeDp = with(density) { (orbPx * 1.0f).toDp() }
@@ -370,7 +401,7 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
         // 부딪힌 자리에 +N
         val h = hit.value
         // 터지면 방울 쪽에서 "펑!"을 띄우니 여기선 더한 수만
-        val label = "+${s.power}"
+        val label = if (s.split) "✂️ +${s.power}" else "+${s.power}"
         val textPx = with(density) { 40.dp.toPx() }
         Text(
             label, fontSize = 28.sp, fontWeight = FontWeight.Black, color = Color.White,
@@ -793,4 +824,109 @@ fun CoinPopFx(c: CoinPop, onDone: (CoinPop) -> Unit) {
             .scale(if (tt < 0.12f) 0.3f + tt / 0.12f * 1.1f else 1.4f - (tt - 0.12f) * 0.35f)
             .alpha(if (tt < 0.7f) 1f else ((1f - tt) / 0.3f).coerceIn(0f, 1f)),
     )
+}
+
+
+// ======================= 💖 부활 =======================
+
+/** 물약이 떨어져 깨지기까지 (이때 살아난 방울이 보임) */
+const val REVIVE_DROP_MS = 540L
+
+/** 부활 효과 하나 (좌표는 [ShotLayer]와 같은 기준) */
+data class ReviveBurst(val key: Long, val at: Offset, val side: Side, val skin: Animal?)
+
+/**
+ * 💖 부활물약: 하늘에서 빛기둥이 내려오고, 물약이 떨어져 톡 깨지며
+ * 분홍 충격파 · 천사 고리 · 하트가 둥실둥실 솟아오르고 "💖 부활!"
+ */
+@Composable
+fun ReviveFx(r: ReviveBurst, onDone: (ReviveBurst) -> Unit) {
+    val p = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        p.animateTo(1f, tween(1_800, easing = LinearEasing))
+        onDone(r)
+    }
+    val pink = Color(0xFFFF5C8A)
+    val theme = remember { FxTheme(listOf(pink, Color(0xFFFFB3D1), Color.White, Ui.gold), listOf(FxShape.HEART, FxShape.STAR), "💖") }
+    val ps = remember { parts(28) }
+    val hearts = remember { parts(14) }
+    val density = LocalDensity.current
+    val unit = with(density) { 1.dp.toPx() }
+    val t = p.value
+    // 0 ~ 0.3: 물약이 떨어짐, 0.3: 톡! 깨짐
+    val dropT = (t / 0.3f).coerceIn(0f, 1f)
+    val after = ((t - 0.3f) / 0.7f).coerceIn(0f, 1f)
+    // (1800ms × 0.3 = 540ms = REVIVE_DROP_MS 에 깨짐)
+    val bottleY = r.at.y - 170f * unit * (1f - dropT * dropT)
+
+    Canvas(Modifier.fillMaxSize()) {
+        // 빛기둥 (위에서 내려옴)
+        val beamA = (if (t < 0.15f) t / 0.15f else 1f - ((t - 0.5f) / 0.5f).coerceIn(0f, 1f))
+        val beamW = 90f * unit * (0.6f + 0.4f * sin(t * 14f))
+        // 아래 끝은 방울 안에서 부드럽게 사라짐 + 바닥에 빛 웅덩이
+        val beamEnd = r.at.y + 30f * unit
+        drawRect(
+            Brush.verticalGradient(
+                0f to Color.Transparent, 0.55f to Color(0xFFFFE3EF).copy(alpha = 0.7f * beamA),
+                0.85f to Color.White.copy(alpha = 0.85f * beamA), 1f to Color.Transparent, startY = 0f, endY = beamEnd,
+            ),
+            Offset(r.at.x - beamW / 2, 0f), Size(beamW, beamEnd),
+        )
+        drawRect(
+            Brush.verticalGradient(0f to Color.Transparent, 0.85f to Color.White.copy(alpha = 0.95f * beamA), 1f to Color.Transparent, startY = 0f, endY = beamEnd),
+            Offset(r.at.x - beamW * 0.15f, 0f), Size(beamW * 0.3f, beamEnd),
+        )
+        drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.8f * beamA), Color(0xFFFFB3D1).copy(alpha = 0.4f * beamA), Color.Transparent), r.at, 80f * unit), 80f * unit, r.at)
+        // 깨질 때 분홍 폭발
+        if (after > 0f && after < 1f) burst(r.at, 95f * unit, after, theme, ps, rays = 16)
+        // 천사 고리 (방울 위에서 빙글)
+        if (after > 0f) {
+            val ringA = (if (after < 0.2f) after / 0.2f else 1f - ((after - 0.6f) / 0.4f).coerceIn(0f, 1f))
+            val ringC = r.at + Offset(0f, -78f * unit - 8f * unit * sin(after * 10f))
+            drawOval(Ui.gold.copy(alpha = 0.95f * ringA), Offset(ringC.x - 40f * unit, ringC.y - 10f * unit), Size(80f * unit, 20f * unit), style = Stroke(6f * unit))
+            drawOval(Color.White.copy(alpha = 0.8f * ringA), Offset(ringC.x - 40f * unit, ringC.y - 10f * unit), Size(80f * unit, 20f * unit), style = Stroke(2f * unit))
+            for (k in 0 until 5) {
+                val ang = after * 8f + k * 2f * PI.toFloat() / 5
+                val pos = ringC + Offset(cos(ang) * 40f * unit, sin(ang) * 10f * unit)
+                sparkle(pos, 6f * unit * ringA, Color.White.copy(alpha = ringA))
+            }
+        }
+        // 둥실둥실 솟아오르는 하트
+        hearts.forEachIndexed { i, q ->
+            val ht = ((after - q.a * 0.3f) / 0.7f).coerceIn(0f, 1f)
+            if (ht <= 0f || ht >= 1f) return@forEachIndexed
+            val x = r.at.x + (q.s - 0.5f) * 150f * unit + sin(ht * 9f + i) * 14f * unit
+            val y = r.at.y - ht * (120f + q.s * 90f) * unit
+            val a = if (ht < 0.7f) 1f else (1f - ht) / 0.3f
+            fxShape(FxShape.HEART, Offset(x, y), (7f + q.s * 7f) * unit, (if (i % 3 == 0) Color(0xFFFFB3D1) else pink).copy(alpha = a), q.spin * 20f)
+        }
+        // 떨어지는 물약 병
+        if (t < 0.32f) {
+            val c = Offset(r.at.x, bottleY)
+            val br = 16f * unit
+            drawCircle(Brush.radialGradient(listOf(Color(0xFFFFD6E6), Color.Transparent), c, br * 2.4f), br * 2.4f, c)
+            drawCircle(Brush.radialGradient(listOf(Color(0xFFFF9EC0), pink), c - Offset(br * 0.3f, br * 0.3f), br * 1.3f), br, c)
+            drawRoundRect(Color(0xFFFFD6E6), Offset(c.x - br * 0.35f, c.y - br * 1.55f), Size(br * 0.7f, br * 0.7f))
+            drawRoundRect(Color(0xFFB07A4F), Offset(c.x - br * 0.42f, c.y - br * 1.85f), Size(br * 0.84f, br * 0.4f))
+            fxShape(FxShape.HEART, c + Offset(0f, br * 0.1f), br * 0.45f, Color.White.copy(alpha = 0.9f))
+            sparkle(c + Offset(br * 0.9f, -br * 0.9f), br * 0.5f, Color.White)
+        }
+    }
+    // "💖 부활!"
+    if (after > 0f) {
+        val textPx = 60f * unit
+        Text(
+            "💖 " + tr("부활!", "Revived!", zh = "复活！", es = "¡Revive!", fr = "Ressuscité !", de = "Wiederbelebt!", pt = "Reviveu!", ru = "Ожил!", ja = "復活！"),
+            fontSize = 26.sp, fontWeight = FontWeight.Black,
+            style = TextStyle(
+                brush = Brush.verticalGradient(listOf(Color(0xFFFF7AA8), Color(0xFFE0115F))),
+                shadow = Shadow(Color.White, Offset(0f, 0f), 12f),
+            ),
+            modifier = Modifier
+                .offset { IntOffset(r.at.x.roundToInt(), (r.at.y - textPx - after * 30f * unit).roundToInt()) }
+                .graphicsLayer { translationX = -size.width / 2; translationY = -size.height / 2 }
+                .scale(if (after < 0.12f) 0.3f + after / 0.12f * 1.1f else 1.4f - (after - 0.12f) * 0.4f)
+                .alpha(if (after < 0.75f) 1f else ((1f - after) / 0.25f).coerceIn(0f, 1f)),
+        )
+    }
 }

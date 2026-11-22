@@ -361,4 +361,41 @@ class ScreenshotTest {
         shot("lucky_coin", 350)
         shot("lucky_coin2", 450)
     }
+
+    /** 분할: 가위로 싹둑 → 절반이 옆 방울로 */
+    @Test
+    fun splitFx() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(4, 0), ham = listOf(2, 2)), mySide = Side.CAT, turn = Side.CAT, busy = false, showIntro = false,
+                mySkin = com.bubble.game.game.Animal.DOG)
+        }
+        rule.mainClock.advanceTimeBy(500)
+        vm.debugSetGame { it.copy(board = Board(cat = listOf(2, 2), ham = listOf(2, 2), catSplits = 2), turn = Side.HAMSTER,
+            lastShot = Shot(Side.CAT, 0, false, 1, 5, ShotKind.SPLIT)) }
+        shot("split_slash", 160)
+        shot("split_fly", 220)
+    }
+
+    /** 부활: 빛기둥 + 물약 + 하트 */
+    @Test
+    fun reviveFx() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(0, 3), ham = listOf(2, 2), catRevives = 2), mySide = Side.CAT, turn = Side.CAT, busy = false, showIntro = false)
+        }
+        rule.mainClock.advanceTimeBy(500)
+        vm.debugSetGame { it.copy(board = Board(cat = listOf(1, 3), ham = listOf(2, 2), catRevives = 1), turn = Side.HAMSTER,
+            lastShot = Shot(Side.CAT, 0, false, 0, 6, ShotKind.REVIVE)) }
+        shot("revive_drop", 300)
+        shot("revive_burst", 500)
+    }
 }

@@ -103,134 +103,238 @@ private fun rowColors(position: Int, hue: Float): List<Color> = when (position) 
 
 private fun medal(position: Int) = when (position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "$position" }
 
+/** 4~10위 테마색: 4~5위 보라 · 6~7위 하늘 · 8~10위 분홍 */
+private fun tierColor(position: Int): Color = when (position) {
+    1 -> Color(0xFFFFC107)
+    2 -> Color(0xFFB0C4D6)
+    3 -> Color(0xFFFF9E57)
+    4, 5 -> Color(0xFFB388FF)
+    6, 7 -> Color(0xFF7FC8FF)
+    else -> Color(0xFFFF8FC8)
+}
+
 /** 랭킹 한 줄. 누르면 [onClick]으로 카드 팝업. */
 @Composable
 fun RankingRow(p: RankedPlayer, me: Boolean, onClick: () -> Unit) {
     val level = rankFxLevel(p.position)
     val first = p.position == 1
     val shape = RoundedCornerShape(if (level >= 1) 14.dp else 10.dp)
+    // 1위: 살짝 숨 쉬듯 커졌다 작아짐 + 이름이 금빛으로 일렁임
+    val t = rememberInfiniteTransition(label = "row")
+    val breathe by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_400), RepeatMode.Reverse), label = "breathe")
+    val goldShift by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_200, easing = LinearEasing)), label = "gold")
 
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(vertical = if (first) 5.dp else if (level >= 1) 2.dp else 0.dp),
+            .padding(vertical = if (first) 12.dp else if (level >= 8) 6.dp else if (level >= 1) 3.dp else 0.dp)
+            .scale(if (first) 1f + 0.018f * breathe else 1f),
     ) {
-        if (level >= 0) RowFx(p.position, level, shape, Modifier.matchParentSize())
+        if (level >= 0) RowFx(p.position, level, shape, front = false, modifier = Modifier.matchParentSize())
         Row(
             Modifier
                 .fillMaxWidth()
                 .clip(shape)
                 .background(if (me) Ui.primary.copy(alpha = 0.18f) else Color.Transparent, shape)
                 .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp, vertical = if (first) 12.dp else if (level >= 1) 7.dp else 5.dp),
+                .padding(horizontal = 8.dp, vertical = if (first) 16.dp else if (level >= 8) 10.dp else if (level >= 1) 8.dp else 5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.width(40.dp), contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.width(44.dp), contentAlignment = Alignment.Center) {
+                if (first) {
+                    Text("👑", fontSize = 16.sp, modifier = Modifier.offset(y = (-22 - 3 * breathe).dp).rotate(-12f + 8f * breathe))
+                }
                 Text(
                     medal(p.position),
-                    color = Ui.text, fontWeight = FontWeight.Bold, maxLines = 1,
-                    fontSize = when (p.position) { 1 -> 26.sp; 2, 3 -> 21.sp; else -> 14.sp },
+                    color = if (level >= 1) tierColor(p.position).copy(alpha = 1f).let { c -> lerpColor(c, Ui.text, 0.45f) } else Ui.text,
+                    fontWeight = FontWeight.Black, maxLines = 1,
+                    fontSize = when (p.position) { 1 -> 30.sp; 2, 3 -> 24.sp; in 4..10 -> 18.sp; else -> 14.sp },
                 )
             }
-            Text(Country.flag(p.country), fontSize = 16.sp, modifier = Modifier.width(26.dp))
-            Text(
-                p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else "",
-                modifier = Modifier.weight(1f), color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                fontWeight = if (level >= 1) FontWeight.Black else FontWeight.Normal,
-                fontSize = if (first) 17.sp else 14.sp,
-            )
+            Text(Country.flag(p.country), fontSize = if (first) 18.sp else 16.sp, modifier = Modifier.width(26.dp))
+            val name = p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
+            if (first) {
+                // 금빛 그라데이션 글자가 흐르듯 움직임
+                val x = goldShift * 600f
+                Text(
+                    name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = androidx.compose.ui.text.TextStyle(
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFF6B3E00), Color(0xFFA86400), Color(0xFFD99A00), Color(0xFFA86400), Color(0xFF6B3E00)),
+                            start = Offset(x - 300f, 0f), end = Offset(x, 0f),
+                            tileMode = androidx.compose.ui.graphics.TileMode.Mirror,
+                        ),
+                        fontSize = 18.sp, fontWeight = FontWeight.Black,
+                        shadow = androidx.compose.ui.graphics.Shadow(Color.White, Offset.Zero, 8f),
+                    ),
+                )
+            } else {
+                Text(
+                    name, modifier = Modifier.weight(1f), color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    fontWeight = if (level >= 1) FontWeight.Black else FontWeight.Normal,
+                    fontSize = if (level >= 8) 16.sp else 14.sp,
+                )
+            }
             RankBadge(p.score)
             Spacer(Modifier.width(8.dp))
             Text(
                 tr("${p.score}점", "${p.score} pts", zh = "${p.score} 分", hi = "${p.score} अंक", es = "${p.score} pts", fr = "${p.score} pts", ar = "${p.score} نقطة", de = "${p.score} Pkt", pt = "${p.score} pts", ru = "${p.score} очк.", ja = "${p.score}点"),
-                color = Ui.primaryDark, fontWeight = FontWeight.Bold,
+                color = if (first) Color(0xFFC77700) else Ui.primaryDark, fontWeight = FontWeight.Black,
+                fontSize = if (first) 16.sp else 14.sp,
             )
         }
+        if (level >= 1) RowFx(p.position, level, shape, front = true, modifier = Modifier.matchParentSize())
     }
 }
 
-/** 줄 뒤 배경(색·빛 줄기·테두리)과 앞쪽 반짝이 */
+private fun lerpColor(a: Color, b: Color, f: Float) = Color(
+    a.red + (b.red - a.red) * f, a.green + (b.green - a.green) * f, a.blue + (b.blue - a.blue) * f, 1f,
+)
+
+/**
+ * [front] false: 줄 뒤 (햇살·후광·배경·빛 줄기·빛나는 테두리)
+ * [front] true: 줄 앞 (반짝이·떠오르는 빛가루·도는 별빛)
+ */
 @Composable
-private fun RowFx(position: Int, level: Int, shape: RoundedCornerShape, modifier: Modifier) {
+private fun RowFx(position: Int, level: Int, shape: RoundedCornerShape, front: Boolean, modifier: Modifier) {
     val t = rememberInfiniteTransition(label = "rowFx")
     // 높은 순위일수록 빛 줄기가 빨리 지나감
-    val shine by t.animateFloat(-0.4f, 1.4f, infiniteRepeatable(tween(1_300 + (10 - level.coerceAtLeast(0)) * 170, easing = LinearEasing)), label = "shine")
+    val shine by t.animateFloat(-0.4f, 1.4f, infiniteRepeatable(tween(1_200 + (10 - level.coerceAtLeast(0)) * 170, easing = LinearEasing)), label = "shine")
     val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_500, easing = LinearEasing)), label = "tw")
     val hue by t.animateFloat(0f, 1f, infiniteRepeatable(tween(3_000, easing = LinearEasing)), label = "hue")
     val glow by t.animateFloat(0.35f, 1f, infiniteRepeatable(tween(850), RepeatMode.Reverse), label = "glow")
-    // 1위 10 → 10위 1: 반짝이 22 → 4 / 11~30위: 3개
-    val count = if (level >= 1) 2 + level * 2 else 3
+    val rise by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_600, easing = LinearEasing)), label = "rise")
+    val spin by t.animateFloat(0f, 360f, infiniteRepeatable(tween(9_000, easing = LinearEasing)), label = "spin")
+    // 1위 10 → 10위 1: 반짝이 32 → 5 / 11~30위: 3개
+    val count = if (level >= 1) 3 + level * 2 + (if (level == 10) 9 else 0) else 3
     val seeds = remember(position) {
         val r = Random(position * 97 + 13)
         List(count) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
     }
+    // 떠오르는 빛가루: 1위 18 → 10위 2
+    val motes = remember(position) {
+        val r = Random(position * 31 + 5)
+        List(if (level >= 1) level * 2 - 2 + (if (level == 10) 4 else 0) else 0) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
+    }
+    val tc = tierColor(position)
 
     Box(modifier) {
-        if (level >= 1) {
-            // 1~3위: 뒤에서 퍼지는 빛 (1위는 크게)
-            if (level >= 8) {
-                Canvas(Modifier.matchParentSize().scale(if (level == 10) 1.08f + 0.03f * glow else 1.04f)) {
-                    val c = if (level == 10) Color(0xFFFFC107) else if (level == 9) Color(0xFFB0BEC5) else Color(0xFFFF9E57)
-                    drawRoundRect(
-                        Brush.radialGradient(listOf(c.copy(alpha = (0.25f + level * 0.03f) * glow), Color.Transparent), radius = size.width * 0.7f),
-                        cornerRadius = CornerRadius(18.dp.toPx()),
-                    )
-                }
-            }
-            Canvas(Modifier.matchParentSize().clip(shape)) {
-                // 배경 (4~10위는 아래로 갈수록 옅게)
-                val a = if (position <= 3) 1f else 0.35f + level * 0.08f
-                drawRect(Brush.linearGradient(rowColors(position, hue).map { it.copy(alpha = it.alpha * a) }))
-                // 빛 줄기 (1위는 두 줄)
-                val bands = if (level == 10) listOf(shine, (shine + 0.9f) % 1.8f - 0.4f) else listOf(shine)
-                bands.forEach { b ->
-                    val x = b * size.width
-                    drawRect(
-                        Brush.linearGradient(
-                            listOf(Color.Transparent, Color.White.copy(alpha = 0.3f + level * 0.05f), Color.Transparent),
-                            start = Offset(x - size.height, 0f),
-                            end = Offset(x + size.height, size.height),
-                        ),
-                    )
-                }
-            }
-            // 테두리: 1위 무지개 · 2~3위 금속 · 4~7위 옅은 분홍
-            if (level >= 4) {
-                Canvas(Modifier.matchParentSize()) {
-                    val w = (if (level == 10) 3f else if (level >= 8) 2f else 1.2f) * density
-                    val brush = if (level == 10) {
-                        Brush.sweepGradient(List(7) { i -> Color.hsv((hue * 360f + i * 60f) % 360f, 0.55f, 1f) })
-                    } else {
-                        Brush.linearGradient(rowColors(position, hue).drop(1).map { it.copy(alpha = 0.9f) })
+        if (!front) {
+            if (level >= 1) {
+                // 1~3위: 메달 뒤에서 도는 햇살 (1위는 크고 길게)
+                if (level >= 8) {
+                    Canvas(Modifier.matchParentSize()) {
+                        val c = Offset(30.dp.toPx(), size.height / 2)
+                        val len = if (level == 10) size.width * 0.75f else size.width * 0.35f
+                        val rays = if (level == 10) 16 else 10
+                        val alpha = if (level == 10) 0.32f + 0.18f * glow else 0.18f + 0.08f * glow
+                        repeat(rays) { i ->
+                            val a0 = (spin / 360f + i.toFloat() / rays) * 2 * PI.toFloat()
+                            val w = if (i % 2 == 0) 0.09f else 0.05f
+                            val path = Path().apply {
+                                moveTo(c.x, c.y)
+                                lineTo(c.x + cos(a0 - w) * len, c.y + sin(a0 - w) * len)
+                                lineTo(c.x + cos(a0 + w) * len, c.y + sin(a0 + w) * len)
+                                close()
+                            }
+                            drawPath(path, Brush.radialGradient(listOf(tc.copy(alpha = alpha), Color.Transparent), center = c, radius = len))
+                        }
                     }
-                    drawRoundRect(brush, cornerRadius = CornerRadius(14.dp.toPx()), style = Stroke(w), alpha = if (level >= 8) 1f else 0.5f + 0.1f * (level - 4))
+                }
+                // 후광: 줄 바깥으로 번지는 빛 (위로 갈수록 크고 진하게)
+                Canvas(Modifier.matchParentSize().scale(1f + 0.012f * level + if (level == 10) 0.05f * glow else 0f, 1f + 0.05f * level + if (level == 10) 0.25f * glow else 0f)) {
+                    val a = (0.12f + level * 0.035f) * (0.6f + 0.4f * glow)
+                    drawRoundRect(
+                        Brush.radialGradient(listOf(tc.copy(alpha = a), tc.copy(alpha = a * 0.4f), Color.Transparent), radius = size.width * 0.62f),
+                        cornerRadius = CornerRadius(24.dp.toPx()),
+                    )
+                }
+                Canvas(Modifier.matchParentSize().clip(shape)) {
+                    // 배경 (4~10위는 아래로 갈수록 옅게)
+                    val bgA = if (position <= 3) 1f else 0.45f + level * 0.07f
+                    val cols = if (position <= 3) rowColors(position, hue) else listOf(Color.White, tc.copy(alpha = 0.35f), Color(0xFFFFE6F2), tc.copy(alpha = 0.25f))
+                    drawRect(Brush.linearGradient(cols.map { it.copy(alpha = it.alpha * bgA) }))
+                    // 1위: 안쪽에서 맥박처럼 빛나는 금빛
+                    if (level == 10) {
+                        drawRect(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.55f * glow), Color.Transparent), center = Offset(size.width * 0.3f, size.height / 2), radius = size.width * 0.5f))
+                    }
+                    // 빛 줄기 (1위 세 줄 · 2~3위 두 줄)
+                    val bands = when {
+                        level == 10 -> listOf(shine, (shine + 0.6f + 0.4f) % 1.8f - 0.4f, (shine + 1.2f + 0.4f) % 1.8f - 0.4f)
+                        level >= 8 -> listOf(shine, (shine + 0.9f + 0.4f) % 1.8f - 0.4f)
+                        else -> listOf(shine)
+                    }
+                    bands.forEach { b ->
+                        val x = b * size.width
+                        drawRect(
+                            Brush.linearGradient(
+                                listOf(Color.Transparent, Color.White.copy(alpha = 0.35f + level * 0.05f), Color.Transparent),
+                                start = Offset(x - size.height, 0f),
+                                end = Offset(x + size.height, size.height),
+                            ),
+                        )
+                    }
+                }
+                // 빛나는 테두리: 넓고 흐린 빛 + 선명한 선 (1위 무지개)
+                Canvas(Modifier.matchParentSize()) {
+                    val brush = if (level == 10) {
+                        Brush.sweepGradient(List(7) { i -> Color.hsv((hue * 360f + i * 60f) % 360f, 0.6f, 1f) })
+                    } else if (level >= 8) {
+                        Brush.linearGradient(rowColors(position, hue).drop(1))
+                    } else {
+                        Brush.linearGradient(listOf(tc, Color.White, tc))
+                    }
+                    val w = (if (level == 10) 3f else if (level >= 8) 2.2f else 1f + level * 0.15f) * density
+                    val cr = CornerRadius(14.dp.toPx())
+                    drawRoundRect(brush, cornerRadius = cr, style = Stroke(w * 3.5f), alpha = (0.12f + level * 0.025f) * (0.5f + 0.5f * glow))
+                    drawRoundRect(brush, cornerRadius = cr, style = Stroke(w), alpha = 0.55f + level * 0.045f)
+                }
+            }
+        } else {
+            Canvas(Modifier.matchParentSize()) {
+                // 떠오르는 빛가루
+                motes.forEachIndexed { i, (sx, ph, sz) ->
+                    val q = (rise * (0.7f + sz * 0.6f) + ph) % 1f
+                    val x = (0.08f + sx * 0.88f) * size.width + sin((q * 2 + sx) * PI.toFloat() * 2) * 4f * density
+                    // 글자를 가리지 않게 위·아래 가장자리에서만 떠오름
+                    val y = if (i % 2 == 0) size.height * (0.28f - q * 0.55f) else size.height * (1.25f - q * 0.5f)
+                    val a = sin(q * PI).toFloat()
+                    val r = (1.4f + sz * 1.8f + level * 0.12f) * density
+                    val col = if (level == 10) (if (i % 3 == 0) Color.White else Color(0xFFFFD54F)) else if (i % 2 == 0) Color.White else tc
+                    drawCircle(col.copy(alpha = a * 0.35f), r * 2.4f, Offset(x, y))
+                    drawCircle(col.copy(alpha = a), r, Offset(x, y))
                 }
             }
         }
-        // 반짝이
-        Canvas(Modifier.matchParentSize()) {
-            seeds.forEachIndexed { i, (sx, sy, ph) ->
-                val p = (twinkle * (1f + (i % 3) * 0.2f) + ph) % 1f
-                val a = sin(p * PI).toFloat()
-                val pos = Offset((0.12f + sx * 0.86f) * size.width, (sy * 1.2f - 0.1f) * size.height)
-                val base = if (level >= 1) 2.5f + level * 0.45f else 2.6f
-                val r = base * density * (0.4f + a * 0.8f)
-                val color = when {
-                    level == 10 -> listOf(Color(0xFFFFF59D), Color.White, Color(0xFFFFD54F), Color.hsv((hue * 360f + i * 50f) % 360f, 0.45f, 1f))[i % 4]
-                    level >= 8 -> if (i % 2 == 0) Color.White else Color(0xFFFFF3C4)
-                    level >= 1 -> if (i % 2 == 0) Color.White else Color(0xFFFFC1DE)
-                    else -> if (i % 2 == 0) Color(0xFFFFE27A) else Color(0xFFFFB3D6)
+        if (front || level == 0) {
+            // 반짝이
+            Canvas(Modifier.matchParentSize()) {
+                seeds.forEachIndexed { i, (sx, sy, ph) ->
+                    val p = (twinkle * (1f + (i % 3) * 0.2f) + ph) % 1f
+                    val a = sin(p * PI).toFloat()
+                    // 글자를 가리지 않게 테두리 근처(위·아래)에만
+                    val fy = if (sy < 0.5f) -0.12f + sy * 0.4f else 0.92f + (sy - 0.5f) * 0.4f
+                    val pos = Offset((0.03f + sx * 0.94f) * size.width, fy * size.height)
+                    val base = if (level >= 1) 2.6f + level * 0.5f else 2.6f
+                    val r = base * density * (0.4f + a * 0.8f)
+                    val color = when {
+                        level == 10 -> listOf(Color(0xFFFFF59D), Color.White, Color(0xFFFFD54F), Color.hsv((hue * 360f + i * 50f) % 360f, 0.45f, 1f))[i % 4]
+                        level >= 8 -> if (i % 2 == 0) Color.White else lerpColor(tc, Color.White, 0.5f)
+                        level >= 1 -> if (i % 2 == 0) Color.White else lerpColor(tc, Color.White, 0.3f)
+                        else -> if (i % 2 == 0) Color(0xFFFFE27A) else Color(0xFFFFB3D6)
+                    }
+                    twinkleStar(pos, r, color.copy(alpha = a * (if (level >= 1) 0.95f else 0.8f)))
                 }
-                twinkleStar(pos, r, color.copy(alpha = a * (if (level >= 1) 0.95f else 0.8f)))
-            }
-            // 1위: 왕관 주위로 도는 별빛
-            if (level == 10) {
-                val cx = 26.dp.toPx()
-                val cy = size.height / 2
-                repeat(3) { k ->
-                    val ang = (twinkle + k / 3f) * 2 * PI.toFloat()
-                    val pos = Offset(cx + cos(ang) * 22.dp.toPx(), cy + sin(ang) * 14.dp.toPx())
-                    twinkleStar(pos, 3.5f * density, Color(0xFFFFF8E1).copy(alpha = 0.9f))
+                // 1~3위: 메달 주위를 도는 별빛 (1위 5개)
+                if (level >= 8) {
+                    val cx = 30.dp.toPx()
+                    val cy = size.height / 2
+                    val n = if (level == 10) 5 else 2
+                    repeat(n) { k ->
+                        val ang = (twinkle + k.toFloat() / n) * 2 * PI.toFloat()
+                        val pos = Offset(cx + cos(ang) * 24.dp.toPx(), cy + sin(ang) * 16.dp.toPx())
+                        twinkleStar(pos, (if (level == 10) 4f else 3f) * density, Color(0xFFFFF8E1).copy(alpha = 0.95f))
+                    }
                 }
             }
         }

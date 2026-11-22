@@ -94,6 +94,27 @@ private func seeds(_ n: Int, _ seed: Int) -> [(CGFloat, CGFloat, CGFloat)] {
 
 // MARK: - 랭킹 한 줄
 
+/// 4~10위 테마색: 4~5위 보라 · 6~7위 하늘 · 8~10위 분홍
+private func tierColor(_ position: Int) -> Color {
+    switch position {
+    case 1: return Color(hex: 0xFFC107)
+    case 2: return Color(hex: 0xB0C4D6)
+    case 3: return Color(hex: 0xFF9E57)
+    case 4, 5: return Color(hex: 0xB388FF)
+    case 6, 7: return Color(hex: 0x7FC8FF)
+    default: return Color(hex: 0xFF8FC8)
+    }
+}
+
+private func medalColor(_ position: Int) -> Color {
+    switch position {
+    case 4, 5: return Color(hex: 0x8A63D8)
+    case 6, 7: return Color(hex: 0x4E95C8)
+    case 8, 9, 10: return Color(hex: 0xC8609A)
+    default: return UiColor.text
+    }
+}
+
 struct RankingRowView: View {
     let p: RankedPlayer
     let me: Bool
@@ -103,33 +124,74 @@ struct RankingRowView: View {
     private var first: Bool { p.position == 1 }
 
     var body: some View {
-        Button(action: onTap) { content }
-            .buttonStyle(.plain)
-            .padding(.vertical, first ? 5 : level >= 1 ? 2 : 0)
+        Group {
+            if first {
+                TimelineView(.animation) { tl in
+                    row(CGFloat(tl.date.timeIntervalSinceReferenceDate))
+                }
+            } else {
+                row(0)
+            }
+        }
+        .padding(.vertical, first ? 12 : level >= 8 ? 6 : level >= 1 ? 3 : 0)
     }
 
-    private var content: some View {
+    private func row(_ time: CGFloat) -> some View {
+        let breathe = 0.5 + 0.5 * lsin(time * 2.25)
+        return Button(action: onTap) { content(time, breathe) }
+            .buttonStyle(.plain)
+            .scaleEffect(first ? 1 + 0.018 * breathe : 1)
+    }
+
+    private func nameText(_ time: CGFloat) -> some View {
+        let name = p.name + (me ? t(" (나)") : "")
+        return Group {
+            if first {
+                // 금빛 그라데이션 글자가 흐르듯 움직임
+                let x = (time / 2.2).truncatingRemainder(dividingBy: 1)
+                Text(name).font(.system(size: 18, weight: .black)).lineLimit(1)
+                    .foregroundColor(.clear)
+                    .overlay(
+                        LinearGradient(colors: [Color(hex: 0x6B3E00), Color(hex: 0xA86400), Color(hex: 0xD99A00), Color(hex: 0xA86400), Color(hex: 0x6B3E00)],
+                                       startPoint: UnitPoint(x: x * 2 - 1, y: 0), endPoint: UnitPoint(x: x * 2 + 0.2, y: 0))
+                            .mask(Text(name).font(.system(size: 18, weight: .black)).lineLimit(1))
+                    )
+                    .shadow(color: .white, radius: 3)
+            } else {
+                Text(name).font(.system(size: level >= 8 ? 16 : 15, weight: level >= 1 ? .black : .regular))
+                    .foregroundColor(UiColor.text).lineLimit(1)
+            }
+        }
+    }
+
+    private func content(_ time: CGFloat, _ breathe: CGFloat) -> some View {
         HStack(spacing: 6) {
-            Text(medal(p.position))
-                .font(.system(size: p.position == 1 ? 26 : p.position <= 3 ? 21 : 15, weight: .bold))
-                .lineLimit(1).minimumScaleFactor(0.7).frame(width: 40, alignment: .leading)
-            Text(flag(p.country)).font(.system(size: 16)).frame(width: 24)
-            Text(p.name + (me ? t(" (나)") : ""))
-                .font(.system(size: first ? 17 : 15, weight: level >= 1 ? .black : .regular))
-                .foregroundColor(UiColor.text).lineLimit(1)
+            ZStack {
+                if first {
+                    Text("👑").font(.system(size: 16)).offset(y: -22 - 3 * breathe).rotationEffect(.degrees(Double(-12 + 8 * breathe)))
+                }
+                Text(medal(p.position))
+                    .font(.system(size: p.position == 1 ? 30 : p.position <= 3 ? 24 : level >= 1 ? 18 : 15, weight: .black))
+                    .foregroundColor(medalColor(p.position))
+                    .lineLimit(1).minimumScaleFactor(0.7)
+            }
+            .frame(width: 44)
+            Text(flag(p.country)).font(.system(size: first ? 18 : 16)).frame(width: 24)
+            nameText(time)
             Spacer(minLength: 4)
             RankBadge(score: p.score)
-            Text(pts(p.score)).font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.primaryDark)
+            Text(pts(p.score)).font(.system(size: first ? 16 : 15, weight: .black))
+                .foregroundColor(first ? Color(hex: 0xC77700) : UiColor.primaryDark)
         }
-        .padding(.horizontal, 8).padding(.vertical, first ? 12 : level >= 1 ? 7 : 5)
+        .padding(.horizontal, 8).padding(.vertical, first ? 16 : level >= 8 ? 10 : level >= 1 ? 8 : 5)
         .background(RoundedRectangle(cornerRadius: level >= 1 ? 14 : 10).fill(me ? UiColor.primary.opacity(0.18) : .clear))
-        .background(level >= 0 ? AnyView(RowFxView(position: p.position, level: level)) : AnyView(EmptyView()))
+        .background(level >= 1 ? AnyView(RowFxView(position: p.position, level: level)) : AnyView(EmptyView()))
         .overlay(level >= 0 ? AnyView(RowSparkles(position: p.position, level: level).allowsHitTesting(false)) : AnyView(EmptyView()))
         .contentShape(Rectangle())
     }
 }
 
-/// 줄 뒤: 배경색 · 빛 줄기 · 테두리 · (1~3위) 뒤로 퍼지는 빛
+/// 줄 뒤: 햇살(1~3위) · 후광 · 배경 · 빛 줄기 · 빛나는 테두리
 private struct RowFxView: View {
     let position: Int
     let level: Int
@@ -137,74 +199,142 @@ private struct RowFxView: View {
     var body: some View {
         TimelineView(.animation) { tl in
             let time = CGFloat(tl.date.timeIntervalSinceReferenceDate)
-            Canvas { ctx, size in draw(&ctx, size, time) }
+            ZStack {
+                if level >= 8 {
+                    Canvas { ctx, size in drawRays(&ctx, size, time) }
+                        .padding(-120)
+                }
+                Canvas { ctx, size in drawHalo(&ctx, size, time) }.padding(-24)
+                Canvas { ctx, size in drawBody(&ctx, size, time) }
+            }
         }
         .allowsHitTesting(false)
     }
 
-    private func draw(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
-        guard level >= 1 else { return }
+    private func glow(_ time: CGFloat) -> CGFloat { 0.35 + 0.65 * (0.5 + 0.5 * lsin(time * 3.7)) }
+
+    /// 메달 뒤에서 도는 햇살 (1위는 크고 길게). 캔버스가 사방 120 더 크니 그만큼 옮겨서 그림
+    private func drawRays(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let c = CGPoint(x: 120 + 30, y: size.height / 2)
+        let rowW = size.width - 240
+        let len = level == 10 ? rowW * 0.75 : rowW * 0.35
+        let rays = level == 10 ? 16 : 10
+        let g = glow(time)
+        let alpha = level == 10 ? 0.32 + 0.18 * g : 0.18 + 0.08 * g
+        let spin = time / 9 * lbTau
+        let grad = Gradient(colors: [tierColor(position).opacity(Double(alpha)), .clear])
+        for i in 0..<rays {
+            let a0 = spin + CGFloat(i) / CGFloat(rays) * lbTau
+            let w: CGFloat = i % 2 == 0 ? 0.09 : 0.05
+            var path = Path()
+            path.move(to: c)
+            path.addLine(to: CGPoint(x: c.x + lcos(a0 - w) * len, y: c.y + lsin(a0 - w) * len))
+            path.addLine(to: CGPoint(x: c.x + lcos(a0 + w) * len, y: c.y + lsin(a0 + w) * len))
+            path.closeSubpath()
+            ctx.fill(path, with: .radialGradient(grad, center: c, startRadius: 0, endRadius: len))
+        }
+    }
+
+    /// 줄 바깥으로 번지는 빛 (위로 갈수록 크고 진하게)
+    private func drawHalo(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let g = glow(time)
         let lv = CGFloat(level)
+        let a = (0.12 + lv * 0.035) * (0.6 + 0.4 * g)
+        let tc = tierColor(position)
+        let grow: CGFloat = level == 10 ? 6 * g : -10 + lv
+        let rect = CGRect(origin: .zero, size: size).insetBy(dx: 10 - grow, dy: 14 - grow)
+        let grad = Gradient(colors: [tc.opacity(Double(a)), tc.opacity(Double(a * 0.4)), .clear])
+        ctx.fill(Path(roundedRect: rect, cornerRadius: 24),
+                 with: .radialGradient(grad, center: CGPoint(x: size.width / 2, y: size.height / 2), startRadius: 0, endRadius: size.width * 0.55))
+    }
+
+    private func drawBody(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let lv = CGFloat(level)
+        let g = glow(time)
         let hue = (time / 3).truncatingRemainder(dividingBy: 1)
         let rect = CGRect(origin: .zero, size: size)
         let shape = Path(roundedRect: rect, cornerRadius: 14)
-        // 1~3위: 뒤에서 퍼지는 빛
-        if level >= 8 {
-            let glow = 0.35 + 0.65 * (0.5 + 0.5 * lsin(time * 3.7))
-            let c: Color = level == 10 ? Color(hex: 0xFFC107) : level == 9 ? Color(hex: 0xB0BEC5) : Color(hex: 0xFF9E57)
-            let grow: CGFloat = level == 10 ? 6 + 3 * glow : 3
-            let big = Path(roundedRect: rect.insetBy(dx: -grow, dy: -grow), cornerRadius: 18)
-            ctx.fill(big, with: .color(c.opacity(Double((0.25 + lv * 0.03) * glow))))
-        }
+        let tc = tierColor(position)
         // 배경 (4~10위는 아래로 갈수록 옅게)
-        let a: Double = position <= 3 ? 1 : Double(0.35 + lv * 0.08)
-        let cols = rowColors(position, hue).map { $0.opacity(a) }
-        ctx.fill(shape, with: .linearGradient(Gradient(colors: cols), startPoint: .zero, endPoint: CGPoint(x: size.width, y: size.height)))
-        // 빛 줄기 (1위는 두 줄)
-        let period = 1.3 + CGFloat(10 - level) * 0.17
+        let bgA: Double = position <= 3 ? 1 : Double(0.45 + lv * 0.07)
+        let cols: [Color] = position <= 3 ? rowColors(position, hue) : [.white, tc.opacity(0.35), Color(hex: 0xFFE6F2), tc.opacity(0.25)]
+        var body = ctx
+        body.clip(to: shape)
+        var bg = body
+        bg.opacity = bgA
+        bg.fill(Path(rect), with: .linearGradient(Gradient(colors: cols), startPoint: .zero, endPoint: CGPoint(x: size.width, y: size.height)))
+        // 1위: 안쪽에서 맥박처럼 빛나는 금빛
+        if level == 10 {
+            body.fill(Path(rect), with: .radialGradient(Gradient(colors: [Color.white.opacity(Double(0.55 * g)), .clear]),
+                                                        center: CGPoint(x: size.width * 0.3, y: size.height / 2), startRadius: 0, endRadius: size.width * 0.5))
+        }
+        // 빛 줄기 (1위 세 줄 · 2~3위 두 줄)
+        let period = 1.2 + CGFloat(10 - level) * 0.17
         let shine = (time / period).truncatingRemainder(dividingBy: 1) * 1.8 - 0.4
-        var bands = [shine]
-        if level == 10 { bands.append((shine + 0.9 + 0.4).truncatingRemainder(dividingBy: 1.8) - 0.4) }
-        var clip = ctx
-        clip.clip(to: shape)
-        for b in bands {
+        let n = level == 10 ? 3 : level >= 8 ? 2 : 1
+        for k in 0..<n {
+            let b = (shine + 0.4 + CGFloat(k) * 1.8 / CGFloat(n)).truncatingRemainder(dividingBy: 1.8) - 0.4
             let x = b * size.width
-            let g = Gradient(colors: [.clear, Color.white.opacity(Double(0.3 + lv * 0.05)), .clear])
-            clip.fill(Path(rect), with: .linearGradient(g, startPoint: CGPoint(x: x - size.height, y: 0), endPoint: CGPoint(x: x + size.height, y: size.height)))
+            let gr = Gradient(colors: [.clear, Color.white.opacity(Double(0.35 + lv * 0.05)), .clear])
+            body.fill(Path(rect), with: .linearGradient(gr, startPoint: CGPoint(x: x - size.height, y: 0), endPoint: CGPoint(x: x + size.height, y: size.height)))
         }
-        // 테두리: 1위 무지개 · 2~3위 금속 · 4~7위 옅게
-        if level >= 4 {
-            let w: CGFloat = level == 10 ? 3 : level >= 8 ? 2 : 1.2
-            let inner = Path(roundedRect: rect.insetBy(dx: w / 2, dy: w / 2), cornerRadius: 14)
-            let shading: GraphicsContext.Shading = level == 10
-                ? .conicGradient(Gradient(colors: rainbow(hue)), center: CGPoint(x: size.width / 2, y: size.height / 2))
-                : .linearGradient(Gradient(colors: Array(rowColors(position, hue).dropFirst())), startPoint: .zero, endPoint: CGPoint(x: size.width, y: size.height))
-            var b = ctx
-            b.opacity = level >= 8 ? 1 : Double(0.5 + 0.1 * CGFloat(level - 4))
-            b.stroke(inner, with: shading, lineWidth: w)
+        // 빛나는 테두리: 넓고 흐린 빛 + 선명한 선 (1위 무지개)
+        let w: CGFloat = level == 10 ? 3 : level >= 8 ? 2.2 : 1 + lv * 0.15
+        let shading: GraphicsContext.Shading
+        if level == 10 {
+            shading = .conicGradient(Gradient(colors: rainbow(hue)), center: CGPoint(x: size.width / 2, y: size.height / 2))
+        } else if level >= 8 {
+            shading = .linearGradient(Gradient(colors: Array(rowColors(position, hue).dropFirst())), startPoint: .zero, endPoint: CGPoint(x: size.width, y: size.height))
+        } else {
+            shading = .linearGradient(Gradient(colors: [tc, .white, tc]), startPoint: .zero, endPoint: CGPoint(x: size.width, y: size.height))
         }
+        let inner = Path(roundedRect: rect.insetBy(dx: w / 2, dy: w / 2), cornerRadius: 14)
+        var wide = ctx
+        wide.opacity = Double((0.12 + lv * 0.025) * (0.5 + 0.5 * g))
+        wide.stroke(inner, with: shading, lineWidth: w * 3.5)
+        var line = ctx
+        line.opacity = Double(0.55 + lv * 0.045)
+        line.stroke(inner, with: shading, lineWidth: w)
     }
 }
 
-/// 줄 앞 반짝이: 1위 22개 → 10위 4개, 11~30위 3개
+/// 줄 앞: 반짝이 (1위 32개 → 10위 5개, 11~30위 3개) · 떠오르는 빛가루 · 메달 주위 별빛.
+/// 글자를 가리지 않게 위·아래 가장자리에만.
 private struct RowSparkles: View {
     let position: Int
     let level: Int
 
     var body: some View {
-        let count = level >= 1 ? 2 + level * 2 : 3
+        let count = level >= 1 ? 3 + level * 2 + (level == 10 ? 9 : 0) : 3
         let ss = seeds(count, position * 97 + 13)
+        let motes = seeds(level >= 1 ? level * 2 - 2 + (level == 10 ? 4 : 0) : 0, position * 31 + 5)
         return TimelineView(.animation) { tl in
             let time = CGFloat(tl.date.timeIntervalSinceReferenceDate)
-            Canvas { ctx, size in draw(&ctx, size, time, ss) }
+            Canvas { ctx, size in
+                drawMotes(&ctx, size, time, motes)
+                draw(&ctx, size, time, ss)
+            }
         }
     }
 
     private func color(_ i: Int, _ hue: CGFloat) -> Color {
         if level == 10 { return [Color(hex: 0xFFF59D), .white, Color(hex: 0xFFD54F), hsv(hue + CGFloat(i) * 50 / 360, 0.45, 1)][i % 4] }
-        if level >= 8 { return i % 2 == 0 ? .white : Color(hex: 0xFFF3C4) }
-        if level >= 1 { return i % 2 == 0 ? .white : Color(hex: 0xFFC1DE) }
+        if level >= 1 { return i % 2 == 0 ? .white : tierColor(position).opacity(0.8) }
         return i % 2 == 0 ? Color(hex: 0xFFE27A) : Color(hex: 0xFFB3D6)
+    }
+
+    private func drawMotes(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat, _ ms: [(CGFloat, CGFloat, CGFloat)]) {
+        let rise = time / 2.6
+        for (i, m) in ms.enumerated() {
+            let q = (rise * (0.7 + m.2 * 0.6) + m.1).truncatingRemainder(dividingBy: 1)
+            let x = (0.08 + m.0 * 0.88) * size.width + lsin((q * 2 + m.0) * lbTau) * 4
+            let y = i % 2 == 0 ? size.height * (0.28 - q * 0.55) : size.height * (1.25 - q * 0.5)
+            let a = lsin(q * .pi)
+            let r = 1.4 + m.2 * 1.8 + CGFloat(level) * 0.12
+            let col: Color = level == 10 ? (i % 3 == 0 ? .white : Color(hex: 0xFFD54F)) : (i % 2 == 0 ? .white : tierColor(position))
+            ctx.fill(Path(ellipseIn: CGRect(x: x - r * 2.4, y: y - r * 2.4, width: r * 4.8, height: r * 4.8)), with: .color(col.opacity(Double(a * 0.35))))
+            ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(col.opacity(Double(a))))
+        }
     }
 
     private func draw(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat, _ ss: [(CGFloat, CGFloat, CGFloat)]) {
@@ -214,17 +344,19 @@ private struct RowSparkles: View {
             let speed = 1 + CGFloat(i % 3) * 0.2
             let p = (tw * speed + s.2).truncatingRemainder(dividingBy: 1)
             let a = lsin(p * .pi)
-            let pos = CGPoint(x: (0.12 + s.0 * 0.86) * size.width, y: (s.1 * 1.2 - 0.1) * size.height)
-            let base: CGFloat = level >= 1 ? 2.5 + CGFloat(level) * 0.45 : 2.6
+            let fy: CGFloat = s.1 < 0.5 ? -0.12 + s.1 * 0.4 : 0.92 + (s.1 - 0.5) * 0.4
+            let pos = CGPoint(x: (0.03 + s.0 * 0.94) * size.width, y: fy * size.height)
+            let base: CGFloat = level >= 1 ? 2.6 + CGFloat(level) * 0.5 : 2.6
             let maxA: CGFloat = level >= 1 ? 0.95 : 0.8
             twinkleStar(&ctx, pos, base * (0.4 + a * 0.8), color(i, hue).opacity(Double(a * maxA)))
         }
-        // 1위: 왕관 주위로 도는 별빛
-        if level == 10 {
-            for k in 0..<3 {
-                let ang = (tw + CGFloat(k) / 3) * lbTau
-                let pos = CGPoint(x: 26 + lcos(ang) * 22, y: size.height / 2 + lsin(ang) * 14)
-                twinkleStar(&ctx, pos, 3.5, Color(hex: 0xFFF8E1).opacity(0.9))
+        // 1~3위: 메달 주위를 도는 별빛 (1위 5개)
+        if level >= 8 {
+            let n = level == 10 ? 5 : 2
+            for k in 0..<n {
+                let ang = (tw + CGFloat(k) / CGFloat(n)) * lbTau
+                let pos = CGPoint(x: 30 + lcos(ang) * 24, y: size.height / 2 + lsin(ang) * 16)
+                twinkleStar(&ctx, pos, level == 10 ? 4 : 3, Color(hex: 0xFFF8E1).opacity(0.95))
             }
         }
     }

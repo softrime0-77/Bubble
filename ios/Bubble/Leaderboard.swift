@@ -364,7 +364,9 @@ private struct RowSparkles: View {
 
 // MARK: - 프로필 카드
 
-/// 랭킹 줄을 누르면 뜨는 작은 카드: 캐릭터 · 전체 닉네임 · 나라 · 계급 · 점수 · 전적
+private let confettiColors: [Color] = [Color(hex: 0xFFD54F), Color(hex: 0xFF7EB3), Color(hex: 0x7C6CF2), Color(hex: 0x6EE7B7), Color(hex: 0x7FC8FF), .white]
+
+/// 랭킹 줄을 누르면 뜨는 작은 카드: 캐릭터 · 전체 닉네임 · 나라 · 계급 · 점수 · 전적. 순위가 높을수록 화려하게.
 struct PlayerCardView: View {
     let p: RankedPlayer
     let me: Bool
@@ -372,6 +374,8 @@ struct PlayerCardView: View {
     @State private var pop: CGFloat = 0
 
     private var level: Int { rankFxLevel(p.position) }
+    private var first: Bool { p.position == 1 }
+    private var tc: Color { tierColor(p.position) }
 
     var body: some View {
         ZStack {
@@ -379,111 +383,285 @@ struct PlayerCardView: View {
             TimelineView(.animation) { tl in
                 let time = CGFloat(tl.date.timeIntervalSinceReferenceDate)
                 ZStack {
-                    if level >= 1 {
-                        Canvas { ctx, size in drawRays(&ctx, size, time) }.frame(width: 420, height: 420)
-                    }
-                    if level >= 0 {
-                        Canvas { ctx, size in drawStars(&ctx, size, time) }.frame(width: 360, height: 360)
-                    }
+                    Canvas { ctx, size in drawBackdrop(&ctx, size, time) }
+                        .ignoresSafeArea().allowsHitTesting(false).opacity(Double(min(1, pop)))
                     cardBody(time)
+                        .scaleEffect(0.6 + 0.4 * pop)
+                        .opacity(Double(min(1, pop)))
                 }
             }
-            .scaleEffect(0.7 + 0.3 * pop)
-            .opacity(Double(min(1, pop)))
         }
-        .onAppear { withAnimation(.spring(response: 0.45, dampingFraction: 0.6)) { pop = 1 } }
+        .onAppear { withAnimation(.spring(response: 0.5, dampingFraction: 0.55)) { pop = 1 } }
     }
 
-    private func drawRays(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
-        let rays = 6 + level
-        let c: Color = p.position == 1 ? Color(hex: 0xFFD54F) : p.position == 2 ? Color(hex: 0xE3EAF0) : p.position == 3 ? Color(hex: 0xFFB27A) : Color(hex: 0xFFB3D6)
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        let r = min(size.width, size.height) / 2
-        let spin = time / 14 * lbTau
-        let g = Gradient(colors: [c.opacity(Double(0.25 + CGFloat(level) * 0.04)), .clear])
-        for i in 0..<rays {
-            let a0 = CGFloat(i) / CGFloat(rays) * lbTau + spin
-            var path = Path()
-            path.move(to: center)
-            path.addLine(to: CGPoint(x: center.x + lcos(a0 - 0.11) * r, y: center.y + lsin(a0 - 0.11) * r))
-            path.addLine(to: CGPoint(x: center.x + lcos(a0 + 0.11) * r, y: center.y + lsin(a0 + 0.11) * r))
-            path.closeSubpath()
-            ctx.fill(path, with: .radialGradient(g, center: center, startRadius: 0, endRadius: r))
+    private func glow(_ time: CGFloat) -> CGFloat { 0.4 + 0.6 * (0.5 + 0.5 * lsin(time * 3.5)) }
+
+    // MARK: 배경 효과
+
+    private func drawBackdrop(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let c = CGPoint(x: size.width / 2, y: size.height / 2)
+        let g = glow(time)
+        let m = min(size.width, size.height)
+        // 카드 뒤 빛 웅덩이
+        let pa: CGFloat = level >= 1 ? 0.25 + CGFloat(level) * 0.04 : 0.18
+        let pr = m * (0.45 + CGFloat(max(level, 0)) * 0.02)
+        ctx.fill(Path(ellipseIn: CGRect(x: c.x - pr * 2, y: c.y - pr * 2, width: pr * 4, height: pr * 4)),
+                 with: .radialGradient(Gradient(colors: [tc.opacity(Double(pa * g)), .clear]), center: c, startRadius: 0, endRadius: pr))
+        if level >= 1 { drawRays(&ctx, c, m, time, g) }
+        if level >= 8 { drawFireworks(&ctx, size, time) }
+        drawStars(&ctx, size, time)
+        drawMotes(&ctx, size, time)
+        if level >= 8 { drawConfetti(&ctx, size, time) }
+    }
+
+    /// 도는 햇살: 1~10위, 1~3위는 반대로 도는 가는 햇살이 한 겹 더
+    private func drawRays(_ ctx: inout GraphicsContext, _ c: CGPoint, _ m: CGFloat, _ time: CGFloat, _ g: CGFloat) {
+        let r = m * (0.5 + CGFloat(level) * 0.03)
+        let layers = level >= 8 ? 2 : 1
+        for layer in 0..<layers {
+            let rays = layer == 0 ? 8 + level * 2 : 12 + level
+            let dir: CGFloat = layer == 0 ? 1 : -1.6
+            let w: CGFloat = layer == 0 ? 0.1 : 0.035
+            let col: Color = first && layer == 1 ? .white : tc
+            let base: CGFloat = layer == 0 ? 0.22 + CGFloat(level) * 0.035 : 0.3
+            let grad = Gradient(colors: [col.opacity(Double(base * (0.75 + 0.25 * g))), .clear])
+            let spin = time / 16 * lbTau * dir
+            for i in 0..<rays {
+                let a0 = spin + CGFloat(i) / CGFloat(rays) * lbTau
+                var path = Path()
+                path.move(to: c)
+                path.addLine(to: CGPoint(x: c.x + lcos(a0 - w) * r, y: c.y + lsin(a0 - w) * r))
+                path.addLine(to: CGPoint(x: c.x + lcos(a0 + w) * r, y: c.y + lsin(a0 + w) * r))
+                path.closeSubpath()
+                ctx.fill(path, with: .radialGradient(grad, center: c, startRadius: 0, endRadius: r))
+            }
+        }
+    }
+
+    /// 1~3위: 카드 둘레에서 팡팡 터지는 폭죽 (1위는 셋)
+    private func drawFireworks(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let spots: [CGPoint] = [CGPoint(x: 0.18, y: 0.2), CGPoint(x: 0.84, y: 0.26), CGPoint(x: 0.5, y: 0.1)]
+        let boom = (time / 1.5).truncatingRemainder(dividingBy: 3)
+        let n = first ? 3 : 1
+        for k in 0..<n {
+            var q = boom - CGFloat(k)
+            if q < 0 { q += 3 }
+            guard q < 1 else { continue }
+            let o = CGPoint(x: spots[k].x * size.width, y: spots[k].y * size.height)
+            let rr = 30 + 60 * q
+            let a = Double(1 - q)
+            for i in 0..<14 {
+                let ang = CGFloat(i) / 14 * lbTau
+                let col = confettiColors[(i + k) % confettiColors.count]
+                let pt = CGPoint(x: o.x + lcos(ang) * rr, y: o.y + lsin(ang) * rr + q * q * 30)
+                let inner = CGPoint(x: o.x + lcos(ang) * rr * 0.6, y: o.y + lsin(ang) * rr * 0.6)
+                var line = Path()
+                line.move(to: inner)
+                line.addLine(to: pt)
+                ctx.stroke(line, with: .color(col.opacity(a * 0.5)), lineWidth: 1.5)
+                let d = 3.2 - 1.6 * q
+                ctx.fill(Path(ellipseIn: CGRect(x: pt.x - d, y: pt.y - d, width: d * 2, height: d * 2)), with: .color(col.opacity(a)))
+            }
         }
     }
 
     private func drawStars(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
-        let n = level >= 1 ? 10 + level * 4 : 8
-        let ss = seeds(n, p.position * 7 + 3)
+        let ss = seeds(level >= 1 ? 14 + level * 5 : 10, p.position * 7 + 3)
         let tw = time / 1.6
         let hue = (time / 3).truncatingRemainder(dividingBy: 1)
         for (i, s) in ss.enumerated() {
             let q = (tw + s.2).truncatingRemainder(dividingBy: 1)
             let a = lsin(q * .pi)
-            let col: Color = p.position == 1 ? hsv(hue + CGFloat(i) * 40 / 360, 0.4, 1) : (i % 2 == 0 ? .white : Color(hex: 0xFFE27A))
-            let r = (3 + CGFloat(max(level, 0)) * 0.4) * (0.4 + a)
+            let col: Color = first ? hsv(hue + CGFloat(i) * 40 / 360, 0.4, 1) : (i % 2 == 0 ? .white : tc)
+            let r = (3.5 + CGFloat(max(level, 0)) * 0.45) * (0.4 + a)
             twinkleStar(&ctx, CGPoint(x: s.0 * size.width, y: s.1 * size.height), r, col.opacity(Double(a)))
         }
     }
 
+    private func drawMotes(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let ms = seeds(level >= 1 ? 8 + level * 3 : 8, p.position * 11 + 1)
+        let rise = time / 3.2
+        for (i, m) in ms.enumerated() {
+            let q = (rise * (0.6 + m.2 * 0.7) + m.1).truncatingRemainder(dividingBy: 1)
+            let x = m.0 * size.width + lsin((q * 3 + m.0) * lbTau) * 8
+            let y = size.height * (1.05 - q * 1.1)
+            let a = lsin(q * .pi)
+            let r = 2 + m.2 * 2.5
+            let col: Color = first ? (i % 3 == 0 ? .white : Color(hex: 0xFFD54F)) : (i % 2 == 0 ? .white : tc)
+            ctx.fill(Path(ellipseIn: CGRect(x: x - r * 2.6, y: y - r * 2.6, width: r * 5.2, height: r * 5.2)), with: .color(col.opacity(Double(a * 0.3))))
+            ctx.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)), with: .color(col.opacity(Double(a))))
+        }
+    }
+
+    /// 꽃가루 (1위 46 · 2~3위 20)
+    private func drawConfetti(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let cs = seeds(first ? 46 : 20, 41)
+        let fall = time / 4.2
+        for (i, s) in cs.enumerated() {
+            let q = (fall * (0.7 + s.2 * 0.6) + s.1).truncatingRemainder(dividingBy: 1)
+            let x = s.0 * size.width + lsin((q * 4 + s.0 * 7) * .pi) * 14
+            let y = size.height * (q * 1.1 - 0.05)
+            let h = 10 * (0.4 + 0.6 * abs(lcos((q * 6 + s.2) * lbTau)))
+            ctx.fill(Path(CGRect(x: x - 3, y: y - h / 2, width: 6, height: h)), with: .color(confettiColors[i % confettiColors.count].opacity(0.9)))
+        }
+    }
+
+    // MARK: 카드
+
     private var bg: [Color] {
         switch p.position {
-        case 1: return [Color(hex: 0xFFFBE6), Color(hex: 0xFFE9A6)]
-        case 2: return [Color.white, Color(hex: 0xE6ECF2)]
-        case 3: return [Color(hex: 0xFFF6EE), Color(hex: 0xFFDDBF)]
+        case 1: return [Color(hex: 0xFFFDF0), Color(hex: 0xFFEDB0), Color(hex: 0xFFD970)]
+        case 2: return [Color.white, Color(hex: 0xEDF1F6), Color(hex: 0xD5DEE7)]
+        case 3: return [Color(hex: 0xFFF8F1), Color(hex: 0xFFE2C8), Color(hex: 0xFFC898)]
+        case 4...10: return [Color.white, tc.opacity(0.18), tc.opacity(0.35)]
         default: return [Color.white, Color(hex: 0xF6EEFF)]
         }
     }
 
     private func border(_ hue: CGFloat) -> AnyShapeStyle {
-        if p.position == 1 { return AnyShapeStyle(AngularGradient(colors: rainbow(hue), center: .center)) }
-        if level >= 1 { return AnyShapeStyle(LinearGradient(colors: Array(rowColors(p.position, hue).dropFirst()), startPoint: .topLeading, endPoint: .bottomTrailing)) }
-        return AnyShapeStyle(LinearGradient(colors: [UiColor.primary.opacity(0.4), UiColor.accent.opacity(0.4)], startPoint: .leading, endPoint: .trailing))
-    }
-
-    private var positionText: String {
-        let n = p.position
-        let s = tr("\(n)위", "#\(n)", zh: "第\(n)名", ja: "\(n)位")
-        return n <= 3 ? "\(medal(n)) \(s)" : s
+        if first { return AnyShapeStyle(AngularGradient(colors: rainbow(hue), center: .center)) }
+        if level >= 8 { return AnyShapeStyle(LinearGradient(colors: Array(rowColors(p.position, hue).dropFirst()), startPoint: .topLeading, endPoint: .bottomTrailing)) }
+        if level >= 1 { return AnyShapeStyle(LinearGradient(colors: [tc, .white, tc], startPoint: .topLeading, endPoint: .bottomTrailing)) }
+        return AnyShapeStyle(LinearGradient(colors: [UiColor.primary.opacity(0.5), UiColor.accent.opacity(0.5)], startPoint: .leading, endPoint: .trailing))
     }
 
     private func cardBody(_ time: CGFloat) -> some View {
-        let bob = lsin(time * 2.85)
         let hue = (time / 3).truncatingRemainder(dividingBy: 1)
+        let g = glow(time)
+        let shape = RoundedRectangle(cornerRadius: 30)
+        let bw: CGFloat = first ? 4 : level >= 1 ? 3 : 2
         return VStack(spacing: 4) {
-            Text(positionText)
-                .font(.system(size: p.position == 1 ? 24 : 18, weight: .black))
-                .foregroundColor(p.position == 1 ? Color(hex: 0xD68A00) : UiColor.primaryDark)
-            ZStack(alignment: .top) {
-                Critter(side: .cat, skin: p.look, happy: true)
-                    .frame(width: p.position == 1 ? 120 : 100, height: p.position == 1 ? 120 : 100)
-                    .offset(y: bob * 4)
-                if p.position == 1 {
-                    Text("👑").font(.system(size: 34)).offset(y: -20 + bob * 3).rotationEffect(.degrees(Double(bob * 8)))
-                }
-            }
-            .padding(.vertical, 4)
-            info
+            title(g)
+            critter(time)
+            info(time)
             closeButton.padding(.top, 10)
         }
         .padding(20)
-        .frame(width: 280)
-        .background(RoundedRectangle(cornerRadius: 28).fill(LinearGradient(colors: bg, startPoint: .top, endPoint: .bottom)))
-        .overlay(RoundedRectangle(cornerRadius: 28).strokeBorder(border(hue), lineWidth: p.position == 1 ? 3 : 2))
+        .frame(width: 290)
+        .background(shape.fill(LinearGradient(colors: bg, startPoint: .top, endPoint: .bottom)))
+        .overlay(Canvas { ctx, size in drawCardShine(&ctx, size, time) }.clipShape(shape).allowsHitTesting(false))
+        .overlay(shape.strokeBorder(border(hue), lineWidth: bw))
+        .background(level >= 1 ? AnyView(shape.stroke(border(hue), lineWidth: 8 + CGFloat(level) * 2.8).opacity(Double((0.18 + CGFloat(level) * 0.025) * g))) : AnyView(EmptyView()))
+        .overlay(level >= 1 ? AnyView(Canvas { ctx, size in drawCorners(&ctx, size, time) }.allowsHitTesting(false)) : AnyView(EmptyView()))
         .onTapGesture {}
     }
 
-    private var info: some View {
-        VStack(spacing: 4) {
-            Text(p.name + (me ? t(" (나)") : ""))
-                .font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
+    /// 카드를 훑고 지나가는 빛 줄기 (1~3위 두 줄)
+    private func drawCardShine(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let shine = (time / 2).truncatingRemainder(dividingBy: 1) * 2 - 0.5
+        let n = level >= 8 ? 2 : 1
+        let alpha: Double = level >= 1 ? 0.55 : 0.35
+        for k in 0..<n {
+            let b = (shine + 0.5 + CGFloat(k)).truncatingRemainder(dividingBy: 2) - 0.5
+            let x = b * size.width
+            let g = Gradient(colors: [.clear, Color.white.opacity(alpha), .clear])
+            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .linearGradient(g, startPoint: CGPoint(x: x - 45, y: 0), endPoint: CGPoint(x: x + 45, y: size.height * 0.4)))
+        }
+    }
+
+    /// 카드 모서리에서 반짝이는 별 (1~10위)
+    private func drawCorners(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let corners = [CGPoint(x: 6, y: 6), CGPoint(x: size.width - 6, y: 8), CGPoint(x: size.width - 8, y: size.height - 6), CGPoint(x: 7, y: size.height - 8)]
+        let tw = time / 1.6
+        for (i, o) in corners.enumerated() {
+            let q = (tw + CGFloat(i) * 0.25).truncatingRemainder(dividingBy: 1)
+            let a = lsin(q * .pi)
+            let col: Color = first ? Color(hex: 0xFFF59D) : .white
+            twinkleStar(&ctx, o, (5 + CGFloat(level) * 0.5) * (0.5 + a * 0.7), col.opacity(Double(a)))
+        }
+    }
+
+    /// 순위 리본
+    @ViewBuilder private func title(_ g: CGFloat) -> some View {
+        let n = p.position
+        let label = tr("\(n)위", "#\(n)", zh: "第\(n)名", ja: "\(n)位")
+        let text = n <= 3 ? "\(medal(n)) \(label)" : label
+        if level >= 1 {
+            let cols: [Color] = n == 1 ? [Color(hex: 0xFFB300), Color(hex: 0xFFE082), Color(hex: 0xFFB300)]
+                : n == 2 ? [Color(hex: 0x90A4AE), Color(hex: 0xECEFF1), Color(hex: 0x90A4AE)]
+                : n == 3 ? [Color(hex: 0xE0803A), Color(hex: 0xFFD2A8), Color(hex: 0xE0803A)]
+                : [tc, tc.opacity(0.5), tc]
+            let fg: Color = n == 1 || n == 3 ? Color(hex: 0x5A3A00) : n == 2 ? Color(hex: 0x37474F) : .white
+            Text(text)
+                .font(.system(size: n == 1 ? 26 : 20, weight: .black)).foregroundColor(fg)
+                .padding(.horizontal, 18).padding(.vertical, 4)
+                .background(Capsule().fill(LinearGradient(colors: cols, startPoint: .leading, endPoint: .trailing)))
+                .overlay(Capsule().stroke(Color.white.opacity(0.8), lineWidth: 2))
+                .scaleEffect(1 + 0.04 * g * (n == 1 ? 1 : 0.4))
+        } else {
+            Text(text).font(.system(size: 18, weight: .black)).foregroundColor(UiColor.primaryDark)
+        }
+    }
+
+    /// 캐릭터: 뒤에서 빛나는 후광 · 빛 고리 · 도는 별빛 · 1위 왕관
+    private func critter(_ time: CGFloat) -> some View {
+        let bob = lsin(time * 2.85)
+        let sz: CGFloat = first ? 130 : level >= 1 ? 112 : 100
+        return ZStack(alignment: .top) {
+            Canvas { ctx, size in drawCritterGlow(&ctx, size, time) }.frame(width: sz + 40, height: sz + 40)
+            Critter(side: .cat, skin: p.look, happy: true)
+                .frame(width: sz, height: sz).offset(y: 20 + bob * 4)
+            if first {
+                Text("👑").font(.system(size: 40)).offset(y: -6 + bob * 3).rotationEffect(.degrees(Double(bob * 8)))
+            }
+        }
+        .frame(width: sz + 40, height: sz + 40)
+    }
+
+    private func drawCritterGlow(_ ctx: inout GraphicsContext, _ size: CGSize, _ time: CGFloat) {
+        let c = CGPoint(x: size.width / 2, y: size.height / 2)
+        let r = min(size.width, size.height) / 2
+        let g = glow(time)
+        let hue = (time / 3).truncatingRemainder(dividingBy: 1)
+        let a: CGFloat = level >= 1 ? 0.35 + CGFloat(level) * 0.04 : 0.25
+        ctx.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)),
+                 with: .radialGradient(Gradient(colors: [tc.opacity(Double(a * g)), .clear]), center: c, startRadius: 0, endRadius: r))
+        if level >= 8 {
+            let rr = r * 0.88
+            let cols: [Color] = first ? rainbow(hue) : [tc, tc.opacity(0.2), tc, tc.opacity(0.2), tc]
+            var ring = ctx
+            ring.opacity = 0.7
+            ring.stroke(Path(ellipseIn: CGRect(x: c.x - rr, y: c.y - rr, width: rr * 2, height: rr * 2)),
+                        with: .conicGradient(Gradient(colors: cols), center: c), lineWidth: 3)
+        }
+        let n = level >= 8 ? 6 : level >= 1 ? 3 : 0
+        let tw = time / 1.6
+        for k in 0..<n {
+            let ang = (tw + CGFloat(k) / CGFloat(n)) * lbTau
+            let pos = CGPoint(x: c.x + lcos(ang) * r * 0.88, y: c.y + lsin(ang) * r * 0.88)
+            twinkleStar(&ctx, pos, first ? 6 : 4.5, (first ? Color(hex: 0xFFF59D) : Color.white).opacity(0.95))
+        }
+    }
+
+    @ViewBuilder private func nameView(_ time: CGFloat) -> some View {
+        let name = p.name + (me ? t(" (나)") : "")
+        if first {
+            let x = (time / 2).truncatingRemainder(dividingBy: 1)
+            Text(name).font(.system(size: 22, weight: .black)).multilineTextAlignment(.center).lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundColor(.clear)
+                .overlay(
+                    LinearGradient(colors: [Color(hex: 0x6B3E00), Color(hex: 0xA86400), Color(hex: 0xD99A00), Color(hex: 0xA86400), Color(hex: 0x6B3E00)],
+                                   startPoint: UnitPoint(x: x * 2 - 1, y: 0), endPoint: UnitPoint(x: x * 2 + 0.2, y: 0))
+                        .mask(Text(name).font(.system(size: 22, weight: .black)).multilineTextAlignment(.center).lineLimit(3))
+                )
+                .shadow(color: .white, radius: 4)
+        } else {
+            Text(name).font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
                 .multilineTextAlignment(.center).lineLimit(3).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func info(_ time: CGFloat) -> some View {
+        VStack(spacing: 4) {
+            nameView(time)
             Text("\(flag(p.country)) \(countryName(p.country).isEmpty ? tr("알 수 없음", "Unknown", zh: "未知", es: "Desconocido", fr: "Inconnu", de: "Unbekannt", pt: "Desconhecido", ru: "Неизвестно", ja: "不明") : countryName(p.country))")
                 .font(.system(size: 15)).foregroundColor(UiColor.text.opacity(0.8))
             Text("🐾 " + (p.look?.label ?? tr("기본 고양이", "Basic Cat", zh: "基础猫咪", es: "Gato básico", fr: "Chat de base", de: "Standardkatze", pt: "Gato básico", ru: "Обычный котик", ja: "ふつうのネコ")))
                 .font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.7))
             RankBadge(score: p.score, large: true).padding(.top, 8)
-            Text(pts(p.score)).font(.system(size: 22, weight: .black)).foregroundColor(UiColor.primaryDark).padding(.top, 4)
+            Text(pts(p.score)).font(.system(size: first ? 26 : 22, weight: .black))
+                .foregroundColor(first ? Color(hex: 0xC77700) : UiColor.primaryDark).padding(.top, 4)
             if let w = p.wins, let l = p.losses {
                 Text(tr("\(w)승 \(l)패", "\(w)W \(l)L", zh: "\(w)胜 \(l)负", es: "\(w)V \(l)D", fr: "\(w)V \(l)D", de: "\(w)S \(l)N", pt: "\(w)V \(l)D", ru: "\(w)В \(l)П", ja: "\(w)勝 \(l)敗"))
                     .font(.system(size: 14)).foregroundColor(UiColor.text.opacity(0.7))
@@ -492,11 +670,12 @@ struct PlayerCardView: View {
     }
 
     private var closeButton: some View {
-        Button(action: onClose) {
+        let cols: [Color] = first ? [Color(hex: 0xFFB300), Color(hex: 0xFF7EB3), Color(hex: 0x7C6CF2)] : [UiColor.primary, UiColor.accent]
+        return Button(action: onClose) {
             Text(tr("닫기", "Close", zh: "关闭", es: "Cerrar", fr: "Fermer", de: "Schließen", pt: "Fechar", ru: "Закрыть", ja: "閉じる"))
                 .font(.system(size: 16, weight: .black)).foregroundColor(.white)
-                .frame(maxWidth: .infinity).padding(.vertical, 10)
-                .background(Capsule().fill(LinearGradient(colors: [UiColor.primary, UiColor.accent], startPoint: .leading, endPoint: .trailing)))
+                .frame(maxWidth: .infinity).padding(.vertical, 11)
+                .background(Capsule().fill(LinearGradient(colors: cols, startPoint: .leading, endPoint: .trailing)))
         }
         .buttonStyle(.plain)
     }

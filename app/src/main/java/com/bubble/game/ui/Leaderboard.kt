@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
@@ -355,140 +356,333 @@ private fun DrawScope.twinkleStar(c: Offset, r: Float, color: Color) {
     drawCircle(color.copy(alpha = color.alpha * 0.35f), r * 0.9f, c)
 }
 
-/** 랭킹 줄을 누르면 뜨는 작은 카드: 캐릭터 · 전체 닉네임 · 나라 · 계급 · 점수 · 전적 */
+/** 랭킹 줄을 누르면 뜨는 작은 카드: 캐릭터 · 전체 닉네임 · 나라 · 계급 · 점수 · 전적. 순위가 높을수록 화려하게. */
 @Composable
 fun PlayerCardDialog(p: RankedPlayer, me: Boolean, onDismiss: () -> Unit) {
     val level = rankFxLevel(p.position)
+    val tc = tierColor(p.position)
     val t = rememberInfiniteTransition(label = "card")
-    val spin by t.animateFloat(0f, 360f, infiniteRepeatable(tween(14_000, easing = LinearEasing)), label = "spin")
+    val spin by t.animateFloat(0f, 360f, infiniteRepeatable(tween(16_000, easing = LinearEasing)), label = "spin")
     val bob by t.animateFloat(-1f, 1f, infiniteRepeatable(tween(1_100), RepeatMode.Reverse), label = "bob")
     val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_600, easing = LinearEasing)), label = "tw")
     val hue by t.animateFloat(0f, 1f, infiniteRepeatable(tween(3_000, easing = LinearEasing)), label = "hue")
+    val glow by t.animateFloat(0.4f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "glow")
+    val rise by t.animateFloat(0f, 1f, infiniteRepeatable(tween(3_200, easing = LinearEasing)), label = "rise")
+    val fall by t.animateFloat(0f, 1f, infiniteRepeatable(tween(4_200, easing = LinearEasing)), label = "fall")
+    val boom by t.animateFloat(0f, 3f, infiniteRepeatable(tween(4_500, easing = LinearEasing)), label = "boom")
+    val shine by t.animateFloat(-0.5f, 1.5f, infiniteRepeatable(tween(2_000, easing = LinearEasing)), label = "shine")
     val pop = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow)) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMediumLow)) }
     val stars = remember(level) {
         val r = Random(p.position * 7 + 3)
-        List(if (level >= 1) 10 + level * 4 else if (level == 0) 8 else 0) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
+        List(if (level >= 1) 14 + level * 5 else 10) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
     }
+    val motes = remember(level) {
+        val r = Random(p.position * 11 + 1)
+        List(if (level >= 1) 8 + level * 3 else 8) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
+    }
+    val confetti = remember(level) {
+        val r = Random(41)
+        List(if (level == 10) 46 else if (level >= 8) 20 else 0) { Triple(r.nextFloat(), r.nextFloat(), r.nextFloat()) }
+    }
+    val fx = FxCard(level, tc, spin, twinkle, hue, glow, rise, fall, boom, shine, bob)
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             Modifier
                 .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.35f))
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
-            // 1~10위: 뒤에서 도는 빛 줄기 (1위가 가장 많고 진함)
-            if (level >= 1) {
-                Canvas(Modifier.size(420.dp).rotate(spin).alpha(pop.value.coerceIn(0f, 1f))) {
-                    val rays = 6 + level
-                    val c = when (p.position) { 1 -> Color(0xFFFFD54F); 2 -> Color(0xFFE3EAF0); 3 -> Color(0xFFFFB27A); else -> Color(0xFFFFB3D6) }
-                    repeat(rays) { i ->
-                        val a0 = (i.toFloat() / rays) * 2 * PI.toFloat()
-                        val w = 0.11f
-                        val r = size.minDimension / 2
-                        val path = Path().apply {
-                            moveTo(center.x, center.y)
-                            lineTo(center.x + cos(a0 - w) * r, center.y + sin(a0 - w) * r)
-                            lineTo(center.x + cos(a0 + w) * r, center.y + sin(a0 + w) * r)
-                            close()
-                        }
-                        drawPath(path, Brush.radialGradient(listOf(c.copy(alpha = 0.25f + level * 0.04f), Color.Transparent), center = center, radius = r))
-                    }
-                }
+            val shown = pop.value.coerceIn(0f, 1f)
+            Canvas(Modifier.fillMaxSize().alpha(shown)) {
+                cardBackdrop(fx, p.position, stars, motes, confetti)
             }
-            // 반짝이 (11~30위도 조금)
-            if (stars.isNotEmpty()) {
-                Canvas(Modifier.size(360.dp)) {
-                    stars.forEachIndexed { i, (sx, sy, ph) ->
-                        val q = (twinkle + ph) % 1f
-                        val a = sin(q * PI).toFloat()
-                        val color = if (p.position == 1) Color.hsv((hue * 360f + i * 40f) % 360f, 0.4f, 1f) else if (i % 2 == 0) Color.White else Color(0xFFFFE27A)
-                        twinkleStar(Offset(sx * size.width, sy * size.height), (3f + level.coerceAtLeast(0) * 0.4f) * density * (0.4f + a), color.copy(alpha = a))
-                    }
-                }
-            }
-            CardBody(p, me, level, bob, hue, Modifier.scale(0.7f + 0.3f * pop.value).alpha(pop.value.coerceIn(0f, 1f)), onDismiss)
+            CardBody(p, me, fx, Modifier.scale(0.6f + 0.4f * pop.value).alpha(shown), onDismiss)
         }
     }
 }
 
-@Composable
-private fun CardBody(p: RankedPlayer, me: Boolean, level: Int, bob: Float, hue: Float, modifier: Modifier, onDismiss: () -> Unit) {
-    val bg = when (p.position) {
-        1 -> listOf(Color(0xFFFFFBE6), Color(0xFFFFE9A6))
-        2 -> listOf(Color(0xFFFFFFFF), Color(0xFFE6ECF2))
-        3 -> listOf(Color(0xFFFFF6EE), Color(0xFFFFDDBF))
-        else -> listOf(Color(0xFFFFFFFF), Color(0xFFF6EEFF))
+/** 카드 애니메이션 값 묶음 */
+private class FxCard(
+    val level: Int, val tc: Color, val spin: Float, val twinkle: Float, val hue: Float, val glow: Float,
+    val rise: Float, val fall: Float, val boom: Float, val shine: Float, val bob: Float,
+)
+
+private val confettiColors = listOf(Color(0xFFFFD54F), Color(0xFFFF7EB3), Color(0xFF7C6CF2), Color(0xFF6EE7B7), Color(0xFF7FC8FF), Color.White)
+
+/** 카드 뒤 화면 전체: 빛 웅덩이 · 도는 햇살(두 겹) · 폭죽 · 반짝이 · 떠오르는 빛가루 · 꽃가루 */
+private fun DrawScope.cardBackdrop(
+    fx: FxCard, position: Int,
+    stars: List<Triple<Float, Float, Float>>, motes: List<Triple<Float, Float, Float>>, confetti: List<Triple<Float, Float, Float>>,
+) {
+    val level = fx.level
+    val c = center
+    val tau = 2 * PI.toFloat()
+    // 카드 뒤 빛 웅덩이
+    if (level >= 0) {
+        val a = if (level >= 1) 0.25f + level * 0.04f else 0.18f
+        drawCircle(Brush.radialGradient(listOf(fx.tc.copy(alpha = a * fx.glow), Color.Transparent), center = c, radius = size.minDimension * (0.45f + level.coerceAtLeast(0) * 0.02f)), size.minDimension, c)
     }
-    val border = when {
-        p.position == 1 -> Brush.sweepGradient(List(7) { i -> Color.hsv((hue * 360f + i * 60f) % 360f, 0.55f, 1f) })
-        level >= 1 -> Brush.linearGradient(rowColors(p.position, hue).drop(1))
-        else -> Brush.linearGradient(listOf(Ui.primary.copy(alpha = 0.4f), Ui.accent.copy(alpha = 0.4f)))
-    }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .padding(36.dp)
-            .width(280.dp)
-            .background(Brush.verticalGradient(bg), RoundedCornerShape(28.dp))
-            .border(if (p.position == 1) 3.dp else 2.dp, border, RoundedCornerShape(28.dp))
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-    ) {
-        // 순위
-        Text(
-            if (p.position <= 3) "${medal(p.position)} " + tr("${p.position}위", "#${p.position}", zh = "第${p.position}名", ja = "${p.position}位")
-            else tr("${p.position}위", "#${p.position}", zh = "第${p.position}名", ja = "${p.position}位"),
-            fontSize = if (p.position == 1) 24.sp else 18.sp, fontWeight = FontWeight.Black,
-            color = if (p.position == 1) Color(0xFFD68A00) else Ui.primaryDark,
-        )
-        Spacer(Modifier.height(6.dp))
-        Box(contentAlignment = Alignment.TopCenter) {
-            Critter(Side.CAT, Modifier.size(if (p.position == 1) 120.dp else 100.dp).offset(y = (bob * 4).dp), skin = p.look, happy = true)
-            if (p.position == 1) {
-                Text("👑", fontSize = 34.sp, modifier = Modifier.offset(y = (-20 + bob * 3).dp).rotate(bob * 8f))
+    // 도는 햇살: 1~10위, 1~3위는 반대로 도는 가는 햇살이 한 겹 더
+    if (level >= 1) {
+        val r = size.minDimension * (0.5f + level * 0.03f)
+        val layers = if (level >= 8) 2 else 1
+        repeat(layers) { layer ->
+            val rays = if (layer == 0) 8 + level * 2 else 12 + level
+            val dir = if (layer == 0) 1f else -1.6f
+            val w = if (layer == 0) 0.1f else 0.035f
+            val col = if (position == 1 && layer == 1) Color.White else fx.tc
+            val alpha = (if (layer == 0) 0.22f + level * 0.035f else 0.3f) * (0.75f + 0.25f * fx.glow)
+            repeat(rays) { i ->
+                val a0 = (fx.spin * dir / 360f + i.toFloat() / rays) * tau
+                val path = Path().apply {
+                    moveTo(c.x, c.y)
+                    lineTo(c.x + cos(a0 - w) * r, c.y + sin(a0 - w) * r)
+                    lineTo(c.x + cos(a0 + w) * r, c.y + sin(a0 + w) * r)
+                    close()
+                }
+                drawPath(path, Brush.radialGradient(listOf(col.copy(alpha = alpha), Color.Transparent), center = c, radius = r))
             }
         }
-        Spacer(Modifier.height(6.dp))
-        // 닉네임 전체 (잘리지 않게 줄바꿈)
-        Text(
-            p.name + if (me) tr(" (나)", " (me)", zh = " (我)", es = " (yo)", fr = " (moi)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else "",
-            fontSize = 20.sp, fontWeight = FontWeight.Black, color = Ui.text, textAlign = TextAlign.Center, maxLines = 3,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "${Country.flag(p.country)} ${Country.name(p.country).ifBlank { tr("알 수 없음", "Unknown", zh = "未知", es = "Desconocido", fr = "Inconnu", de = "Unbekannt", pt = "Desconhecido", ru = "Неизвестно", ja = "不明") }}",
-            fontSize = 15.sp, color = Ui.text.copy(alpha = 0.8f), textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "🐾 " + (p.look?.label ?: tr("기본 고양이", "Basic Cat", zh = "基础猫咪", es = "Gato básico", fr = "Chat de base", de = "Standardkatze", pt = "Gato básico", ru = "Обычный котик", ja = "ふつうのネコ")),
-            fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
-        )
-        Spacer(Modifier.height(12.dp))
-        RankBadge(p.score, large = true)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            tr("${p.score}점", "${p.score} pts", zh = "${p.score} 分", es = "${p.score} pts", fr = "${p.score} pts", de = "${p.score} Pkt", pt = "${p.score} pts", ru = "${p.score} очк.", ja = "${p.score}点"),
-            fontSize = 22.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark,
-        )
-        if (p.wins != null && p.losses != null) {
-            Text(
-                tr("${p.wins}승 ${p.losses}패", "${p.wins}W ${p.losses}L", zh = "${p.wins}胜 ${p.losses}负", es = "${p.wins}V ${p.losses}D", fr = "${p.wins}V ${p.losses}D", de = "${p.wins}S ${p.losses}N", pt = "${p.wins}V ${p.losses}D", ru = "${p.wins}В ${p.losses}П", ja = "${p.wins}勝 ${p.losses}敗"),
-                fontSize = 14.sp, color = Ui.text.copy(alpha = 0.7f),
-            )
+    }
+    // 1~3위: 카드 둘레에서 팡팡 터지는 폭죽 (1위는 셋)
+    if (level >= 8) {
+        val spots = listOf(Offset(0.18f, 0.2f), Offset(0.84f, 0.26f), Offset(0.5f, 0.1f))
+        val n = if (level == 10) 3 else 1
+        repeat(n) { k ->
+            val local = (fx.boom - k) .let { if (it < 0f) it + 3f else it }
+            if (local < 1f) {
+                val q = local
+                val o = Offset(spots[k].x * size.width, spots[k].y * size.height)
+                val rr = (30f + 60f * q) * density
+                val a = (1f - q).coerceIn(0f, 1f)
+                repeat(14) { i ->
+                    val ang = i / 14f * tau
+                    val col = confettiColors[(i + k) % confettiColors.size]
+                    val pt = Offset(o.x + cos(ang) * rr, o.y + sin(ang) * rr + q * q * 30f * density)
+                    drawCircle(col.copy(alpha = a), (3.2f - 1.6f * q) * density, pt)
+                    drawLine(col.copy(alpha = a * 0.5f), Offset(o.x + cos(ang) * rr * 0.6f, o.y + sin(ang) * rr * 0.6f), pt, 1.5f * density)
+                }
+            }
         }
-        Spacer(Modifier.height(14.dp))
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(Brush.horizontalGradient(listOf(Ui.primary, Ui.accent)), RoundedCornerShape(50))
-                .clickable(onClick = onDismiss)
-                .padding(vertical = 10.dp),
-            contentAlignment = Alignment.Center,
+    }
+    // 반짝이
+    stars.forEachIndexed { i, (sx, sy, ph) ->
+        val q = (fx.twinkle + ph) % 1f
+        val a = sin(q * PI).toFloat()
+        val col = if (position == 1) Color.hsv((fx.hue * 360f + i * 40f) % 360f, 0.4f, 1f) else if (i % 2 == 0) Color.White else lerpColor(fx.tc, Color.White, 0.3f)
+        twinkleStar(Offset(sx * size.width, sy * size.height), (3.5f + level.coerceAtLeast(0) * 0.45f) * density * (0.4f + a), col.copy(alpha = a))
+    }
+    // 떠오르는 빛가루
+    motes.forEachIndexed { i, (sx, ph, sz) ->
+        val q = (fx.rise * (0.6f + sz * 0.7f) + ph) % 1f
+        val x = sx * size.width + sin((q * 3 + sx) * tau) * 8f * density
+        val y = size.height * (1.05f - q * 1.1f)
+        val a = sin(q * PI).toFloat()
+        val r = (2f + sz * 2.5f) * density
+        val col = if (position == 1) (if (i % 3 == 0) Color.White else Color(0xFFFFD54F)) else if (i % 2 == 0) Color.White else fx.tc
+        drawCircle(col.copy(alpha = a * 0.3f), r * 2.6f, Offset(x, y))
+        drawCircle(col.copy(alpha = a), r, Offset(x, y))
+    }
+    // 꽃가루 (1~3위)
+    confetti.forEachIndexed { i, (sx, ph, sp) ->
+        val q = (fx.fall * (0.7f + sp * 0.6f) + ph) % 1f
+        val x = sx * size.width + sin((q * 4 + sx * 7) * tau / 2) * 14f * density
+        val y = size.height * (q * 1.1f - 0.05f)
+        val w = 6f * density
+        val h = 10f * density * (0.4f + 0.6f * kotlin.math.abs(cos((q * 6 + sp) * tau)))
+        val col = confettiColors[i % confettiColors.size]
+        drawRect(col.copy(alpha = 0.9f), Offset(x - w / 2, y - h / 2), androidx.compose.ui.geometry.Size(w, h))
+    }
+}
+
+@Composable
+private fun CardBody(p: RankedPlayer, me: Boolean, fx: FxCard, modifier: Modifier, onDismiss: () -> Unit) {
+    val level = fx.level
+    val bg = when (p.position) {
+        1 -> listOf(Color(0xFFFFFDF0), Color(0xFFFFEDB0), Color(0xFFFFD970))
+        2 -> listOf(Color(0xFFFFFFFF), Color(0xFFEDF1F6), Color(0xFFD5DEE7))
+        3 -> listOf(Color(0xFFFFF8F1), Color(0xFFFFE2C8), Color(0xFFFFC898))
+        in 4..10 -> listOf(Color.White, lerpColor(fx.tc, Color.White, 0.82f), lerpColor(fx.tc, Color.White, 0.65f))
+        else -> listOf(Color.White, Color(0xFFF6EEFF))
+    }
+    val border = when {
+        p.position == 1 -> Brush.sweepGradient(List(7) { i -> Color.hsv((fx.hue * 360f + i * 60f) % 360f, 0.6f, 1f) })
+        level >= 8 -> Brush.linearGradient(rowColors(p.position, fx.hue).drop(1))
+        level >= 1 -> Brush.linearGradient(listOf(fx.tc, Color.White, fx.tc))
+        else -> Brush.linearGradient(listOf(Ui.primary.copy(alpha = 0.5f), Ui.accent.copy(alpha = 0.5f)))
+    }
+    val shape = RoundedCornerShape(30.dp)
+    Box(modifier.padding(30.dp)) {
+        // 카드 둘레로 번지는 빛 (넓고 흐린 테두리)
+        if (level >= 1) {
+            Canvas(Modifier.matchParentSize()) {
+                val w = (4f + level * 1.4f) * density
+                drawRoundRect(border, cornerRadius = CornerRadius(30.dp.toPx()), style = Stroke(w * 2), alpha = (0.18f + level * 0.025f) * fx.glow)
+            }
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .width(290.dp)
+                .clip(shape)
+                .background(Brush.verticalGradient(bg), shape)
+                // 카드를 훑고 지나가는 빛 줄기
+                .then(
+                    if (level >= 0) Modifier.drawBehind {
+                        val bands = if (level >= 8) listOf(fx.shine, (fx.shine + 1f + 0.5f) % 2f - 0.5f) else listOf(fx.shine)
+                        bands.forEach { b ->
+                            val x = b * size.width
+                            drawRect(
+                                Brush.linearGradient(
+                                    listOf(Color.Transparent, Color.White.copy(alpha = if (level >= 1) 0.55f else 0.35f), Color.Transparent),
+                                    start = Offset(x - 120f, 0f), end = Offset(x + 120f, size.height * 0.4f),
+                                ),
+                            )
+                        }
+                    } else Modifier,
+                )
+                .border(if (p.position == 1) 4.dp else if (level >= 1) 3.dp else 2.dp, border, shape)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+                .padding(horizontal = 20.dp, vertical = 20.dp),
         ) {
-            Text(tr("닫기", "Close", zh = "关闭", es = "Cerrar", fr = "Fermer", de = "Schließen", pt = "Fechar", ru = "Закрыть", ja = "閉じる"), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+            CardTitle(p, fx)
+            Spacer(Modifier.height(6.dp))
+            CardCritter(p, fx)
+            Spacer(Modifier.height(6.dp))
+            // 닉네임 전체 (잘리지 않게 줄바꿈)
+            val name = p.name + if (me) tr(" (나)", " (me)", zh = " (我)", es = " (yo)", fr = " (moi)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
+            if (p.position == 1) {
+                val x = fx.shine * 400f
+                Text(
+                    name, textAlign = TextAlign.Center, maxLines = 3,
+                    style = androidx.compose.ui.text.TextStyle(
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFF6B3E00), Color(0xFFA86400), Color(0xFFD99A00), Color(0xFFA86400), Color(0xFF6B3E00)),
+                            start = Offset(x - 300f, 0f), end = Offset(x, 0f), tileMode = androidx.compose.ui.graphics.TileMode.Mirror,
+                        ),
+                        fontSize = 22.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
+                        shadow = androidx.compose.ui.graphics.Shadow(Color.White, Offset.Zero, 10f),
+                    ),
+                )
+            } else {
+                Text(name, fontSize = 20.sp, fontWeight = FontWeight.Black, color = Ui.text, textAlign = TextAlign.Center, maxLines = 3)
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${Country.flag(p.country)} ${Country.name(p.country).ifBlank { tr("알 수 없음", "Unknown", zh = "未知", es = "Desconocido", fr = "Inconnu", de = "Unbekannt", pt = "Desconhecido", ru = "Неизвестно", ja = "不明") }}",
+                fontSize = 15.sp, color = Ui.text.copy(alpha = 0.8f), textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "🐾 " + (p.look?.label ?: tr("기본 고양이", "Basic Cat", zh = "基础猫咪", es = "Gato básico", fr = "Chat de base", de = "Standardkatze", pt = "Gato básico", ru = "Обычный котик", ja = "ふつうのネコ")),
+                fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
+            )
+            Spacer(Modifier.height(12.dp))
+            RankBadge(p.score, large = true)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                tr("${p.score}점", "${p.score} pts", zh = "${p.score} 分", es = "${p.score} pts", fr = "${p.score} pts", de = "${p.score} Pkt", pt = "${p.score} pts", ru = "${p.score} очк.", ja = "${p.score}点"),
+                fontSize = if (p.position == 1) 26.sp else 22.sp, fontWeight = FontWeight.Black,
+                color = if (p.position == 1) Color(0xFFC77700) else Ui.primaryDark,
+            )
+            if (p.wins != null && p.losses != null) {
+                Text(
+                    tr("${p.wins}승 ${p.losses}패", "${p.wins}W ${p.losses}L", zh = "${p.wins}胜 ${p.losses}负", es = "${p.wins}V ${p.losses}D", fr = "${p.wins}V ${p.losses}D", de = "${p.wins}S ${p.losses}N", pt = "${p.wins}V ${p.losses}D", ru = "${p.wins}В ${p.losses}П", ja = "${p.wins}勝 ${p.losses}敗"),
+                    fontSize = 14.sp, color = Ui.text.copy(alpha = 0.7f),
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        if (p.position == 1) Brush.horizontalGradient(listOf(Color(0xFFFFB300), Color(0xFFFF7EB3), Color(0xFF7C6CF2)))
+                        else Brush.horizontalGradient(listOf(Ui.primary, Ui.accent)),
+                        RoundedCornerShape(50),
+                    )
+                    .clickable(onClick = onDismiss)
+                    .padding(vertical = 11.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(tr("닫기", "Close", zh = "关闭", es = "Cerrar", fr = "Fermer", de = "Schließen", pt = "Fechar", ru = "Закрыть", ja = "閉じる"), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+            }
+        }
+        // 카드 모서리에서 반짝이는 별 (1~10위)
+        if (level >= 1) {
+            Canvas(Modifier.matchParentSize()) {
+                val corners = listOf(Offset(14f, 14f), Offset(size.width - 14f, 18f), Offset(size.width - 18f, size.height - 14f), Offset(16f, size.height - 18f))
+                corners.forEachIndexed { i, o ->
+                    val q = (fx.twinkle + i * 0.25f) % 1f
+                    val a = sin(q * PI).toFloat()
+                    twinkleStar(o, (5f + level * 0.5f) * density * (0.5f + a * 0.7f), (if (p.position == 1) Color(0xFFFFF59D) else Color.White).copy(alpha = a))
+                }
+            }
+        }
+    }
+}
+
+/** 순위 리본: 순위 색 그라데이션 캡슐 + 빛 */
+@Composable
+private fun CardTitle(p: RankedPlayer, fx: FxCard) {
+    val n = p.position
+    val label = tr("${n}위", "#${n}", zh = "第${n}名", ja = "${n}位")
+    val text = if (n <= 3) "${medal(n)} $label" else label
+    val level = fx.level
+    if (level >= 1) {
+        val cols = when (n) {
+            1 -> listOf(Color(0xFFFFB300), Color(0xFFFFE082), Color(0xFFFFB300))
+            2 -> listOf(Color(0xFF90A4AE), Color(0xFFECEFF1), Color(0xFF90A4AE))
+            3 -> listOf(Color(0xFFE0803A), Color(0xFFFFD2A8), Color(0xFFE0803A))
+            else -> listOf(fx.tc, lerpColor(fx.tc, Color.White, 0.6f), fx.tc)
+        }
+        Text(
+            text,
+            fontSize = if (n == 1) 26.sp else 20.sp, fontWeight = FontWeight.Black,
+            color = if (n <= 3) Color(0xFF5A3A00).let { if (n == 2) Color(0xFF37474F) else it } else Color.White,
+            modifier = Modifier
+                .scale(1f + 0.04f * fx.glow * (if (n == 1) 1f else 0.4f))
+                .background(Brush.horizontalGradient(cols), RoundedCornerShape(50))
+                .border(2.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(50))
+                .padding(horizontal = 18.dp, vertical = 4.dp),
+        )
+    } else {
+        Text(text, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Ui.primaryDark)
+    }
+}
+
+/** 캐릭터: 뒤에서 빛나는 후광 · 주위를 도는 별빛 · 1위 왕관 */
+@Composable
+private fun CardCritter(p: RankedPlayer, fx: FxCard) {
+    val level = fx.level
+    val first = p.position == 1
+    val sz = if (first) 130.dp else if (level >= 1) 112.dp else 100.dp
+    Box(Modifier.size(sz + 40.dp), contentAlignment = Alignment.Center) {
+        if (level >= 0) {
+            Canvas(Modifier.matchParentSize()) {
+                val c = center
+                val a = if (level >= 1) 0.35f + level * 0.04f else 0.25f
+                drawCircle(Brush.radialGradient(listOf(fx.tc.copy(alpha = a * fx.glow), Color.Transparent), center = c, radius = size.minDimension / 2), size.minDimension / 2, c)
+                // 빛 고리 (1~3위)
+                if (level >= 8) {
+                    drawCircle(
+                        Brush.sweepGradient(List(7) { i -> if (first) Color.hsv((fx.hue * 360f + i * 60f) % 360f, 0.5f, 1f) else fx.tc.copy(alpha = if (i % 2 == 0) 0.9f else 0.2f) }, c),
+                        size.minDimension * 0.44f, c, style = Stroke(3f * density), alpha = 0.7f,
+                    )
+                }
+                val n = if (level >= 8) 6 else if (level >= 1) 3 else 0
+                repeat(n) { k ->
+                    val ang = (fx.twinkle + k.toFloat() / n) * 2 * PI.toFloat()
+                    val pos = Offset(c.x + cos(ang) * size.width * 0.44f, c.y + sin(ang) * size.height * 0.44f)
+                    twinkleStar(pos, (if (first) 6f else 4.5f) * density, (if (first) Color(0xFFFFF59D) else Color.White).copy(alpha = 0.95f))
+                }
+            }
+        }
+        Critter(Side.CAT, Modifier.size(sz).offset(y = (fx.bob * 4).dp), skin = p.look, happy = true)
+        if (first) {
+            Text("👑", fontSize = 40.sp, modifier = Modifier.align(Alignment.TopCenter).offset(y = (-6 + fx.bob * 3).dp).rotate(fx.bob * 8f))
         }
     }
 }

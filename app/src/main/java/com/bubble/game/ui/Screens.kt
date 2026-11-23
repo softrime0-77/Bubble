@@ -6,6 +6,7 @@ import com.bubble.game.data.Country
 import com.bubble.game.billing.BillingManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.CompositionLocalProvider
@@ -449,15 +450,17 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
             shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
-            modifier = Modifier.fillMaxWidth().height(64.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(tr("👫  친구와 대전", "👫  Battle a Friend", zh = "👫  好友对战", hi = "👫  दोस्त से मुकाबला", es = "👫  Reta a un amigo", fr = "👫  Défier un ami", ar = "👫  تحدَّ صديقًا", de = "👫  Freund herausfordern", pt = "👫  Desafiar um amigo", ru = "👫  Бой с другом", ja = "👫  友だちと対戦"), fontSize = 19.sp, fontWeight = FontWeight.Black)
+                Text(textAlign = TextAlign.Center, lineHeight = 23.sp, text = tr("👫  친구와 대전", "👫  Battle a Friend", zh = "👫  好友对战", hi = "👫  दोस्त से मुकाबला", es = "👫  Reta a un amigo", fr = "👫  Défier un ami", ar = "👫  تحدَّ صديقًا", de = "👫  Freund herausfordern", pt = "👫  Desafiar um amigo", ru = "👫  Бой с другом", ja = "👫  友だちと対戦"), fontSize = 19.sp, fontWeight = FontWeight.Black)
                 Text(
                     tr(
                         "링크를 보내 1:1 · 승리 +${OnlineRepository.FRIEND_WIN_POINTS} · 패배 -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         "Send a link, play 1:1 · Win +${OnlineRepository.FRIEND_WIN_POINTS} · Lose -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         zh = "发送链接 1:1 · 胜 +${OnlineRepository.FRIEND_WIN_POINTS} · 负 -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        hi = "लिंक भेजें, 1:1 · जीत +${OnlineRepository.FRIEND_WIN_POINTS} · हार -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         es = "Envía un enlace, 1:1 · Gana +${OnlineRepository.FRIEND_WIN_POINTS} · Pierde -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         fr = "Envoie un lien, 1:1 · Victoire +${OnlineRepository.FRIEND_WIN_POINTS} · Défaite -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         de = "Link senden, 1:1 · Sieg +${OnlineRepository.FRIEND_WIN_POINTS} · Niederlage -${OnlineRepository.FRIEND_LOSE_POINTS}",
@@ -465,7 +468,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
                         ru = "Отправьте ссылку, 1:1 · Победа +${OnlineRepository.FRIEND_WIN_POINTS} · Поражение -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         ja = "リンクを送って1対1 · 勝ち +${OnlineRepository.FRIEND_WIN_POINTS} · 負け -${OnlineRepository.FRIEND_LOSE_POINTS}",
                     ),
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 15.sp,
                 )
             }
         }
@@ -711,11 +714,13 @@ private fun BigButton(text: String, sub: String, enabled: Boolean, onClick: () -
         enabled = enabled,
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-        modifier = Modifier.fillMaxWidth().height(76.dp).scale(if (enabled) s else 1f),
+        // 언어마다 설명 길이가 달라서 높이는 내용에 맞춰 늘어남 (최소 76dp)
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp).scale(if (enabled) s else 1f),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text, fontSize = 22.sp, fontWeight = FontWeight.Black)
-            Text(sub, fontSize = 12.sp)
+            Text(text, fontSize = 22.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, lineHeight = 26.sp)
+            Text(sub, fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 15.sp)
         }
     }
 }

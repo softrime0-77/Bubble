@@ -163,6 +163,46 @@ class ScreenshotTest {
     }
 
     @Test
+    fun lobbyLang_ru() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.RU)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_ru", 900)
+    }
+
+    @Test
+    fun lobbyLang_de() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.DE)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_de", 900)
+    }
+
+    @Test
+    fun lobbyLang_hi() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.HI)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_hi", 900)
+    }
+
+    @Test
+    fun lobbyLang_fr() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.FR)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_fr", 900)
+    }
+
+    @Test
     fun lobbyJapanese() {
         com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.JA)
         rule.mainClock.autoAdvance = false

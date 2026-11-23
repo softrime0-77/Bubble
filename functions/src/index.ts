@@ -249,14 +249,14 @@ function finishGame(
     score: FieldValue.increment(catDelta),
     [catWon ? "wins" : "losses"]: FieldValue.increment(1),
     winStreak: catWon ? FieldValue.increment(1) : 0,
-    ...(catWon ? rabbit.user : {}),
+    ...(catWon ? { ...rabbit.user, ...boostSpend(users.cat, game.catBoost === true) } : {}),
   });
   tx.update(users.ham.ref, {
     ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 1 }),
     score: FieldValue.increment(hamDelta),
     [catWon ? "losses" : "wins"]: FieldValue.increment(1),
     winStreak: catWon ? 0 : FieldValue.increment(1),
-    ...(catWon ? {} : rabbit.user),
+    ...(catWon ? {} : { ...rabbit.user, ...boostSpend(users.ham, game.hamBoost === true) }),
   });
 }
 
@@ -267,6 +267,10 @@ function ribbons(profile: DocumentSnapshot): number {
 }
 
 /** 부스터를 켜뒀고 남아 있으면 1개 쓰고 true. 다 쓰면 자동으로 끔. */
+/**
+ * 🚀 ×3 부스터를 이번 판에 걸지. 매칭 때는 쓰지 않고(개수 그대로), 이겼을 때만 1개 씀 (boostSpend).
+ * 켜 뒀는데 남은 게 없으면 꺼 둠.
+ */
 function useBoost(tx: Transaction, profile: DocumentSnapshot): boolean {
   if (profile.get("boostOn") !== true) return false;
   const left = (profile.get("boosts") as number | undefined) ?? 0;
@@ -274,8 +278,14 @@ function useBoost(tx: Transaction, profile: DocumentSnapshot): boolean {
     tx.update(profile.ref, { boostOn: false });
     return false;
   }
-  tx.update(profile.ref, left - 1 > 0 ? { boosts: FieldValue.increment(-1) } : { boosts: 0, boostOn: false });
   return true;
+}
+
+/** 부스터를 건 판을 이겼으면 1개 씀 (지면 그대로 남음). 이긴 사람 문서에 더할 필드 */
+function boostSpend(winner: DocumentSnapshot, used: boolean): Record<string, unknown> {
+  if (!used) return {};
+  const left = (winner.get("boosts") as number | undefined) ?? 0;
+  return left - 1 > 0 ? { boosts: FieldValue.increment(-1) } : { boosts: 0, boostOn: false };
 }
 
 /** 지금 차례인 사람이 제한 시간을 넘겼는지 (서버 시계 기준) */

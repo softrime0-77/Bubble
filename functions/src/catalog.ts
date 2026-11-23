@@ -27,7 +27,7 @@ export function renameCost(freeUsed: unknown, tickets: unknown): "free" | "ticke
   return typeof tickets === "number" && tickets >= 1 ? "ticket" : "none";
 }
 /** ×3 점수 부스터 (소모품): 켜둔 상태로 랜덤 매칭이 시작되면 1개 사용, 이기면 얻는 점수 3배 (AI 대전엔 안 씀) */
-export const BOOST_PRICE = 50;
+export const BOOST_PRICE = 100;
 export const BOOST_MULTIPLIER = 3;
 
 /** 이겼을 때 얻는 점수: (기본 + 계급 보너스) × 부스터 */
@@ -90,7 +90,7 @@ export const COSMETIC_SKINS: Record<string, number> = {
   // 🐙 문어 · 🐧 펭귄: 모습 + 분할/공격 효과만
   OCTOPUS: 400,
   PENGUIN: 400,
-  // 🐼 출석 판다: 장착하고 출석하면 💰 +5
+  // 🐼 출석 판다: 장착하고 출석하면 💰 +10
   PANDA: 500,
   // 🐉 아기 용: 상대 방울을 터뜨리면 💰 +2 (하루 최대 10)
   DRAGON: 700,
@@ -107,7 +107,7 @@ export function isRankSkin(id: unknown): id is string {
 
 /** 🐼 출석 판다: 출석 보너스 */
 export const PANDA_SKIN = "PANDA";
-export const PANDA_CHECKIN_BONUS = 5;
+export const PANDA_CHECKIN_BONUS = 10;
 
 /** 🐉 아기 용: 상대 방울을 터뜨릴 때 💰, 하루 최대 */
 export const DRAGON_SKIN = "DRAGON";

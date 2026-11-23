@@ -190,6 +190,37 @@ final class Music: ObservableObject {
     }
 
     static let lobby = "bgm_lobby"
+
+    // MARK: 🎵 로비 음악 고르기 (산 캐릭터의 곡으로)
+
+    private static let lobbyKey = "lobby_track"
+    /// 로비 음악으로 고른 캐릭터 (nil이면 기본 로비 곡). 기기에 저장
+    @Published private(set) var lobbyChoice: String? = UserDefaults.standard.string(forKey: "lobby_track")
+
+    func chooseLobby(_ id: String?) {
+        lobbyChoice = id
+        UserDefaults.standard.set(id, forKey: Self.lobbyKey)
+        playLobby()
+    }
+
+    /// 이 캐릭터의 음악을 쓸 수 있는지: 산 스킨 · 무료 햄스터 · 계급 유니콘
+    static func owns(_ p: Profile?, _ a: Animal?) -> Bool {
+        guard let a, a != .hamster else { return true }
+        guard let p else { return false }
+        if a.rankOnly { return p.score >= a.rankMin }
+        if a.cosmetic { return p.skins.contains(a) }
+        return false
+    }
+
+    /// 지금 로비 곡: 고른 캐릭터를 가지고 있으면 그 캐릭터 곡, 아니면 기본
+    var lobbyTrack: String {
+        guard let id = lobbyChoice else { return Self.lobby }
+        if id == "CAT" { return "bgm_cat" }
+        guard let a = Animal(rawValue: id), Self.owns(OnlineService.shared.profile, a) else { return Self.lobby }
+        return Self.gameTrack(a, .hamster)
+    }
+
+    func playLobby() { play(lobbyTrack) }
     /// 매칭·친구 기다리는 동안
     static let matching = "bgm_matching"
 
@@ -224,5 +255,69 @@ struct MusicToggle: View {
                 .background(Capsule().fill(.white.opacity(0.75)))
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// 상점: 산 캐릭터의 음악을 로비 음악으로 (한 번 더 누르면 기본 곡으로)
+struct LobbyMusicButton: View {
+    let animal: Animal
+    @ObservedObject private var music = Music.shared
+
+    var body: some View {
+        let on = music.lobbyChoice == animal.rawValue
+        Button { music.chooseLobby(on ? nil : animal.rawValue) } label: {
+            Text(on ? tr("🎵 로비에서 재생 중 · 기본 곡으로", "🎵 Playing in lobby · back to default", zh: "🎵 大厅播放中 · 换回默认", ja: "🎵 ロビーで再生中 · いつもの曲に戻す")
+                    : tr("🎵 이 캐릭터 음악을 로비에서 듣기", "🎵 Use this song in the lobby", zh: "🎵 在大厅播放这首", ja: "🎵 この曲をロビーで流す"))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(on ? UiColor.primaryDark : UiColor.accent)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// 🎵 로비 음악 고르기 (곡을 누르면 바로 들려요)
+struct MusicPickerSheet: View {
+    let onClose: () -> Void
+    @ObservedObject private var music = Music.shared
+    @ObservedObject private var online = OnlineService.shared
+
+    private var options: [(String?, String)] {
+        var list: [(String?, String)] = [
+            (nil, tr("🏠 기본 로비 곡", "🏠 Default lobby song", zh: "🏠 默认大厅音乐", ja: "🏠 いつものロビー曲")),
+            ("CAT", tr("🐱 기본 고양이", "🐱 Basic cat", zh: "🐱 基础猫咪", ja: "🐱 ふつうのネコ")),
+            (Animal.hamster.rawValue, "🐹 " + Animal.hamster.label),
+        ]
+        for a in Animal.allCases where a.cosmetic || a.rankOnly { list.append((a.rawValue, a.label)) }
+        return list
+    }
+
+    var body: some View {
+        sheetFrame(title: tr("🎵 로비 음악", "🎵 Lobby music", zh: "🎵 大厅音乐", ja: "🎵 ロビーの音楽"), onClose: onClose) {
+            Text(tr("산 캐릭터의 음악을 로비에서 들을 수 있어요. 눌러서 바로 들어 보세요!", "Play any character's song you own in the lobby. Tap to listen!",
+                    zh: "可以在大厅播放已拥有角色的音乐，点一下就能听！", ja: "買ったキャラの曲をロビーで流せるよ。タップですぐ聞ける！"))
+                .font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.7))
+            ForEach(Array(options.enumerated()), id: \.offset) { _, opt in
+                row(opt.0, opt.1)
+            }
+        }
+    }
+
+    private func row(_ id: String?, _ label: String) -> some View {
+        let a = id.flatMap { $0 == "CAT" ? nil : Animal(rawValue: $0) }
+        let unlocked = id == nil || id == "CAT" || Music.owns(online.profile, a)
+        let on = music.lobbyChoice == id
+        return Button { if unlocked { music.chooseLobby(id) } } label: {
+            HStack {
+                Text(label).font(.system(size: 15, weight: on ? .black : .regular))
+                    .foregroundColor(unlocked ? UiColor.text : UiColor.text.opacity(0.4))
+                Spacer()
+                Text(on ? "▶" : unlocked ? "" : tr("🔒 상점", "🔒 Shop", zh: "🔒 商店", ja: "🔒 ショップ"))
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(on ? UiColor.primaryDark : UiColor.text.opacity(0.45))
+            }
+            .padding(.horizontal, 10).padding(.vertical, 9)
+            .background(RoundedRectangle(cornerRadius: 12).fill(on ? UiColor.primary.opacity(0.18) : .clear))
+        }
+        .buttonStyle(.plain)
+        .disabled(!unlocked)
     }
 }

@@ -22,7 +22,7 @@ test("unicorn shows only at diamond rank", () => {
 });
 
 test("panda bonus needs the owned panda equipped", () => {
-  assert.equal(PANDA_CHECKIN_BONUS, 5);
+  assert.equal(PANDA_CHECKIN_BONUS, 10);
   assert.equal(pandaEquipped("PANDA", ["PANDA"]), true);
   assert.equal(pandaEquipped("PANDA", []), false);
   assert.equal(pandaEquipped("DOG", ["PANDA"]), false);

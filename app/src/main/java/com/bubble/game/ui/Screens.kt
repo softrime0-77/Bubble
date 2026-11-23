@@ -98,6 +98,77 @@ import com.bubble.game.game.Move
 import com.bubble.game.game.Side
 import kotlinx.coroutines.delay
 
+/** 이 캐릭터의 음악을 쓸 수 있는지: 산 스킨 · 무료 햄스터 · 계급 유니콘 */
+internal fun ownsMusic(p: com.bubble.game.data.Profile?, a: Animal?): Boolean = when {
+    a == null || a == Animal.HAMSTER -> true
+    p == null -> false
+    a.rankOnly -> p.score >= a.rankMin
+    a.cosmetic -> a in p.skins
+    else -> false
+}
+
+/** 🎵 로비 음악 고르기: 산 캐릭터의 음악으로 바꿀 수 있어요 (곡을 누르면 바로 들려요) */
+@Composable
+private fun MusicPicker(p: com.bubble.game.data.Profile?, onClose: () -> Unit) {
+    val choice = com.bubble.game.audio.Music.lobbyChoice
+    val options: List<Pair<String?, String>> = listOf(
+        null to tr("🏠 기본 로비 곡", "🏠 Default lobby song", ja = "🏠 いつものロビー曲", zh = "🏠 默认大厅音乐"),
+        "CAT" to tr("🐱 기본 고양이", "🐱 Basic cat", ja = "🐱 ふつうのネコ", zh = "🐱 基础猫咪"),
+        Animal.HAMSTER.name to "🐹 ${Animal.HAMSTER.label}",
+    ) + (Animal.entries.filter { it.cosmetic } + Animal.entries.filter { it.rankOnly }).map { it.name to it.label }
+    AlertDialog(
+        onDismissRequest = onClose,
+        confirmButton = { TextButton(onClick = onClose) { Text(tr("닫기", "Close", ja = "閉じる", zh = "关闭")) } },
+        title = { Text(tr("🎵 로비 음악", "🎵 Lobby music", ja = "🎵 ロビーの音楽", zh = "🎵 大厅音乐"), fontWeight = FontWeight.Black) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    tr("산 캐릭터의 음악을 로비에서 들을 수 있어요. 눌러서 바로 들어 보세요!", "Play any character's song you own in the lobby. Tap to listen!",
+                        ja = "買ったキャラの曲をロビーで流せるよ。タップですぐ聞ける！", zh = "可以在大厅播放已拥有角色的音乐，点一下就能听！"),
+                    fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
+                )
+                Spacer(Modifier.height(8.dp))
+                options.forEach { (id, label) ->
+                    val a = id?.let { if (it == "CAT") null else Animal.of(it) }
+                    val unlocked = id == null || id == "CAT" || ownsMusic(p, a)
+                    val on = choice == id || (choice == null && id == null)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(if (on) Ui.primary.copy(alpha = 0.18f) else Color.Transparent, RoundedCornerShape(12.dp))
+                            .clickable(enabled = unlocked) { com.bubble.game.audio.Music.chooseLobby(id) }
+                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(label, modifier = Modifier.weight(1f), color = if (unlocked) Ui.text else Ui.text.copy(alpha = 0.4f), fontWeight = if (on) FontWeight.Black else FontWeight.Normal)
+                        Text(
+                            when {
+                                on -> "▶"
+                                unlocked -> ""
+                                else -> tr("🔒 상점", "🔒 Shop", ja = "🔒 ショップ", zh = "🔒 商店")
+                            },
+                            color = if (on) Ui.primaryDark else Ui.text.copy(alpha = 0.45f), fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            }
+        },
+    )
+}
+
+/** 상점: 산 캐릭터의 음악을 로비 음악으로 (한 번 더 누르면 기본 곡으로) */
+@Composable
+private fun LobbyMusicButton(a: Animal) {
+    val on = com.bubble.game.audio.Music.lobbyChoice == a.name
+    TextButton(onClick = { com.bubble.game.audio.Music.chooseLobby(if (on) null else a.name) }) {
+        Text(
+            if (on) tr("🎵 로비에서 재생 중 · 기본 곡으로", "🎵 Playing in lobby · back to default", ja = "🎵 ロビーで再生中 · いつもの曲に戻す", zh = "🎵 大厅播放中 · 换回默认")
+            else tr("🎵 이 캐릭터 음악을 로비에서 듣기", "🎵 Use this song in the lobby", ja = "🎵 この曲をロビーで流す", zh = "🎵 在大厅播放这首"),
+            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (on) Ui.primaryDark else Ui.accent,
+        )
+    }
+}
+
 /** 🔊/🔇 배경음악 켜고 끄기 */
 @Composable
 private fun MusicToggle() {
@@ -116,10 +187,11 @@ fun BubbleApp(vm: AppViewModel) {
     val screen by vm.screen.collectAsState()
     // 🎵 배경음악: 게임 중엔 내 캐릭터 곡, 그 밖엔 로비 곡
     val gameNow by vm.game.collectAsState()
+    val lobbyNow by vm.lobby.collectAsState()
     val track = when (screen) {
         Screen.Game -> com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide)
         is Screen.Matching, is Screen.FriendWait -> com.bubble.game.audio.Music.matching
-        else -> com.bubble.game.audio.Music.lobby
+        else -> com.bubble.game.audio.Music.lobbyTrack { a -> ownsMusic(lobbyNow.profile, a) }
     }
     LaunchedEffect(track) { com.bubble.game.audio.Music.play(track) }
     // 아랍어는 오른쪽에서 왼쪽으로
@@ -181,6 +253,8 @@ private fun LobbyScreen(vm: AppViewModel) {
     var showRanks by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var showAdmin by remember { mutableStateOf(false) }
+    var showMusic by remember { mutableStateOf(false) }
+    if (showMusic) MusicPicker(ui.profile) { showMusic = false }
     var tutorialAsked by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var cardOf by remember { mutableStateOf<RankedPlayer?>(null) }
     cardOf?.let { c -> PlayerCardDialog(c, me = c.uid == ui.profile?.uid) { cardOf = null } }
@@ -198,6 +272,14 @@ private fun LobbyScreen(vm: AppViewModel) {
             LanguageMenu()
             Spacer(Modifier.width(8.dp))
             MusicToggle()
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "🎵", fontSize = 18.sp,
+                modifier = Modifier
+                    .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
+                    .clickable { showMusic = true }
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
             Spacer(Modifier.weight(1f))
             if (ui.profile != null) ShopIconButton(onClick = vm::openShop)
         }
@@ -1784,17 +1866,9 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             title = tr("×3 점수 부스터", "x3 Score Booster", zh = "×3 分数加成", hi = "×3 स्कोर बूस्टर", es = "Potenciador x3",
                 fr = "Booster x3", ar = "مضاعِف النقاط ×3", de = "x3-Punkte-Booster", pt = "Impulso de pontos x3",
                 ru = "Бустер очков x3", ja = "×3 スコアブースター"),
-            desc = tr("켜두면 다음 랜덤 매칭에서 1개를 쓰고, 이기면 얻는 점수가 3배! (AI 대전에는 쓰지 않아요)",
-                "When on, one is used in your next random match — win and your points are tripled! (Not used in AI battles)",
-                zh = "开启后，下一局随机匹配会使用 1 个，获胜得分翻 3 倍！（AI 对战不使用）",
-                hi = "चालू होने पर अगले रैंडम मैच में 1 इस्तेमाल होगा — जीते तो अंक 3 गुना! (AI मुकाबलों में नहीं)",
-                es = "Activado, se usa uno en tu próxima partida aleatoria: ¡si ganas, puntos x3! (No se usa contra la IA)",
-                fr = "Activé, un est utilisé à ton prochain match aléatoire : gagne et tes points sont triplés ! (Pas contre l’IA)",
-                ar = "عند تشغيله يُستخدم واحد في مباراتك العشوائية التالية — فُز وتتضاعف نقاطك 3 مرات! (لا يُستخدم ضد الذكاء الاصطناعي)",
-                de = "Eingeschaltet wird im nächsten Zufallsmatch einer verbraucht — gewinnst du, gibt es 3-fache Punkte! (Nicht gegen die KI)",
-                pt = "Ligado, um é usado na próxima partida aleatória — vença e seus pontos triplicam! (Não é usado contra a IA)",
-                ru = "Если включён, в следующем случайном матче тратится 1 — победите, и очки утроятся! (В боях с ИИ не тратится)",
-                ja = "ONにすると次のランダムマッチで1個使い、勝つと獲得点数が3倍！（AI対戦では使いません）"),
+            desc = tr("켜두면 랜덤 매칭에서 이길 때 얻는 점수가 3배! 이긴 판에만 1개를 쓰고, 지면 그대로 남아요 (AI 대전에는 쓰지 않아요)",
+                "When on, winning a random match triples your points! One is used only when you win — lose and you keep it (Not used in AI battles)",
+                zh = "开启后，随机匹配获胜得分翻 3 倍！只有获胜时才使用 1 个，输了不扣（AI 对战不使用）", hi = "चालू होने पर रैंडम मैच जीतने पर अंक 3 गुना! सिर्फ़ जीतने पर 1 इस्तेमाल होगा — हारने पर बचा रहेगा (AI मुकाबलों में नहीं)", es = "Activado, si ganas una partida aleatoria tus puntos se triplican. Solo se gasta uno al ganar; si pierdes, lo conservas (No se usa contra la IA)", fr = "Activé, gagner un match aléatoire triple tes points ! Un n’est utilisé qu’en cas de victoire ; si tu perds, tu le gardes (Pas contre l’IA)", ar = "عند تشغيله تتضاعف نقاطك 3 مرات عند الفوز في مباراة عشوائية! يُستخدم واحد فقط عند الفوز، وإذا خسرت يبقى معك (لا يُستخدم ضد الذكاء الاصطناعي)", de = "Eingeschaltet gibt ein Sieg im Zufallsmatch 3-fache Punkte! Nur bei einem Sieg wird einer verbraucht – verlierst du, behältst du ihn (Nicht gegen die KI)", pt = "Ligado, vencer uma partida aleatória triplica seus pontos! Só é usado um quando você vence; se perder, continua com ele (Não é usado contra a IA)", ru = "Если включён, победа в случайном матче утраивает очки! Тратится 1 только при победе — при поражении остаётся (В боях с ИИ не тратится)", ja = "ONにするとランダムマッチで勝ったとき獲得点数が3倍！使うのは勝った試合だけで、負けたら減りません（AI対戦では使いません）"),
             price = Shop.BOOST_PRICE,
             owned = if (p.boosts > 0) {
                 tr("보유 ${p.boosts}개", "Owned: ${p.boosts}", zh = "拥有 ${p.boosts} 个", hi = "पास में: ${p.boosts}", es = "Tienes: ${p.boosts}",
@@ -1933,6 +2007,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
                         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
                     ) { Text(tr("${a.price}점에 사기", "Buy for ${a.price} pts", zh = "${a.price} 分购买", hi = "${a.price} अंक में खरीदें", es = "Comprar por ${a.price} pts", fr = "Acheter pour ${a.price} pts", ar = "اشترِ مقابل ${a.price} نقطة", de = "Für ${a.price} Pkt kaufen", pt = "Comprar por ${a.price} pts", ru = "Купить за ${a.price} очк.", ja = "${a.price}点で買う"), fontWeight = FontWeight.Bold) }
                 }
+                if (have) LobbyMusicButton(a)
             }
         }
 

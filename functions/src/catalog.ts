@@ -135,6 +135,10 @@ export function dragonCoins(todayCoins: number): number {
   return Math.max(0, Math.min(DRAGON_POP_COINS, DRAGON_DAILY_MAX - todayCoins));
 }
 
+/** 🎓 튜토리얼 완료 보상 (계정당 한 번) */
+export const TUTORIAL_COINS = 20;
+export const TUTORIAL_POTIONS = 1;
+
 /** 🦄 유니콘 무지개 축복: 이길 때마다 💰, 하루 최대 */
 export const UNICORN_SKIN = "UNICORN";
 export const UNICORN_WIN_COINS = 3;

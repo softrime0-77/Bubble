@@ -4,6 +4,7 @@ import UIKit
 
 /// 게임 규칙 (안드로이드 RulesDialog와 같은 문장)
 struct RulesSheet: View {
+    var onTutorial: () -> Void = {}
     let onClose: () -> Void
 
     private var text: String {
@@ -22,6 +23,13 @@ struct RulesSheet: View {
 
     var body: some View {
         sheetFrame(title: t("게임 규칙"), onClose: onClose) {
+            Button(action: onTutorial) {
+                Text(tr("🎮 튜토리얼 해 보기", "🎮 Play the tutorial", zh: "🎮 玩教程", ja: "🎮 チュートリアルをやる"))
+                    .font(.system(size: 16, weight: .black)).foregroundColor(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 11)
+                    .background(Capsule().fill(UiColor.accent))
+            }
+            .buttonStyle(.plain)
             Text(text).font(.system(size: 16)).foregroundColor(UiColor.text).lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

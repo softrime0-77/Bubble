@@ -21,6 +21,7 @@ final class OnlineGame: GameModel {
     @Published private(set) var lucky: LuckyHit? = nil
     @Published private(set) var myRibbons = 0
     @Published private(set) var opponentRibbons = 0
+    var tutorial: Int? { nil }
     @Published private(set) var rabbitStreak = 0
     @Published private(set) var rabbitCoins = 0
     @Published private(set) var unicornCoins = 0

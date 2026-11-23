@@ -58,7 +58,8 @@ struct RootView: View {
         BubbleBackground {
             switch screen {
             case .lobby:
-                LobbyView(onStartAi: startAi, onRandomMatch: startMatching, onFriendBattle: startFriendBattle, onShop: { screen = .shop }).transition(.opacity)
+                LobbyView(onStartAi: startAi, onRandomMatch: startMatching, onFriendBattle: startFriendBattle, onShop: { screen = .shop },
+                          onTutorial: { screen = .local(LocalGame(tutorial: true)) }).transition(.opacity)
             case .shop:
                 ShopView(onClose: { screen = .lobby }).transition(.move(edge: .trailing))
             case let .matching(started):
@@ -70,6 +71,12 @@ struct RootView: View {
                          onLeave: {
                              let finished = game.finished
                              game.stop()
+                             // 🎓 튜토리얼을 끝내지 않고 나가면 건너뛴 것으로 (다시 안 띄움)
+                             if game.tutorial != nil {
+                                 if !finished { Task { await online.finishTutorial(completed: false) } }
+                                 screen = .lobby
+                                 return
+                             }
                              if finished { Ads.shared.maybeShowInterstitial { screen = .lobby } } else { screen = .lobby }
                          },
                          onAgain: { game.stop(); screen = .local(LocalGame(level: game.level)) })

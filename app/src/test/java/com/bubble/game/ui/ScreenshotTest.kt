@@ -365,6 +365,27 @@ class ScreenshotTest {
         shot("hit_marks", 520)
     }
 
+    /** 🎓 튜토리얼: 첫 단계 안내, 끝 화면 */
+    @Test
+    fun tutorial() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startTutorial()
+        rule.mainClock.advanceTimeBy(900)
+        shot("tutorial_1", 300)
+        vm.play(com.bubble.game.game.Move.Add(1, true, 0))
+        rule.mainClock.advanceTimeBy(1500)
+        shot("tutorial_2", 300)
+        vm.play(com.bubble.game.game.Move.Add(0, false, 1))
+        rule.mainClock.advanceTimeBy(1500)
+        vm.play(com.bubble.game.game.Move.Add(1, true, 0))
+        rule.mainClock.advanceTimeBy(1500)
+        vm.play(com.bubble.game.game.Move.Add(1, true, 1))
+        rule.mainClock.advanceTimeBy(3000)
+        shot("tutorial_done", 300)
+    }
+
     @Test
     fun selectedSparkles() {
         rule.mainClock.autoAdvance = false

@@ -181,6 +181,7 @@ private fun LobbyScreen(vm: AppViewModel) {
     var showRanks by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var showAdmin by remember { mutableStateOf(false) }
+    var tutorialAsked by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var cardOf by remember { mutableStateOf<RankedPlayer?>(null) }
     cardOf?.let { c -> PlayerCardDialog(c, me = c.uid == ui.profile?.uid) { cardOf = null } }
 
@@ -498,7 +499,15 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             confirmButton = { TextButton(onClick = vm::ackWeeklyReward) { Text(tr("받았어요!", "Got it!", zh = "收到！", hi = "मिल गया!", es = "¡Genial!", fr = "Super !", ar = "تم!", de = "Danke!", pt = "Valeu!", ru = "Ура!", ja = "受け取った！"), fontWeight = FontWeight.Black) } },
         )
     }
-    if (showRules) RulesDialog { showRules = false }
+    if (showRules) RulesDialog(onTutorial = { showRules = false; vm.startTutorial() }) { showRules = false }
+    // 🎓 처음 한 번: 튜토리얼 권하기 (가입 환영 팝업이 닫힌 뒤)
+    val prof = ui.profile
+    if (prof != null && !prof.tutorialDone && !prof.tutorialSeen && ui.welcome == null && !tutorialAsked) {
+        TutorialPrompt(
+            onStart = { tutorialAsked = true; vm.startTutorial() },
+            onLater = { tutorialAsked = true; vm.finishTutorial(false) },
+        )
+    }
     if (showRanks) RanksDialog(ui.profile?.score ?: 0) { showRanks = false }
     if (confirmDelete) {
         AlertDialog(
@@ -621,9 +630,10 @@ private fun BigButton(text: String, sub: String, enabled: Boolean, onClick: () -
 }
 
 @Composable
-private fun RulesDialog(onDismiss: () -> Unit) {
+private fun RulesDialog(onTutorial: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        dismissButton = { TextButton(onClick = onTutorial) { Text(tr("🎮 튜토리얼 해 보기", "🎮 Play the tutorial", ja = "🎮 チュートリアルをやる", zh = "🎮 玩教程"), color = Ui.accent, fontWeight = FontWeight.Bold) } },
         confirmButton = { TextButton(onClick = onDismiss) { Text(tr("알겠어요!", "Got it!", zh = "知道了！", hi = "समझ गया!", es = "¡Entendido!", fr = "Compris !", ar = "فهمت!", de = "Alles klar!", pt = "Entendi!", ru = "Понятно!", ja = "わかった！")) } },
         title = { Text(tr("게임 규칙", "How to play", zh = "游戏规则", hi = "कैसे खेलें", es = "Cómo jugar", fr = "Règles du jeu", ar = "طريقة اللعب", de = "Spielregeln", pt = "Como jogar", ru = "Как играть", ja = "遊び方"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
@@ -1157,6 +1167,8 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             onDone = { s -> shots.remove(s) },
         )
         marks.forEach { m -> androidx.compose.runtime.key(m.key) { HitMarkFx(m) { marks.remove(it) } } }
+        // 🎓 튜토리얼 손가락 안내
+        g.tutorial?.let { step -> if (!g.finished && !inFlight) TutorialGuide(step, g.mySide, selected, centers, layerOrigin, onSkip = { vm.finishTutorial(false) }) }
         coins.forEach { c -> androidx.compose.runtime.key(c.key) { CoinPopFx(c) { coins.remove(it) } } }
         revives.forEach { r -> androidx.compose.runtime.key(r.key) { ReviveFx(r) { revives.remove(it) } } }
 
@@ -1173,7 +1185,12 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             VsIntro(g) { showVs = false }
         }
 
-        if (g.finished && g.winner != null) {
+        if (g.finished && g.winner != null && g.tutorial != null) {
+            // 🎓 튜토리얼 끝: 펑 이펙트를 잠깐 보여 준 뒤 안내 + 보상
+            var showDone by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { delay(1_200); showDone = true }
+            if (showDone) TutorialDone(onClaim = { vm.finishTutorial(true) })
+        } else if (g.finished && g.winner != null) {
             val activity = LocalContext.current as Activity
             val rewardedReady by AdManager.rewardedReady.collectAsState()
             var showRewardIntro by remember { mutableStateOf(false) }

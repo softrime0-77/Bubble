@@ -51,6 +51,9 @@ struct Profile: Equatable {
     /// ✏️ 닉네임: 첫 무료 변경을 썼는지, 가진 변경권 수
     var freeRenameUsed = false
     var renameTickets = 0
+    /// 🎓 튜토리얼: 보상까지 받았는지 / 한 번 봤는지(건너뛰기 포함)
+    var tutorialDone = false
+    var tutorialSeen = false
     /// 출석: 마지막으로 받은 날(한국 시간)과 연속 일수
     var checkinDay: String? = nil
     var checkinStreak = 0
@@ -521,6 +524,17 @@ final class OnlineService: ObservableObject {
     }
 
     /// 미션 보상 받기 → 축하 팝업 ([label]은 팝업에 보여줄 미션 이름)
+    /// 🎓 튜토리얼 끝(또는 건너뛰기). 처음 끝까지 했으면 💰 +20 · 💖 +1 (서버가 계정당 한 번)
+    func finishTutorial(completed: Bool) async {
+        guard uid != nil, profile != nil else { return }
+        guard let r = try? await call("finishTutorial", ["completed": completed]) else { return }
+        if r["reward"] as? Bool == true {
+            mission = MissionReward(label: tr("🎓 튜토리얼 완료! 💖 부활물약 +1도 받았어요", "🎓 Tutorial done! You also got a 💖 revive potion",
+                                              zh: "🎓 教程完成！还获得 💖 复活药水 1 个", ja: "🎓 チュートリアル完了！💖 復活薬も1つ"),
+                                    coins: TutorialScript.coins)
+        }
+    }
+
     func claimMission(_ id: String, label: String) async {
         await shopAction("") {
             let r = try await call("claimMission", ["id": id])
@@ -741,6 +755,8 @@ final class OnlineService: ObservableObject {
             winStreak: int(d["winStreak"]) ?? 0,
             freeRenameUsed: d["freeRenameUsed"] as? Bool ?? false,
             renameTickets: int(d["renameTickets"]) ?? 0,
+            tutorialDone: d["tutorialDone"] as? Bool ?? false,
+            tutorialSeen: d["tutorialSeen"] as? Bool ?? false,
             checkinDay: d["checkinDay"] as? String,
             checkinStreak: int(d["checkinStreak"]) ?? 0,
             missionDay: d["missionDay"] as? String,

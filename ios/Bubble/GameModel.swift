@@ -47,6 +47,8 @@ protocol GameModel: ObservableObject {
     var myBoost: Bool { get }
     /// 친구 대전인데 하루 제한을 넘겨 점수가 없는 친선전인지
     var friendlyMatch: Bool { get }
+    /// 🎓 튜토리얼 단계 (서버 대전은 항상 nil)
+    var tutorial: Int? { get }
     func play(_ move: Move)
 }
 

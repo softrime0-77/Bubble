@@ -11,8 +11,11 @@ struct LobbyView: View {
     var onRandomMatch: () -> Void
     var onFriendBattle: () -> Void
     var onShop: () -> Void
+    /// 🎓 튜토리얼 시작
+    var onTutorial: () -> Void = {}
 
     @State private var showRules = false
+    @State private var tutorialAsked = false
     @State private var cardOf: RankedPlayer?
 
     /// 닉네임: 첫 변경은 무료, 그다음은 변경권이 있어야
@@ -219,7 +222,21 @@ struct LobbyView: View {
                 PlayerCardView(p: c, me: c.uid == online.profile?.uid) { cardOf = nil }
             }
         }
-        .sheet(isPresented: $showRules) { RulesSheet { showRules = false } }
+        .sheet(isPresented: $showRules) { RulesSheet(onTutorial: { showRules = false; onTutorial() }) { showRules = false } }
+        // 🎓 처음 한 번: 튜토리얼 권하기 (가입 환영 안내가 닫힌 뒤)
+        .alert(tr("🎓 1분 튜토리얼", "🎓 1-minute tutorial", zh: "🎓 1分钟教程", ja: "🎓 1分チュートリアル"),
+               isPresented: Binding(get: { needsTutorial }, set: { if !$0 { tutorialAsked = true } })) {
+            Button(tr("시작하기!", "Start!", zh: "开始！", ja: "はじめる！")) { tutorialAsked = true; onTutorial() }
+            Button(tr("나중에", "Later", zh: "以后再说", ja: "あとで"), role: .cancel) {
+                tutorialAsked = true
+                Task { await online.finishTutorial(completed: false) }
+            }
+        } message: {
+            Text(tr("방울 대전, 처음이세요? 따라 하면서 금방 배워요!\n끝까지 하면 💰 +\(TutorialScript.coins) · 💖 부활물약 +1 선물!",
+                    "New to bubble battles? Learn by playing along!\nFinish it for 💰 +\(TutorialScript.coins) and a 💖 revive potion!",
+                    zh: "第一次玩泡泡对战？跟着做马上就会！\n完成可得 💰 +\(TutorialScript.coins) 和 💖 复活药水！",
+                    ja: "バブル対戦は初めて？やりながらすぐ覚えられるよ！\n最後までやると 💰 +\(TutorialScript.coins) と 💖 復活薬をプレゼント！"))
+        }
         .sheet(isPresented: $showAdmin) { AdminSheet { showAdmin = false } }
         .sheet(isPresented: $showRanks) { RanksSheet(myScore: online.profile?.score ?? 0) { showRanks = false } }
         .alert(t("닉네임"), isPresented: $renaming) {
@@ -261,6 +278,11 @@ struct LobbyView: View {
         } message: {
             Text(welcomeText)
         }
+    }
+
+    private var needsTutorial: Bool {
+        guard let p = online.profile, !tutorialAsked, online.welcome == nil else { return false }
+        return !p.tutorialDone && !p.tutorialSeen
     }
 
     private var deleteWarning: String {

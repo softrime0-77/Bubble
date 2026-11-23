@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RABBIT_SKIN, rabbitCoins, UNICORN_SKIN, unicornCoins, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost, adminValue } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RABBIT_SKIN, rabbitCoins, UNICORN_SKIN, unicornCoins, TUTORIAL_COINS, TUTORIAL_POTIONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost, adminValue } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -1425,6 +1425,30 @@ export const claimMission = onCall({ invoker: "public" }, async (req) => {
     if (progress < m.goal) throw err("failed-precondition", "아직 미션을 다 하지 않았어요", "Mission not complete yet");
     tx.update(ref, { coins: FieldValue.increment(m.coins), mClaimed: FieldValue.arrayUnion(id) });
     return { coins: m.coins };
+  });
+});
+
+/**
+ * 🎓 튜토리얼: 끝까지 했으면(completed) 계정당 한 번 💰 +20 · 💖 +1, 건너뛰었으면 다시 안 띄우게 표시만.
+ * 보상을 받은 뒤 다시 해도 또 주지 않음.
+ */
+export const finishTutorial = onCall({ invoker: "public" }, async (req) => {
+  const uid = requireUser(req);
+  const completed = (req.data as { completed?: unknown } | undefined)?.completed === true;
+  const ref = db.collection("users").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+    const done = snap.get("tutorialDone") === true;
+    if (completed && !done) {
+      tx.update(ref, {
+        tutorialDone: true, tutorialSeen: true,
+        coins: FieldValue.increment(TUTORIAL_COINS), potions: FieldValue.increment(TUTORIAL_POTIONS),
+      });
+      return { reward: true, coins: TUTORIAL_COINS, potions: TUTORIAL_POTIONS };
+    }
+    tx.update(ref, { tutorialSeen: true });
+    return { reward: false, coins: 0, potions: 0 };
   });
 });
 

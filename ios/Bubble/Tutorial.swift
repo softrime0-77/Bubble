@@ -79,6 +79,8 @@ struct TutorialGuide: View {
 
 /// 다 끝나면: 더 알아 둘 것 + 보상 받기
 struct TutorialDone: View {
+    /// 이미 보상을 받은 계정이면 보상 버튼은 비활성, 로비로만
+    var alreadyRewarded = false
     let onClaim: () -> Void
 
     var body: some View {
@@ -101,14 +103,28 @@ struct TutorialDone: View {
                 }
                 .font(.system(size: 14)).foregroundColor(UiColor.text)
                 .padding(.vertical, 8)
-                Button(action: onClaim) {
-                    Text(tr("🎁 보상 받기 · 💰 +\(TutorialScript.coins) · 💖 +1", "🎁 Claim · 💰 +\(TutorialScript.coins) · 💖 +1",
-                            zh: "🎁 领取奖励 · 💰 +\(TutorialScript.coins) · 💖 +1", ja: "🎁 報酬を受け取る · 💰 +\(TutorialScript.coins) · 💖 +1"))
-                        .font(.system(size: 17, weight: .black)).foregroundColor(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 13)
-                        .background(Capsule().fill(LinearGradient(colors: [Color(hex: 0xFFB300), UiColor.primary, UiColor.accent], startPoint: .leading, endPoint: .trailing)))
+                if alreadyRewarded {
+                    Text(tr("✅ 보상은 이미 받았어요", "✅ Reward already claimed", zh: "✅ 奖励已领取", ja: "✅ 報酬は受け取り済み"))
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.text.opacity(0.45))
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(Capsule().fill(Color.black.opacity(0.08)))
+                    Button(action: onClaim) {
+                        Text(tr("로비로", "Back to lobby", zh: "返回大厅", ja: "ロビーへ"))
+                            .font(.system(size: 16, weight: .black)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 12)
+                            .background(Capsule().fill(LinearGradient(colors: [UiColor.primary, UiColor.accent], startPoint: .leading, endPoint: .trailing)))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: onClaim) {
+                        Text(tr("🎁 보상 받기 · 💰 +\(TutorialScript.coins) · 💖 +1", "🎁 Claim · 💰 +\(TutorialScript.coins) · 💖 +1",
+                                zh: "🎁 领取奖励 · 💰 +\(TutorialScript.coins) · 💖 +1", ja: "🎁 報酬を受け取る · 💰 +\(TutorialScript.coins) · 💖 +1"))
+                            .font(.system(size: 17, weight: .black)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .background(Capsule().fill(LinearGradient(colors: [Color(hex: 0xFFB300), UiColor.primary, UiColor.accent], startPoint: .leading, endPoint: .trailing)))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(22)
             .background(RoundedRectangle(cornerRadius: 28).fill(LinearGradient(colors: [.white, Color(hex: 0xF6EEFF)], startPoint: .top, endPoint: .bottom)))

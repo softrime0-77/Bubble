@@ -95,8 +95,13 @@ struct LobbyView: View {
                 }
 
                 TitleBanner()
-                Button(t("📖 게임 규칙 보기")) { showRules = true }
-                    .font(.system(size: 15)).foregroundColor(UiColor.text)
+                HStack(spacing: 18) {
+                    Button(t("📖 게임 규칙 보기")) { showRules = true }
+                        .font(.system(size: 15)).foregroundColor(UiColor.text)
+                    // 🎓 튜토리얼 (보상을 아직 안 받았으면 🎁 표시)
+                    Button(tr("🎮 튜토리얼", "🎮 Tutorial", zh: "🎮 教程", ja: "🎮 チュートリアル") + (online.profile?.tutorialDone == false ? " 🎁" : "")) { onTutorial() }
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.accent)
+                }
 
                 card { accountSection }
 

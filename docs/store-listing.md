@@ -88,3 +88,6 @@ Jump into a random match and face an anonymous player 1:1. It's quick to learn, 
 
 ## 개인정보처리방침 URL
 https://softrime0-77.github.io/Bubble/privacy.html
+
+## 이용약관 URL
+https://softrime0-77.github.io/Bubble/terms.html

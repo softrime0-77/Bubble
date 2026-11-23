@@ -8,6 +8,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.DropdownMenuItem
@@ -431,6 +432,16 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             val activity = LocalContext.current as Activity
             TextButton(onClick = { AdManager.showPrivacyOptions(activity) }) {
                 Text(tr("🔒 광고 개인정보 설정", "🔒 Ad privacy settings", zh = "🔒 广告隐私设置", hi = "🔒 विज्ञापन गोपनीयता सेटिंग", es = "🔒 Privacidad de anuncios", fr = "🔒 Confidentialité des pubs", ar = "🔒 إعدادات خصوصية الإعلانات", de = "🔒 Werbe-Datenschutz", pt = "🔒 Privacidade de anúncios", ru = "🔒 Настройки рекламы", ja = "🔒 広告のプライバシー設定"), color = Ui.text.copy(alpha = 0.7f), fontSize = 13.sp)
+            }
+        }
+
+        val uriHandler = LocalUriHandler.current
+        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = { uriHandler.openUri("https://softrime0-77.github.io/Bubble/privacy.html") }) {
+                Text(tr("개인정보처리방침", "Privacy Policy", zh = "隐私政策", hi = "गोपनीयता नीति", es = "Privacidad", fr = "Confidentialité", ar = "سياسة الخصوصية", de = "Datenschutz", pt = "Privacidade", ru = "Конфиденциальность", ja = "プライバシーポリシー"), color = Ui.text.copy(alpha = 0.55f), fontSize = 12.sp)
+            }
+            TextButton(onClick = { uriHandler.openUri("https://softrime0-77.github.io/Bubble/terms.html") }) {
+                Text(tr("이용약관", "Terms of Service", zh = "服务条款", hi = "सेवा की शर्तें", es = "Términos", fr = "Conditions", ar = "شروط الخدمة", de = "Nutzungsbedingungen", pt = "Termos", ru = "Условия", ja = "利用規約"), color = Ui.text.copy(alpha = 0.55f), fontSize = 12.sp)
             }
         }
 

@@ -175,6 +175,14 @@ struct LobbyView: View {
                         .font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.7))
                 }
 
+                HStack(spacing: 18) {
+                    Link(tr("개인정보처리방침", "Privacy Policy", zh: "隐私政策", hi: "गोपनीयता नीति", es: "Privacidad", fr: "Confidentialité", ar: "سياسة الخصوصية", de: "Datenschutz", pt: "Privacidade", ru: "Конфиденциальность", ja: "プライバシーポリシー"),
+                         destination: URL(string: "https://softrime0-77.github.io/Bubble/privacy.html")!)
+                    Link(tr("이용약관", "Terms of Service", zh: "服务条款", hi: "सेवा की शर्तें", es: "Términos", fr: "Conditions", ar: "شروط الخدمة", de: "Nutzungsbedingungen", pt: "Termos", ru: "Условия", ja: "利用規約"),
+                         destination: URL(string: "https://softrime0-77.github.io/Bubble/terms.html")!)
+                }
+                .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.55))
+
                 if !online.leaderboard.isEmpty {
                     card {
                         Text(t("🏆 랭킹")).font(.system(size: 17, weight: .bold)).foregroundColor(UiColor.text)

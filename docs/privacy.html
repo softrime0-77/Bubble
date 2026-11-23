@@ -20,92 +20,136 @@
 </head>
 <body>
 <main>
-  <nav><a href="#ko">한국어</a><a href="#en">English</a></nav>
+  <nav><a href="#ko">한국어</a><a href="#en">English</a><a href="terms.html">이용약관 · Terms</a></nav>
 
   <section class="card" id="ko">
     <h1>Bubble 냥햄대전 개인정보처리방침</h1>
-    <p class="muted">시행일: 2026년 11월 20일</p>
-    <p>"Bubble 냥햄대전"(이하 "앱")은 이용자의 개인정보를 소중히 다루며, 게임 제공에 꼭 필요한 정보만 처리합니다.</p>
+    <p class="muted">시행일: 2026년 11월 23일 (이전 버전: 2026년 11월 20일)</p>
+    <p>"Bubble 냥햄대전"(이하 "앱")은 「개인정보 보호법」 등 관련 법령을 지키며, 게임 제공에 꼭 필요한 정보만 처리합니다.</p>
 
-    <h2>1. 처리하는 정보</h2>
+    <h2>1. 처리하는 정보와 목적</h2>
     <table>
       <tr><th>항목</th><th>목적</th></tr>
-      <tr><td>구글 계정 식별자(Firebase 사용자 ID), 구글 계정 이메일</td><td>로그인, 계정 구분 (이메일은 다른 이용자에게 공개되지 않음)</td></tr>
-      <tr><td>닉네임, 점수, 승패 기록, 계급, 보유 아이템</td><td>게임 진행, 랭킹 표시 (닉네임·점수·계급은 다른 이용자에게 보임)</td></tr>
-      <tr><td>대전 기록(수, 결과)</td><td>대전 진행, 승패·점수 판정, 부정행위 방지</td></tr>
-      <tr><td>마지막 접속 시각</td><td>동시 접속자 수 집계 (개인을 식별해 공개하지 않음)</td></tr>
+      <tr><td>Google 또는 Apple 계정 식별자(Firebase 사용자 ID), 계정 이메일 (Apple에서 "이메일 가리기"를 고르면 Apple이 만든 대리 주소)</td><td>로그인, 계정 구분, 탈퇴 후 재가입 확인 (이메일은 다른 이용자에게 공개되지 않음)</td></tr>
+      <tr><td>닉네임, 점수, 승패 기록, 계급, 보유 아이템·포인트, 출석·미션·튜토리얼 진행 상황</td><td>게임 진행, 보상 지급, 랭킹 표시 (닉네임·점수·계급·장착한 꾸미기는 다른 이용자에게 보임)</td></tr>
+      <tr><td>대전 기록(수, 결과, 시각)</td><td>대전 진행, 승패·점수 판정, 부정행위 방지</td></tr>
+      <tr><td>친구 대전 방 코드, 친구와의 하루 대전 횟수</td><td>친구 대전 연결, 하루 점수 대전 횟수 제한</td></tr>
       <tr><td>추천 코드, 초대 관계</td><td>친구 추천 보상 지급</td></tr>
-      <tr><td>인앱 결제 주문 번호·영수증 토큰</td><td>결제 확인, 중복 지급 방지 (카드 정보는 Google이 처리하며 앱은 받지 않음)</td></tr>
-      <tr><td>광고 ID, 기기·앱 정보(광고 SDK가 수집)</td><td>광고 표시, 광고 성과 측정, 광고 사기 방지</td></tr>
+      <tr><td>마지막 접속 시각</td><td>동시 접속자 수 집계 (개인을 식별해 공개하지 않음)</td></tr>
+      <tr><td>인앱 결제 주문 번호·거래 번호·영수증 정보 (Google Play 또는 App Store)</td><td>결제 확인, 중복 지급 방지, 환불 처리 (카드 정보는 Google·Apple이 처리하며 앱은 받지 않음)</td></tr>
+      <tr><td>보상형 광고 시청 기록</td><td>광고 보상 지급, 하루 횟수 제한</td></tr>
+      <tr><td>광고 ID, 기기·앱 정보, IP 주소 (광고 SDK가 자동 수집)</td><td>광고 표시, 광고 성과 측정, 광고 사기 방지</td></tr>
     </table>
-    <p>이름, 전화번호, 위치, 연락처 등은 수집하지 않습니다.</p>
+    <p>이름, 전화번호, 주소, 위치, 연락처, 사진은 수집하지 않습니다. 로그인하지 않고 AI 연습만 하면 계정 정보는 처리하지 않지만, 광고 SDK가 위 표의 광고 관련 정보를 수집할 수 있습니다.</p>
 
-    <h2>2. 제3자 서비스</h2>
-    <p>앱은 다음 Google 서비스를 사용하며, 각 서비스의 개인정보처리방침이 함께 적용됩니다.</p>
-    <ul>
-      <li>Firebase Authentication, Cloud Firestore, Cloud Functions (로그인, 데이터 저장, 서버 처리)</li>
-      <li>Google AdMob (광고) — <a href="https://policies.google.com/technologies/partner-sites">Google의 파트너 사이트 데이터 사용 방식</a></li>
-    </ul>
-    <p>앱 운영자는 이용자의 정보를 판매하지 않습니다.</p>
+    <h2>2. 처리를 맡기는 곳과 국외 이전</h2>
+    <p>앱은 서비스 운영을 위해 아래 회사의 서비스를 이용합니다. 이 회사들은 해외에 있거나 해외 서버를 쓰므로, 정보가 국외로 이전될 수 있습니다. 각 회사의 개인정보처리방침도 함께 적용됩니다.</p>
+    <table>
+      <tr><th>받는 곳 (나라)</th><th>이전 항목</th><th>목적</th><th>시기·방법</th><th>보관 기간</th></tr>
+      <tr><td>Google LLC (미국) — Firebase Authentication, Cloud Firestore, Cloud Functions</td><td>1번 표의 계정·게임·결제 정보</td><td>로그인, 데이터 저장, 서버 처리 (서버 처리는 서울 리전, 일부 정보는 Google의 해외 데이터센터에서 처리될 수 있음)</td><td>앱 이용 시 암호화된 네트워크로 전송</td><td>탈퇴 또는 4번의 보관 기간까지</td></tr>
+      <tr><td>Google LLC (미국) — Google AdMob</td><td>광고 ID, 기기·앱 정보, IP 주소</td><td>광고 표시·측정</td><td>광고가 나올 때 전송</td><td><a href="https://policies.google.com/privacy">Google 개인정보처리방침</a>에 따름</td></tr>
+      <tr><td>Google LLC (미국) — Google Play 결제</td><td>결제 정보</td><td>결제·환불</td><td>결제할 때</td><td>Google 정책과 관련 법령에 따름</td></tr>
+      <tr><td>Apple Inc. (미국) — Apple 로그인, App Store 결제</td><td>Apple 계정 식별자, 결제 정보</td><td>로그인, 결제·환불</td><td>로그인·결제할 때</td><td>Apple 정책과 관련 법령에 따름</td></tr>
+    </table>
+    <p>국외 이전을 원하지 않으면 앱을 쓰지 않거나 계정을 삭제할 수 있습니다. 다만 이 서비스들 없이는 온라인 기능을 제공할 수 없습니다. 광고 데이터 사용 방식: <a href="https://policies.google.com/technologies/partner-sites">Google의 파트너 사이트 데이터 사용 방식</a>. 앱 운영자는 이용자의 정보를 판매하지 않습니다.</p>
 
     <h2>3. 광고와 동의</h2>
-    <p>유럽 경제 지역(EEA)·영국 등 동의가 필요한 지역에서는 처음 실행할 때 광고 동의 화면이 나오며, 로비의 "광고 개인정보 설정"에서 언제든 바꿀 수 있습니다. 기기 설정에서 광고 ID를 재설정하거나 맞춤 광고를 끌 수 있습니다.</p>
+    <p>유럽 경제 지역(EEA)·영국 등 동의가 필요한 지역에서는 처음 실행할 때 광고 동의 화면이 나오며, 로비의 "광고 개인정보 설정"에서 언제든 바꿀 수 있습니다. 기기 설정에서 광고 ID를 재설정하거나 맞춤 광고를 끌 수 있습니다 (Android: 설정 → 개인정보 보호 → 광고, iPhone: 설정 → 개인정보 보호 및 보안 → 추적).</p>
 
-    <h2>4. 보관 기간과 삭제</h2>
-    <p>정보는 계정이 유지되는 동안 보관하며, 계정 삭제를 요청하면 프로필·점수·아이템 정보와 로그인 계정을 지체 없이 삭제합니다. 대전 기록은 부정행위 확인을 위해 최대 1년 보관 후 삭제합니다. 탈퇴 후 재가입 시 시작 점수를 0점으로 하기 위해, 이메일 주소 자체가 아닌 이메일의 일방향 해시값만 보관합니다. 결제 기록은 관련 법령에 따른 기간 동안 보관합니다.</p>
-    <p><b>계정 삭제:</b> 앱의 <b>로비 → 계정 삭제</b>에서 바로 삭제할 수 있습니다. 진행 중인 대전은 기권 처리됩니다. 앱을 쓸 수 없다면 아래 연락처로 앱에 표시된 닉네임과 함께 삭제를 요청해 주세요.</p>
+    <h2>4. 보관 기간과 파기</h2>
+    <ul>
+      <li>계정·게임 정보: 계정이 유지되는 동안 보관하고, 탈퇴하면 지체 없이 파기합니다.</li>
+      <li>대전 기록: 부정행위 확인을 위해 최대 1년 보관 후 파기합니다.</li>
+      <li>탈퇴 계정 확인값: 탈퇴 후 재가입 시 시작 점수를 0점으로 하기 위해, 이메일 주소 자체가 아닌 이메일의 일방향 해시값만 보관합니다.</li>
+      <li>결제 기록: 「전자상거래 등에서의 소비자보호에 관한 법률」에 따라 대금 결제 및 재화 공급 기록은 5년, 소비자 불만·분쟁 처리 기록은 3년 보관합니다.</li>
+    </ul>
+    <p><b>파기 방법:</b> 전자 정보는 복구할 수 없도록 데이터베이스에서 삭제하며, 종이 문서로는 개인정보를 보관하지 않습니다.</p>
+    <p><b>계정 삭제:</b> 앱의 <b>로비 → 계정 삭제</b>에서 바로 삭제할 수 있습니다. 진행 중인 대전은 기권 처리되며, Apple 계정은 Apple 로그인 연결도 함께 해제합니다. 앱을 쓸 수 없다면 아래 연락처로 앱에 표시된 닉네임과 함께 삭제를 요청해 주세요.</p>
 
-    <h2>5. 아동</h2>
-    <p>앱은 만 13세 미만 아동을 대상으로 하지 않으며, 아동의 정보를 고의로 수집하지 않습니다.</p>
+    <h2>5. 이용자의 권리</h2>
+    <p>이용자(만 14세 미만이면 법정대리인)는 언제든 자신의 개인정보를 열람, 정정, 삭제하거나 처리 정지를 요청할 수 있습니다. 닉네임은 앱에서 직접 바꿀 수 있고, 삭제는 앱의 계정 삭제로 할 수 있으며, 그 밖의 요청은 아래 연락처로 보내 주세요. 운영자는 본인 확인 후 10일 이내에 처리하고 결과를 알려 드립니다.</p>
 
-    <h2>6. 연락처</h2>
-    <p>개인정보 관련 문의: <b><a href="mailto:softrime0@gmail.com">softrime0@gmail.com</a></b></p>
+    <h2>6. 아동</h2>
+    <p>게임 내용은 모든 연령이 즐길 수 있도록 만들었지만, <b>로그인(계정 만들기)은 만 14세 이상</b>을 대상으로 합니다. 만 14세 미만은 법정대리인의 동의를 받아야 로그인할 수 있으며, 로그인 없이 AI 연습 대전은 할 수 있습니다. 운영자는 만 14세 미만 아동의 정보를 법정대리인 동의 없이 고의로 수집하지 않으며, 동의 없이 수집된 사실을 알게 되면 바로 삭제합니다. 법정대리인은 아래 연락처로 자녀 계정의 열람·삭제를 요청할 수 있습니다.</p>
 
-    <h2>7. 변경</h2>
-    <p>이 방침이 바뀌면 이 페이지에 시행일과 함께 게시합니다.</p>
+    <h2>7. 안전성 확보 조치</h2>
+    <ul>
+      <li>모든 통신은 암호화(HTTPS/TLS)됩니다.</li>
+      <li>점수·포인트·닉네임·결제는 서버에서만 바꿀 수 있고, 보안 규칙에 따라 이용자는 다른 사람의 정보를 바꿀 수 없으며 대전 기록은 참가자만 볼 수 있습니다.</li>
+      <li>관리자 접근은 운영자 본인 계정으로 제한하고, 관리 작업은 기록을 남깁니다.</li>
+    </ul>
+
+    <h2>8. 개인정보 보호책임자와 연락처</h2>
+    <p>개인정보 보호책임자: Bubble 냥햄대전 운영자<br>
+    연락처: <b><a href="mailto:softrime0@gmail.com">softrime0@gmail.com</a></b></p>
+    <p>개인정보 침해에 대한 신고나 상담은 아래 기관에도 할 수 있습니다: 개인정보침해신고센터(국번 없이 118, privacy.kisa.or.kr), 개인정보분쟁조정위원회(1833-6972, www.kopico.go.kr), 대검찰청(국번 없이 1301), 경찰청(국번 없이 182).</p>
+
+    <h2>9. 변경</h2>
+    <p>이 방침이 바뀌면 시행 7일 전에 이 페이지에 시행일과 함께 게시합니다.</p>
   </section>
 
   <section class="card" id="en" lang="en">
     <h1>Bubble Cats vs Hamsters — Privacy Policy</h1>
-    <p class="muted">Effective: November 20, 2026</p>
+    <p class="muted">Effective: November 23, 2026 (previous version: November 20, 2026)</p>
     <p>"Bubble Cats vs Hamsters" (the "App") only processes the information needed to run the game.</p>
 
     <h2>1. Information we process</h2>
     <table>
       <tr><th>Data</th><th>Purpose</th></tr>
-      <tr><td>Google account identifier (Firebase user ID), Google account email</td><td>Sign-in and telling accounts apart (your email is never shown to other players)</td></tr>
-      <tr><td>Nickname, score, win/loss record, rank, items owned</td><td>Running the game and leaderboard (nickname, score and rank are visible to other players)</td></tr>
-      <tr><td>Match records (moves, results)</td><td>Running matches, deciding results and scores, preventing cheating</td></tr>
-      <tr><td>Last-seen time</td><td>Counting how many players are online (never shown per person)</td></tr>
+      <tr><td>Google or Apple account identifier (Firebase user ID), account email (an Apple relay address if you choose "Hide My Email")</td><td>Sign-in, telling accounts apart, recognising re-created accounts (your email is never shown to other players)</td></tr>
+      <tr><td>Nickname, score, win/loss record, rank, items and points owned, check-in, mission and tutorial progress</td><td>Running the game, giving rewards, the leaderboard (nickname, score, rank and equipped cosmetics are visible to other players)</td></tr>
+      <tr><td>Match records (moves, results, times)</td><td>Running matches, deciding results and scores, preventing cheating</td></tr>
+      <tr><td>Friend-battle room codes, number of games with a friend per day</td><td>Connecting friend battles, limiting rated games per day</td></tr>
       <tr><td>Referral code and who invited you</td><td>Giving referral rewards</td></tr>
-      <tr><td>In-app purchase order ID and receipt token</td><td>Verifying payments and preventing double grants (card details are handled by Google, never by the App)</td></tr>
-      <tr><td>Advertising ID, device and app information (collected by the ads SDK)</td><td>Showing ads, measuring ad performance, preventing ad fraud</td></tr>
+      <tr><td>Last-seen time</td><td>Counting how many players are online (never shown per person)</td></tr>
+      <tr><td>In-app purchase order ID, transaction ID and receipt (Google Play or App Store)</td><td>Verifying payments, preventing double grants, handling refunds (card details are handled by Google or Apple, never by the App)</td></tr>
+      <tr><td>Rewarded-ad views</td><td>Giving ad rewards, daily limits</td></tr>
+      <tr><td>Advertising ID, device and app information, IP address (collected by the ads SDK)</td><td>Showing ads, measuring ad performance, preventing ad fraud</td></tr>
     </table>
-    <p>We do not collect your name, phone number, location or contacts.</p>
+    <p>We do not collect your name, phone number, address, location, contacts or photos. If you only play AI practice without signing in, we process no account data, but the ads SDK may still collect the ad-related data above.</p>
 
-    <h2>2. Third-party services</h2>
-    <p>The App uses these Google services; their privacy policies also apply.</p>
-    <ul>
-      <li>Firebase Authentication, Cloud Firestore, Cloud Functions (sign-in, storage, server logic)</li>
-      <li>Google AdMob (ads) — <a href="https://policies.google.com/technologies/partner-sites">How Google uses information from partner sites</a></li>
-    </ul>
-    <p>We do not sell your information.</p>
+    <h2>2. Service providers and international transfers</h2>
+    <p>We use the services below to run the App. They are based abroad or use servers abroad, so your data may be transferred outside your country. Their privacy policies also apply.</p>
+    <table>
+      <tr><th>Recipient (country)</th><th>Data</th><th>Purpose</th><th>Retention</th></tr>
+      <tr><td>Google LLC (USA) — Firebase Authentication, Cloud Firestore, Cloud Functions</td><td>Account, game and payment data in section 1</td><td>Sign-in, storage, server logic (server logic runs in Seoul; some data may be processed in Google data centres abroad)</td><td>Until you delete your account or the periods in section 4</td></tr>
+      <tr><td>Google LLC (USA) — Google AdMob</td><td>Advertising ID, device and app info, IP address</td><td>Showing and measuring ads</td><td>Per the <a href="https://policies.google.com/privacy">Google Privacy Policy</a></td></tr>
+      <tr><td>Google LLC (USA) — Google Play billing</td><td>Payment data</td><td>Payments and refunds</td><td>Per Google's policy and the law</td></tr>
+      <tr><td>Apple Inc. (USA) — Sign in with Apple, App Store payments</td><td>Apple account identifier, payment data</td><td>Sign-in, payments and refunds</td><td>Per Apple's policy and the law</td></tr>
+    </table>
+    <p>Data is sent over encrypted connections when you use the App. See also <a href="https://policies.google.com/technologies/partner-sites">How Google uses information from partner sites</a>. We do not sell your information.</p>
 
     <h2>3. Ads and consent</h2>
     <p>Where consent is required (e.g. the EEA and UK), a consent form is shown on first launch, and you can change your choice any time from "Ad privacy settings" in the lobby. You can reset your advertising ID or opt out of personalized ads in your device settings.</p>
 
     <h2>4. Retention and deletion</h2>
-    <p>We keep your data while your account exists. When you request deletion, we promptly delete your profile, score and items and your sign-in account. Match records are kept for up to one year to investigate cheating, then deleted. So that a re-created account starts from 0 points, we keep only a one-way hash of the email address, not the address itself. Payment records are kept for the period required by law.</p>
-    <p><b>To delete your account:</b> tap <b>Lobby → Delete account</b> in the App. Any game in progress counts as a forfeit. If you can’t use the App, email us at the address below with the nickname shown in the App.</p>
+    <ul>
+      <li>Account and game data: kept while your account exists and deleted promptly when you delete it.</li>
+      <li>Match records: kept for up to one year to investigate cheating, then deleted.</li>
+      <li>So that a re-created account starts from 0 points, we keep only a one-way hash of the email address, not the address itself.</li>
+      <li>Payment records: kept for 5 years, and complaint and dispute records for 3 years, as required by Korean e-commerce law.</li>
+    </ul>
+    <p><b>To delete your account:</b> tap <b>Lobby → Delete account</b> in the App. Any game in progress counts as a forfeit, and for Apple accounts the Sign in with Apple link is revoked too. If you can’t use the App, email us at the address below with the nickname shown in the App.</p>
 
-    <h2>5. Children</h2>
-    <p>The App is not directed to children under 13 and we do not knowingly collect their information.</p>
+    <h2>5. Your rights</h2>
+    <p>You (or your parent or guardian if you are under 14) can ask to access, correct or delete your data, or to stop us processing it. You can change your nickname and delete your account in the App; send other requests to the contact below. We respond within 10 days after confirming it is you. Depending on where you live (for example the EEA, UK or California), you may have further rights, including complaining to your local data protection authority.</p>
 
-    <h2>6. Contact</h2>
-    <p>Privacy questions: <b><a href="mailto:softrime0@gmail.com">softrime0@gmail.com</a></b></p>
+    <h2>6. Children</h2>
+    <p>The game content is suitable for all ages, but <b>signing in (creating an account) is for users aged 14 and over</b> (or the minimum age in your country, such as 13 in the US). Younger children need a parent's or guardian's permission to sign in, and can play AI practice without signing in. We do not knowingly collect children's data without that permission, and will delete it promptly if we learn we have. Parents can contact us to review or delete their child's account.</p>
 
-    <h2>7. Changes</h2>
-    <p>We will post any changes on this page with a new effective date.</p>
+    <h2>7. Security</h2>
+    <ul>
+      <li>All connections are encrypted (HTTPS/TLS).</li>
+      <li>Scores, points, nicknames and payments can only be changed by the server; security rules stop players from changing anyone else's data, and match records are visible only to the two players.</li>
+      <li>Admin access is limited to the operator's own account and admin actions are logged.</li>
+    </ul>
+
+    <h2>8. Contact</h2>
+    <p>Privacy officer: Bubble Cats vs Hamsters operator<br>
+    Contact: <b><a href="mailto:softrime0@gmail.com">softrime0@gmail.com</a></b></p>
+
+    <h2>9. Changes</h2>
+    <p>We will post any changes on this page with a new effective date, 7 days before they take effect.</p>
   </section>
 </main>
 </body>

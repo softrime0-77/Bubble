@@ -880,6 +880,7 @@ private fun GameScreen(vm: AppViewModel) {
             power = power, attack = toOpp, boom = !split && targetCount + power >= GameLogic.EXPLODE_AT, split = split,
         )
         landAt = System.currentTimeMillis() + SHOT_FLY_MS
+        com.bubble.game.audio.Music.sfx(if (split) com.bubble.game.audio.Music.Sfx.SPLIT else com.bubble.game.audio.Music.Sfx.SHOOT)
     }
 
     LaunchedEffect(live) {
@@ -898,6 +899,7 @@ private fun GameScreen(vm: AppViewModel) {
                     firedRevive = s.id
                     centers["${s.side}${s.to}"]?.let { at ->
                         revives += ReviveBurst(System.nanoTime(), at - layerOrigin, s.side, if (s.side == g.mySide) g.mySkin else g.opponentSkin)
+                        com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.POTION)
                         landAt = System.currentTimeMillis() + REVIVE_DROP_MS
                     }
                 }
@@ -915,10 +917,17 @@ private fun GameScreen(vm: AppViewModel) {
         firedLucky = l.id
         val at = centers["${l.side.opponent}${l.to}"] ?: return@LaunchedEffect
         coins += CoinPop(System.nanoTime(), at - layerOrigin, mine = l.side == g.mySide, amount = l.coins)
+        com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN)
     }
 
     var selected by remember { mutableStateOf<Int?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
+    // 🔊 끝나면 승리/패배 징글 (한 판에 한 번)
+    LaunchedEffect(g.finished, g.winner) {
+        if (g.finished && g.winner != null) {
+            com.bubble.game.audio.Music.sfx(if (g.winner == g.mySide) com.bubble.game.audio.Music.Sfx.WIN else com.bubble.game.audio.Music.Sfx.LOSE)
+        }
+    }
 
     // 차례가 바뀌거나 판이 바뀌면 선택 해제
     LaunchedEffect(g.turn, g.board) {
@@ -1027,7 +1036,10 @@ private fun GameScreen(vm: AppViewModel) {
                         },
                         onClick = when {
                             boostTarget -> ({ shoot(sel!!, false, i) })
-                            pickable && !inFlight -> ({ selected = if (isSel) null else i })
+                            pickable && !inFlight -> ({
+                                if (!isSel) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.SELECT)
+                                selected = if (isSel) null else i
+                            })
                             else -> null
                         },
                     )
@@ -1110,6 +1122,9 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
         ShotLayer(
             shots,
             onImpact = { s ->
+                // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
+                if (s.boom) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.POP)
+                else if (!s.split) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.HIT)
                 if (s.attack || s.boom) scope.launch {
                     shake.snapTo(if (s.boom) 1f else 0.6f)
                     shake.animateTo(0f, tween(if (s.boom) 650 else 420))

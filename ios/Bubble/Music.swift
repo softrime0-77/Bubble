@@ -97,6 +97,45 @@ final class Music: ObservableObject {
         }
     }
 
+    // MARK: 효과음 (tools/music/make_sfx.py로 합성)
+
+    enum Sfx: String, CaseIterable {
+        case select, shoot, hit, pop, split, potion, coin, win, lose
+        var volume: Float {
+            switch self {
+            case .select: return 0.5
+            case .shoot: return 0.55
+            case .coin: return 0.6
+            case .hit, .split, .lose: return 0.7
+            case .potion, .win: return 0.8
+            case .pop: return 0.9
+            }
+        }
+    }
+
+    /// 효과음마다 플레이어 3개를 돌려 써서 빠르게 겹쳐도 끊기지 않게
+    private var sfxPlayers: [Sfx: [AVAudioPlayer]] = [:]
+    private var sfxTurn: [Sfx: Int] = [:]
+
+    func sfx(_ s: Sfx) {
+        guard enabled, active else { return }
+        if sfxPlayers[s] == nil {
+            guard let url = Bundle.main.url(forResource: "sfx_" + s.rawValue, withExtension: "m4a") else { return }
+            sfxPlayers[s] = (0..<3).compactMap { _ in
+                let p = try? AVAudioPlayer(contentsOf: url)
+                p?.volume = s.volume
+                p?.prepareToPlay()
+                return p
+            }
+        }
+        guard let list = sfxPlayers[s], !list.isEmpty else { return }
+        let i = (sfxTurn[s] ?? 0) % list.count
+        sfxTurn[s] = i + 1
+        let p = list[i]
+        p.currentTime = 0
+        p.play()
+    }
+
     static let lobby = "bgm_lobby"
 
     /// 게임 곡: 내 캐릭터별. 소모품 동물(양·강아지·기린)이나 기본이면 고양이/햄스터 곡

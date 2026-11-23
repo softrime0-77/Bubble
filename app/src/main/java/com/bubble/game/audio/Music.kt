@@ -1,7 +1,9 @@
 package com.bubble.game.audio
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.media.SoundPool
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
@@ -36,6 +38,35 @@ object Music {
     fun init(context: Context) {
         app = context.applicationContext
         enabled = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, true)
+        if (pool == null) {
+            pool = SoundPool.Builder()
+                .setMaxStreams(6)
+                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                .build()
+                .also { p -> Sfx.entries.forEach { s -> sfxIds[s] = p.load(context.applicationContext, s.res, 1) } }
+        }
+    }
+
+    /** 효과음 (tools/music/make_sfx.py로 합성). 🔇이면 소리 없음 */
+    enum class Sfx(val res: Int, val volume: Float) {
+        SELECT(R.raw.sfx_select, 0.5f),
+        SHOOT(R.raw.sfx_shoot, 0.55f),
+        HIT(R.raw.sfx_hit, 0.7f),
+        POP(R.raw.sfx_pop, 0.9f),
+        SPLIT(R.raw.sfx_split, 0.7f),
+        POTION(R.raw.sfx_potion, 0.8f),
+        COIN(R.raw.sfx_coin, 0.6f),
+        WIN(R.raw.sfx_win, 0.8f),
+        LOSE(R.raw.sfx_lose, 0.7f),
+    }
+
+    private var pool: SoundPool? = null
+    private val sfxIds = mutableMapOf<Sfx, Int>()
+
+    fun sfx(s: Sfx) {
+        if (!enabled || !foreground) return
+        val id = sfxIds[s] ?: return
+        pool?.play(id, s.volume, s.volume, 1, 0, 1f)
     }
 
     fun toggle() {

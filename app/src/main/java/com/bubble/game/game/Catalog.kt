@@ -78,7 +78,7 @@ enum class Animal(
     OCTOPUS("문어", "Octopus", 400, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🐧 펭귄: 공격할 때 얼음 썰매 */
     PENGUIN("펭귄", "Penguin", 400, Shop.DEFAULT_TURN_SEC, cosmetic = true),
-    /** 🐼 출석 판다: 장착하고 출석하면 💰 +5 */
+    /** 🐼 출석 판다: 장착하고 출석하면 💰 +10 */
     PANDA("출석 판다", "Check-in Panda", 500, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🐉 아기 용: 상대 방울을 터뜨리면 💰 +2 (하루 최대 10) */
     DRAGON("아기 용", "Baby Dragon", 700, Shop.DEFAULT_TURN_SEC, cosmetic = true),
@@ -138,7 +138,7 @@ object Shop {
     const val RENAME_PRICE = 100
 
     /** ×3 점수 부스터 (소모품). functions/src/catalog.ts의 BOOST_PRICE와 같게 */
-    const val BOOST_PRICE = 50
+    const val BOOST_PRICE = 100
     const val BOOST_MULTIPLIER = 3
 
     /** 💰 복냥이: 공격할 때 💰 +1 확률(%)과 하루 최대 (functions/src/catalog.ts LUCKY_*와 같게) */
@@ -158,7 +158,7 @@ object Shop {
         else -> emptyList()
     }
 
-    const val PANDA_CHECKIN_BONUS = 5
+    const val PANDA_CHECKIN_BONUS = 10
     const val DRAGON_POP_COINS = 2
     const val DRAGON_DAILY_MAX = 10
     const val RABBIT_MAX_RIBBONS = 5

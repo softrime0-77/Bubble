@@ -371,7 +371,7 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                 ui.profile != null -> {
                     val p = ui.profile!!
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped)
+                        Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped, ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
@@ -381,6 +381,8 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                                 modifier = Modifier.clickable { showRanks = true },
                             ) {
                                 RankBadge(p.score)
+                                // 🐰 연승 토끼 장착 중이면 지금 연승 리본 수
+                                if (p.equipped == Animal.RABBIT) RibbonBadge(p.winStreak)
                                 Text(tr("  계급표 ›", "  Ranks ›", zh = "  等级表 ›", hi = "  रैंक ›", es = "  Rangos ›", fr = "  Rangs ›", ar = "  الرتب ›", de = "  Ränge ›", pt = "  Ranks ›", ru = "  Ранги ›", ja = "  ランク表 ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
                             }
                             Spacer(Modifier.height(4.dp))
@@ -1441,10 +1443,25 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
             modifier = Modifier.padding(32.dp),
         ) {
             Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                // 🐰 이기면 연승 리본이 바로 하나 늘어나는 모습 (서버가 알려 준 새 연승으로)
+                val newRibbons = if (won && g.mySkin == Animal.RABBIT && g.rabbitStreak > 0) g.rabbitStreak else g.myRibbons
+                var shownRibbons by remember { mutableStateOf(g.myRibbons) }
+                val ribbonPop = remember { Animatable(1f) }
+                LaunchedEffect(newRibbons) {
+                    if (newRibbons != shownRibbons) {
+                        delay(600)
+                        shownRibbons = newRibbons
+                        ribbonPop.snapTo(1.6f)
+                        ribbonPop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = androidx.compose.animation.core.Spring.StiffnessLow))
+                    }
+                }
                 Critter(
                     g.mySide, Modifier.size(120.dp).offset(y = (if (won) -jump * 16 else 0f).dp),
-                    happy = won, skin = g.mySkin, ribbons = g.myRibbons,
+                    happy = won, skin = g.mySkin, ribbons = shownRibbons.coerceIn(0, Shop.RABBIT_MAX_RIBBONS),
                 )
+                if (g.mySkin == Animal.RABBIT && shownRibbons > 0) {
+                    Box(Modifier.scale(ribbonPop.value)) { RibbonBadge(shownRibbons, exact = true) }
+                }
                 Text(
                     if (won) tr("승리! 🎉", "You win! 🎉", zh = "你赢了！🎉", hi = "आप जीत गए! 🎉", es = "¡Ganaste! 🎉", fr = "Victoire ! 🎉", ar = "لقد فزت! 🎉", de = "Gewonnen! 🎉", pt = "Você venceu! 🎉", ru = "Победа! 🎉", ja = "勝利！🎉") else tr("아쉬운 패배…", "So close…", zh = "差一点…", hi = "बस थोड़ा सा रह गया…", es = "Casi…", fr = "Presque…", ar = "كدت تفوز…", de = "Knapp daneben…", pt = "Quase…", ru = "Почти…", ja = "惜しい…"),
                     fontSize = 32.sp, fontWeight = FontWeight.Black,
@@ -3172,14 +3189,18 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
     }
 }
 
-/** 🐰 게임 중 연승 리본 배지: 🎀×n (5연승 이상은 금빛 🎀5+) */
+/** 🐰 연승 리본 배지: 🎀n (5연승 이상은 금빛 🎀5+), [exact]면 "🎀 n연승" */
 @Composable
-private fun RibbonBadge(n: Int) {
+private fun RibbonBadge(n: Int, exact: Boolean = false) {
     if (n <= 0) return
     val gold = n >= Shop.RABBIT_MAX_RIBBONS
     Spacer(Modifier.width(6.dp))
     Text(
-        if (gold) "🎀${Shop.RABBIT_MAX_RIBBONS}+" else "🎀$n",
+        when {
+            exact -> tr("🎀 ${n}연승", "🎀 $n in a row", zh = "🎀 ${n}连胜", es = "🎀 $n seguidas", fr = "🎀 $n d’affilée", de = "🎀 $n in Folge", pt = "🎀 $n seguidas", ru = "🎀 $n подряд", ja = "🎀 ${n}連勝")
+            gold -> "🎀${Shop.RABBIT_MAX_RIBBONS}+"
+            else -> "🎀$n"
+        },
         fontWeight = FontWeight.Black, fontSize = 14.sp, color = if (gold) Color(0xFF6B4A00) else Color.White,
         modifier = Modifier
             .background(

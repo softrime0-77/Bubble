@@ -646,6 +646,30 @@ class ScreenshotTest {
         shot("win_snow", 900)
     }
 
+    @Test
+    fun winRabbitRibbons() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(2, 0), ham = listOf(0, 0)), mySide = Side.CAT, finished = true, winner = Side.CAT,
+                reason = "normal", busy = false, showIntro = false, online = true, mySkin = com.bubble.game.game.Animal.RABBIT,
+                myRibbons = 2, rabbitStreak = 3, rabbitCoins = 5)
+        }
+        shot("win_rabbit_ribbons", 2500)
+    }
+
+    @Test
+    fun lobbyRabbit() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(equipped = com.bubble.game.game.Animal.RABBIT, winStreak = 4, tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_rabbit", 900)
+    }
+
     private fun winShot(name: String, skin: com.bubble.game.game.Animal?) {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

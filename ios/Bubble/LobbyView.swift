@@ -342,12 +342,14 @@ struct LobbyView: View {
                 .font(.system(size: 14)).foregroundColor(UiColor.text).multilineTextAlignment(.center)
         } else if let p = online.profile {
             HStack(spacing: 10) {
-                Critter(side: .cat, skin: p.equipped).frame(width: 52, height: 52)
+                Critter(side: .cat, skin: p.equipped, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0).frame(width: 52, height: 52)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text)
                     Button { showRanks = true } label: {
                         HStack(spacing: 0) {
                             RankBadge(score: p.score)
+                            // 🐰 연승 토끼 장착 중이면 지금 연승 리본 수
+                            if p.equipped == .rabbit { RibbonBadge(n: p.winStreak).padding(.leading, 6) }
                             Text(t("  계급표 ›")).font(.system(size: 12, weight: .bold)).foregroundColor(UiColor.accent)
                         }
                     }

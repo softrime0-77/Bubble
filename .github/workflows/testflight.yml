@@ -98,6 +98,42 @@ jobs:
               print("자리표시 기기를 등록했어요:", udid)
           PY
 
+      # 러너는 매번 새 컴퓨터라 Xcode가 실행마다 서명 인증서를 새로 만들고, 예전 것은 다시 못 씀.
+      # 계정 인증서 한도가 차지 않게, 예전 실행이 API로 만든 인증서("Created via API")만 지움.
+      # (직접 만든 인증서는 건드리지 않음. 이미 올라간 빌드·출시된 앱에는 영향 없음)
+      - name: Revoke old CI signing certificates
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          import jwt
+          key = open(os.path.join(os.environ["RUNNER_TEMP"], "keys", f"AuthKey_{os.environ['ASC_KEY_ID']}.p8")).read()
+          now = int(time.time())
+          token = jwt.encode({"iss": os.environ["ASC_ISSUER_ID"], "iat": now, "exp": now + 900, "aud": "appstoreconnect-v1"},
+                             key, algorithm="ES256", headers={"kid": os.environ["ASC_KEY_ID"], "typ": "JWT"})
+          def api(path, method="GET"):
+              req = urllib.request.Request("https://api.appstoreconnect.apple.com" + path, method=method,
+                                           headers={"Authorization": "Bearer " + token})
+              with urllib.request.urlopen(req) as r:
+                  body = r.read()
+                  return json.loads(body) if body else None
+          certs = api("/v1/certificates?limit=200")["data"]
+          kinds = {"DEVELOPMENT", "IOS_DEVELOPMENT", "DISTRIBUTION", "IOS_DISTRIBUTION"}
+          old = [c for c in certs
+                 if c["attributes"].get("certificateType") in kinds
+                 and "Created via API" in ((c["attributes"].get("displayName") or "") + " " + (c["attributes"].get("name") or ""))]
+          print(f"인증서 {len(certs)}개 중 CI가 만든 예전 인증서 {len(old)}개를 지워요")
+          for c in old:
+              a = c["attributes"]
+              try:
+                  api(f"/v1/certificates/{c['id']}", "DELETE")
+                  print("  지움:", a.get("certificateType"), a.get("name"), a.get("expirationDate"))
+              except Exception as e:
+                  print("  못 지움:", a.get("name"), e)
+          PY
+
       # 빌드 번호는 이 워크플로 실행 번호 (올릴 때마다 커짐)
 
       - name: Archive (signed)

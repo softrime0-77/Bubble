@@ -61,7 +61,7 @@ struct ShopView: View {
                                               pt: "Cupom de troca", ru: "Талон смены ника", ja: "変更券"), Shop.renamePrice, p)
                     }
                     shopCard(title: t("×3 점수 부스터"),
-                             desc: t("켜두면 다음 랜덤 매칭에서 1개를 쓰고, 이기면 얻는 점수가 3배! (AI 대전에는 쓰지 않아요)"),
+                             desc: t("켜두면 랜덤 매칭에서 이길 때 얻는 점수가 3배! 이긴 판에만 1개를 쓰고, 지면 그대로 남아요 (AI 대전에는 쓰지 않아요)"),
                              price: Shop.boostPrice,
                              owned: p.boosts > 0 ? tf("보유 {0}개", p.boosts) + (p.boostOn ? t("  ·  🔥 사용 중") : "") : nil,
                              art: AnyView(BoostArt())) {

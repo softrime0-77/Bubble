@@ -93,6 +93,7 @@ struct GameView<M: GameModel>: View {
                     PlayerTag(side: opp, name: game.opponentName, active: game.turn == opp && !game.finished, skin: game.opponentSkin)
                     SplitCounter(left: game.board.splitsLeft(opp))
                     ReviveCounter(left: game.board.revivesLeft(opp))
+                    if game.opponentSkin == .rabbit { RibbonBadge(n: game.opponentRibbons) }
                 }
                 .padding(.top, 6)
 
@@ -125,6 +126,7 @@ struct GameView<M: GameModel>: View {
                     PlayerTag(side: me, name: game.myName, active: game.myTurn, skin: game.mySkin)
                     SplitCounter(left: game.board.splitsLeft(me))
                     ReviveCounter(left: game.board.revivesLeft(me))
+                    if game.mySkin == .rabbit { RibbonBadge(n: game.myRibbons) }
                     if game.myBoost {
                         Text("🚀×3").font(.system(size: 13, weight: .black)).foregroundColor(Color(hex: 0xB23C00))
                             .padding(.horizontal, 8).padding(.vertical, 4)

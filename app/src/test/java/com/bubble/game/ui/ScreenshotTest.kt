@@ -163,6 +163,46 @@ class ScreenshotTest {
     }
 
     @Test
+    fun lobbyLang_ru() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.RU)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_ru", 900)
+    }
+
+    @Test
+    fun lobbyLang_de() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.DE)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_de", 900)
+    }
+
+    @Test
+    fun lobbyLang_hi() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.HI)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_hi", 900)
+    }
+
+    @Test
+    fun lobbyLang_fr() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.FR)
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(tutorialSeen = true)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_fr", 900)
+    }
+
+    @Test
     fun lobbyJapanese() {
         com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.JA)
         rule.mainClock.autoAdvance = false
@@ -202,6 +242,24 @@ class ScreenshotTest {
             )
         }
         shot("game_en", 1200)
+    }
+
+    @Test
+    fun gameRibbons() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(2, 1), ham = listOf(1, 3), catSplits = 3, hamSplits = 3),
+                mySide = Side.CAT, turn = Side.CAT, busy = false,
+                mySkin = com.bubble.game.game.Animal.RABBIT, myRibbons = 3,
+                opponentSkin = com.bubble.game.game.Animal.RABBIT, opponentRibbons = 5,
+            )
+        }
+        shot("game_ribbons", 1200)
     }
 
     @Test

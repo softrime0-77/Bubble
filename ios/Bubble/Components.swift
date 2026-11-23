@@ -266,6 +266,24 @@ struct TurnTimerView: View {
     }
 }
 
+/// 🐰 게임 중 연승 리본 배지: 🎀n (5연승 이상은 금빛 🎀5+)
+struct RibbonBadge: View {
+    let n: Int
+    var body: some View {
+        if n > 0 {
+            let gold = n >= Shop.rabbitMaxRibbons
+            Text(gold ? "🎀\(Shop.rabbitMaxRibbons)+" : "🎀\(n)")
+                .font(.system(size: 14, weight: .black))
+                .foregroundColor(gold ? Color(hex: 0x6B4A00) : .white)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Capsule().fill(LinearGradient(
+                    colors: gold ? [Color(hex: 0xFFE27A), Color(hex: 0xFFB300)] : [Color(hex: 0xFF7EB3), Color(hex: 0xFF5C8A)],
+                    startPoint: .leading, endPoint: .trailing)))
+                .fixedSize()
+        }
+    }
+}
+
 /// 이번 판에 남은 부활물약 (없으면 안 보임)
 struct ReviveCounter: View {
     let left: Int

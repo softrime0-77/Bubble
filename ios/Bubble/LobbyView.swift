@@ -115,6 +115,9 @@ struct LobbyView: View {
                                 ja: "匿名の相手と1対1 · 勝ち +\(Shop.winPoints) · 負け -\(Shop.losePoints)"))
                             .font(.system(size: 12))
                     }
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, minHeight: 76)
                     .background(RoundedRectangle(cornerRadius: 28).fill(UiColor.primary.opacity(online.profile == nil ? 0.4 : 1)))
@@ -137,6 +140,9 @@ struct LobbyView: View {
                                 ja: "リンクを送って1対1 · 勝ち +\(Shop.friendWinPoints) · 負け -\(Shop.friendLosePoints)"))
                             .font(.system(size: 12))
                     }
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, minHeight: 64)
                     .background(RoundedRectangle(cornerRadius: 24).fill(UiColor.accent.opacity(online.profile == nil ? 0.4 : 1)))

@@ -189,15 +189,22 @@ function finishGame(
     const bonus = win === human ? rankBonus(pts.win, score(humanSnap)) : 0;
     const boosted = (human === "CAT" ? game.catBoost : game.hamBoost) === true;
     const delta = win === human ? winPoints(pts.win, bonus, boosted) : -Math.min(-pts.lose, score(humanSnap));
+    // 🐰 연승 토끼: AI 대전도 연승(리본)과 연승 보상에 들어감 (하루 최대가 있어서 괜찮음)
+    const humanWon = win === human;
+    const rabbit = humanWon ? rabbitWin(humanSnap, human === "CAT" ? game.catSkin : game.hamSkin) : { user: {}, coins: 0, streak: 0 };
     tx.update(gameRef, {
       ...extra, status: "finished", winner: win, reason,
       [human === "CAT" ? "catDelta" : "hamDelta"]: delta,
       [human === "CAT" ? "catBonus" : "hamBonus"]: bonus,
+      rabbitCoins: rabbit.coins, rabbitStreak: rabbit.streak,
     });
     // 일일 미션: AI 대전도 "대전 하기"·"이기기"에 들어감
     tx.update(humanSnap.ref, {
-      ...missionProgress(humanSnap.data() ?? {}, dayKey(Date.now()), { play: 1, win: win === human ? 1 : 0, random: 0 }),
+      ...missionProgress(humanSnap.data() ?? {}, dayKey(Date.now()), { play: 1, win: humanWon ? 1 : 0, random: 0 }),
       ...(delta !== 0 ? { score: FieldValue.increment(delta) } : {}),
+      winStreak: humanWon ? FieldValue.increment(1) : 0,
+      ...rabbit.user,
+      ...(rabbit.coins > 0 ? { coins: FieldValue.increment(rabbit.coins) } : {}),
     });
     return;
   }

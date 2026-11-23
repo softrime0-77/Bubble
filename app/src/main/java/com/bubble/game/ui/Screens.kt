@@ -6,6 +6,7 @@ import com.bubble.game.data.Country
 import com.bubble.game.billing.BillingManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.CompositionLocalProvider
@@ -449,15 +450,17 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             enabled = ui.onlineAvailable && ui.profile != null && !ui.needsLogin,
             shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
-            modifier = Modifier.fillMaxWidth().height(64.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(tr("👫  친구와 대전", "👫  Battle a Friend", zh = "👫  好友对战", hi = "👫  दोस्त से मुकाबला", es = "👫  Reta a un amigo", fr = "👫  Défier un ami", ar = "👫  تحدَّ صديقًا", de = "👫  Freund herausfordern", pt = "👫  Desafiar um amigo", ru = "👫  Бой с другом", ja = "👫  友だちと対戦"), fontSize = 19.sp, fontWeight = FontWeight.Black)
+                Text(textAlign = TextAlign.Center, lineHeight = 23.sp, text = tr("👫  친구와 대전", "👫  Battle a Friend", zh = "👫  好友对战", hi = "👫  दोस्त से मुकाबला", es = "👫  Reta a un amigo", fr = "👫  Défier un ami", ar = "👫  تحدَّ صديقًا", de = "👫  Freund herausfordern", pt = "👫  Desafiar um amigo", ru = "👫  Бой с другом", ja = "👫  友だちと対戦"), fontSize = 19.sp, fontWeight = FontWeight.Black)
                 Text(
                     tr(
                         "링크를 보내 1:1 · 승리 +${OnlineRepository.FRIEND_WIN_POINTS} · 패배 -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         "Send a link, play 1:1 · Win +${OnlineRepository.FRIEND_WIN_POINTS} · Lose -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         zh = "发送链接 1:1 · 胜 +${OnlineRepository.FRIEND_WIN_POINTS} · 负 -${OnlineRepository.FRIEND_LOSE_POINTS}",
+                        hi = "लिंक भेजें, 1:1 · जीत +${OnlineRepository.FRIEND_WIN_POINTS} · हार -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         es = "Envía un enlace, 1:1 · Gana +${OnlineRepository.FRIEND_WIN_POINTS} · Pierde -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         fr = "Envoie un lien, 1:1 · Victoire +${OnlineRepository.FRIEND_WIN_POINTS} · Défaite -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         de = "Link senden, 1:1 · Sieg +${OnlineRepository.FRIEND_WIN_POINTS} · Niederlage -${OnlineRepository.FRIEND_LOSE_POINTS}",
@@ -465,7 +468,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
                         ru = "Отправьте ссылку, 1:1 · Победа +${OnlineRepository.FRIEND_WIN_POINTS} · Поражение -${OnlineRepository.FRIEND_LOSE_POINTS}",
                         ja = "リンクを送って1対1 · 勝ち +${OnlineRepository.FRIEND_WIN_POINTS} · 負け -${OnlineRepository.FRIEND_LOSE_POINTS}",
                     ),
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 15.sp,
                 )
             }
         }
@@ -711,11 +714,13 @@ private fun BigButton(text: String, sub: String, enabled: Boolean, onClick: () -
         enabled = enabled,
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
-        modifier = Modifier.fillMaxWidth().height(76.dp).scale(if (enabled) s else 1f),
+        // 언어마다 설명 길이가 달라서 높이는 내용에 맞춰 늘어남 (최소 76dp)
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp).scale(if (enabled) s else 1f),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text, fontSize = 22.sp, fontWeight = FontWeight.Black)
-            Text(sub, fontSize = 12.sp)
+            Text(text, fontSize = 22.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, lineHeight = 26.sp)
+            Text(sub, fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 15.sp)
         }
     }
 }
@@ -1103,6 +1108,7 @@ private fun GameScreen(vm: AppViewModel) {
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(opp))
                 ReviveCounter(g.board.revivesLeft(opp))
+                if (g.opponentSkin == Animal.RABBIT) RibbonBadge(g.opponentRibbons)
             }
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
@@ -1171,6 +1177,7 @@ private fun GameScreen(vm: AppViewModel) {
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(me))
                 ReviveCounter(g.board.revivesLeft(me))
+                if (g.mySkin == Animal.RABBIT) RibbonBadge(g.myRibbons)
                 if (g.myBoost) {
                     Spacer(Modifier.width(6.dp))
                     Text(
@@ -2719,9 +2726,9 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
     val b = Shop.RABBIT_5_COINS
     val c = Shop.RABBIT_MORE_COINS
     val n = p.winStreak
-    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전만 · 지금 ${n}연승",
-        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random & scored friend matches · streak $n",
-        zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配和计分好友对战 · 当前 ${n} 连胜",
+    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
+        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random, scored friend & AI matches · streak $n",
+        zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 ${n} 连胜",
         es = "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
         fr = "🐰 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",
         de = "🐰 Siegesserien bringen 💰!\n· 3 Siege +$a · 5 Siege +$b · ab 6 +$c pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. $mx pro Tag (heute $today/$mx)\n· Eine Schleife pro Sieg, golden ab 5 · Serie $n",
@@ -3163,6 +3170,25 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
             }
         }
     }
+}
+
+/** 🐰 게임 중 연승 리본 배지: 🎀×n (5연승 이상은 금빛 🎀5+) */
+@Composable
+private fun RibbonBadge(n: Int) {
+    if (n <= 0) return
+    val gold = n >= Shop.RABBIT_MAX_RIBBONS
+    Spacer(Modifier.width(6.dp))
+    Text(
+        if (gold) "🎀${Shop.RABBIT_MAX_RIBBONS}+" else "🎀$n",
+        fontWeight = FontWeight.Black, fontSize = 14.sp, color = if (gold) Color(0xFF6B4A00) else Color.White,
+        modifier = Modifier
+            .background(
+                if (gold) Brush.horizontalGradient(listOf(Color(0xFFFFE27A), Color(0xFFFFB300)))
+                else Brush.horizontalGradient(listOf(Color(0xFFFF7EB3), Color(0xFFFF5C8A))),
+                RoundedCornerShape(50),
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
 }
 
 @Composable

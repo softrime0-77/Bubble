@@ -3,27 +3,210 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bubble 냥햄대전</title>
+<title>Bubble 냥햄대전 · 냥냥 vs 햄햄 방울 대전</title>
+<meta name="description" content="손가락 하나로 즐기는 1:1 두뇌 방울 배틀! 랜덤 매칭·친구 대전·AI 대전, 주간 랭킹에 도전하세요.">
+<meta property="og:title" content="Bubble 냥햄대전 · 냥냥 vs 햄햄 방울 대전">
+<meta property="og:description" content="손가락 하나로 즐기는 1:1 두뇌 방울 배틀! 무료 다운로드">
+<meta property="og:image" content="https://softrime0-77.github.io/Bubble/store/feature_1024x500_ko.png">
+<meta property="og:url" content="https://softrime0-77.github.io/Bubble/">
+<meta name="theme-color" content="#FF7EB3">
+<link rel="icon" href="store/icon_512.png">
 <style>
-  body { margin:0; font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",Roboto,sans-serif; color:#4a3b5c;
-         background:linear-gradient(#ffe3f1,#dcd6ff) fixed; text-align:center; }
-  main { max-width:720px; margin:0 auto; padding:32px 16px 64px; }
-  img { max-width:100%; border-radius:20px; }
-  .icon { width:120px; border-radius:28px; }
-  a.btn { display:inline-block; margin:8px; padding:12px 22px; border-radius:999px; background:#ff7eb3; color:#fff;
-          font-weight:800; text-decoration:none; }
+  :root { --pink:#FF7EB3; --pinkDark:#E0518F; --violet:#7C6CF2; --text:#4A3B5C; --gold:#FFC94D; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",Roboto,sans-serif; color:var(--text);
+         background:linear-gradient(#FFE3F1,#DCD6FF) fixed; text-align:center; overflow-x:hidden; }
+  main { max-width:960px; margin:0 auto; padding:0 16px 120px; }
+  section { margin:56px 0; }
+  h2 { font-size:28px; font-weight:900; margin:0 0 8px; }
+  .lead { font-size:16px; opacity:.8; margin:0 0 22px; line-height:1.6; }
+  img { display:block; }
+
+  /* 떠오르는 비눗방울 배경 */
+  .bubbles { position:fixed; inset:0; pointer-events:none; z-index:-1; overflow:hidden; }
+  .bubbles i { position:absolute; bottom:-80px; border-radius:50%; background:radial-gradient(circle at 30% 30%,#fff,#ffffff55 40%,#ffffff22 70%);
+               border:1px solid #ffffff99; animation:rise linear infinite; }
+  @keyframes rise { to { transform:translateY(-120vh) translateX(30px); } }
+
+  /* 첫 화면 */
+  .hero { padding:44px 0 8px; }
+  .hero .icon { width:112px; height:112px; border-radius:28px; margin:0 auto; box-shadow:0 10px 30px #E0518F44; animation:bob 2.4s ease-in-out infinite; }
+  @keyframes bob { 50% { transform:translateY(-8px) rotate(-3deg); } }
+  .hero h1 { font-size:clamp(56px,14vw,104px); font-weight:900; color:var(--pinkDark); margin:14px 0 0; line-height:1; letter-spacing:-2px; text-shadow:0 5px 0 #fff; }
+  .hero .sub { font-size:clamp(20px,5vw,28px); font-weight:800; margin:10px 0 0; }
+  .hero .tag { font-size:16px; margin:10px 0 0; opacity:.8; }
+  .btn { display:inline-flex; align-items:center; gap:10px; margin:22px 6px 0; padding:16px 30px; border-radius:999px;
+         background:linear-gradient(90deg,var(--pink),var(--violet)); color:#fff; font-weight:900; font-size:19px; text-decoration:none;
+         box-shadow:0 10px 24px #7C6CF255; position:relative; overflow:hidden; }
+  .btn::after { content:""; position:absolute; top:0; left:-60%; width:40%; height:100%; transform:skewX(-20deg);
+                background:linear-gradient(90deg,transparent,#ffffffaa,transparent); animation:shine 2.6s infinite; }
+  @keyframes shine { to { left:130%; } }
+  .btn small { font-weight:600; opacity:.9; font-size:13px; }
+  .free { margin-top:10px; font-size:13px; opacity:.7; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:22px; }
+  .chip { background:#ffffffcc; border-radius:999px; padding:8px 16px; font-weight:800; font-size:14px; }
+
+  /* 휴대폰 화면들 */
+  .phones { display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding:8px 16px 18px; margin:0 -16px; -webkit-overflow-scrolling:touch; }
+  .phones::-webkit-scrollbar { height:6px; } .phones::-webkit-scrollbar-thumb { background:#7C6CF255; border-radius:3px; }
+  @media (min-width:900px) { .phones { justify-content:center; flex-wrap:wrap; overflow:visible; } .phones .phone { width:168px; } }
+  .phone { flex:0 0 auto; width:min(58vw,220px); scroll-snap-align:center; }
+  .phone .frame { border-radius:28px; padding:7px; background:#2b2238; box-shadow:0 14px 30px #4A3B5C44; }
+  .phone img { width:100%; border-radius:22px; }
+  .phone b { display:block; margin-top:10px; font-size:15px; }
+  .phone span { display:block; font-size:13px; opacity:.7; margin-top:2px; line-height:1.4; }
+
+  /* 랭킹 */
+  .rank { display:grid; gap:18px; align-items:center; }
+  @media (min-width:760px) { .rank { grid-template-columns:1.35fr 1fr; } }
+  .rank .board { border-radius:24px; overflow:hidden; box-shadow:0 14px 30px #7C6CF233; background:#fff; }
+  .rank .board img, .rank .card img { width:100%; }
+  .rank .card { border-radius:28px; overflow:hidden; box-shadow:0 14px 30px #FFC10744; background:#1d1630; width:100%; max-width:340px; margin:0 auto; }
+  .rewards { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:18px; }
+  .rewards span { background:#fff; border-radius:14px; padding:8px 14px; font-weight:800; font-size:14px; }
+  .rewards span:first-child { background:linear-gradient(90deg,#FFE082,#FFC107); }
+
+  /* 캐릭터 */
+  .critters { background:#fff; border-radius:28px; padding:14px; box-shadow:0 10px 30px #7C6CF233; }
+  .critters img { width:100%; }
+  .chars { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:16px; text-align:left; }
+  .chars div { background:#fff; box-shadow:0 6px 18px #7C6CF21f; border-radius:18px; padding:12px 14px; font-size:13px; line-height:1.5; }
+  .chars b { display:block; font-size:15px; margin-bottom:2px; }
+
+  /* 기능 */
+  .features { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; text-align:left; }
+  .features div { background:#fff; border-radius:20px; padding:14px 16px; box-shadow:0 6px 18px #7C6CF21f; }
+  .features .e { font-size:28px; }
+  .features b { display:block; font-size:17px; margin:6px 0 4px; }
+  .features p { margin:0; font-size:14px; line-height:1.55; opacity:.85; }
+
+  /* 설치 */
+  .steps { display:grid; gap:10px; max-width:560px; margin:0 auto; text-align:left; counter-reset:s; }
+  .steps div { background:#fff; border-radius:18px; padding:14px 16px 14px 60px; position:relative; font-size:15px; line-height:1.5; }
+  .steps div::before { counter-increment:s; content:counter(s); position:absolute; left:16px; top:14px; width:30px; height:30px; border-radius:50%;
+                       background:var(--violet); color:#fff; font-weight:900; display:grid; place-items:center; }
+  .steps small { opacity:.7; }
+
+  footer { font-size:13px; opacity:.7; margin-top:40px; line-height:1.8; }
+  footer a { color:inherit; }
+
+  /* 아래에 붙는 다운로드 버튼 (휴대폰) */
+  .sticky { position:fixed; left:0; right:0; bottom:0; padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+            background:linear-gradient(transparent,#DCD6FFee 30%); display:flex; justify-content:center;
+            transform:translateY(120%); transition:transform .3s; }
+  .sticky.show { transform:none; }
+  .sticky .btn { margin:0; width:100%; max-width:420px; justify-content:center; }
+
+  .reveal { opacity:0; transform:translateY(24px); transition:opacity .6s, transform .6s; }
+  .reveal.on { opacity:1; transform:none; }
+  @media (prefers-reduced-motion:reduce) { .bubbles, .btn::after { display:none; } .hero .icon { animation:none; } .reveal { opacity:1; transform:none; } }
 </style>
 </head>
 <body>
+<div class="bubbles" aria-hidden="true"></div>
 <main>
-  <img class="icon" src="store/icon_512.png" alt="Bubble icon">
-  <h1>Bubble 냥햄대전 · Cats vs Hamsters</h1>
-  <p>익명의 상대와 1:1로 겨루는 귀여운 방울 터뜨리기 게임<br>A cute 1:1 bubble-popping battle against anonymous players</p>
-  <img src="store/feature_1024x500_ko.png" alt="Bubble feature graphic">
-  <p>
-    <a class="btn" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">APK 다운로드 · Download</a>
-    <a class="btn" href="privacy.html">개인정보처리방침 · Privacy</a>
-  </p>
+  <header class="hero">
+    <img class="icon" src="store/icon_512.png" alt="Bubble 아이콘">
+    <h1>Bubble</h1>
+    <p class="sub">냥냥 vs 햄햄 방울 대전</p>
+    <p class="tag">손가락 하나로 즐기는 1:1 두뇌 방울 배틀! · Cats vs Hamsters</p>
+    <a class="btn" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">📱 안드로이드 무료 다운로드</a>
+    <p class="free">무료 · 회원가입은 구글 로그인 한 번이면 끝</p>
+    <div class="chips"><span class="chip">🎲 랜덤 매칭</span><span class="chip">👫 친구 대전</span><span class="chip">🤖 AI 대전</span><span class="chip">🏆 주간 랭킹</span><span class="chip">🐾 캐릭터 12종+</span></div>
+  </header>
+
+  <section class="reveal">
+    <h2>⚔️ 박진감 넘치는 방울 배틀</h2>
+    <p class="lead">내 방울을 골라 상대 방울에 휙! 딱 5가 되면 펑!<br>상대 방울을 모두 터뜨리면 승리예요.</p>
+    <div class="phones">
+      <div class="phone"><div class="frame"><img src="promo/attack.webp" alt="방울이 날아가는 공격 화면" loading="lazy"></div><b>💫 휙! 날아가는 공격</b><span>내 방울이 빛을 끌며 날아가요</span></div>
+      <div class="phone"><div class="frame"><img src="promo/pop.webp" alt="방울이 터지는 화면" loading="lazy"></div><b>💥 펑! 터지는 순간</b><span>캐릭터마다 다른 폭발 이펙트</span></div>
+      <div class="phone"><div class="frame"><img src="promo/coin.webp" alt="복냥이 금화 효과" loading="lazy"></div><b>💰 복냥이의 금화</b><span>공격하면 금화가 짤랑!</span></div>
+      <div class="phone"><div class="frame"><img src="promo/revive.webp" alt="부활 효과" loading="lazy"></div><b>💖 기적의 부활</b><span>부활물약으로 역전의 기회</span></div>
+      <div class="phone"><div class="frame"><img src="promo/vs.webp" alt="매칭 VS 화면" loading="lazy"></div><b>⚔️ 1:1 매칭</b><span>전 세계 상대와 실시간 대결</span></div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <h2>🏆 랭킹 1위에 도전!</h2>
+    <p class="lead">1위는 금빛 햇살과 왕관으로 찬란하게 빛나요.<br>이름을 누르면 상대의 캐릭터·나라·전적 카드가 떠요.</p>
+    <div class="rank">
+      <div class="board"><img src="promo/ranking.webp" alt="랭킹 화면" loading="lazy"></div>
+      <div class="card"><img src="promo/ranking_card.webp" alt="1위 프로필 카드" loading="lazy"></div>
+    </div>
+    <div class="rewards"><span>🎁 매주 월요일 TOP 100 보상</span><span>🥇 💰1000</span><span>🥈 700</span><span>🥉 500</span><span>4~10위 300</span><span>11~100위 100</span></div>
+  </section>
+
+  <section class="reveal">
+    <h2>🐾 귀여운 캐릭터 친구들</h2>
+    <p class="lead">모습만 바뀌는 스킨부터 💰를 모아 주는 특별한 친구까지!</p>
+    <div class="critters"><img src="promo/critters.webp" alt="고양이, 햄스터, 복냥이, 연승 토끼, 아기 용, 유니콘" loading="lazy"></div>
+    <div class="chars">
+      <div><b>💰 복냥이</b>공격할 때마다 50% 확률로 💰 +1</div>
+      <div><b>🐰 연승 토끼</b>3연승 💰5 · 5연승 💰15 · 금빛 리본</div>
+      <div><b>🐉 아기 용</b>상대 방울을 터뜨리면 💰 +2</div>
+      <div><b>🦄 유니콘</b>다이아 전용! 이길 때마다 무지개 축복</div>
+      <div><b>🐧 펭귄 · 🐙 문어</b>썰매 공격, 먹물 분할 이펙트</div>
+      <div><b>🐼 출석 판다</b>출석하면 💰 +5 더</div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <h2>🎉 화려한 승리 연출</h2>
+    <p class="lead">이기면 캐릭터마다 다른 축하 이펙트가 쏟아져요.</p>
+    <div class="phones">
+      <div class="phone"><div class="frame"><img src="promo/win_unicorn.webp" alt="유니콘 승리 화면" loading="lazy"></div><b>🌈 유니콘의 무지개</b></div>
+      <div class="phone"><div class="frame"><img src="promo/win_gold.webp" alt="황금 햄스터 승리 화면" loading="lazy"></div><b>🏆 황금 햄스터 금화 비</b></div>
+      <div class="phone"><div class="frame"><img src="promo/lobby.webp" alt="로비 화면" loading="lazy"></div><b>🏠 로비 · 계급</b></div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <h2>✨ 이런 재미가 있어요</h2>
+    <div class="features">
+      <div><span class="e">🎲</span><b>랜덤 매칭</b><p>익명의 상대와 1:1. 이기면 +30점, 계급이 오를수록 보너스도 쑥쑥</p></div>
+      <div><span class="e">👫</span><b>친구 대전</b><p>링크 하나로 친구를 불러 한 판! 초대하면 둘 다 +30점</p></div>
+      <div><span class="e">🤖</span><b>AI 대전 3단계</b><p>쉬움 · 보통 · 어려움. 연습하면서 점수도 모아요</p></div>
+      <div><span class="e">💎</span><b>8단계 계급</b><p>흙부터 핑크다이아까지, 계급마다 반짝이는 배지</p></div>
+      <div><span class="e">📅</span><b>출석 · 일일 미션</b><p>매일 들어오면 💰와 💖 부활물약 보상</p></div>
+      <div><span class="e">🌏</span><b>11개 언어</b><p>한국어 · English · 日本語 · 中文 등 전 세계 친구들과</p></div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <h2>📲 설치 방법</h2>
+    <p class="lead">안드로이드 휴대폰에서 3단계면 끝!</p>
+    <div class="steps">
+      <div><b>다운로드 버튼을 눌러요</b><br><small>bubble.apk 파일이 내려받아져요</small></div>
+      <div><b>파일을 열고 '설치'를 눌러요</b><br><small>"출처를 알 수 없는 앱" 안내가 뜨면 설정에서 허용해 주세요</small></div>
+      <div><b>구글 로그인 후 바로 대전!</b><br><small>닉네임은 자동으로 만들어지고, 첫 변경은 무료예요</small></div>
+    </div>
+    <a class="btn" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">📱 지금 다운로드 <small>무료</small></a>
+  </section>
+
+  <footer>
+    iPhone은 TestFlight 초대로 먼저 만나볼 수 있어요.<br>
+    <a href="privacy.html">개인정보처리방침 · Privacy</a>
+  </footer>
 </main>
+
+<div class="sticky"><a class="btn" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">📱 안드로이드 무료 다운로드</a></div>
+
+<script>
+  // 비눗방울
+  const box = document.querySelector('.bubbles');
+  for (let i = 0; i < 14; i++) {
+    const b = document.createElement('i');
+    const s = 14 + Math.random() * 46;
+    b.style.cssText = `width:${s}px;height:${s}px;left:${Math.random() * 100}%;animation-duration:${10 + Math.random() * 14}s;animation-delay:${-Math.random() * 20}s`;
+    box.appendChild(b);
+  }
+  // 스크롤하면 섹션이 스르륵
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } }), { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  // 첫 화면의 다운로드 버튼이 안 보이면 아래에 버튼을 띄움
+  const sticky = document.querySelector('.sticky');
+  new IntersectionObserver(([e]) => sticky.classList.toggle('show', !e.isIntersecting)).observe(document.querySelector('.hero .btn'));
+</script>
 </body>
 </html>

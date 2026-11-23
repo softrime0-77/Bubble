@@ -84,6 +84,9 @@ data class Profile(
     /** ✏️ 닉네임: 첫 무료 변경을 썼는지, 가진 변경권 수 */
     val freeRenameUsed: Boolean = false,
     val renameTickets: Int = 0,
+    /** 🎓 튜토리얼: 보상까지 받았는지 / 한 번 봤는지(건너뛰기 포함) */
+    val tutorialDone: Boolean = false,
+    val tutorialSeen: Boolean = false,
     /** 출석: 마지막으로 받은 날(한국 시간)과 연속 일수 */
     val checkinDay: String? = null,
     val checkinStreak: Int = 0,
@@ -420,6 +423,10 @@ class OnlineRepository(context: Context) {
     suspend fun claimMission(id: String): Int =
         (call("claimMission", mapOf("id" to id))["coins"] as? Number)?.toInt() ?: 0
 
+    /** 🎓 튜토리얼 끝(또는 건너뛰기). 처음 끝까지 했으면 true (💰 +20 · 💖 +1 지급) */
+    suspend fun finishTutorial(completed: Boolean): Boolean =
+        call("finishTutorial", mapOf("completed" to completed))["reward"] as? Boolean ?: false
+
     suspend fun ackWeeklyReward() {
         runCatching { call("ackWeeklyReward") }
     }
@@ -485,6 +492,8 @@ class OnlineRepository(context: Context) {
         winStreak = (getLong("winStreak") ?: 0).toInt(),
         freeRenameUsed = getBoolean("freeRenameUsed") ?: false,
         renameTickets = (getLong("renameTickets") ?: 0).toInt(),
+        tutorialDone = getBoolean("tutorialDone") ?: false,
+        tutorialSeen = getBoolean("tutorialSeen") ?: false,
         checkinDay = getString("checkinDay"),
         checkinStreak = (getLong("checkinStreak") ?: 0).toInt(),
         missionDay = getString("missionDay"),

@@ -111,6 +111,8 @@ data class GameUi(
     val turnSec: Int? = null,
     /** AI 대전 난이도 (로컬 연습이든 점수가 걸린 서버 대전이든) */
     val aiLevel: AiLevel? = null,
+    /** 🎓 튜토리얼 단계 (0~3 = 손가락 안내 중, 4 = 끝). null이면 튜토리얼 아님 */
+    val tutorial: Int? = null,
     /** 온라인 게임 ID (VS 소개 화면을 게임마다 한 번 띄우는 데 씀) */
     val gameId: String? = null,
     /** 양쪽 나라 (ISO 2글자) */
@@ -938,10 +940,62 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
         _game.update(f)
     }
 
+    // ---------- 🎓 튜토리얼 ----------
+
+    /** 정해진 판에서 손가락 안내를 따라 두는 연습 (상대는 두지 않음, 점수 없음) */
+    fun startTutorial() {
+        gameJob?.cancel()
+        localTimerJob?.cancel()
+        onlineGameId = null
+        ai = null
+        _game.value = GameUi(
+            online = false,
+            mySide = Side.CAT,
+            turn = Side.CAT,
+            board = TutorialScript.board,
+            myName = _lobby.value.profile?.name ?: tr("나", "Me", ja = "自分", zh = "我"),
+            opponentName = tr("연습 친구", "Practice buddy", ja = "れんしゅう相手", zh = "练习伙伴"),
+            tutorial = 0,
+        )
+        _screen.value = Screen.Game
+    }
+
+    private fun playTutorial(move: Move) {
+        val g = _game.value
+        val step = g.tutorial ?: return
+        if (step !in TutorialScript.moves.indices) return
+        if (move != TutorialScript.moves[step]) {
+            _game.update { it.copy(notice = tr("👆 손가락이 가리키는 방울을 눌러 주세요", "👆 Tap the bubble the finger points to", ja = "👆 指がさしているバブルをタップしてね", zh = "👆 请点手指指着的泡泡")) }
+            return
+        }
+        applyLocal(g.mySide, move)
+        // 상대는 두지 않고 계속 내 차례
+        _game.update { it.copy(turn = it.mySide, tutorial = step + 1, notice = null, turnDeadline = null, turnSec = null) }
+    }
+
+    /** 튜토리얼 끝: [completed]면 보상(계정당 한 번), 아니면 건너뛰기. 다시 안 띄움 */
+    fun finishTutorial(completed: Boolean) {
+        val wasTutorial = _game.value.tutorial != null
+        if (wasTutorial) {
+            _game.update { it.copy(tutorial = null) }
+            leaveGame()
+        }
+        if (uid == null || _lobby.value.profile == null) return
+        viewModelScope.launch {
+            val got = runCatching { repo.finishTutorial(completed) }.getOrDefault(false)
+            if (got) {
+                _lobby.update {
+                    it.copy(mission = MissionReward(tr("🎓 튜토리얼 완료! 💖 부활물약 +1도 받았어요", "🎓 Tutorial done! You also got a 💖 revive potion", ja = "🎓 チュートリアル完了！💖 復活薬も1つ", zh = "🎓 教程完成！还获得 💖 复活药水 1 个"), TutorialScript.COINS))
+                }
+            }
+        }
+    }
+
     // ---------- 공통 ----------
 
     fun play(move: Move) {
         val g = _game.value
+        if (g.tutorial != null) { playTutorial(move); return }
         if (!g.myTurn || !GameLogic.isLegal(g.board, g.mySide, move)) return
         if (g.online) {
             val id = onlineGameId ?: return
@@ -959,6 +1013,8 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
     /** 게임에서 나가기. 온라인 대전 중이면 기권 처리됩니다. */
     fun leaveGame() {
         val g = _game.value
+        // 튜토리얼 중에 나가면 건너뛴 것으로 (다시 안 띄움)
+        if (g.tutorial != null) { finishTutorial(false); return }
         val id = onlineGameId
         if (g.online && !g.finished && id != null) {
             viewModelScope.launch { repo.forfeit(id) }

@@ -78,6 +78,17 @@ object Music {
         COIN_DRAGON(R.raw.sfx_coin_dragon, 0.85f),
         COIN_RABBIT(R.raw.sfx_coin_rabbit, 0.95f),
         COIN_UNICORN(R.raw.sfx_coin_unicorn, 0.95f),
+        MARK_ICE(R.raw.sfx_mark_ice, 0.85f),
+        MARK_GOLD(R.raw.sfx_mark_gold, 0.8f),
+        MARK_HEART(R.raw.sfx_mark_heart, 0.8f),
+        MARK_CLAW(R.raw.sfx_mark_claw, 0.8f),
+        MARK_STAMP(R.raw.sfx_mark_stamp, 0.9f),
+        MARK_INK(R.raw.sfx_mark_ink, 0.85f),
+        MARK_SNOW(R.raw.sfx_mark_snow, 0.8f),
+        MARK_BAMBOO(R.raw.sfx_mark_bamboo, 0.85f),
+        MARK_FIRE(R.raw.sfx_mark_fire, 0.85f),
+        MARK_HOP(R.raw.sfx_mark_hop, 0.85f),
+        MARK_MAGIC(R.raw.sfx_mark_magic, 0.8f),
         WIN(R.raw.sfx_win, 1.0f),
         LOSE(R.raw.sfx_lose, 0.9f),
     }
@@ -178,6 +189,22 @@ object Music {
         Animal.RABBIT -> Sfx.SPLIT_BOING
         Animal.LUCKY_CAT, Animal.GOLD_HAMSTER -> Sfx.SPLIT_GOLD
         else -> Sfx.SPLIT
+    }
+
+    /** 맞은 방울 흔적 소리 (기본 고양이·햄스터는 통!) */
+    fun markSfx(kind: com.bubble.game.ui.MarkKind): Sfx = when (kind) {
+        com.bubble.game.ui.MarkKind.ICE -> Sfx.MARK_ICE
+        com.bubble.game.ui.MarkKind.GOLD -> Sfx.MARK_GOLD
+        com.bubble.game.ui.MarkKind.HEART -> Sfx.MARK_HEART
+        com.bubble.game.ui.MarkKind.CLAW -> Sfx.MARK_CLAW
+        com.bubble.game.ui.MarkKind.STAMP -> Sfx.MARK_STAMP
+        com.bubble.game.ui.MarkKind.INK -> Sfx.MARK_INK
+        com.bubble.game.ui.MarkKind.SNOW -> Sfx.MARK_SNOW
+        com.bubble.game.ui.MarkKind.BAMBOO -> Sfx.MARK_BAMBOO
+        com.bubble.game.ui.MarkKind.FIRE -> Sfx.MARK_FIRE
+        com.bubble.game.ui.MarkKind.HOP -> Sfx.MARK_HOP
+        com.bubble.game.ui.MarkKind.MAGIC -> Sfx.MARK_MAGIC
+        com.bubble.game.ui.MarkKind.PAW, com.bubble.game.ui.MarkKind.SEED -> Sfx.HIT
     }
 
     /** 캐릭터별 💰 받는 소리 (게임 중: 복냥이·아기 용) */

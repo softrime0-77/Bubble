@@ -181,6 +181,7 @@ private fun LobbyScreen(vm: AppViewModel) {
     var showRanks by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var showAdmin by remember { mutableStateOf(false) }
+    var tutorialAsked by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var cardOf by remember { mutableStateOf<RankedPlayer?>(null) }
     cardOf?.let { c -> PlayerCardDialog(c, me = c.uid == ui.profile?.uid) { cardOf = null } }
 
@@ -498,7 +499,15 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
             confirmButton = { TextButton(onClick = vm::ackWeeklyReward) { Text(tr("받았어요!", "Got it!", zh = "收到！", hi = "मिल गया!", es = "¡Genial!", fr = "Super !", ar = "تم!", de = "Danke!", pt = "Valeu!", ru = "Ура!", ja = "受け取った！"), fontWeight = FontWeight.Black) } },
         )
     }
-    if (showRules) RulesDialog { showRules = false }
+    if (showRules) RulesDialog(onTutorial = { showRules = false; vm.startTutorial() }) { showRules = false }
+    // 🎓 처음 한 번: 튜토리얼 권하기 (가입 환영 팝업이 닫힌 뒤)
+    val prof = ui.profile
+    if (prof != null && !prof.tutorialDone && !prof.tutorialSeen && ui.welcome == null && !tutorialAsked) {
+        TutorialPrompt(
+            onStart = { tutorialAsked = true; vm.startTutorial() },
+            onLater = { tutorialAsked = true; vm.finishTutorial(false) },
+        )
+    }
     if (showRanks) RanksDialog(ui.profile?.score ?: 0) { showRanks = false }
     if (confirmDelete) {
         AlertDialog(
@@ -621,9 +630,10 @@ private fun BigButton(text: String, sub: String, enabled: Boolean, onClick: () -
 }
 
 @Composable
-private fun RulesDialog(onDismiss: () -> Unit) {
+private fun RulesDialog(onTutorial: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        dismissButton = { TextButton(onClick = onTutorial) { Text(tr("🎮 튜토리얼 해 보기", "🎮 Play the tutorial", ja = "🎮 チュートリアルをやる", zh = "🎮 玩教程"), color = Ui.accent, fontWeight = FontWeight.Bold) } },
         confirmButton = { TextButton(onClick = onDismiss) { Text(tr("알겠어요!", "Got it!", zh = "知道了！", hi = "समझ गया!", es = "¡Entendido!", fr = "Compris !", ar = "فهمت!", de = "Alles klar!", pt = "Entendi!", ru = "Понятно!", ja = "わかった！")) } },
         title = { Text(tr("게임 규칙", "How to play", zh = "游戏规则", hi = "कैसे खेलें", es = "Cómo jugar", fr = "Règles du jeu", ar = "طريقة اللعب", de = "Spielregeln", pt = "Como jogar", ru = "Как играть", ja = "遊び方"), fontWeight = FontWeight.Black, fontSize = 24.sp) },
         text = {
@@ -866,6 +876,8 @@ private fun GameScreen(vm: AppViewModel) {
     var firedShot by remember { mutableStateOf(live.lastShot?.id) }
     // 💰 복냥이 동전
     val coins = remember { mutableStateListOf<CoinPop>() }
+    // 공격받았지만 안 터진 방울에 남는 캐릭터 흔적
+    val marks = remember { mutableStateListOf<HitMark>() }
     var firedLucky by remember { mutableStateOf(live.lucky?.id) }
     // 💖 부활 효과
     val revives = remember { mutableStateListOf<ReviveBurst>() }
@@ -1141,7 +1153,12 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             onImpact = { s ->
                 // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
                 if (s.boom) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.POP)
-                else if (!s.split) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.HIT)
+                else if (s.attack && !s.split) {
+                    // 상대 방울에 캐릭터 흔적 (얼음·하트·발톱… 모습만)
+                    val k = markKind(s.skin, s.side)
+                    marks += HitMark(System.nanoTime(), s.to, k)
+                    com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.markSfx(k))
+                } else if (!s.split) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.HIT)
                 if (s.attack || s.boom) scope.launch {
                     shake.snapTo(if (s.boom) 1f else 0.6f)
                     shake.animateTo(0f, tween(if (s.boom) 650 else 420))
@@ -1149,6 +1166,9 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             },
             onDone = { s -> shots.remove(s) },
         )
+        marks.forEach { m -> androidx.compose.runtime.key(m.key) { HitMarkFx(m) { marks.remove(it) } } }
+        // 🎓 튜토리얼 손가락 안내
+        g.tutorial?.let { step -> if (!g.finished && !inFlight) TutorialGuide(step, g.mySide, selected, centers, layerOrigin, onSkip = { vm.finishTutorial(false) }) }
         coins.forEach { c -> androidx.compose.runtime.key(c.key) { CoinPopFx(c) { coins.remove(it) } } }
         revives.forEach { r -> androidx.compose.runtime.key(r.key) { ReviveFx(r) { revives.remove(it) } } }
 
@@ -1165,7 +1185,12 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             VsIntro(g) { showVs = false }
         }
 
-        if (g.finished && g.winner != null) {
+        if (g.finished && g.winner != null && g.tutorial != null) {
+            // 🎓 튜토리얼 끝: 펑 이펙트를 잠깐 보여 준 뒤 안내 + 보상
+            var showDone by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { delay(1_200); showDone = true }
+            if (showDone) TutorialDone(onClaim = { vm.finishTutorial(true) })
+        } else if (g.finished && g.winner != null) {
             val activity = LocalContext.current as Activity
             val rewardedReady by AdManager.rewardedReady.collectAsState()
             var showRewardIntro by remember { mutableStateOf(false) }
@@ -1884,7 +1909,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             val side = if (a.looksLikeCat) Side.CAT else Side.HAMSTER
             ShopCard(
                 title = a.label,
-                desc = skinDesc(a, p),
+                desc = skinDesc(a, p) + "\n" + markDesc(a),
                 price = if (have) null else a.price,
                 owned = when {
                     on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", hi = "✅ लगाया हुआ", es = "✅ Equipado", fr = "✅ Équipé", ar = "✅ مُجهَّز", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
@@ -1917,7 +1942,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             val on = p.equipped == a
             ShopCard(
                 title = a.label,
-                desc = unicornDesc(p, a.rankMin),
+                desc = unicornDesc(p, a.rankMin) + "\n" + markDesc(a),
                 price = null,
                 owned = when {
                     on -> tr("✅ 장착 중", "✅ Equipped", zh = "✅ 已装备", es = "✅ Equipado", fr = "✅ Équipé", de = "✅ Ausgerüstet", pt = "✅ Equipado", ru = "✅ Надето", ja = "✅ 装備中")
@@ -2567,6 +2592,22 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
     else -> tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh = "✨ 永久皮肤 · 无效果", es = "✨ Aspecto permanente · sin efecto",
         fr = "✨ Skin permanent · aucun effet", de = "✨ Dauerhafter Skin · kein Effekt", pt = "✨ Skin permanente · sem efeito",
         ru = "✨ Навсегда · без эффекта", ja = "✨ 永久スキン · 効果なし")
+}
+
+/** 공격받은 상대 방울에 남는 흔적 설명 (모습만) */
+private fun markDesc(a: Animal): String = when (a) {
+    Animal.SNOW_HAMSTER -> tr("❄️ 공격하면 맞은 방울이 꽁꽁 얼었다가 쨍그랑! (모습만)", "❄️ Hit bubbles freeze over, then shatter! (look only)", ja = "❄️ 攻撃した泡がカチコチに凍ってパリン！（見た目だけ）", zh = "❄️ 被打的泡泡结冰后啪地碎裂！（仅外观）")
+    Animal.GOLD_HAMSTER -> tr("✨ 공격하면 맞은 방울이 금빛으로 반짝 코팅 (모습만)", "✨ Hit bubbles get a shiny gold coat (look only)", ja = "✨ 攻撃した泡が金色にキラリ（見た目だけ）", zh = "✨ 被打的泡泡镀上金光（仅外观）")
+    Animal.PINK_CAT -> tr("💕 공격하면 맞은 방울에 하트 뿅뿅, 볼이 발그레 (모습만)", "💕 Hit bubbles blush and float hearts (look only)", ja = "💕 攻撃した泡にハートがポンポン（見た目だけ）", zh = "💕 被打的泡泡冒出爱心、脸红（仅外观）")
+    Animal.BLACK_CAT -> tr("🐾 공격하면 맞은 방울에 발톱 자국 슥슥 (모습만)", "🐾 Hit bubbles get claw marks (look only)", ja = "🐾 攻撃した泡にツメあとシュッシュッ（見た目だけ）", zh = "🐾 被打的泡泡留下爪痕（仅外观）")
+    Animal.LUCKY_CAT -> tr("🧧 공격하면 맞은 방울에 빨간 福 도장 쾅! (모습만)", "🧧 Hit bubbles get a red 福 stamp! (look only)", ja = "🧧 攻撃した泡に赤い「福」のハンコ！（見た目だけ）", zh = "🧧 被打的泡泡盖上红色「福」印章！（仅外观）")
+    Animal.OCTOPUS -> tr("🖤 공격하면 맞은 방울에 먹물 철퍽 (모습만)", "🖤 Hit bubbles get splashed with ink (look only)", ja = "🖤 攻撃した泡にスミがベチャッ（見た目だけ）", zh = "🖤 被打的泡泡溅上墨汁（仅外观）")
+    Animal.PENGUIN -> tr("☃️ 공격하면 맞은 방울에 눈이 소복이 쌓였다 털려요 (모습만)", "☃️ Snow piles up on hit bubbles, then shakes off (look only)", ja = "☃️ 攻撃した泡に雪がこんもり（見た目だけ）", zh = "☃️ 被打的泡泡积满雪又抖落（仅外观）")
+    Animal.PANDA -> tr("🎋 공격하면 맞은 방울에 판다 발도장과 대나무 잎 (모습만)", "🎋 Hit bubbles get a panda paw print and bamboo leaves (look only)", ja = "🎋 攻撃した泡にパンダの足あとと笹の葉（見た目だけ）", zh = "🎋 被打的泡泡留下熊猫脚印和竹叶（仅外观）")
+    Animal.DRAGON -> tr("🔥 공격하면 맞은 방울에 불꽃 화르륵, 연기 모락 (모습만)", "🔥 Hit bubbles catch fire and smoke (look only)", ja = "🔥 攻撃した泡にほのおボウッ（見た目だけ）", zh = "🔥 被打的泡泡着火冒烟（仅外观）")
+    Animal.RABBIT -> tr("🐾 공격하면 맞은 방울에 토끼 발자국 콩콩콩 (모습만)", "🐾 Bunny footprints hop across hit bubbles (look only)", ja = "🐾 攻撃した泡にウサギの足あとピョンピョン（見た目だけ）", zh = "🐾 被打的泡泡留下兔子脚印（仅外观）")
+    Animal.UNICORN -> tr("🌈 공격하면 맞은 방울에 무지개 고리와 별가루 반짝 (모습만)", "🌈 Rainbow rings and stardust swirl on hit bubbles (look only)", ja = "🌈 攻撃した泡に虹の輪と星くず（見た目だけ）", zh = "🌈 被打的泡泡环绕彩虹和星尘（仅外观）")
+    else -> ""
 }
 
 /** 🦄 유니콘 상점 설명: 무지개 축복 */

@@ -17,6 +17,9 @@ struct GameView<M: GameModel>: View {
     @State private var inFlightUntil = Date.distantPast
     /// 💰 복냥이 동전
     @State private var coins: [CoinPop] = []
+    /// 공격받았지만 안 터진 방울에 남는 캐릭터 흔적
+    @State private var marks: [HitMark] = []
+    @State private var showTutorialDone = false
     /// 💖 부활 효과
     @State private var revives: [ReviveBurst] = []
 
@@ -67,6 +70,12 @@ struct GameView<M: GameModel>: View {
     }
 
     private var me: Side { game.mySide }
+
+    /// 🎓 튜토리얼 끝: 끝까지 했으면 보상(계정당 한 번), 아니면 건너뛰기. 그다음 로비로
+    private func finishTutorial(_ completed: Bool) {
+        Task { await OnlineService.shared.finishTutorial(completed: completed) }
+        onLeave()
+    }
     private var opp: Side { game.mySide.opponent }
 
     var body: some View {
@@ -132,10 +141,17 @@ struct GameView<M: GameModel>: View {
             .modifier(ShakeEffect(animatableData: shakes))
 
             ForEach(shots) { ShotFx(shot: $0) }
+            ForEach(marks) { HitMarkFx(mark: $0) }
             ForEach(coins) { CoinPopFx(pop: $0) }
             ForEach(revives) { ReviveFx(burst: $0) }
 
-            if game.finished, let w = game.winner {
+            // 🎓 튜토리얼 손가락 안내
+            if let step = game.tutorial, !game.finished, Date() >= inFlightUntil {
+                TutorialGuide(step: step, mySide: me, selected: game.selected, centers: centers, onSkip: { finishTutorial(false) })
+            }
+            if game.finished, game.tutorial != nil {
+                if showTutorialDone { TutorialDone { finishTutorial(true) }.transition(.opacity) }
+            } else if game.finished, let w = game.winner {
                 resultOverlay(w)
             }
         }
@@ -146,6 +162,12 @@ struct GameView<M: GameModel>: View {
         .onChange(of: Music.gameTrack(game.mySkin, game.mySide)) { track in Music.shared.play(track) }
         // ⏰ 내 차례가 되면 띵동
         .onChange(of: game.turn) { t in if t == me && !game.finished { Music.shared.sfx(.turn) } }
+        // 🎓 튜토리얼이 끝나면 펑 이펙트를 잠깐 보여 준 뒤 완료 화면
+        .onChange(of: game.finished) { done in
+            if done && game.tutorial != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { withAnimation { showTutorialDone = true } }
+            }
+        }
         // 🔊 끝나면 승리/패배 징글
         .onChange(of: game.finished) { done in
             guard done, let w = game.winner else { return }
@@ -209,7 +231,17 @@ struct GameView<M: GameModel>: View {
         Music.shared.sfx(split ? Music.splitSfx(side == me ? game.mySkin : game.opponentSkin) : .shoot)
         DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) {
             // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
-            if shot.boom { Music.shared.sfx(.pop) } else if !shot.split { Music.shared.sfx(.hit) }
+            if shot.boom {
+                Music.shared.sfx(.pop)
+            } else if shot.attack && !shot.split {
+                // 상대 방울에 캐릭터 흔적 (얼음·하트·발톱… 모습만)
+                let m = HitMark(at: b, kind: MarkKind.of(shot.skin, side))
+                marks.append(m)
+                Music.shared.sfx(m.kind.sfx)
+                DispatchQueue.main.asyncAfter(deadline: .now() + HitMark.sec + 0.05) { marks.removeAll { $0.id == m.id } }
+            } else if !shot.split {
+                Music.shared.sfx(.hit)
+            }
             if shot.attack || shot.boom {
                 withAnimation(.linear(duration: shot.boom ? 0.6 : 0.42)) { shakes += 1 }
             }

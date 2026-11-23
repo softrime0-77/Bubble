@@ -344,6 +344,48 @@ class ScreenshotTest {
         shot("shot_pop", 200)
     }
 
+    /** 맞은 방울 흔적 13가지 */
+    @Test
+    @Config(sdk = [34], qualifiers = "w400dp-h860dp-xxhdpi")
+    fun hitMarks() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFFF6EEFF))) {
+                val d = androidx.compose.ui.platform.LocalDensity.current
+                MarkKind.entries.forEachIndexed { i, k ->
+                    val cx = with(d) { (70 + (i % 3) * 130).dp.toPx() }
+                    val cy = with(d) { (80 + (i / 3) * 160).dp.toPx() }
+                    androidx.compose.foundation.Canvas(androidx.compose.ui.Modifier.fillMaxSize()) {
+                        drawCircle(androidx.compose.ui.graphics.Color(0xFFE9D8FF), 56.dp.toPx(), androidx.compose.ui.geometry.Offset(cx, cy))
+                    }
+                    HitMarkFx(HitMark(i.toLong() + 1, androidx.compose.ui.geometry.Offset(cx, cy), k)) {}
+                }
+            }
+        }
+        shot("hit_marks", 520)
+    }
+
+    /** 🎓 튜토리얼: 첫 단계 안내, 끝 화면 */
+    @Test
+    fun tutorial() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startTutorial()
+        rule.mainClock.advanceTimeBy(900)
+        shot("tutorial_1", 300)
+        vm.play(com.bubble.game.game.Move.Add(1, true, 0))
+        rule.mainClock.advanceTimeBy(1500)
+        shot("tutorial_2", 300)
+        vm.play(com.bubble.game.game.Move.Add(0, false, 1))
+        rule.mainClock.advanceTimeBy(1500)
+        vm.play(com.bubble.game.game.Move.Add(1, true, 0))
+        rule.mainClock.advanceTimeBy(1500)
+        vm.play(com.bubble.game.game.Move.Add(1, true, 1))
+        rule.mainClock.advanceTimeBy(3000)
+        shot("tutorial_done", 300)
+    }
+
     @Test
     fun selectedSparkles() {
         rule.mainClock.autoAdvance = false

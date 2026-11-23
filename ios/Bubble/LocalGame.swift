@@ -39,11 +39,14 @@ final class LocalGame: GameModel {
     var isOnline: Bool { false }
     var scoreDelta: Int? { nil }
     var scoreBonus: Int { 0 }
-    var notice: String? { nil }
+    @Published private(set) var notice: String? = nil
+    /// 🎓 튜토리얼 단계 (0~3 안내 중, 4 끝). nil이면 일반 연습
+    @Published private(set) var tutorial: Int? = nil
     var myBoost: Bool { false }
     var friendlyMatch: Bool { false }
     var opponentName: String {
-        tr("AI 친구 (\(level.label))", "AI Buddy (\(level.label))", zh: "AI 伙伴（\(level.label)）", hi: "AI दोस्त (\(level.label))",
+        if tutorial != nil { return tr("연습 친구", "Practice buddy", zh: "练习伙伴", ja: "れんしゅう相手") }
+        return tr("AI 친구 (\(level.label))", "AI Buddy (\(level.label))", zh: "AI 伙伴（\(level.label)）", hi: "AI दोस्त (\(level.label))",
            es: "Amigo IA (\(level.label))", fr: "Copain IA (\(level.label))", ar: "رفيق الذكاء الاصطناعي (\(level.label))",
            de: "KI-Kumpel (\(level.label))", pt: "Amigo IA (\(level.label))", ru: "ИИ-друг (\(level.label))", ja: "AIフレンド（\(level.label)）")
     }
@@ -61,6 +64,16 @@ final class LocalGame: GameModel {
         }
     }
 
+    /// 🎓 튜토리얼: 정해진 판, 상대는 두지 않음, 시간 제한 없음
+    init(tutorial: Bool) {
+        self.level = .easy
+        self.ai = Ai(level: .easy)
+        self.mySide = .cat
+        self.board = TutorialScript.board
+        self.tutorial = 0
+        self.turn = .cat
+    }
+
     deinit { timerTask?.cancel() }
 
     /// 스크린샷/미리보기용 판 설정
@@ -73,6 +86,20 @@ final class LocalGame: GameModel {
     }
 
     func play(_ move: Move) {
+        if let step = tutorial {
+            guard step < TutorialScript.moves.count else { return }
+            guard move == TutorialScript.moves[step] else {
+                notice = tr("👆 손가락이 가리키는 방울을 눌러 주세요", "👆 Tap the bubble the finger points to", zh: "👆 请点手指指着的泡泡", ja: "👆 指がさしているバブルをタップしてね")
+                selected = nil
+                return
+            }
+            notice = nil
+            apply(mySide, move)
+            selected = nil
+            turn = mySide  // 상대는 두지 않고 계속 내 차례
+            tutorial = step + 1
+            return
+        }
         guard myTurn, GameLogic.isLegal(board, mySide, move) else { return }
         apply(mySide, move)
         selected = nil

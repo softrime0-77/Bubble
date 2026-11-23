@@ -378,9 +378,7 @@ struct ShopView: View {
         let owned: String? = on ? tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", es: "✅ Equipado", fr: "✅ Équipé", de: "✅ Ausgerüstet", pt: "✅ Equipado", ru: "✅ Надето", ja: "✅ 装備中")
             : have ? tr("💎 보유 중", "💎 Owned", zh: "💎 已拥有", es: "💎 Tuyo", fr: "💎 Possédé", de: "💎 Im Besitz", pt: "💎 Seu", ru: "💎 Есть", ja: "💎 所持中") : nil
         return shopCard(title: a.label,
-                        desc: [.octopus, .penguin, .panda, .dragon, .rabbit, .pinkCat, .blackCat, .snowHamster, .goldHamster].contains(a) ? specialDesc(a, p) : a.lucky ? luckyDesc(p) : tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
-                                 fr: "✨ Skin permanent · aucun effet", de: "✨ Dauerhafter Skin · kein Effekt", pt: "✨ Skin permanente · sem efeito",
-                                 ru: "✨ Навсегда · без эффекта", ja: "✨ 永久スキン · 効果なし"),
+                        desc: skinCardDesc(a, p),
                         price: have ? nil : a.price, owned: owned,
                         art: AnyView(Critter(side: a.looksLikeCat ? .cat : .hamster, skin: a, happy: on,
                                              ribbons: a == .rabbit ? (have ? min(p.winStreak, Shop.rabbitMaxRibbons) : 3) : 0).frame(width: 84, height: 84))) {
@@ -469,6 +467,14 @@ struct ShopView: View {
         }
     }
 
+    /// 스킨 카드 설명: 효과 설명 + 맞은 방울 흔적
+    private func skinCardDesc(_ a: Animal, _ p: Profile) -> String {
+        let base: String = [.octopus, .penguin, .panda, .dragon, .rabbit, .pinkCat, .blackCat, .snowHamster, .goldHamster].contains(a) ? specialDesc(a, p) : a.lucky ? luckyDesc(p) : tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect", zh: "✨ 永久皮肤 · 无效果", es: "✨ Aspecto permanente · sin efecto",
+                                 fr: "✨ Skin permanent · aucun effet", de: "✨ Dauerhafter Skin · kein Effekt", pt: "✨ Skin permanente · sem efeito",
+                                 ru: "✨ Навсегда · без эффекта", ja: "✨ 永久スキン · 効果なし")
+        return base + "\n" + markDesc(a)
+    }
+
     /// 🦄 계급 캐릭터: 팔지 않고 다이아 계급이면 무료로 장착
     private func rankCard(_ a: Animal, _ p: Profile) -> some View {
         let unlocked = p.score >= a.rankMin
@@ -489,7 +495,7 @@ struct ShopView: View {
                       pt: "🌈 Bênção arco-íris!\n· 💰 +\(c) por vitória (máx. \(mx) por dia · hoje \(today)/\(mx))\n· O rival vê o aviso do unicórnio\n· Nome arco-íris no ranking\n· Não vende: grátis a partir de 💎 Diamante (\(mn) pts)",
                       ru: "🌈 Радужное благословение!\n· 💰 +\(c) за победу (макс. \(mx) в день · сегодня \(today)/\(mx))\n· Соперник увидит появление единорога\n· Радужное имя в рейтинге\n· Не продаётся: бесплатно с 💎 Алмаза (\(mn) очк.)",
                       ja: "🌈 にじの祝福！\n· 勝つたびに 💰 +\(c)（1日最大\(mx) · 今日 \(today)/\(mx)）\n· マッチすると相手に「ダイヤ専用ユニコーン登場！」\n· ランキングで名前が虹色\n· 非売品：💎 ダイヤ（\(mn)点）から無料で装備")
-        return shopCard(title: a.label, desc: desc, price: nil, owned: owned,
+        return shopCard(title: a.label, desc: desc + "\n" + markDesc(a), price: nil, owned: owned,
                         art: AnyView(Critter(side: .hamster, skin: a, happy: on).frame(width: 84, height: 84).opacity(unlocked ? 1 : 0.55))) {
             if on {
                 outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }

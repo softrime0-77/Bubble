@@ -54,8 +54,18 @@ object Music {
         HIT(R.raw.sfx_hit, 0.7f),
         POP(R.raw.sfx_pop, 0.9f),
         SPLIT(R.raw.sfx_split, 0.7f),
+        SPLIT_INK(R.raw.sfx_split_ink, 0.7f),
+        SPLIT_ICE(R.raw.sfx_split_ice, 0.7f),
+        SPLIT_FIRE(R.raw.sfx_split_fire, 0.7f),
+        SPLIT_MAGIC(R.raw.sfx_split_magic, 0.7f),
+        SPLIT_BAMBOO(R.raw.sfx_split_bamboo, 0.7f),
+        SPLIT_BOING(R.raw.sfx_split_boing, 0.7f),
+        SPLIT_GOLD(R.raw.sfx_split_gold, 0.7f),
         POTION(R.raw.sfx_potion, 0.8f),
         COIN(R.raw.sfx_coin, 0.6f),
+        COIN_DRAGON(R.raw.sfx_coin_dragon, 0.65f),
+        COIN_RABBIT(R.raw.sfx_coin_rabbit, 0.7f),
+        COIN_UNICORN(R.raw.sfx_coin_unicorn, 0.7f),
         WIN(R.raw.sfx_win, 0.8f),
         LOSE(R.raw.sfx_lose, 0.7f),
     }
@@ -131,6 +141,21 @@ object Music {
         player = null
         playing = null
     }
+
+    /** 캐릭터별 분할 소리 */
+    fun splitSfx(skin: Animal?): Sfx = when (skin) {
+        Animal.OCTOPUS -> Sfx.SPLIT_INK
+        Animal.PENGUIN, Animal.SNOW_HAMSTER -> Sfx.SPLIT_ICE
+        Animal.DRAGON -> Sfx.SPLIT_FIRE
+        Animal.UNICORN, Animal.PINK_CAT -> Sfx.SPLIT_MAGIC
+        Animal.PANDA -> Sfx.SPLIT_BAMBOO
+        Animal.RABBIT -> Sfx.SPLIT_BOING
+        Animal.LUCKY_CAT, Animal.GOLD_HAMSTER -> Sfx.SPLIT_GOLD
+        else -> Sfx.SPLIT
+    }
+
+    /** 캐릭터별 💰 받는 소리 (게임 중: 복냥이·아기 용) */
+    fun coinSfx(skin: Animal?): Sfx = if (skin == Animal.DRAGON) Sfx.COIN_DRAGON else Sfx.COIN
 
     val lobby: Int get() = R.raw.bgm_lobby
 

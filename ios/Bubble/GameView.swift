@@ -154,7 +154,7 @@ struct GameView<M: GameModel>: View {
             guard let l, let at = centers["\(l.side.opponent)\(l.to)"] else { return }
             let pop = CoinPop(at: at, amount: l.coins)
             coins.append(pop)
-            Music.shared.sfx(.coin)
+            Music.shared.sfx(Music.coinSfx(l.side == me ? game.mySkin : game.opponentSkin))
             DispatchQueue.main.asyncAfter(deadline: .now() + CoinPop.sec + 0.05) { coins.removeAll { $0.id == pop.id } }
         }
         .onChange(of: game.lastShot) { s in
@@ -204,7 +204,7 @@ struct GameView<M: GameModel>: View {
         let shot = FlyingShot(from: a, to: b, side: side, skin: side == me ? game.mySkin : game.opponentSkin, power: power,
                               attack: toOpponent, boom: !split && game.board.sets(target)[to] + power >= GameLogic.explodeAt, split: split)
         shots.append(shot)
-        Music.shared.sfx(split ? .split : .shoot)
+        Music.shared.sfx(split ? Music.splitSfx(side == me ? game.mySkin : game.opponentSkin) : .shoot)
         DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) {
             // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
             if shot.boom { Music.shared.sfx(.pop) } else if !shot.split { Music.shared.sfx(.hit) }
@@ -435,6 +435,7 @@ struct ResultOverlay: View {
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 14).fill(Color(hex: 0xF6EEFF)))
             .padding(.top, 6)
+            .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { Music.shared.sfx(.coinUnicorn) } }
     }
 
     /// 🐰 연승 보상 또는 다음 보상 안내
@@ -466,6 +467,7 @@ struct ResultOverlay: View {
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 14).fill(c > 0 ? Color(hex: 0xFFF3C4) : Color(hex: 0xFFE6F2)))
             .padding(.top, 6)
+            .onAppear { if c > 0 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { Music.shared.sfx(.coinRabbit) } } }
     }
 
     var body: some View {

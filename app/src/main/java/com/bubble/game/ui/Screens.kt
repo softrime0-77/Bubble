@@ -880,7 +880,10 @@ private fun GameScreen(vm: AppViewModel) {
             power = power, attack = toOpp, boom = !split && targetCount + power >= GameLogic.EXPLODE_AT, split = split,
         )
         landAt = System.currentTimeMillis() + SHOT_FLY_MS
-        com.bubble.game.audio.Music.sfx(if (split) com.bubble.game.audio.Music.Sfx.SPLIT else com.bubble.game.audio.Music.Sfx.SHOOT)
+        com.bubble.game.audio.Music.sfx(
+            if (split) com.bubble.game.audio.Music.splitSfx(if (side == pre.mySide) pre.mySkin else pre.opponentSkin)
+            else com.bubble.game.audio.Music.Sfx.SHOOT,
+        )
     }
 
     LaunchedEffect(live) {
@@ -917,7 +920,7 @@ private fun GameScreen(vm: AppViewModel) {
         firedLucky = l.id
         val at = centers["${l.side.opponent}${l.to}"] ?: return@LaunchedEffect
         coins += CoinPop(System.nanoTime(), at - layerOrigin, mine = l.side == g.mySide, amount = l.coins)
-        com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN)
+        com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.coinSfx(if (l.side == g.mySide) g.mySkin else g.opponentSkin))
     }
 
     var selected by remember { mutableStateOf<Int?>(null) }
@@ -2621,6 +2624,7 @@ private fun CoinSummary(skin: Animal?, inGame: Int, winBonus: Int) {
 /** 🦄 결과 화면: 무지개 축복 💰 (무지개색으로 흐르는 글자) */
 @Composable
 private fun UnicornResult(coins: Int) {
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(700); com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN_UNICORN) }
     val t = rememberInfiniteTransition(label = "uni")
     val x by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "x")
     Text(
@@ -2644,6 +2648,7 @@ internal val rainbowText = listOf(Color(0xFFE5397A), Color(0xFFE07A00), Color(0x
 /** 🐰 결과 화면: 연승 보상 또는 다음 보상 안내 */
 @Composable
 private fun RabbitResult(streak: Int, coins: Int) {
+    LaunchedEffect(coins) { if (coins > 0) { kotlinx.coroutines.delay(700); com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN_RABBIT) } }
     val text = when {
         coins > 0 -> tr("🐰 ${streak}연승 보상 💰+$coins!", "🐰 $streak-win streak reward 💰+$coins!", zh = "🐰 ${streak}连胜奖励 💰+$coins！",
             es = "🐰 ¡Premio por $streak seguidas 💰+$coins!", fr = "🐰 Récompense $streak victoires 💰+$coins !", de = "🐰 $streak Siege in Folge 💰+$coins!",

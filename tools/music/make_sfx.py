@@ -137,8 +137,98 @@ def lose():
     return mix(*[(s, tone(f, 0.35, "tri") * np.exp(-T(0.35) * 6), 0.55) for s, f in notes])
 
 
+# ---------------- 캐릭터별 분할 소리 ----------------
+def snip():
+    t = T(0.06)
+    return rng.uniform(-1, 1, len(t)) * np.exp(-t * 80)
+
+
+def split_ink():
+    """🐙 문어: 퍽! 먹물 + 보글"""
+    t = T(0.35)
+    splat = smooth(rng.uniform(-1, 1, len(t)), 30) * np.exp(-t * 12) * 3
+    blub = [(0.1 + i * 0.06, tone(300 - i * 40 + 200 * T(0.08) / 0.08, 0.08) * np.sin(np.pi * T(0.08) / 0.08), 0.4) for i in range(3)]
+    return mix((0, snip(), 0.6), (0.05, splat, 0.9), *blub, (0.12, shoot() * 0.5, 0.8))
+
+
+def split_ice():
+    """🐧❄️ 펭귄·눈송이: 쨍그랑 얼음 + 차가운 종소리"""
+    t = T(0.4)
+    crack = rng.uniform(-1, 1, len(t)) * np.exp(-t * 30)
+    bells = sum(tone(f, 0.4) * np.exp(-t * (6 + i)) for i, f in enumerate((2637, 3520, 4186))) / 3
+    return mix((0, crack, 0.6), (0.02, bells, 0.7), (0.12, shoot() * 0.5, 0.7))
+
+
+def split_fire():
+    """🐉 아기 용: 화르륵 불꽃"""
+    t = T(0.5)
+    roar = smooth(rng.uniform(-1, 1, len(t)), 12) * np.sin(np.pi * t / t[-1]) * 2.5
+    low = tone(90 + 60 * np.sin(2 * np.pi * 7 * t), 0.5, "tri") * np.sin(np.pi * t / t[-1]) * 0.5
+    return mix((0, snip(), 0.5), (0.04, roar + low, 0.9))
+
+
+def split_magic():
+    """🦄🌸 유니콘·핑크 고양이: 하프 반짝 갈라짐"""
+    notes = [784, 988, 1175, 1568, 1976]
+    parts = [(i * 0.045, tone(f, 0.4, "tri") * np.exp(-T(0.4) * 8), 0.4) for i, f in enumerate(notes)]
+    return mix((0, snip(), 0.4), *parts, (0.2, sparkle(base=2400, count=4), 0.35))
+
+
+def split_bamboo():
+    """🐼 판다: 딱! 대나무 쪼개기"""
+    t = T(0.25)
+    knock = (tone(620, 0.25) + 0.6 * tone(1340, 0.25)) * np.exp(-t * 30)
+    knock2 = (tone(540, 0.25) + 0.6 * tone(1180, 0.25)) * np.exp(-t * 30)
+    return mix((0, knock, 0.8), (0.11, knock2, 0.7), (0.14, shoot() * 0.4, 0.7))
+
+
+def split_boing():
+    """🐰 연승 토끼: 뾰옹 하고 튀어나감"""
+    t = T(0.35)
+    f = 220 + 600 * np.abs(np.sin(2 * np.pi * 3 * t)) * np.exp(-t * 4)
+    return mix((0, snip(), 0.4), (0.03, tone(f, 0.35, "tri") * np.exp(-t * 5), 0.8))
+
+
+def split_gold():
+    """💰🏆 복냥이·황금 햄스터: 금화 쨍그랑 갈라짐"""
+    return mix((0, snip(), 0.6), (0.05, coin(), 0.7), (0.12, coin(), 0.5), (0.14, shoot() * 0.4, 0.7))
+
+
+# ---------------- 캐릭터별 💰 받는 소리 ----------------
+def coin_lucky():
+    """💰 복냥이: 띠링 + 방울 딸랑"""
+    t = T(0.3)
+    bell = (tone(3300, 0.3) + tone(4100, 0.3)) * np.exp(-t * 14) * 0.5
+    return mix((0, coin(), 0.8), (0.12, bell, 0.5))
+
+
+def coin_dragon():
+    """🐉 아기 용: 화르륵 + 띠링"""
+    t = T(0.25)
+    puff = smooth(rng.uniform(-1, 1, len(t)), 10) * np.sin(np.pi * t / t[-1]) * 2
+    return mix((0, puff, 0.6), (0.1, coin(), 0.8))
+
+
+def coin_rabbit():
+    """🐰 연승 보상: 빰빠밤 + 동전 쏟아짐"""
+    fan = [(0, 784), (0.1, 784), (0.2, 1047)]
+    parts = [(s, tone(f, 0.3, "square") * np.exp(-T(0.3) * 7), 0.35) for s, f in fan]
+    coins = [(0.3 + i * 0.07, coin(), 0.35) for i in range(4)]
+    return mix(*parts, *coins)
+
+
+def coin_unicorn():
+    """🦄 무지개 축복: 하프 글리산도 + 동전"""
+    notes = [523, 659, 784, 1047, 1319, 1568, 2093]
+    parts = [(i * 0.04, tone(f, 0.5, "tri") * np.exp(-T(0.5) * 6), 0.3) for i, f in enumerate(notes)]
+    return mix(*parts, (0.3, coin(), 0.6), (0.35, sparkle(base=2600, count=5), 0.3))
+
+
 SOUNDS = {"select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
-          "potion": potion, "coin": coin, "win": win, "lose": lose}
+          "split_ink": split_ink, "split_ice": split_ice, "split_fire": split_fire, "split_magic": split_magic,
+          "split_bamboo": split_bamboo, "split_boing": split_boing, "split_gold": split_gold,
+          "potion": potion, "coin": coin_lucky, "coin_dragon": coin_dragon, "coin_rabbit": coin_rabbit,
+          "coin_unicorn": coin_unicorn, "win": win, "lose": lose}
 
 
 def write_wav(path, x):

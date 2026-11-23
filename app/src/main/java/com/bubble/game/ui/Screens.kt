@@ -98,9 +98,26 @@ import com.bubble.game.game.Move
 import com.bubble.game.game.Side
 import kotlinx.coroutines.delay
 
+/** 🔊/🔇 배경음악 켜고 끄기 */
+@Composable
+private fun MusicToggle() {
+    val on = com.bubble.game.audio.Music.enabled
+    Text(
+        if (on) "🔊" else "🔇", fontSize = 18.sp,
+        modifier = Modifier
+            .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
+            .clickable { com.bubble.game.audio.Music.toggle() }
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
+}
+
 @Composable
 fun BubbleApp(vm: AppViewModel) {
     val screen by vm.screen.collectAsState()
+    // 🎵 배경음악: 게임 중엔 내 캐릭터 곡, 그 밖엔 로비 곡
+    val gameNow by vm.game.collectAsState()
+    val track = if (screen == Screen.Game) com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide) else com.bubble.game.audio.Music.lobby
+    LaunchedEffect(track) { com.bubble.game.audio.Music.play(track) }
     // 아랍어는 오른쪽에서 왼쪽으로
     val direction = if (Lang.current.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
     CompositionLocalProvider(LocalLayoutDirection provides direction) {
@@ -174,6 +191,8 @@ private fun LobbyScreen(vm: AppViewModel) {
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             LanguageMenu()
+            Spacer(Modifier.width(8.dp))
+            MusicToggle()
             // 관리자만: 🛠 포인트 수정
             if (ui.profile?.admin == true) {
                 Spacer(Modifier.width(8.dp))
@@ -948,6 +967,7 @@ private fun GameScreen(vm: AppViewModel) {
                     Text(tr("← 나가기", "← Leave", zh = "← 离开", hi = "← छोड़ें", es = "← Salir", fr = "← Quitter", ar = "→ خروج", de = "← Verlassen", pt = "← Sair", ru = "← Выйти", ja = "← 退出"), color = Ui.text)
                 }
                 Spacer(Modifier.weight(1f))
+                MusicToggle()
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PlayerTag(opp, g.opponentName, g.opponentScore?.let { tr("${it}점", "${it} pts", zh = "${it} 分", hi = "${it} अंक", es = "${it} pts", fr = "${it} pts", ar = "${it} نقطة", de = "${it} Pkt", pt = "${it} pts", ru = "${it} очк.", ja = "${it}点") }, active = g.turn == opp && !g.finished, skin = g.opponentSkin, modifier = Modifier.weight(1f, fill = false), country = g.opponentCountry, score = if (g.aiLevel == null) g.opponentScore else null)

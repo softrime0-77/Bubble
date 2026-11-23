@@ -90,7 +90,7 @@ export const COSMETIC_SKINS: Record<string, number> = {
   // 🐙 문어 · 🐧 펭귄: 모습 + 분할/공격 효과만
   OCTOPUS: 400,
   PENGUIN: 400,
-  // 🐼 출석 판다: 장착하고 출석하면 💰 +5
+  // 🐼 출석 판다: 장착하고 출석하면 💰 +10
   PANDA: 500,
   // 🐉 아기 용: 상대 방울을 터뜨리면 💰 +2 (하루 최대 10)
   DRAGON: 700,

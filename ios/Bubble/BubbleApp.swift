@@ -96,14 +96,18 @@ struct RootView: View {
             } else if let m = online.mission, screen.key == "lobby" {
                 MissionCelebration(label: m.label, coins: m.coins) { online.mission = nil }
                     .transition(.opacity)
+                    .onAppear { Music.shared.sfx(.mission) }
             } else if let c = online.checkin, screen.key == "lobby" {
                 CheckinCelebration(day: c.day, coins: c.coins, potion: c.potion, panda: c.panda) { online.checkin = nil }
                     .transition(.opacity)
+                    .onAppear { Music.shared.sfx(.checkin) }
             } else if let d = online.rankDown, screen.key == "lobby" {
                 RankDownNotice(from: d.from, score: d.score) { online.rankDown = nil }
                     .transition(.opacity)
+                    .onAppear { Music.shared.sfx(.rankDown) }
             } else if let score = online.rankUpScore, screen.key == "lobby" {
                 RankUpCelebration(score: score) { online.rankUpScore = nil }
+                    .onAppear { Music.shared.sfx(.rankUp) }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: screen.key)

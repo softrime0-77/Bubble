@@ -501,6 +501,7 @@ private fun ShotFx(s: FlyingShot, onImpact: (FlyingShot) -> Unit, onDone: (Flyin
 /** 출석 완료! 쏟아지는 색종이 · 회전하는 빛 · 도장 쾅 · 💰 숫자 올라가기 */
 @Composable
 fun CheckinCelebration(day: Int, coins: Int, potion: Boolean, panda: Int = 0, onDismiss: () -> Unit) {
+    LaunchedEffect(Unit) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.CHECKIN) }
     val t = rememberInfiniteTransition(label = "checkin")
     val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_600, easing = LinearEasing)), label = "tw")
 
@@ -701,6 +702,7 @@ private fun CelebrationBackdrop(shine: Float) {
 /** 미션 보상 받기! 과녁이 빙글 돌며 튀어나오고 팡 터짐 · 💰 숫자 올라가기 */
 @Composable
 fun MissionCelebration(label: String, coins: Int, onDismiss: () -> Unit) {
+    LaunchedEffect(Unit) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.MISSION) }
     val t = rememberInfiniteTransition(label = "mission")
     val twinkle by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1_600, easing = LinearEasing)), label = "tw")
     val pop = remember { Animatable(0f) }
@@ -1223,6 +1225,7 @@ fun timerTheme(skin: Animal?): TimerTheme? = when (skin) {
 /** 계급이 내려갔을 때: 빗방울이 톡톡, 예전 배지 → 지금 배지, 얼마나 더 얻으면 돌아가는지 (응원) */
 @Composable
 fun RankDownNotice(from: com.bubble.game.game.Rank, score: Int, onDismiss: () -> Unit) {
+    LaunchedEffect(Unit) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.RANK_DOWN) }
     val now = com.bubble.game.game.Rank.of(score)
     val need = (from.minScore - score).coerceAtLeast(1)
     val t = rememberInfiniteTransition(label = "rankDown")

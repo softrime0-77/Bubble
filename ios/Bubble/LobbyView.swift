@@ -234,6 +234,9 @@ struct LobbyView: View {
         } message: {
             Text(deleteWarning)
         }
+        .onChange(of: online.profile?.weeklyReward.map { !$0.seen } ?? false) { show in
+            if show { Music.shared.sfx(.weekly) }
+        }
         .alert(tr("🏆 주간 랭킹 보상!", "🏆 Weekly ranking reward!", zh: "🏆 每周排行奖励！", es: "🏆 ¡Premio semanal!", fr: "🏆 Récompense hebdo !",
                   de: "🏆 Wochenbelohnung!", pt: "🏆 Prêmio semanal!", ru: "🏆 Недельная награда!", ja: "🏆 週間ランキング報酬！"),
                isPresented: Binding(get: { online.profile?.weeklyReward.map { !$0.seen } ?? false }, set: { if !$0 { online.ackWeeklyReward() } })) {

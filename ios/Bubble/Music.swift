@@ -101,13 +101,20 @@ final class Music: ObservableObject {
 
     enum Sfx: String, CaseIterable {
         case select, shoot, hit, pop, split, potion, coin, win, lose, buy, equip, match
+        case turn, tick, checkin, mission, weekly
+        case rankUp = "rank_up", rankDown = "rank_down"
         case splitInk = "split_ink", splitIce = "split_ice", splitFire = "split_fire", splitMagic = "split_magic"
         case splitBamboo = "split_bamboo", splitBoing = "split_boing", splitGold = "split_gold"
         case coinDragon = "coin_dragon", coinRabbit = "coin_rabbit", coinUnicorn = "coin_unicorn"
         var volume: Float {
             switch self {
             case .select: return 0.5
-            case .match: return 0.8
+            case .match, .checkin: return 0.8
+            case .turn: return 0.6
+            case .tick: return 0.5
+            case .mission: return 0.75
+            case .rankUp, .weekly: return 0.85
+            case .rankDown: return 0.7
             case .equip: return 0.6
             case .buy: return 0.8
             case .shoot: return 0.55

@@ -254,7 +254,62 @@ def snare_hit():
     return rng.uniform(-1, 1, len(t)) * np.exp(-t * 40)
 
 
-SOUNDS = {"match": match, "buy": buy, "equip": equip, "select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
+def my_turn():
+    """⏰ 내 차례: 띵동"""
+    return mix((0, tone(1319, 0.5) * np.exp(-T(0.5) * 7), 0.6), (0.13, tone(1760, 0.6) * np.exp(-T(0.6) * 6), 0.6))
+
+
+def tick():
+    """⏱ 남은 시간 째깍"""
+    t = T(0.07)
+    return (tone(1900, 0.07) + 0.5 * tone(3800, 0.07)) * np.exp(-t * 70)
+
+
+def fanfare(notes, chord, step=0.11, dur=1.0, wave_kind="square"):
+    parts = [(i * step, tone(f, 0.35, wave_kind) * np.exp(-T(0.35) * 6) * 0.6 + tone(f * 2, 0.35) * np.exp(-T(0.35) * 8) * 0.25, 0.5)
+             for i, f in enumerate(notes)]
+    t = T(dur)
+    ch = sum(tone(f, dur, "tri") + 0.4 * tone(f, dur, wave_kind) for f in chord) / len(chord) * np.exp(-t * 2.5)
+    return mix(*parts, (len(notes) * step, ch, 0.55))
+
+
+def checkin():
+    """📅 출석: 빰빠밤!"""
+    return mix((0, fanfare([784, 784, 1047], [523, 659, 784, 1047]), 1.0), (0.35, sparkle(base=2100, count=5), 0.35))
+
+
+def mission():
+    """🎯 미션 보상: 띠링 + 동전 쏟아짐"""
+    coins = [(i * 0.07, coin(), 0.4) for i in range(6)]
+    return mix((0, tone(1568, 0.4) * np.exp(-T(0.4) * 8), 0.5), *coins, (0.45, sparkle(base=2300, count=5), 0.3))
+
+
+def rank_up():
+    """⬆️ 계급 승급: 쭉 올라가는 레벨업 + 큰 화음"""
+    notes = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568]
+    parts = [(i * 0.055, tone(f, 0.2, "square") * np.exp(-T(0.2) * 12), 0.35) for i, f in enumerate(notes)]
+    t = T(1.4)
+    ch = sum(tone(f, 1.4, "tri") + 0.5 * tone(f, 1.4, "square") for f in (523, 659, 784, 1047, 1319)) / 5 * np.exp(-t * 1.8)
+    boom = np.sin(2 * np.pi * (55 + 120 * np.exp(-t * 18)) * t) * np.exp(-t * 6)
+    return mix(*parts, (0.5, ch, 0.6), (0.5, boom, 0.6), (0.55, sparkle(base=2000, count=7), 0.4), (0.85, sparkle(base=2600, count=5), 0.3))
+
+
+def rank_down():
+    """⬇️ 강등: 뿅… 아쉬움"""
+    t = T(0.9)
+    f = 700 * np.exp(-t * 1.6) + 150
+    return mix((0, tone(f, 0.9, "tri") * np.exp(-t * 2.5), 0.7), (0.25, tone(330, 0.5) * np.exp(-T(0.5) * 5), 0.3))
+
+
+def weekly():
+    """🏆 주간 랭킹 보상: 왕관 팡파르 + 동전"""
+    fan = fanfare([523, 659, 784, 1047, 784, 1047], [523, 659, 784, 1047, 1319], step=0.1, dur=1.3, wave_kind="saw")
+    coins = [(0.75 + i * 0.07, coin(), 0.3) for i in range(5)]
+    return mix((0, fan, 0.9), *coins, (0.7, sparkle(base=2200, count=7), 0.35))
+
+
+SOUNDS = {"turn": my_turn, "tick": tick, "checkin": checkin, "mission": mission, "rank_up": rank_up,
+          "rank_down": rank_down, "weekly": weekly, "match": match, "buy": buy, "equip": equip, "select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
           "split_ink": split_ink, "split_ice": split_ice, "split_fire": split_fire, "split_magic": split_magic,
           "split_bamboo": split_bamboo, "split_boing": split_boing, "split_gold": split_gold,
           "potion": potion, "coin": coin_lucky, "coin_dragon": coin_dragon, "coin_rabbit": coin_rabbit,

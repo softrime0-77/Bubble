@@ -51,6 +51,13 @@ object Music {
     enum class Sfx(val res: Int, val volume: Float) {
         SELECT(R.raw.sfx_select, 0.5f),
         MATCH(R.raw.sfx_match, 0.8f),
+        TURN(R.raw.sfx_turn, 0.6f),
+        TICK(R.raw.sfx_tick, 0.5f),
+        CHECKIN(R.raw.sfx_checkin, 0.8f),
+        MISSION(R.raw.sfx_mission, 0.75f),
+        RANK_UP(R.raw.sfx_rank_up, 0.85f),
+        RANK_DOWN(R.raw.sfx_rank_down, 0.7f),
+        WEEKLY(R.raw.sfx_weekly, 0.85f),
         BUY(R.raw.sfx_buy, 0.8f),
         EQUIP(R.raw.sfx_equip, 0.6f),
         SHOOT(R.raw.sfx_shoot, 0.55f),

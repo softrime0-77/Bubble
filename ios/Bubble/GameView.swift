@@ -144,6 +144,8 @@ struct GameView<M: GameModel>: View {
         // 🎵 게임 곡: 내 캐릭터별 (서버 대전은 캐릭터가 조금 늦게 정해지므로 바뀌면 다시)
         .onAppear { Music.shared.play(Music.gameTrack(game.mySkin, game.mySide)) }
         .onChange(of: Music.gameTrack(game.mySkin, game.mySide)) { track in Music.shared.play(track) }
+        // ⏰ 내 차례가 되면 띵동
+        .onChange(of: game.turn) { t in if t == me && !game.finished { Music.shared.sfx(.turn) } }
         // 🔊 끝나면 승리/패배 징글
         .onChange(of: game.finished) { done in
             guard done, let w = game.winner else { return }

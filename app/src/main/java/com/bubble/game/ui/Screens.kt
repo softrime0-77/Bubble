@@ -477,6 +477,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
 
     ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
     ui.profile?.weeklyReward?.takeIf { !it.seen }?.let { w ->
+        LaunchedEffect(w.week) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.WEEKLY) }
         AlertDialog(
             onDismissRequest = vm::ackWeeklyReward,
             title = { Text(tr("🏆 주간 랭킹 보상!", "🏆 Weekly ranking reward!", zh = "🏆 每周排行奖励！", hi = "🏆 साप्ताहिक रैंकिंग इनाम!", es = "🏆 ¡Premio semanal!", fr = "🏆 Récompense hebdo !", ar = "🏆 مكافأة الترتيب الأسبوعية!", de = "🏆 Wochenbelohnung!", pt = "🏆 Prêmio semanal!", ru = "🏆 Недельная награда!", ja = "🏆 週間ランキング報酬！"), fontWeight = FontWeight.Black) },
@@ -929,6 +930,12 @@ private fun GameScreen(vm: AppViewModel) {
 
     var selected by remember { mutableStateOf<Int?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
+    // ⏰ 상대 차례가 끝나고 내 차례가 되면 띵동
+    var prevTurn by remember { mutableStateOf(g.turn) }
+    LaunchedEffect(g.turn) {
+        if (g.turn != prevTurn && g.turn == g.mySide && !g.finished) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.TURN)
+        prevTurn = g.turn
+    }
     // 🔊 끝나면 승리/패배 징글 (한 판에 한 번)
     LaunchedEffect(g.finished, g.winner) {
         if (g.finished && g.winner != null) {
@@ -3086,6 +3093,10 @@ private fun TurnTimer(g: GameUi, now: Long) {
     val blink by t.animateFloat(1f, 0.25f, infiniteRepeatable(tween(250), RepeatMode.Reverse), label = "blink")
     val alpha = if (urgent) blink else 1f
     val mine = g.turn == g.mySide
+    // ⏱ 내 시간 5초 남으면 1초마다 째깍
+    LaunchedEffect(leftSec, mine) {
+        if (mine && leftSec in 1..5) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.TICK)
+    }
     // ❄️ 눈송이 · ✨ 황금 햄스터: 내 시간일 때 게이지 테마 (모습만, 시간은 그대로)
     val theme = if (mine) timerTheme(g.mySkin) else null
     val drift by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "drift")

@@ -83,12 +83,14 @@ def hit():
 
 
 def pop():
-    """펑! 터짐: 쿵 + 파삭 + 반짝"""
+    """펑! 터짐: 쿵 + 파삭 + 뽁 + 반짝. 배경음에 묻히지 않게 중음을 살리고 살짝 눌러(압축) 크게"""
     t = T(0.7)
-    boom = np.sin(2 * np.pi * (45 + 220 * np.exp(-t * 22)) * t) * np.exp(-t * 7)
-    crack = rng.uniform(-1, 1, len(t)) * np.exp(-t * 16)
-    bub = tone(900 * np.exp(-t * 9) + 300, 0.7) * np.exp(-t * 18) * 0.5
-    return mix((0, boom, 1.0), (0, crack, 0.45), (0, bub, 0.6), (0.06, sparkle(base=2000, count=4), 0.35))
+    boom = np.sin(2 * np.pi * (60 + 260 * np.exp(-t * 20)) * t) * np.exp(-t * 6)
+    crack = rng.uniform(-1, 1, len(t)) * np.exp(-t * 14)
+    bub = tone(1100 * np.exp(-t * 8) + 350, 0.7, "tri") * np.exp(-t * 12)   # 뽁! (휴대폰 스피커에서 잘 들리는 중음)
+    snap = tone(2400, 0.7) * np.exp(-t * 40)
+    x = mix((0, boom, 1.0), (0, crack, 0.55), (0, bub, 0.9), (0, snap, 0.35), (0.06, sparkle(base=2000, count=4), 0.4))
+    return np.tanh(x * 2.2)  # 살짝 포화시켜 체감 음량 ↑
 
 
 def split():

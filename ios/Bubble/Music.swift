@@ -9,7 +9,9 @@ import SwiftUI
 final class Music: ObservableObject {
     static let shared = Music()
     private static let key = "music_on"
-    private static let volume: Float = 0.45
+    private static let volume: Float = 0.3
+    /// 큰 효과음(펑·승리 등)이 날 때 배경음을 잠깐 줄이는 크기
+    private static let duckVolume: Float = 0.1
 
     @Published private(set) var enabled: Bool
 
@@ -91,7 +93,7 @@ final class Music: ObservableObject {
         fade = Timer.scheduledTimer(withTimeInterval: 0.04, repeats: true) { [weak self] t in
             Task { @MainActor in
                 guard let self else { t.invalidate(); return }
-                self.node.volume = min(Self.volume, self.node.volume + 0.05)
+                self.node.volume = min(Self.volume, self.node.volume + 0.03)
                 if self.node.volume >= Self.volume { t.invalidate() }
             }
         }
@@ -108,21 +110,21 @@ final class Music: ObservableObject {
         case coinDragon = "coin_dragon", coinRabbit = "coin_rabbit", coinUnicorn = "coin_unicorn"
         var volume: Float {
             switch self {
-            case .select: return 0.5
-            case .match, .checkin: return 0.8
-            case .turn: return 0.6
-            case .tick: return 0.5
-            case .mission: return 0.75
-            case .rankUp, .weekly: return 0.85
-            case .rankDown: return 0.7
-            case .equip: return 0.6
-            case .buy: return 0.8
-            case .shoot: return 0.55
-            case .coin: return 0.6
-            case .coinDragon: return 0.65
-            case .hit, .split, .lose, .splitInk, .splitIce, .splitFire, .splitMagic, .splitBamboo, .splitBoing, .splitGold, .coinRabbit, .coinUnicorn: return 0.7
-            case .potion, .win: return 0.8
-            case .pop: return 0.9
+            case .select, .tick: return 0.7
+            case .shoot: return 0.75
+            case .equip, .turn: return 0.8
+            case .coin, .coinDragon: return 0.85
+            case .hit, .split, .lose, .splitInk, .splitIce, .splitFire, .splitMagic, .splitBamboo, .splitBoing, .splitGold, .rankDown: return 0.9
+            case .coinRabbit, .coinUnicorn, .mission: return 0.95
+            case .pop, .potion, .win, .buy, .match, .checkin, .rankUp, .weekly: return 1.0
+            }
+        }
+
+        /// 배경음을 잠깐 줄였다가 되돌릴 큰 효과음
+        var loud: Bool {
+            switch self {
+            case .pop, .win, .lose, .potion, .match, .rankUp, .rankDown, .weekly, .checkin, .buy, .coinRabbit, .coinUnicorn: return true
+            default: return false
             }
         }
     }
@@ -165,6 +167,21 @@ final class Music: ObservableObject {
         let p = list[i]
         p.currentTime = 0
         p.play()
+        if s.loud { duck(s == .pop ? 0.6 : 1.2) }
+    }
+
+    /// 효과음이 묻히지 않게 배경음을 잠깐 줄였다가 천천히 되돌림
+    private var duckUntil = Date.distantPast
+    private func duck(_ sec: Double) {
+        guard playing != nil else { return }
+        fade?.invalidate()
+        node.volume = Self.duckVolume
+        let until = Date().addingTimeInterval(sec)
+        duckUntil = until
+        DispatchQueue.main.asyncAfter(deadline: .now() + sec) { [weak self] in
+            guard let self, self.duckUntil == until else { return }
+            self.fadeIn()
+        }
     }
 
     static let lobby = "bgm_lobby"

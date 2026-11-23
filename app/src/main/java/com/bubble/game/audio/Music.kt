@@ -21,7 +21,9 @@ import com.bubble.game.game.Side
 object Music {
     private const val PREFS = "bubble_settings"
     private const val KEY = "music_on"
-    private const val VOLUME = 0.45f
+    private const val VOLUME = 0.3f
+    /** 큰 효과음(펑·승리 등)이 날 때 배경음을 잠깐 줄이는 크기 */
+    private const val DUCK = 0.1f
 
     /** 음악 켜짐 (화면의 🔊/🔇 버튼이 이 값을 봄) */
     var enabled by mutableStateOf(true)
@@ -49,44 +51,58 @@ object Music {
 
     /** 효과음 (tools/music/make_sfx.py로 합성). 🔇이면 소리 없음 */
     enum class Sfx(val res: Int, val volume: Float) {
-        SELECT(R.raw.sfx_select, 0.5f),
-        MATCH(R.raw.sfx_match, 0.8f),
-        TURN(R.raw.sfx_turn, 0.6f),
-        TICK(R.raw.sfx_tick, 0.5f),
-        CHECKIN(R.raw.sfx_checkin, 0.8f),
-        MISSION(R.raw.sfx_mission, 0.75f),
-        RANK_UP(R.raw.sfx_rank_up, 0.85f),
-        RANK_DOWN(R.raw.sfx_rank_down, 0.7f),
-        WEEKLY(R.raw.sfx_weekly, 0.85f),
-        BUY(R.raw.sfx_buy, 0.8f),
-        EQUIP(R.raw.sfx_equip, 0.6f),
-        SHOOT(R.raw.sfx_shoot, 0.55f),
-        HIT(R.raw.sfx_hit, 0.7f),
-        POP(R.raw.sfx_pop, 0.9f),
-        SPLIT(R.raw.sfx_split, 0.7f),
-        SPLIT_INK(R.raw.sfx_split_ink, 0.7f),
-        SPLIT_ICE(R.raw.sfx_split_ice, 0.7f),
-        SPLIT_FIRE(R.raw.sfx_split_fire, 0.7f),
-        SPLIT_MAGIC(R.raw.sfx_split_magic, 0.7f),
-        SPLIT_BAMBOO(R.raw.sfx_split_bamboo, 0.7f),
-        SPLIT_BOING(R.raw.sfx_split_boing, 0.7f),
-        SPLIT_GOLD(R.raw.sfx_split_gold, 0.7f),
-        POTION(R.raw.sfx_potion, 0.8f),
-        COIN(R.raw.sfx_coin, 0.6f),
-        COIN_DRAGON(R.raw.sfx_coin_dragon, 0.65f),
-        COIN_RABBIT(R.raw.sfx_coin_rabbit, 0.7f),
-        COIN_UNICORN(R.raw.sfx_coin_unicorn, 0.7f),
-        WIN(R.raw.sfx_win, 0.8f),
-        LOSE(R.raw.sfx_lose, 0.7f),
+        SELECT(R.raw.sfx_select, 0.7f),
+        MATCH(R.raw.sfx_match, 1.0f),
+        TURN(R.raw.sfx_turn, 0.8f),
+        TICK(R.raw.sfx_tick, 0.7f),
+        CHECKIN(R.raw.sfx_checkin, 1.0f),
+        MISSION(R.raw.sfx_mission, 0.95f),
+        RANK_UP(R.raw.sfx_rank_up, 1.0f),
+        RANK_DOWN(R.raw.sfx_rank_down, 0.9f),
+        WEEKLY(R.raw.sfx_weekly, 1.0f),
+        BUY(R.raw.sfx_buy, 1.0f),
+        EQUIP(R.raw.sfx_equip, 0.8f),
+        SHOOT(R.raw.sfx_shoot, 0.75f),
+        HIT(R.raw.sfx_hit, 0.9f),
+        POP(R.raw.sfx_pop, 1.0f),
+        SPLIT(R.raw.sfx_split, 0.9f),
+        SPLIT_INK(R.raw.sfx_split_ink, 0.9f),
+        SPLIT_ICE(R.raw.sfx_split_ice, 0.9f),
+        SPLIT_FIRE(R.raw.sfx_split_fire, 0.9f),
+        SPLIT_MAGIC(R.raw.sfx_split_magic, 0.9f),
+        SPLIT_BAMBOO(R.raw.sfx_split_bamboo, 0.9f),
+        SPLIT_BOING(R.raw.sfx_split_boing, 0.9f),
+        SPLIT_GOLD(R.raw.sfx_split_gold, 0.9f),
+        POTION(R.raw.sfx_potion, 1.0f),
+        COIN(R.raw.sfx_coin, 0.85f),
+        COIN_DRAGON(R.raw.sfx_coin_dragon, 0.85f),
+        COIN_RABBIT(R.raw.sfx_coin_rabbit, 0.95f),
+        COIN_UNICORN(R.raw.sfx_coin_unicorn, 0.95f),
+        WIN(R.raw.sfx_win, 1.0f),
+        LOSE(R.raw.sfx_lose, 0.9f),
     }
 
     private var pool: SoundPool? = null
     private val sfxIds = mutableMapOf<Sfx, Int>()
 
+    /** 배경음을 줄였다가 되돌릴 큰 효과음 */
+    private val loud = setOf(Sfx.POP, Sfx.WIN, Sfx.LOSE, Sfx.POTION, Sfx.MATCH, Sfx.RANK_UP, Sfx.RANK_DOWN, Sfx.WEEKLY, Sfx.CHECKIN, Sfx.BUY, Sfx.COIN_RABBIT, Sfx.COIN_UNICORN)
+
     fun sfx(s: Sfx) {
         if (!enabled || !foreground) return
         val id = sfxIds[s] ?: return
-        pool?.play(id, s.volume, s.volume, 1, 0, 1f)
+        pool?.play(id, s.volume, s.volume, 2, 0, 1f)
+        if (s in loud) duck(if (s == Sfx.POP) 600L else 1200L)
+    }
+
+    /** 효과음이 묻히지 않게 배경음을 잠깐 줄였다가 천천히 되돌림 */
+    private fun duck(ms: Long) {
+        val p = player ?: return
+        fade?.let(main::removeCallbacks)
+        runCatching { p.setVolume(DUCK, DUCK) }
+        val back = Runnable { if (p === player) fadeIn(p, from = DUCK) }
+        fade = back
+        main.postDelayed(back, ms)
     }
 
     fun toggle() {
@@ -131,12 +147,12 @@ object Music {
     }
 
     /** 0에서 살짝 커지며 시작 (곡이 바뀔 때 툭 끊기지 않게) */
-    private fun fadeIn(p: MediaPlayer) {
+    private fun fadeIn(p: MediaPlayer, from: Float = 0f) {
         fade?.let(main::removeCallbacks)
-        var v = 0f
+        var v = from
         val step = object : Runnable {
             override fun run() {
-                v = (v + 0.05f).coerceAtMost(VOLUME)
+                v = (v + 0.03f).coerceAtMost(VOLUME)
                 runCatching { p.setVolume(v, v) }
                 if (v < VOLUME && p === player) main.postDelayed(this, 40)
             }

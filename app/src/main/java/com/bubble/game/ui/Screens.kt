@@ -116,7 +116,11 @@ fun BubbleApp(vm: AppViewModel) {
     val screen by vm.screen.collectAsState()
     // 🎵 배경음악: 게임 중엔 내 캐릭터 곡, 그 밖엔 로비 곡
     val gameNow by vm.game.collectAsState()
-    val track = if (screen == Screen.Game) com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide) else com.bubble.game.audio.Music.lobby
+    val track = when (screen) {
+        Screen.Game -> com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide)
+        is Screen.Matching, is Screen.FriendWait -> com.bubble.game.audio.Music.matching
+        else -> com.bubble.game.audio.Music.lobby
+    }
     LaunchedEffect(track) { com.bubble.game.audio.Music.play(track) }
     // 아랍어는 오른쪽에서 왼쪽으로
     val direction = if (Lang.current.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
@@ -473,6 +477,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
 
     ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
     ui.profile?.weeklyReward?.takeIf { !it.seen }?.let { w ->
+        LaunchedEffect(w.week) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.WEEKLY) }
         AlertDialog(
             onDismissRequest = vm::ackWeeklyReward,
             title = { Text(tr("🏆 주간 랭킹 보상!", "🏆 Weekly ranking reward!", zh = "🏆 每周排行奖励！", hi = "🏆 साप्ताहिक रैंकिंग इनाम!", es = "🏆 ¡Premio semanal!", fr = "🏆 Récompense hebdo !", ar = "🏆 مكافأة الترتيب الأسبوعية!", de = "🏆 Wochenbelohnung!", pt = "🏆 Prêmio semanal!", ru = "🏆 Недельная награда!", ja = "🏆 週間ランキング報酬！"), fontWeight = FontWeight.Black) },
@@ -880,6 +885,10 @@ private fun GameScreen(vm: AppViewModel) {
             power = power, attack = toOpp, boom = !split && targetCount + power >= GameLogic.EXPLODE_AT, split = split,
         )
         landAt = System.currentTimeMillis() + SHOT_FLY_MS
+        com.bubble.game.audio.Music.sfx(
+            if (split) com.bubble.game.audio.Music.splitSfx(if (side == pre.mySide) pre.mySkin else pre.opponentSkin)
+            else com.bubble.game.audio.Music.Sfx.SHOOT,
+        )
     }
 
     LaunchedEffect(live) {
@@ -898,6 +907,7 @@ private fun GameScreen(vm: AppViewModel) {
                     firedRevive = s.id
                     centers["${s.side}${s.to}"]?.let { at ->
                         revives += ReviveBurst(System.nanoTime(), at - layerOrigin, s.side, if (s.side == g.mySide) g.mySkin else g.opponentSkin)
+                        com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.POTION)
                         landAt = System.currentTimeMillis() + REVIVE_DROP_MS
                     }
                 }
@@ -915,10 +925,23 @@ private fun GameScreen(vm: AppViewModel) {
         firedLucky = l.id
         val at = centers["${l.side.opponent}${l.to}"] ?: return@LaunchedEffect
         coins += CoinPop(System.nanoTime(), at - layerOrigin, mine = l.side == g.mySide, amount = l.coins)
+        com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.coinSfx(if (l.side == g.mySide) g.mySkin else g.opponentSkin))
     }
 
     var selected by remember { mutableStateOf<Int?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
+    // ⏰ 상대 차례가 끝나고 내 차례가 되면 띵동
+    var prevTurn by remember { mutableStateOf(g.turn) }
+    LaunchedEffect(g.turn) {
+        if (g.turn != prevTurn && g.turn == g.mySide && !g.finished) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.TURN)
+        prevTurn = g.turn
+    }
+    // 🔊 끝나면 승리/패배 징글 (한 판에 한 번)
+    LaunchedEffect(g.finished, g.winner) {
+        if (g.finished && g.winner != null) {
+            com.bubble.game.audio.Music.sfx(if (g.winner == g.mySide) com.bubble.game.audio.Music.Sfx.WIN else com.bubble.game.audio.Music.Sfx.LOSE)
+        }
+    }
 
     // 차례가 바뀌거나 판이 바뀌면 선택 해제
     LaunchedEffect(g.turn, g.board) {
@@ -1027,7 +1050,10 @@ private fun GameScreen(vm: AppViewModel) {
                         },
                         onClick = when {
                             boostTarget -> ({ shoot(sel!!, false, i) })
-                            pickable && !inFlight -> ({ selected = if (isSel) null else i })
+                            pickable && !inFlight -> ({
+                                if (!isSel) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.SELECT)
+                                selected = if (isSel) null else i
+                            })
                             else -> null
                         },
                     )
@@ -1110,6 +1136,9 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
         ShotLayer(
             shots,
             onImpact = { s ->
+                // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
+                if (s.boom) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.POP)
+                else if (!s.split) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.HIT)
                 if (s.attack || s.boom) scope.launch {
                     shake.snapTo(if (s.boom) 1f else 0.6f)
                     shake.animateTo(0f, tween(if (s.boom) 650 else 420))
@@ -2606,6 +2635,7 @@ private fun CoinSummary(skin: Animal?, inGame: Int, winBonus: Int) {
 /** 🦄 결과 화면: 무지개 축복 💰 (무지개색으로 흐르는 글자) */
 @Composable
 private fun UnicornResult(coins: Int) {
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(700); com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN_UNICORN) }
     val t = rememberInfiniteTransition(label = "uni")
     val x by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "x")
     Text(
@@ -2629,6 +2659,7 @@ internal val rainbowText = listOf(Color(0xFFE5397A), Color(0xFFE07A00), Color(0x
 /** 🐰 결과 화면: 연승 보상 또는 다음 보상 안내 */
 @Composable
 private fun RabbitResult(streak: Int, coins: Int) {
+    LaunchedEffect(coins) { if (coins > 0) { kotlinx.coroutines.delay(700); com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN_RABBIT) } }
     val text = when {
         coins > 0 -> tr("🐰 ${streak}연승 보상 💰+$coins!", "🐰 $streak-win streak reward 💰+$coins!", zh = "🐰 ${streak}连胜奖励 💰+$coins！",
             es = "🐰 ¡Premio por $streak seguidas 💰+$coins!", fr = "🐰 Récompense $streak victoires 💰+$coins !", de = "🐰 $streak Siege in Folge 💰+$coins!",
@@ -2898,6 +2929,8 @@ private fun WelcomeDialog(kind: String, score: Int, onDismiss: () -> Unit) {
 /** 매칭 직후 VS 소개: 양쪽 나라·닉네임·계급 */
 @Composable
 private fun VsIntro(g: GameUi, onClose: () -> Unit) {
+    // ⚔️ 매칭 성공 효과음
+    LaunchedEffect(Unit) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.MATCH) }
     Box(
         Modifier
             .fillMaxSize()
@@ -3060,6 +3093,10 @@ private fun TurnTimer(g: GameUi, now: Long) {
     val blink by t.animateFloat(1f, 0.25f, infiniteRepeatable(tween(250), RepeatMode.Reverse), label = "blink")
     val alpha = if (urgent) blink else 1f
     val mine = g.turn == g.mySide
+    // ⏱ 내 시간 5초 남으면 1초마다 째깍
+    LaunchedEffect(leftSec, mine) {
+        if (mine && leftSec in 1..5) com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.TICK)
+    }
     // ❄️ 눈송이 · ✨ 황금 햄스터: 내 시간일 때 게이지 테마 (모습만, 시간은 그대로)
     val theme = if (mine) timerTheme(g.mySkin) else null
     val drift by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2_400, easing = androidx.compose.animation.core.LinearEasing)), label = "drift")

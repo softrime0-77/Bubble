@@ -144,11 +144,19 @@ struct GameView<M: GameModel>: View {
         // 🎵 게임 곡: 내 캐릭터별 (서버 대전은 캐릭터가 조금 늦게 정해지므로 바뀌면 다시)
         .onAppear { Music.shared.play(Music.gameTrack(game.mySkin, game.mySide)) }
         .onChange(of: Music.gameTrack(game.mySkin, game.mySide)) { track in Music.shared.play(track) }
+        // ⏰ 내 차례가 되면 띵동
+        .onChange(of: game.turn) { t in if t == me && !game.finished { Music.shared.sfx(.turn) } }
+        // 🔊 끝나면 승리/패배 징글
+        .onChange(of: game.finished) { done in
+            guard done, let w = game.winner else { return }
+            Music.shared.sfx(w == me ? .win : .lose)
+        }
         .onChange(of: game.lucky) { l in
             // 맞은 방울에서 금화가 튀어나옴 (판이 바뀌는 순간 = 방울이 부딪힌 순간)
             guard let l, let at = centers["\(l.side.opponent)\(l.to)"] else { return }
             let pop = CoinPop(at: at, amount: l.coins)
             coins.append(pop)
+            Music.shared.sfx(Music.coinSfx(l.side == me ? game.mySkin : game.opponentSkin))
             DispatchQueue.main.asyncAfter(deadline: .now() + CoinPop.sec + 0.05) { coins.removeAll { $0.id == pop.id } }
         }
         .onChange(of: game.lastShot) { s in
@@ -198,7 +206,10 @@ struct GameView<M: GameModel>: View {
         let shot = FlyingShot(from: a, to: b, side: side, skin: side == me ? game.mySkin : game.opponentSkin, power: power,
                               attack: toOpponent, boom: !split && game.board.sets(target)[to] + power >= GameLogic.explodeAt, split: split)
         shots.append(shot)
+        Music.shared.sfx(split ? Music.splitSfx(side == me ? game.mySkin : game.opponentSkin) : .shoot)
         DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) {
+            // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
+            if shot.boom { Music.shared.sfx(.pop) } else if !shot.split { Music.shared.sfx(.hit) }
             if shot.attack || shot.boom {
                 withAnimation(.linear(duration: shot.boom ? 0.6 : 0.42)) { shakes += 1 }
             }
@@ -213,6 +224,7 @@ struct GameView<M: GameModel>: View {
         guard let at = centers["\(side)\(index)"] else { return }
         let b = ReviveBurst(at: at)
         revives.append(b)
+        Music.shared.sfx(.potion)
         DispatchQueue.main.asyncAfter(deadline: .now() + ReviveBurst.sec + 0.05) { revives.removeAll { $0.id == b.id } }
     }
 
@@ -285,6 +297,7 @@ struct GameView<M: GameModel>: View {
                 if boostTarget, let s = game.selected {
                     shoot(from: s, toOpponent: false, to: i)
                 } else if pickable && Date() >= inFlightUntil {
+                    if !isSel { Music.shared.sfx(.select) }
                     game.selected = isSel ? nil : i
                 }
             }
@@ -424,6 +437,7 @@ struct ResultOverlay: View {
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 14).fill(Color(hex: 0xF6EEFF)))
             .padding(.top, 6)
+            .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { Music.shared.sfx(.coinUnicorn) } }
     }
 
     /// 🐰 연승 보상 또는 다음 보상 안내
@@ -455,6 +469,7 @@ struct ResultOverlay: View {
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 14).fill(c > 0 ? Color(hex: 0xFFF3C4) : Color(hex: 0xFFE6F2)))
             .padding(.top, 6)
+            .onAppear { if c > 0 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { Music.shared.sfx(.coinRabbit) } } }
     }
 
     var body: some View {

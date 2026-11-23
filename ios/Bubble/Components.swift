@@ -229,6 +229,7 @@ struct TurnTimerView: View {
             let blink = urgent ? (Int(tl.date.timeIntervalSinceReferenceDate * 4) % 2 == 0 ? 1.0 : 0.3) : 1.0
             let theme = mine ? TimerTheme.of(skin) : nil
             let drift = tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 2.4) / 2.4
+            let leftSec = Int(left.rounded(.up))
             VStack(spacing: 4) {
                 HStack(spacing: 8) {
                     Text(mine ? t("내 시간") : t("상대 시간"))
@@ -259,6 +260,8 @@ struct TurnTimerView: View {
                 }
             }
             .padding(.horizontal, 24)
+            // ⏱ 내 시간 5초 남으면 1초마다 째깍
+            .onChange(of: leftSec) { n in if mine && (1...5).contains(n) { Music.shared.sfx(.tick) } }
         }
     }
 }

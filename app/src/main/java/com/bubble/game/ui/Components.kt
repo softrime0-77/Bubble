@@ -451,6 +451,7 @@ fun RankBadge(score: Int, modifier: Modifier = Modifier, large: Boolean = false)
 /** 계급이 올랐을 때 축하 화면. 높은 계급일수록 반짝이가 더 많이, 더 크게 터집니다. */
 @Composable
 fun RankUpCelebration(score: Int, onDismiss: () -> Unit) {
+    androidx.compose.runtime.LaunchedEffect(Unit) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.RANK_UP) }
     val rank = com.bubble.game.game.Rank.of(score)
     val burst = remember { Animatable(0f) }
     val pop = remember { Animatable(0f) }

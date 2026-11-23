@@ -329,9 +329,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
-    fun buy(item: String, label: String, qty: Int = 1) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉")) { repo.buyItem(item, qty) }
+    fun buy(item: String, label: String, qty: Int = 1) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉"), com.bubble.game.audio.Music.Sfx.BUY) { repo.buyItem(item, qty) }
 
-    fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character", zh = "已换回默认角色", hi = "डिफ़ॉल्ट किरदार पर वापस", es = "Volviste al personaje por defecto", fr = "Retour au personnage par défaut", ar = "تمت العودة إلى الشخصية الافتراضية", de = "Zurück zur Standardfigur", pt = "Voltou ao personagem padrão", ru = "Возвращён обычный персонаж", ja = "デフォルトのキャラに戻しました") else tr("${animal.label} 장착!", "${animal.label} equipped!", zh = "已装备${animal.label}！", hi = "${animal.label} लगा दिया!", es = "¡${animal.label} equipado!", fr = "${animal.label} équipé !", ar = "تم تجهيز ${animal.label}!", de = "${animal.label} ausgerüstet!", pt = "${animal.label} equipado!", ru = "${animal.label}: надето!", ja = "${animal.label}を装備しました！")) {
+    fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character", zh = "已换回默认角色", hi = "डिफ़ॉल्ट किरदार पर वापस", es = "Volviste al personaje por defecto", fr = "Retour au personnage par défaut", ar = "تمت العودة إلى الشخصية الافتراضية", de = "Zurück zur Standardfigur", pt = "Voltou ao personagem padrão", ru = "Возвращён обычный персонаж", ja = "デフォルトのキャラに戻しました") else tr("${animal.label} 장착!", "${animal.label} equipped!", zh = "已装备${animal.label}！", hi = "${animal.label} लगा दिया!", es = "¡${animal.label} equipado!", fr = "${animal.label} équipé !", ar = "تم تجهيز ${animal.label}!", de = "${animal.label} ausgerüstet!", pt = "${animal.label} equipado!", ru = "${animal.label}: надето!", ja = "${animal.label}を装備しました！"), com.bubble.game.audio.Music.Sfx.EQUIP) {
         repo.equipAnimal(animal)
     }
 
@@ -350,12 +350,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         },
     ) { repo.setBoost(on) }
 
-    private fun shopAction(success: String, action: suspend () -> Unit) {
+    /** 상점 동작. 성공하면 [sound] 효과음 (🛒 구매 · ✨ 장착) */
+    private fun shopAction(success: String, sound: com.bubble.game.audio.Music.Sfx? = null, action: suspend () -> Unit) {
         if (_lobby.value.shopBusy) return
         _lobby.update { it.copy(shopBusy = true, error = null, info = null) }
         viewModelScope.launch {
             try {
                 action()
+                sound?.let(com.bubble.game.audio.Music::sfx)
                 _lobby.update { it.copy(shopBusy = false, info = success) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e

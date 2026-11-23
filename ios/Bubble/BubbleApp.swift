@@ -96,14 +96,18 @@ struct RootView: View {
             } else if let m = online.mission, screen.key == "lobby" {
                 MissionCelebration(label: m.label, coins: m.coins) { online.mission = nil }
                     .transition(.opacity)
+                    .onAppear { Music.shared.sfx(.mission) }
             } else if let c = online.checkin, screen.key == "lobby" {
                 CheckinCelebration(day: c.day, coins: c.coins, potion: c.potion, panda: c.panda) { online.checkin = nil }
                     .transition(.opacity)
+                    .onAppear { Music.shared.sfx(.checkin) }
             } else if let d = online.rankDown, screen.key == "lobby" {
                 RankDownNotice(from: d.from, score: d.score) { online.rankDown = nil }
                     .transition(.opacity)
+                    .onAppear { Music.shared.sfx(.rankDown) }
             } else if let score = online.rankUpScore, screen.key == "lobby" {
                 RankUpCelebration(score: score) { online.rankUpScore = nil }
+                    .onAppear { Music.shared.sfx(.rankUp) }
             }
         }
         .animation(.easeInOut(duration: 0.3), value: screen.key)
@@ -129,7 +133,8 @@ struct RootView: View {
         .onChange(of: scenePhase) { phase in Music.shared.setActive(phase == .active) }
         .onChange(of: screen.key) { key in
             // 게임이 아닌 화면은 로비 곡 (게임 곡은 GameView가 정함)
-            if !key.hasPrefix("local") && !key.hasPrefix("online") { Music.shared.play(Music.lobby) }
+            if key == "matching" || key == "friendWait" { Music.shared.play(Music.matching) }
+            else if !key.hasPrefix("local") && !key.hasPrefix("online") { Music.shared.play(Music.lobby) }
             joinPendingBattle()
             // 로비로 돌아오면 랭킹 새로고침 (대전 결과 반영)
             if key == "lobby" { Task { await online.refreshLeaderboard() } }

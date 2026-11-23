@@ -1,7 +1,9 @@
 package com.bubble.game.audio
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.media.SoundPool
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
@@ -36,6 +38,55 @@ object Music {
     fun init(context: Context) {
         app = context.applicationContext
         enabled = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, true)
+        if (pool == null) {
+            pool = SoundPool.Builder()
+                .setMaxStreams(6)
+                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                .build()
+                .also { p -> Sfx.entries.forEach { s -> sfxIds[s] = p.load(context.applicationContext, s.res, 1) } }
+        }
+    }
+
+    /** 효과음 (tools/music/make_sfx.py로 합성). 🔇이면 소리 없음 */
+    enum class Sfx(val res: Int, val volume: Float) {
+        SELECT(R.raw.sfx_select, 0.5f),
+        MATCH(R.raw.sfx_match, 0.8f),
+        TURN(R.raw.sfx_turn, 0.6f),
+        TICK(R.raw.sfx_tick, 0.5f),
+        CHECKIN(R.raw.sfx_checkin, 0.8f),
+        MISSION(R.raw.sfx_mission, 0.75f),
+        RANK_UP(R.raw.sfx_rank_up, 0.85f),
+        RANK_DOWN(R.raw.sfx_rank_down, 0.7f),
+        WEEKLY(R.raw.sfx_weekly, 0.85f),
+        BUY(R.raw.sfx_buy, 0.8f),
+        EQUIP(R.raw.sfx_equip, 0.6f),
+        SHOOT(R.raw.sfx_shoot, 0.55f),
+        HIT(R.raw.sfx_hit, 0.7f),
+        POP(R.raw.sfx_pop, 0.9f),
+        SPLIT(R.raw.sfx_split, 0.7f),
+        SPLIT_INK(R.raw.sfx_split_ink, 0.7f),
+        SPLIT_ICE(R.raw.sfx_split_ice, 0.7f),
+        SPLIT_FIRE(R.raw.sfx_split_fire, 0.7f),
+        SPLIT_MAGIC(R.raw.sfx_split_magic, 0.7f),
+        SPLIT_BAMBOO(R.raw.sfx_split_bamboo, 0.7f),
+        SPLIT_BOING(R.raw.sfx_split_boing, 0.7f),
+        SPLIT_GOLD(R.raw.sfx_split_gold, 0.7f),
+        POTION(R.raw.sfx_potion, 0.8f),
+        COIN(R.raw.sfx_coin, 0.6f),
+        COIN_DRAGON(R.raw.sfx_coin_dragon, 0.65f),
+        COIN_RABBIT(R.raw.sfx_coin_rabbit, 0.7f),
+        COIN_UNICORN(R.raw.sfx_coin_unicorn, 0.7f),
+        WIN(R.raw.sfx_win, 0.8f),
+        LOSE(R.raw.sfx_lose, 0.7f),
+    }
+
+    private var pool: SoundPool? = null
+    private val sfxIds = mutableMapOf<Sfx, Int>()
+
+    fun sfx(s: Sfx) {
+        if (!enabled || !foreground) return
+        val id = sfxIds[s] ?: return
+        pool?.play(id, s.volume, s.volume, 1, 0, 1f)
     }
 
     fun toggle() {
@@ -101,7 +152,25 @@ object Music {
         playing = null
     }
 
+    /** 캐릭터별 분할 소리 */
+    fun splitSfx(skin: Animal?): Sfx = when (skin) {
+        Animal.OCTOPUS -> Sfx.SPLIT_INK
+        Animal.PENGUIN, Animal.SNOW_HAMSTER -> Sfx.SPLIT_ICE
+        Animal.DRAGON -> Sfx.SPLIT_FIRE
+        Animal.UNICORN, Animal.PINK_CAT -> Sfx.SPLIT_MAGIC
+        Animal.PANDA -> Sfx.SPLIT_BAMBOO
+        Animal.RABBIT -> Sfx.SPLIT_BOING
+        Animal.LUCKY_CAT, Animal.GOLD_HAMSTER -> Sfx.SPLIT_GOLD
+        else -> Sfx.SPLIT
+    }
+
+    /** 캐릭터별 💰 받는 소리 (게임 중: 복냥이·아기 용) */
+    fun coinSfx(skin: Animal?): Sfx = if (skin == Animal.DRAGON) Sfx.COIN_DRAGON else Sfx.COIN
+
     val lobby: Int get() = R.raw.bgm_lobby
+
+    /** 매칭·친구 기다리는 동안 */
+    val matching: Int get() = R.raw.bgm_matching
 
     /** 게임 곡: 내 캐릭터별. 소모품 동물(양·강아지·기린)이나 기본이면 고양이/햄스터 곡 */
     fun gameTrack(skin: Animal?, side: Side): Int = when (skin) {

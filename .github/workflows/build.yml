@@ -19,6 +19,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          # 의존성을 캐시해서 매번 Maven Central에서 받지 않음 (429 Too Many Requests 방지)
+          cache: gradle
 
       # GitHub 우분투 러너에는 Android SDK가 이미 설치돼 있음 (setup-android는 라이선스 수락 단계에서 실패해서 뺌)
 

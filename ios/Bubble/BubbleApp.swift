@@ -42,6 +42,7 @@ enum AppScreen {
 struct RootView: View {
     @ObservedObject private var lang = LangStore.shared
     @ObservedObject private var online = OnlineService.shared
+    @Environment(\.scenePhase) private var scenePhase
     @State private var screen: AppScreen = .lobby
     @State private var matchTask: Task<Void, Never>? = nil
     @State private var friendTask: Task<Void, Never>? = nil
@@ -111,6 +112,7 @@ struct RootView: View {
         .environment(\.layoutDirection, lang.code.isRTL ? .rightToLeft : .leftToRight)
         .id(lang.code)
         .onAppear {
+            Music.shared.play(Music.lobby)
             online.start()
             applyDemoArguments()
             Ads.shared.start()
@@ -123,7 +125,11 @@ struct RootView: View {
         // 친구 대전 링크: 로그인돼 있고 로비에 있으면 바로 대전방에 들어감
         .onChange(of: online.pendingBattle) { _ in joinPendingBattle() }
         .onChange(of: online.profile?.uid) { _ in joinPendingBattle() }
+        // 🎵 앱이 뒤로 가면 음악을 멈춤
+        .onChange(of: scenePhase) { phase in Music.shared.setActive(phase == .active) }
         .onChange(of: screen.key) { key in
+            // 게임이 아닌 화면은 로비 곡 (게임 곡은 GameView가 정함)
+            if !key.hasPrefix("local") && !key.hasPrefix("online") { Music.shared.play(Music.lobby) }
             joinPendingBattle()
             // 로비로 돌아오면 랭킹 새로고침 (대전 결과 반영)
             if key == "lobby" { Task { await online.refreshLeaderboard() } }

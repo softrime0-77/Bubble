@@ -76,6 +76,7 @@ struct GameView<M: GameModel>: View {
                     Button(t("← 나가기")) { if game.finished { onLeave() } else { confirmLeave = true } }
                         .foregroundColor(UiColor.text)
                     Spacer()
+                    MusicToggle()
                 }
                 .padding(.horizontal, 16)
 
@@ -140,6 +141,9 @@ struct GameView<M: GameModel>: View {
         }
         .coordinateSpace(name: "game")
         .onPreferenceChange(BubbleCentersKey.self) { centers = $0 }
+        // 🎵 게임 곡: 내 캐릭터별 (서버 대전은 캐릭터가 조금 늦게 정해지므로 바뀌면 다시)
+        .onAppear { Music.shared.play(Music.gameTrack(game.mySkin, game.mySide)) }
+        .onChange(of: Music.gameTrack(game.mySkin, game.mySide)) { track in Music.shared.play(track) }
         .onChange(of: game.lucky) { l in
             // 맞은 방울에서 금화가 튀어나옴 (판이 바뀌는 순간 = 방울이 부딪힌 순간)
             guard let l, let at = centers["\(l.side.opponent)\(l.to)"] else { return }

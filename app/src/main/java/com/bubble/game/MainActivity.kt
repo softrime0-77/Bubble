@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import com.bubble.game.ads.AdManager
+import com.bubble.game.audio.Music
 import com.bubble.game.data.Invite
 import com.bubble.game.i18n.Lang
 import com.bubble.game.ui.AppViewModel
@@ -24,11 +25,23 @@ class MainActivity : ComponentActivity() {
         Invite.battleFromUri(intent.data)?.let(vm::receiveBattle)
     }
 
+    // 🎵 앱이 뒤로 가거나 전면 광고가 뜨면 음악을 멈춤
+    override fun onPause() {
+        super.onPause()
+        Music.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Music.onResume()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         Lang.init(this)
         AdManager.start(this)
+        Music.init(this)
         // 친구 초대: 링크로 열렸거나, 초대 링크로 Play 스토어에서 설치된 경우
         Invite.fromUri(intent?.data)?.let(vm::receiveInvite)
         // 친구 대전 링크로 열린 경우 (로그인되면 바로 대전방에 들어감)

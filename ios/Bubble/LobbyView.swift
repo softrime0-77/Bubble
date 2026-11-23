@@ -58,6 +58,7 @@ struct LobbyView: View {
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(Capsule().fill(.white.opacity(0.7)))
                     }
+                    MusicToggle()
                     // 관리자만: 🛠 포인트 수정
                     if online.profile?.admin == true {
                         Button { showAdmin = true } label: {

@@ -172,6 +172,9 @@ data class OnlineGame(
     val rabbitCoins: Int = 0,
     /** 🦄 이긴 쪽이 유니콘 무지개 축복으로 받은 💰 */
     val unicornCoins: Int = 0,
+    /** 이번 판에 캐릭터(복냥이·아기 용)로 받은 💰 합계 */
+    val catCoins: Int = 0,
+    val hamCoins: Int = 0,
     /** 친구 대전이면 true, 점수가 걸린 판이면 rated */
     val vsFriend: Boolean = false,
     val rated: Boolean = false,
@@ -557,6 +560,8 @@ class OnlineRepository(context: Context) {
             rabbitStreak = (getLong("rabbitStreak") ?: 0).toInt(),
             rabbitCoins = (getLong("rabbitCoins") ?: 0).toInt(),
             unicornCoins = (getLong("unicornCoins") ?: 0).toInt(),
+            catCoins = (getLong("catCoins") ?: 0).toInt(),
+            hamCoins = (getLong("hamCoins") ?: 0).toInt(),
             turnStartedAt = getLong("turnStartedAt") ?: System.currentTimeMillis(),
             catDelta = getLong("catDelta")?.toInt(),
             hamDelta = getLong("hamDelta")?.toInt(),

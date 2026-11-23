@@ -1319,6 +1319,7 @@ private fun ResultOverlay(g: GameUi, refCode: String?, rewardOffer: Int?, onLobb
                     }
                     if (won && g.rabbitStreak > 0) RabbitResult(g.rabbitStreak, g.rabbitCoins)
                     if (won && g.unicornCoins > 0) UnicornResult(g.unicornCoins)
+                    CoinSummary(g.mySkin, g.gameCoins, if (won) g.rabbitCoins + g.unicornCoins else 0)
                     if (rewardOffer != null) {
                         Text(
                             tr(
@@ -2549,6 +2550,37 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
         pt = "🐰 Sequências dão 💰!\n· 3 vitórias +$a · 5 vitórias +$b · a partir de 6, +$c por vitória\n· Perder zera a sequência\n· Máx. $mx por dia (hoje $today/$mx)\n· Um laço por vitória, dourados aos 5 · sequência $n",
         ru = "🐰 Серии побед дают 💰!\n· 3 победы +$a · 5 побед +$b · с 6-й +$c за победу\n· Поражение обнуляет серию\n· Макс. $mx в день (сегодня $today/$mx)\n· Бантик за победу, золотые на 5 · серия $n",
         ja = "🐰 連勝するほど 💰！\n· 3連勝 +$a · 5連勝 +$b · 6連勝からは勝つたびに +$c\n· 負けると連勝はリセット（また3連勝で +$a）\n· 1日最大$mx（今日 $today/$mx）\n· 連勝ごとにリボン、5連勝で金色 · 今${n}連勝")
+}
+
+/**
+ * 결과 화면 💰 정리 (이겨도 져도): 이번 판에 캐릭터로 받은 💰 [inGame]과,
+ * 승리 보상(토끼·유니콘) [winBonus]까지 합친 총액.
+ */
+@Composable
+private fun CoinSummary(skin: Animal?, inGame: Int, winBonus: Int) {
+    if (inGame <= 0 && winBonus <= 0) return
+    if (inGame > 0) {
+        val who = skin?.label ?: tr("내 캐릭터", "your character", zh = "我的角色", es = "tu personaje", fr = "ton perso", de = "deinem Charakter", pt = "seu personagem", ru = "персонаж", ja = "キャラ")
+        Text(
+            tr("💰 이번 판 $who 효과로 +$inGame", "💰 +$inGame this game from $who", zh = "💰 本局 $who 效果 +$inGame", es = "💰 +$inGame en esta partida con $who",
+                fr = "💰 +$inGame cette partie grâce à $who", de = "💰 +$inGame in dieser Partie durch $who", pt = "💰 +$inGame nesta partida com $who",
+                ru = "💰 +$inGame за партию: $who", ja = "💰 この対戦で${who}の効果 +$inGame"),
+            fontSize = 16.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, color = Color(0xFFC77700),
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .background(Color(0xFFFFF3C4), RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+    }
+    // 여러 곳에서 받았으면 총액도
+    if (inGame > 0 && winBonus > 0) {
+        Text(
+            tr("💰 이번 판 총 +${inGame + winBonus}", "💰 Total this game +${inGame + winBonus}", zh = "💰 本局合计 +${inGame + winBonus}", es = "💰 Total de la partida +${inGame + winBonus}",
+                fr = "💰 Total de la partie +${inGame + winBonus}", de = "💰 Gesamt in dieser Partie +${inGame + winBonus}", pt = "💰 Total da partida +${inGame + winBonus}",
+                ru = "💰 Всего за партию +${inGame + winBonus}", ja = "💰 この対戦の合計 +${inGame + winBonus}"),
+            fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFFC77700), modifier = Modifier.padding(top = 4.dp),
+        )
+    }
 }
 
 /** 🦄 결과 화면: 무지개 축복 💰 (무지개색으로 흐르는 글자) */

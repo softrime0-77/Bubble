@@ -543,6 +543,38 @@ class ScreenshotTest {
         shot(name, 1500)
     }
 
+    /** 💰 결과 화면: 져도 이번 판 캐릭터 효과로 받은 💰 */
+    @Test
+    fun loseLuckyCoins() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(0, 0), ham = listOf(2, 0)), mySide = Side.CAT, finished = true, winner = Side.HAMSTER,
+                reason = "normal", busy = false, showIntro = false, online = true, scoreDelta = -10,
+                mySkin = com.bubble.game.game.Animal.LUCKY_CAT, gameCoins = 7)
+        }
+        shot("lose_lucky_coins", 900)
+    }
+
+    /** 💰 결과 화면: 이기면 캐릭터 효과 + 승리 보상 합계 */
+    @Test
+    fun winCoinsTotal() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(board = Board(cat = listOf(2, 0), ham = listOf(0, 0)), mySide = Side.CAT, finished = true, winner = Side.CAT,
+                reason = "normal", busy = false, showIntro = false, online = true, scoreDelta = 36,
+                mySkin = com.bubble.game.game.Animal.UNICORN, gameCoins = 4, unicornCoins = 3)
+        }
+        shot("win_coins_total", 900)
+    }
+
     @Test fun winPenguin() = winShot("win_penguin", com.bubble.game.game.Animal.PENGUIN)
     @Test fun winUnicorn() = winShot("win_unicorn", com.bubble.game.game.Animal.UNICORN)
     @Test fun winDragon() = winShot("win_dragon", com.bubble.game.game.Animal.DRAGON)

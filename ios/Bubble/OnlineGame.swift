@@ -24,6 +24,7 @@ final class OnlineGame: GameModel {
     @Published private(set) var rabbitStreak = 0
     @Published private(set) var rabbitCoins = 0
     @Published private(set) var unicornCoins = 0
+    @Published private(set) var gameCoins = 0
     @Published private(set) var deadline: Date? = nil
     @Published private(set) var turnSec = Shop.defaultTurnSec
     @Published private(set) var busy = true
@@ -130,6 +131,7 @@ final class OnlineGame: GameModel {
         rabbitStreak = g.winner == side ? g.rabbitStreak : 0
         rabbitCoins = g.winner == side ? g.rabbitCoins : 0
         unicornCoins = g.winner == side ? g.unicornCoins : 0
+        gameCoins = side == .cat ? g.catCoins : g.hamCoins
         opponentSkin = g.skin(side.opponent)
         myCountry = g.country(side)
         opponentCountry = g.country(side.opponent)

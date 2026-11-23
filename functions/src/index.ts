@@ -493,6 +493,8 @@ export const submitMove = onCall(async (req) => {
       lastCoins: (lucky ? 1 : 0) + dragonGot,
       moveNo: game.moveNo + 1,
       turnStartedAt: Date.now(),
+      // 이번 판에 캐릭터로 받은 💰 합계 (결과 화면에 보여줌)
+      ...((lucky ? 1 : 0) + dragonGot > 0 ? { [side === "CAT" ? "catCoins" : "hamCoins"]: FieldValue.increment((lucky ? 1 : 0) + dragonGot) } : {}),
     };
     const win = winner(r.board);
     const players = win ? await readPlayers(tx, game) : null;

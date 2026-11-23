@@ -205,6 +205,24 @@ class ScreenshotTest {
     }
 
     @Test
+    fun gameRibbons() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(2, 1), ham = listOf(1, 3), catSplits = 3, hamSplits = 3),
+                mySide = Side.CAT, turn = Side.CAT, busy = false,
+                mySkin = com.bubble.game.game.Animal.RABBIT, myRibbons = 3,
+                opponentSkin = com.bubble.game.game.Animal.RABBIT, opponentRibbons = 5,
+            )
+        }
+        shot("game_ribbons", 1200)
+    }
+
+    @Test
     fun welcome() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

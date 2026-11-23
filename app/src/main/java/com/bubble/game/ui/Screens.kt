@@ -1103,6 +1103,7 @@ private fun GameScreen(vm: AppViewModel) {
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(opp))
                 ReviveCounter(g.board.revivesLeft(opp))
+                if (g.opponentSkin == Animal.RABBIT) RibbonBadge(g.opponentRibbons)
             }
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
@@ -1171,6 +1172,7 @@ private fun GameScreen(vm: AppViewModel) {
                 Spacer(Modifier.width(8.dp))
                 SplitCounter(g.board.splitsLeft(me))
                 ReviveCounter(g.board.revivesLeft(me))
+                if (g.mySkin == Animal.RABBIT) RibbonBadge(g.myRibbons)
                 if (g.myBoost) {
                     Spacer(Modifier.width(6.dp))
                     Text(
@@ -2719,9 +2721,9 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
     val b = Shop.RABBIT_5_COINS
     val c = Shop.RABBIT_MORE_COINS
     val n = p.winStreak
-    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전만 · 지금 ${n}연승",
-        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random & scored friend matches · streak $n",
-        zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配和计分好友对战 · 当前 ${n} 连胜",
+    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
+        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random, scored friend & AI matches · streak $n",
+        zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 ${n} 连胜",
         es = "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
         fr = "🐰 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",
         de = "🐰 Siegesserien bringen 💰!\n· 3 Siege +$a · 5 Siege +$b · ab 6 +$c pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. $mx pro Tag (heute $today/$mx)\n· Eine Schleife pro Sieg, golden ab 5 · Serie $n",
@@ -3163,6 +3165,25 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
             }
         }
     }
+}
+
+/** 🐰 게임 중 연승 리본 배지: 🎀×n (5연승 이상은 금빛 🎀5+) */
+@Composable
+private fun RibbonBadge(n: Int) {
+    if (n <= 0) return
+    val gold = n >= Shop.RABBIT_MAX_RIBBONS
+    Spacer(Modifier.width(6.dp))
+    Text(
+        if (gold) "🎀${Shop.RABBIT_MAX_RIBBONS}+" else "🎀$n",
+        fontWeight = FontWeight.Black, fontSize = 14.sp, color = if (gold) Color(0xFF6B4A00) else Color.White,
+        modifier = Modifier
+            .background(
+                if (gold) Brush.horizontalGradient(listOf(Color(0xFFFFE27A), Color(0xFFFFB300)))
+                else Brush.horizontalGradient(listOf(Color(0xFFFF7EB3), Color(0xFFFF5C8A))),
+                RoundedCornerShape(50),
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
 }
 
 @Composable

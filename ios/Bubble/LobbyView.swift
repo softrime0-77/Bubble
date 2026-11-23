@@ -16,6 +16,7 @@ struct LobbyView: View {
 
     @State private var showRules = false
     @State private var tutorialAsked = false
+    @State private var showMusic = false
     @State private var cardOf: RankedPlayer?
 
     /// 닉네임: 첫 변경은 무료, 그다음은 변경권이 있어야
@@ -62,6 +63,12 @@ struct LobbyView: View {
                             .background(Capsule().fill(.white.opacity(0.7)))
                     }
                     MusicToggle()
+                    Button { showMusic = true } label: {
+                        Text("🎵").font(.system(size: 18))
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Capsule().fill(.white.opacity(0.75)))
+                    }
+                    .buttonStyle(.plain)
                     Spacer()
                     if online.profile != nil { ShopButton(action: onShop).fixedSize() }
                 }
@@ -238,6 +245,7 @@ struct LobbyView: View {
                     ja: "バブル対戦は初めて？やりながらすぐ覚えられるよ！\n最後までやると 💰 +\(TutorialScript.coins) と 💖 復活薬をプレゼント！"))
         }
         .sheet(isPresented: $showAdmin) { AdminSheet { showAdmin = false } }
+        .sheet(isPresented: $showMusic) { MusicPickerSheet { showMusic = false } }
         .sheet(isPresented: $showRanks) { RanksSheet(myScore: online.profile?.score ?? 0) { showRanks = false } }
         .alert(t("닉네임"), isPresented: $renaming) {
             TextField(t("최대 12자"), text: $newName)

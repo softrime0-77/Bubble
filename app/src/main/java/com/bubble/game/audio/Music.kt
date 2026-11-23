@@ -21,6 +21,7 @@ import com.bubble.game.game.Side
 object Music {
     private const val PREFS = "bubble_settings"
     private const val KEY = "music_on"
+    private const val LOBBY_KEY = "lobby_track"
     private const val VOLUME = 0.3f
     /** 큰 효과음(펑·승리 등)이 날 때 배경음을 잠깐 줄이는 크기 */
     private const val DUCK = 0.1f
@@ -37,9 +38,27 @@ object Music {
     private val main = Handler(Looper.getMainLooper())
     private var fade: Runnable? = null
 
+    /** 🎵 로비 음악으로 고른 캐릭터 이름 (null이면 기본 로비 곡). 기기에 저장 */
+    var lobbyChoice by mutableStateOf<String?>(null)
+        private set
+
+    fun chooseLobby(id: String?) {
+        lobbyChoice = id
+        app?.getSharedPreferences(PREFS, Context.MODE_PRIVATE)?.edit()?.putString(LOBBY_KEY, id)?.apply()
+    }
+
+    /** 로비 곡: 고른 캐릭터를 가지고 있으면 그 캐릭터 곡, 아니면 기본 로비 곡 */
+    fun lobbyTrack(owned: (Animal?) -> Boolean): Int {
+        val id = lobbyChoice ?: return lobby
+        if (id == "CAT") return R.raw.bgm_cat
+        val a = Animal.of(id) ?: return lobby
+        return if (owned(a)) gameTrack(a, if (a == Animal.HAMSTER || !a.looksLikeCat) Side.HAMSTER else Side.CAT) else lobby
+    }
+
     fun init(context: Context) {
         app = context.applicationContext
         enabled = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, true)
+        lobbyChoice = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(LOBBY_KEY, null)
         if (pool == null) {
             pool = SoundPool.Builder()
                 .setMaxStreams(6)

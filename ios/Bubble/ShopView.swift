@@ -382,17 +382,20 @@ struct ShopView: View {
                         price: have ? nil : a.price, owned: owned,
                         art: AnyView(Critter(side: a.looksLikeCat ? .cat : .hamster, skin: a, happy: on,
                                              ribbons: a == .rabbit ? (have ? min(p.winStreak, Shop.rabbitMaxRibbons) : 3) : 0).frame(width: 84, height: 84))) {
-            if on {
-                outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
-            } else if have {
-                Button { Task { await online.equip(a) } } label: {
-                    Text(t("장착하기")).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(Capsule().fill(UiColor.accent))
+            VStack(alignment: .leading, spacing: 4) {
+                if on {
+                    outlineButton(t("장착 해제")) { Task { await online.equip(nil) } }
+                } else if have {
+                    Button { Task { await online.equip(a) } } label: {
+                        Text(t("장착하기")).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(Capsule().fill(UiColor.accent))
+                    }
+                    .disabled(online.busy)
+                } else {
+                    buyButton(a.rawValue, a.label, a.price, p)
                 }
-                .disabled(online.busy)
-            } else {
-                buyButton(a.rawValue, a.label, a.price, p)
+                if have { LobbyMusicButton(animal: a) }
             }
         }
     }

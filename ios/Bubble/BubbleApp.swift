@@ -123,7 +123,7 @@ struct RootView: View {
         .environment(\.layoutDirection, lang.code.isRTL ? .rightToLeft : .leftToRight)
         .id(lang.code)
         .onAppear {
-            Music.shared.play(Music.lobby)
+            Music.shared.playLobby()
             online.start()
             applyDemoArguments()
             Ads.shared.start()
@@ -136,12 +136,16 @@ struct RootView: View {
         // 친구 대전 링크: 로그인돼 있고 로비에 있으면 바로 대전방에 들어감
         .onChange(of: online.pendingBattle) { _ in joinPendingBattle() }
         .onChange(of: online.profile?.uid) { _ in joinPendingBattle() }
+        // 🎵 로비 음악으로 고른 캐릭터를 산 게 확인되면 (로그인 직후 등) 그 곡으로
+        .onChange(of: online.profile?.skins) { _ in
+            if !screen.key.hasPrefix("local") && !screen.key.hasPrefix("online") && screen.key != "matching" && screen.key != "friendWait" { Music.shared.playLobby() }
+        }
         // 🎵 앱이 뒤로 가면 음악을 멈춤
         .onChange(of: scenePhase) { phase in Music.shared.setActive(phase == .active) }
         .onChange(of: screen.key) { key in
             // 게임이 아닌 화면은 로비 곡 (게임 곡은 GameView가 정함)
             if key == "matching" || key == "friendWait" { Music.shared.play(Music.matching) }
-            else if !key.hasPrefix("local") && !key.hasPrefix("online") { Music.shared.play(Music.lobby) }
+            else if !key.hasPrefix("local") && !key.hasPrefix("online") { Music.shared.playLobby() }
             joinPendingBattle()
             // 로비로 돌아오면 랭킹 새로고침 (대전 결과 반영)
             if key == "lobby" { Task { await online.refreshLeaderboard() } }

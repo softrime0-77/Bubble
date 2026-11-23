@@ -64,7 +64,8 @@ struct GameView<M: GameModel>: View {
         let delta: Int? = game.isOnline ? game.scoreDelta : nil
         return ResultOverlay(won: won, side: me, skin: game.mySkin, reason: game.reason, delta: delta,
                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
-                             rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins, unicornCoins: game.unicornCoins, gameCoins: game.gameCoins,
+                             rabbitStreak: game.rabbitStreak, ribbonsBefore: game.myRibbons,
+                             rabbitCoins: game.rabbitCoins, unicornCoins: game.unicornCoins, gameCoins: game.gameCoins,
                              share: won ? winShare : nil,
                              onLobby: onLeave, onAgain: onAgain)
     }
@@ -432,6 +433,10 @@ struct ResultOverlay: View {
     var friendly = false
     var rewardOffer: Int? = nil
     var rabbitStreak = 0
+    /// 🐰 판 시작할 때의 연승 리본 수 (이기면 결과 화면에서 바로 늘어남)
+    var ribbonsBefore = 0
+    @State var shownRibbons: Int? = nil
+    @State var ribbonPop: CGFloat = 1
     var rabbitCoins = 0
     var unicornCoins = 0
     var gameCoins = 0
@@ -508,13 +513,35 @@ struct ResultOverlay: View {
             .onAppear { if c > 0 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { Music.shared.sfx(.coinRabbit) } } }
     }
 
+    private func ribbonText(_ n: Int) -> String {
+        tr("🎀 \(n)연승", "🎀 \(n) in a row", zh: "🎀 \(n)连胜", es: "🎀 \(n) seguidas", fr: "🎀 \(n) d’affilée",
+           de: "🎀 \(n) in Folge", pt: "🎀 \(n) seguidas", ru: "🎀 \(n) подряд", ja: "🎀 \(n)連勝")
+    }
+
     var body: some View {
         ZStack {
             Color(hex: 0x302040, alpha: 0.53).ignoresSafeArea()
             // 이기면 내 스킨 테마로 하트 · 달 · 눈송이 · 금가루가 쏟아짐 (모습만)
             if won { WinRain(side: side, skin: skin) }
             VStack(spacing: 8) {
-                Critter(side: side, skin: skin, happy: won).frame(width: 120, height: 120)
+                Critter(side: side, skin: skin, happy: won,
+                        ribbons: min(max(shownRibbons ?? ribbonsBefore, 0), Shop.rabbitMaxRibbons)).frame(width: 120, height: 120)
+                    .onAppear {
+                        // 🐰 이기면 서버가 알려 준 새 연승으로 리본이 하나 늘어남
+                        guard won, skin == .rabbit, rabbitStreak > 0, rabbitStreak != ribbonsBefore else { return }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            shownRibbons = rabbitStreak
+                            ribbonPop = 1.6
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.4)) { ribbonPop = 1 }
+                        }
+                    }
+                if skin == .rabbit && (shownRibbons ?? ribbonsBefore) > 0 {
+                    Text(ribbonText(shownRibbons ?? ribbonsBefore))
+                        .font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(Capsule().fill(LinearGradient(colors: [Color(hex: 0xFF7EB3), Color(hex: 0xFF5C8A)], startPoint: .leading, endPoint: .trailing)))
+                        .scaleEffect(ribbonPop)
+                }
                 Text(won ? t("승리! 🎉") : t("아쉬운 패배…"))
                     .font(.system(size: 32, weight: .black))
                     .foregroundColor(won ? UiColor.primaryDark : UiColor.text)

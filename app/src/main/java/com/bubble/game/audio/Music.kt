@@ -50,6 +50,7 @@ object Music {
     /** 효과음 (tools/music/make_sfx.py로 합성). 🔇이면 소리 없음 */
     enum class Sfx(val res: Int, val volume: Float) {
         SELECT(R.raw.sfx_select, 0.5f),
+        MATCH(R.raw.sfx_match, 0.8f),
         BUY(R.raw.sfx_buy, 0.8f),
         EQUIP(R.raw.sfx_equip, 0.6f),
         SHOOT(R.raw.sfx_shoot, 0.55f),
@@ -160,6 +161,9 @@ object Music {
     fun coinSfx(skin: Animal?): Sfx = if (skin == Animal.DRAGON) Sfx.COIN_DRAGON else Sfx.COIN
 
     val lobby: Int get() = R.raw.bgm_lobby
+
+    /** 매칭·친구 기다리는 동안 */
+    val matching: Int get() = R.raw.bgm_matching
 
     /** 게임 곡: 내 캐릭터별. 소모품 동물(양·강아지·기린)이나 기본이면 고양이/햄스터 곡 */
     fun gameTrack(skin: Animal?, side: Side): Int = when (skin) {

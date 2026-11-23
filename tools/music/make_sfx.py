@@ -240,7 +240,21 @@ def equip():
     return mix((0, tone(f, 0.18, "tri") * np.exp(-t * 6), 0.7), (0.1, sparkle(base=1800, count=4, gap=0.04), 0.4))
 
 
-SOUNDS = {"buy": buy, "equip": equip, "select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
+def match():
+    """⚔️ 매칭 성공: 두구두구 → 짠! (VS)"""
+    roll = [(i * 0.045, snare_hit(), 0.25 + i * 0.03) for i in range(8)]
+    t = T(0.9)
+    chord = sum(tone(f, 0.9, "square") for f in (523, 659, 784, 1047)) / 4 * np.exp(-t * 3.5)
+    boom = np.sin(2 * np.pi * (50 + 160 * np.exp(-t * 20)) * t) * np.exp(-t * 6)
+    return mix(*roll, (0.38, boom, 0.9), (0.38, chord, 0.5), (0.45, sparkle(base=2000, count=6), 0.35))
+
+
+def snare_hit():
+    t = T(0.08)
+    return rng.uniform(-1, 1, len(t)) * np.exp(-t * 40)
+
+
+SOUNDS = {"match": match, "buy": buy, "equip": equip, "select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
           "split_ink": split_ink, "split_ice": split_ice, "split_fire": split_fire, "split_magic": split_magic,
           "split_bamboo": split_bamboo, "split_boing": split_boing, "split_gold": split_gold,
           "potion": potion, "coin": coin_lucky, "coin_dragon": coin_dragon, "coin_rabbit": coin_rabbit,

@@ -116,7 +116,11 @@ fun BubbleApp(vm: AppViewModel) {
     val screen by vm.screen.collectAsState()
     // 🎵 배경음악: 게임 중엔 내 캐릭터 곡, 그 밖엔 로비 곡
     val gameNow by vm.game.collectAsState()
-    val track = if (screen == Screen.Game) com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide) else com.bubble.game.audio.Music.lobby
+    val track = when (screen) {
+        Screen.Game -> com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide)
+        is Screen.Matching, is Screen.FriendWait -> com.bubble.game.audio.Music.matching
+        else -> com.bubble.game.audio.Music.lobby
+    }
     LaunchedEffect(track) { com.bubble.game.audio.Music.play(track) }
     // 아랍어는 오른쪽에서 왼쪽으로
     val direction = if (Lang.current.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
@@ -2918,6 +2922,8 @@ private fun WelcomeDialog(kind: String, score: Int, onDismiss: () -> Unit) {
 /** 매칭 직후 VS 소개: 양쪽 나라·닉네임·계급 */
 @Composable
 private fun VsIntro(g: GameUi, onClose: () -> Unit) {
+    // ⚔️ 매칭 성공 효과음
+    LaunchedEffect(Unit) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.MATCH) }
     Box(
         Modifier
             .fillMaxSize()

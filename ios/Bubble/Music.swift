@@ -100,13 +100,14 @@ final class Music: ObservableObject {
     // MARK: 효과음 (tools/music/make_sfx.py로 합성)
 
     enum Sfx: String, CaseIterable {
-        case select, shoot, hit, pop, split, potion, coin, win, lose, buy, equip
+        case select, shoot, hit, pop, split, potion, coin, win, lose, buy, equip, match
         case splitInk = "split_ink", splitIce = "split_ice", splitFire = "split_fire", splitMagic = "split_magic"
         case splitBamboo = "split_bamboo", splitBoing = "split_boing", splitGold = "split_gold"
         case coinDragon = "coin_dragon", coinRabbit = "coin_rabbit", coinUnicorn = "coin_unicorn"
         var volume: Float {
             switch self {
             case .select: return 0.5
+            case .match: return 0.8
             case .equip: return 0.6
             case .buy: return 0.8
             case .shoot: return 0.55
@@ -160,6 +161,8 @@ final class Music: ObservableObject {
     }
 
     static let lobby = "bgm_lobby"
+    /// 매칭·친구 기다리는 동안
+    static let matching = "bgm_matching"
 
     /// 게임 곡: 내 캐릭터별. 소모품 동물(양·강아지·기린)이나 기본이면 고양이/햄스터 곡
     static func gameTrack(_ skin: Animal?, _ side: Side) -> String {

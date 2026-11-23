@@ -329,6 +329,8 @@ struct VsIntro: View {
             .padding(20)
         }
         .onTapGesture(perform: onClose)
+        // ⚔️ 매칭 성공 효과음
+        .onAppear { Music.shared.sfx(.match) }
     }
 
     /// 🐰 연승 토끼 알림: 상대가 5연승 이상이면 경고, 내가 토끼면 다음 보상

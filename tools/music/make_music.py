@@ -317,6 +317,10 @@ R_CALM = [1, 0, 0, 1, 1, 0, 1, 0]
 R_16 = [1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1]
 
 THEMES = {
+    # 매칭 대기: 째깍째깍 두근두근 (상대를 찾는 중)
+    "matching": dict(bpm=108, key=9, scale=MINOR, prog=[0, 5, 3, 4], seed=7, lead="bell", lead_gain=0.1, rhythm=[1, 0, 0, 1, 0, 0, 1, 0],
+                     bass=[(0, 0.5, 0), (0.5, 0.5, 0), (2, 0.5, 0), (2.5, 0.5, 0)], bass_wave="sine", stabs=[], arp=True, arp_wave="pluck",
+                     arp_gain=0.09, kicks=(0, 2), snares=(), wood=1500, hat16=True, hat_gain=0.08, fill=False, mel_from=4),
     # 로비: 통통 튀는 기본 테마
     "lobby": dict(bpm=116, key=0, scale=MAJOR, prog=POP2, seed=3, lead="bell", lead_gain=0.13, rhythm=R_CALM,
                   bass=BASS_BOUNCE, stabs=OFF_STABS, chord_wave="tri", pad=0.03, shaker=0.06, hats=False, kicks=(0, 2), mel_oct=5),

@@ -370,6 +370,58 @@ THEMES = {
 }
 
 
+def render_bright_lobby():
+    """
+    로비 곡: 홍보 숏츠 영상에 쓴 신나는 칩튠 (C-G-Am-F, 128BPM)을 16마디 반복 곡으로.
+    끝에서 넘친 소리를 앞에 더해 이음매 없이 반복됨.
+    """
+    bpm = 128
+    beat = 60 / bpm
+    bars = 16
+    total = bars * 4 * beat
+    tr = Track(int(round(total * SR)))
+    r = np.random.default_rng(3)
+
+    def env(n, d=0.15, s=0.6, hold=None):
+        return adsr(n, a=0.005, d=d, s=s, r=0.05, gate=hold)
+
+    prog = [(48, [60, 64, 67]), (43, [59, 62, 67]), (45, [60, 64, 69]), (41, [60, 65, 69])]
+    mel = [72, 76, 79, 76, 77, 76, 74, 72, 74, None, 71, 74, 79, 77, 76, 74,
+           72, 76, 81, 79, 77, 76, 77, 79, 77, None, 76, 74, 72, None, 72, None]
+    for b in range(bars):
+        t0 = b * 4 * beat
+        root, chord = prog[b % 4]
+        for k in range(8):  # 베이스: 8분음표 통통
+            n = int(beat / 2 * SR * 0.9)
+            tr.add(t0 + k * beat / 2, wave_of("tri", midi(root + (12 if k % 2 else 0)), n) * env(n, d=0.08, s=0.3, hold=beat / 2 * 0.8), 0.22)
+        for k in range(4):  # 코드: 엇박 스탭
+            n = int(beat / 2 * SR)
+            sig = sum(wave_of("square", midi(m), n, 0.25) for m in chord) / 3
+            tr.add(t0 + k * beat + beat / 2, sig * env(n, d=0.06, s=0.15, hold=beat / 3), 0.07)
+        for k in range(4):  # 드럼: 킥 · 하이햇 · 박수
+            tk = t0 + k * beat
+            n = int(0.25 * SR)
+            tt = t_axis(n)
+            tr.add(tk, np.sin(2 * np.pi * (50 + 120 * np.exp(-tt * 30)) * tt) * np.exp(-tt * 12), 0.55)
+            hn = int(0.05 * SR)
+            tr.add(tk + beat / 2, r.uniform(-1, 1, hn) * np.exp(-t_axis(hn) * 70), 0.10)
+            if k in (1, 3):
+                cn = int(0.18 * SR)
+                tr.add(tk, r.uniform(-1, 1, cn) * np.exp(-t_axis(cn) * 18), 0.16)
+        # 멜로디: 4마디 모티프 반복, 뒤 8마디는 한 옥타브 위 화음을 살짝 얹어 변화
+        seg = mel[(b % 4) * 8:(b % 4) * 8 + 8]
+        for k, m in enumerate(seg):
+            if m is None:
+                continue
+            n = int(beat / 2 * SR)
+            sig = wave_of("square", midi(m), n, 0.5) * 0.6 + wave_of("tri", midi(m + 12), n) * 0.4
+            if b >= 8:
+                sig = sig + wave_of("sine", midi(m + 12 + 4), n) * 0.18
+            tr.add(t0 + k * beat / 2, sig * env(n, d=0.1, s=0.5, hold=beat / 2 * 0.85), 0.085)
+    out = tr.looped()
+    return out / (np.max(np.abs(out)) + 1e-9) * 0.8
+
+
 def write_wav(path, x):
     pcm = (np.clip(x, -1, 1) * 32767).astype(np.int16)
     with wave.open(path, "wb") as w:
@@ -384,7 +436,7 @@ def main():
     os.makedirs(IOS_DIR, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         for name, theme in THEMES.items():
-            x = render(theme)
+            x = render_bright_lobby() if name == "lobby" else render(theme)
             wav = os.path.join(tmp, name + ".wav")
             write_wav(wav, x)
             ogg = os.path.join(ANDROID_DIR, f"bgm_{name}.ogg")

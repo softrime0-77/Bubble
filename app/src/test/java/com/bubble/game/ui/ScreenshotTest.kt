@@ -112,6 +112,15 @@ class ScreenshotTest {
     }
 
     @Test
+    fun lobbyAdmin() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(28510).copy(admin = true), onlineCount = 1) }
+        rule.setContent { BubbleApp(vm) }
+        shot("lobby_admin", 900)
+    }
+
+    @Test
     fun lobbyWithRanks() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

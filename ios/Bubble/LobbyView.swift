@@ -59,23 +59,29 @@ struct LobbyView: View {
                             .background(Capsule().fill(.white.opacity(0.7)))
                     }
                     MusicToggle()
-                    // 관리자만: 🛠 포인트 수정
-                    if online.profile?.admin == true {
-                        Button { showAdmin = true } label: {
-                            Text("🛠").font(.system(size: 18))
-                                .padding(.horizontal, 10).padding(.vertical, 4)
+                    Spacer()
+                    if online.profile != nil { ShopButton(action: onShop).fixedSize() }
+                }
+                // 관리자만: 🛠 포인트 수정 · 🟢 동시 접속자 수 (윗줄이 좁아지지 않게 아랫줄에)
+                if online.profile?.admin == true || online.onlineCount != nil {
+                    HStack(spacing: 8) {
+                        // 관리자만: 🛠 포인트 수정
+                        if online.profile?.admin == true {
+                            Button { showAdmin = true } label: {
+                                Text("🛠").font(.system(size: 18))
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(Capsule().fill(.white.opacity(0.75)))
+                            }
+                        }
+                        if let n = online.onlineCount {
+                            Text(tr("🟢 \(n)명 접속", "🟢 \(n) online", zh: "🟢 在线 \(n)", es: "🟢 \(n) en línea", fr: "🟢 \(n) en ligne",
+                                    de: "🟢 \(n) online", pt: "🟢 \(n) online", ru: "🟢 \(n) в сети", ja: "🟢 \(n)人接続中"))
+                                .font(.system(size: 13, weight: .black)).foregroundColor(Color(hex: 0x2E7D32))
+                                .padding(.horizontal, 10).padding(.vertical, 6)
                                 .background(Capsule().fill(.white.opacity(0.75)))
                         }
+                        Spacer()
                     }
-                    if let n = online.onlineCount {
-                        Text(tr("🟢 \(n)명 접속", "🟢 \(n) online", zh: "🟢 在线 \(n)", es: "🟢 \(n) en línea", fr: "🟢 \(n) en ligne",
-                                de: "🟢 \(n) online", pt: "🟢 \(n) online", ru: "🟢 \(n) в сети", ja: "🟢 \(n)人接続中"))
-                            .font(.system(size: 13, weight: .black)).foregroundColor(Color(hex: 0x2E7D32))
-                            .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(Capsule().fill(.white.opacity(0.75)))
-                    }
-                    Spacer()
-                    if online.profile != nil { ShopButton(action: onShop) }
                 }
 
                 TitleBanner()

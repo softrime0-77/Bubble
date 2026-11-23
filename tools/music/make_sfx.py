@@ -310,7 +310,98 @@ def weekly():
     return mix((0, fan, 0.9), *coins, (0.7, sparkle(base=2200, count=7), 0.35))
 
 
-SOUNDS = {"turn": my_turn, "tick": tick, "checkin": checkin, "mission": mission, "rank_up": rank_up,
+# ---------------- 맞은 방울 흔적 소리 (캐릭터별) ----------------
+def m_ice():
+    """❄️ 꽁꽁 → 쨍그랑"""
+    t = T(0.3)
+    freeze = tone(1800 + 1200 * t / t[-1], 0.3, "sine") * np.exp(-t * 6) * 0.4
+    crack = rng.uniform(-1, 1, int(0.05 * SR)) * np.exp(-T(0.05) * 60)
+    shards = sum(tone(f, 0.4) * np.exp(-T(0.4) * (8 + i * 2)) for i, f in enumerate((3100, 3900, 4700))) / 3
+    return mix((0, freeze, 0.6), (0.95, crack, 0.8), (0.95, shards, 0.7))
+
+
+def m_gold():
+    """🏆 띠링 반짝"""
+    return mix((0, tone(2349, 0.5) * np.exp(-T(0.5) * 6), 0.5), (0.06, tone(3136, 0.5) * np.exp(-T(0.5) * 6), 0.4), (0.1, sparkle(base=2600, count=4), 0.35))
+
+
+def m_heart():
+    """🌸 뿅뿅"""
+    parts = []
+    for i in range(3):
+        t = T(0.14)
+        parts.append((i * 0.11, tone(900 + 700 * t / t[-1] + i * 150, 0.14, "tri") * np.exp(-t * 12), 0.6))
+    return mix(*parts)
+
+
+def m_claw():
+    """🐈‍⬛ 슥슥슥 할퀴기"""
+    parts = []
+    for i in range(3):
+        n = int(0.09 * SR)
+        x = rng.uniform(-1, 1, n) - smooth(rng.uniform(-1, 1, n), 6)
+        parts.append((i * 0.06, x * np.sin(np.pi * np.arange(n) / n), 0.7))
+    return mix(*parts)
+
+
+def m_stamp():
+    """💰 쾅! 도장"""
+    t = T(0.3)
+    thump = np.sin(2 * np.pi * (80 + 120 * np.exp(-t * 30)) * t) * np.exp(-t * 14)
+    slap = smooth(rng.uniform(-1, 1, len(t)), 3) * np.exp(-t * 50)
+    return mix((0, thump, 1.0), (0, slap, 0.6), (0.1, tone(1760, 0.3) * np.exp(-T(0.3) * 10), 0.25))
+
+
+def m_ink():
+    """🐙 철퍽"""
+    t = T(0.3)
+    splat = smooth(rng.uniform(-1, 1, len(t)), 25) * np.exp(-t * 14) * 3
+    return mix((0, splat, 1.0), (0.05, tone(260 - 120 * T(0.15) / 0.15, 0.15) * np.exp(-T(0.15) * 15), 0.5))
+
+
+def m_snow():
+    """🐧 사각사각 (눈 밟는 소리)"""
+    parts = []
+    for i in range(3):
+        n = int(0.08 * SR)
+        x = smooth(rng.uniform(-1, 1, n), 2) * (rng.uniform(0, 1, n) > 0.6)
+        parts.append((i * 0.09, x * np.exp(-np.arange(n) / SR * 25), 0.8))
+    return mix(*parts)
+
+
+def m_bamboo():
+    """🐼 톡 (대나무 두드림)"""
+    t = T(0.2)
+    return (tone(700, 0.2) + 0.6 * tone(1500, 0.2)) * np.exp(-t * 35)
+
+
+def m_fire():
+    """🐉 화르륵"""
+    t = T(0.45)
+    roar = smooth(rng.uniform(-1, 1, len(t)), 10) * np.sin(np.pi * t / t[-1]) * 2.5
+    crackle = (rng.uniform(0, 1, len(t)) > 0.985) * rng.uniform(-1, 1, len(t)) * np.exp(-t * 3)
+    return roar + crackle * 0.8
+
+
+def m_hop():
+    """🐰 콩콩콩"""
+    parts = []
+    for i in range(3):
+        t = T(0.12)
+        parts.append((i * 0.17, tone(500 + 300 * np.exp(-t * 30), 0.12) * np.exp(-t * 20), 0.8))
+    return mix(*parts)
+
+
+def m_magic():
+    """🦄 하프 반짝"""
+    notes = [1047, 1319, 1568, 2093]
+    return mix(*[(i * 0.05, tone(f, 0.45, "tri") * np.exp(-T(0.45) * 7), 0.35) for i, f in enumerate(notes)],
+               (0.15, sparkle(base=2600, count=4), 0.3))
+
+
+SOUNDS = {"mark_ice": m_ice, "mark_gold": m_gold, "mark_heart": m_heart, "mark_claw": m_claw, "mark_stamp": m_stamp,
+          "mark_ink": m_ink, "mark_snow": m_snow, "mark_bamboo": m_bamboo, "mark_fire": m_fire, "mark_hop": m_hop,
+          "mark_magic": m_magic, "turn": my_turn, "tick": tick, "checkin": checkin, "mission": mission, "rank_up": rank_up,
           "rank_down": rank_down, "weekly": weekly, "match": match, "buy": buy, "equip": equip, "select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
           "split_ink": split_ink, "split_ice": split_ice, "split_fire": split_fire, "split_magic": split_magic,
           "split_bamboo": split_bamboo, "split_boing": split_boing, "split_gold": split_gold,

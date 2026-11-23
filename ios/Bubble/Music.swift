@@ -108,8 +108,13 @@ final class Music: ObservableObject {
         case splitInk = "split_ink", splitIce = "split_ice", splitFire = "split_fire", splitMagic = "split_magic"
         case splitBamboo = "split_bamboo", splitBoing = "split_boing", splitGold = "split_gold"
         case coinDragon = "coin_dragon", coinRabbit = "coin_rabbit", coinUnicorn = "coin_unicorn"
+        case markIce = "mark_ice", markGold = "mark_gold", markHeart = "mark_heart", markClaw = "mark_claw", markStamp = "mark_stamp"
+        case markInk = "mark_ink", markSnow = "mark_snow", markBamboo = "mark_bamboo", markFire = "mark_fire", markHop = "mark_hop", markMagic = "mark_magic"
         var volume: Float {
             switch self {
+            case .markGold, .markHeart, .markClaw, .markSnow, .markMagic: return 0.8
+            case .markIce, .markInk, .markBamboo, .markFire, .markHop: return 0.85
+            case .markStamp: return 0.9
             case .select, .tick: return 0.7
             case .shoot: return 0.75
             case .equip, .turn: return 0.8

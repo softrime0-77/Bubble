@@ -17,6 +17,8 @@ struct GameView<M: GameModel>: View {
     @State private var inFlightUntil = Date.distantPast
     /// 💰 복냥이 동전
     @State private var coins: [CoinPop] = []
+    /// 공격받았지만 안 터진 방울에 남는 캐릭터 흔적
+    @State private var marks: [HitMark] = []
     /// 💖 부활 효과
     @State private var revives: [ReviveBurst] = []
 
@@ -132,6 +134,7 @@ struct GameView<M: GameModel>: View {
             .modifier(ShakeEffect(animatableData: shakes))
 
             ForEach(shots) { ShotFx(shot: $0) }
+            ForEach(marks) { HitMarkFx(mark: $0) }
             ForEach(coins) { CoinPopFx(pop: $0) }
             ForEach(revives) { ReviveFx(burst: $0) }
 
@@ -209,7 +212,17 @@ struct GameView<M: GameModel>: View {
         Music.shared.sfx(split ? Music.splitSfx(side == me ? game.mySkin : game.opponentSkin) : .shoot)
         DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) {
             // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
-            if shot.boom { Music.shared.sfx(.pop) } else if !shot.split { Music.shared.sfx(.hit) }
+            if shot.boom {
+                Music.shared.sfx(.pop)
+            } else if shot.attack && !shot.split {
+                // 상대 방울에 캐릭터 흔적 (얼음·하트·발톱… 모습만)
+                let m = HitMark(at: b, kind: MarkKind.of(shot.skin, side))
+                marks.append(m)
+                Music.shared.sfx(m.kind.sfx)
+                DispatchQueue.main.asyncAfter(deadline: .now() + HitMark.sec + 0.05) { marks.removeAll { $0.id == m.id } }
+            } else if !shot.split {
+                Music.shared.sfx(.hit)
+            }
             if shot.attack || shot.boom {
                 withAnimation(.linear(duration: shot.boom ? 0.6 : 0.42)) { shakes += 1 }
             }

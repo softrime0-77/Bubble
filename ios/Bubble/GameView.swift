@@ -150,7 +150,9 @@ struct GameView<M: GameModel>: View {
                 TutorialGuide(step: step, mySide: me, selected: game.selected, centers: centers, onSkip: { finishTutorial(false) })
             }
             if game.finished, game.tutorial != nil {
-                if showTutorialDone { TutorialDone { finishTutorial(true) }.transition(.opacity) }
+                if showTutorialDone {
+                    TutorialDone(alreadyRewarded: OnlineService.shared.profile?.tutorialDone == true) { finishTutorial(true) }.transition(.opacity)
+                }
             } else if game.finished, let w = game.winner {
                 resultOverlay(w)
             }

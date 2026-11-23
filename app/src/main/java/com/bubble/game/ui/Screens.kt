@@ -311,7 +311,16 @@ private fun LobbyScreen(vm: AppViewModel) {
             }
         }
         TitleBanner()
-        TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
+            // 🎓 튜토리얼 (보상을 아직 안 받았으면 🎁 표시)
+            TextButton(onClick = vm::startTutorial) {
+                Text(
+                    tr("🎮 튜토리얼", "🎮 Tutorial", zh = "🎮 教程", ja = "🎮 チュートリアル") + if (ui.profile?.tutorialDone == false) " 🎁" else "",
+                    color = Ui.accent, fontWeight = FontWeight.Bold,
+                )
+            }
+        }
         Spacer(Modifier.height(16.dp))
 
         SoftCard {
@@ -1271,7 +1280,8 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             // 🎓 튜토리얼 끝: 펑 이펙트를 잠깐 보여 준 뒤 안내 + 보상
             var showDone by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { delay(1_200); showDone = true }
-            if (showDone) TutorialDone(onClaim = { vm.finishTutorial(true) })
+            val rewarded = vm.lobby.collectAsState().value.profile?.tutorialDone == true
+            if (showDone) TutorialDone(alreadyRewarded = rewarded, onClaim = { vm.finishTutorial(true) })
         } else if (g.finished && g.winner != null) {
             val activity = LocalContext.current as Activity
             val rewardedReady by AdManager.rewardedReady.collectAsState()

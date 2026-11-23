@@ -130,7 +130,7 @@ fun TutorialGuide(
 
 /** 다 끝나면: 더 알아 둘 것 + 보상 받기 */
 @Composable
-fun TutorialDone(onClaim: () -> Unit) {
+fun TutorialDone(alreadyRewarded: Boolean = false, onClaim: () -> Unit) {
     val t = rememberInfiniteTransition(label = "tutDone")
     val glow by t.animateFloat(0.85f, 1.05f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "glow")
     Box(
@@ -164,18 +164,38 @@ fun TutorialDone(onClaim: () -> Unit) {
                 Text(line, fontSize = 14.sp, color = Ui.text, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
             }
             Spacer(Modifier.height(16.dp))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFFFB300), Ui.primary, Ui.accent)), RoundedCornerShape(50))
-                    .clickable(onClick = onClaim)
-                    .padding(vertical = 13.dp),
-                contentAlignment = Alignment.Center,
-            ) {
+            if (alreadyRewarded) {
+                // 이미 보상을 받은 계정: 보상 버튼은 비활성, 로비로만
                 Text(
-                    tr("🎁 보상 받기 · 💰 +${TutorialScript.COINS} · 💖 +1", "🎁 Claim · 💰 +${TutorialScript.COINS} · 💖 +1", ja = "🎁 報酬を受け取る · 💰 +${TutorialScript.COINS} · 💖 +1", zh = "🎁 领取奖励 · 💰 +${TutorialScript.COINS} · 💖 +1"),
-                    color = Color.White, fontWeight = FontWeight.Black, fontSize = (17 * glow).sp,
+                    tr("✅ 보상은 이미 받았어요", "✅ Reward already claimed", ja = "✅ 報酬は受け取り済み", zh = "✅ 奖励已领取"),
+                    fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Ui.text.copy(alpha = 0.45f), textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().background(Color(0x14000000), RoundedCornerShape(50)).padding(vertical = 12.dp),
                 )
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Brush.horizontalGradient(listOf(Ui.primary, Ui.accent)), RoundedCornerShape(50))
+                        .clickable(onClick = onClaim)
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(tr("로비로", "Back to lobby", ja = "ロビーへ", zh = "返回大厅"), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                }
+            } else {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Brush.horizontalGradient(listOf(Color(0xFFFFB300), Ui.primary, Ui.accent)), RoundedCornerShape(50))
+                        .clickable(onClick = onClaim)
+                        .padding(vertical = 13.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        tr("🎁 보상 받기 · 💰 +${TutorialScript.COINS} · 💖 +1", "🎁 Claim · 💰 +${TutorialScript.COINS} · 💖 +1", ja = "🎁 報酬を受け取る · 💰 +${TutorialScript.COINS} · 💖 +1", zh = "🎁 领取奖励 · 💰 +${TutorialScript.COINS} · 💖 +1"),
+                        color = Color.White, fontWeight = FontWeight.Black, fontSize = (17 * glow).sp,
+                    )
+                }
             }
         }
     }

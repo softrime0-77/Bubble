@@ -115,7 +115,7 @@ class ScreenshotTest {
     fun lobbyAdmin() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())
-        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(28510).copy(admin = true), onlineCount = 1) }
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(28510).copy(admin = true, tutorialSeen = true), onlineCount = 1) }
         rule.setContent { BubbleApp(vm) }
         shot("lobby_admin", 900)
     }
@@ -384,6 +384,13 @@ class ScreenshotTest {
         vm.play(com.bubble.game.game.Move.Add(1, true, 1))
         rule.mainClock.advanceTimeBy(3000)
         shot("tutorial_done", 300)
+    }
+
+    @Test
+    fun tutorialDoneRewarded() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent { TutorialDone(alreadyRewarded = true) {} }
+        shot("tutorial_done_rewarded", 500)
     }
 
     @Test

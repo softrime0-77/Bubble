@@ -50,6 +50,8 @@ object Music {
     /** 효과음 (tools/music/make_sfx.py로 합성). 🔇이면 소리 없음 */
     enum class Sfx(val res: Int, val volume: Float) {
         SELECT(R.raw.sfx_select, 0.5f),
+        BUY(R.raw.sfx_buy, 0.8f),
+        EQUIP(R.raw.sfx_equip, 0.6f),
         SHOOT(R.raw.sfx_shoot, 0.55f),
         HIT(R.raw.sfx_hit, 0.7f),
         POP(R.raw.sfx_pop, 0.9f),

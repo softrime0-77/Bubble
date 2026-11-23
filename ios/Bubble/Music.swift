@@ -100,13 +100,15 @@ final class Music: ObservableObject {
     // MARK: 효과음 (tools/music/make_sfx.py로 합성)
 
     enum Sfx: String, CaseIterable {
-        case select, shoot, hit, pop, split, potion, coin, win, lose
+        case select, shoot, hit, pop, split, potion, coin, win, lose, buy, equip
         case splitInk = "split_ink", splitIce = "split_ice", splitFire = "split_fire", splitMagic = "split_magic"
         case splitBamboo = "split_bamboo", splitBoing = "split_boing", splitGold = "split_gold"
         case coinDragon = "coin_dragon", coinRabbit = "coin_rabbit", coinUnicorn = "coin_unicorn"
         var volume: Float {
             switch self {
             case .select: return 0.5
+            case .equip: return 0.6
+            case .buy: return 0.8
             case .shoot: return 0.55
             case .coin: return 0.6
             case .coinDragon: return 0.65

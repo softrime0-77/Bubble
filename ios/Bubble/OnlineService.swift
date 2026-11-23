@@ -372,13 +372,15 @@ final class OnlineService: ObservableObject {
         }
     }
 
-    private func shopAction(_ success: String, _ action: () async throws -> Void) async {
+    /// 상점 동작. 성공하면 [sound] 효과음 (🛒 구매 · ✨ 장착)
+    private func shopAction(_ success: String, sound: Music.Sfx? = nil, _ action: () async throws -> Void) async {
         guard !busy else { return }
         busy = true
         error = nil
         defer { busy = false }
         do {
             try await action()
+            if let sound { Music.shared.sfx(sound) }
             if !success.isEmpty { show(success) }
         } catch {
             self.error = error.localizedDescription
@@ -386,11 +388,11 @@ final class OnlineService: ObservableObject {
     }
 
     func buy(_ item: String, label: String, qty: Int = 1) async {
-        await shopAction(tf("{0} 구매 완료! 🎉", label)) { _ = try await call("buyItem", ["item": item, "qty": qty]) }
+        await shopAction(tf("{0} 구매 완료! 🎉", label), sound: .buy) { _ = try await call("buyItem", ["item": item, "qty": qty]) }
     }
 
     func equip(_ animal: Animal?) async {
-        await shopAction(animal.map { tf("{0} 장착!", $0.label) } ?? t("기본 캐릭터로 바꿨어요")) {
+        await shopAction(animal.map { tf("{0} 장착!", $0.label) } ?? t("기본 캐릭터로 바꿨어요"), sound: .equip) {
             _ = try await call("equipAnimal", ["animal": animal.map { $0.rawValue as Any } ?? NSNull()])
         }
     }

@@ -224,7 +224,23 @@ def coin_unicorn():
     return mix(*parts, (0.3, coin(), 0.6), (0.35, sparkle(base=2600, count=5), 0.3))
 
 
-SOUNDS = {"select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
+def buy():
+    """🛒 상점 구매: 철컥 + 띠링(카칭) + 동전 쏟아짐 + 반짝"""
+    t = T(0.08)
+    clack = (smooth(rng.uniform(-1, 1, len(t)), 4) * np.exp(-t * 60) + tone(180, 0.08) * np.exp(-t * 40))
+    bell = sum(tone(f, 0.6) * np.exp(-T(0.6) * (5 + i * 2)) for i, f in enumerate((1568, 2349, 3136))) / 3
+    coins = [(0.25 + i * 0.06, coin(), 0.3) for i in range(4)]
+    return mix((0, clack, 0.8), (0.08, bell, 0.9), *coins, (0.45, sparkle(base=2200, count=5), 0.3))
+
+
+def equip():
+    """✨ 장착: 뿅 하고 반짝"""
+    t = T(0.18)
+    f = 500 + 900 * (t / t[-1]) ** 0.7
+    return mix((0, tone(f, 0.18, "tri") * np.exp(-t * 6), 0.7), (0.1, sparkle(base=1800, count=4, gap=0.04), 0.4))
+
+
+SOUNDS = {"buy": buy, "equip": equip, "select": select, "shoot": shoot, "hit": hit, "pop": pop, "split": split,
           "split_ink": split_ink, "split_ice": split_ice, "split_fire": split_fire, "split_magic": split_magic,
           "split_bamboo": split_bamboo, "split_boing": split_boing, "split_gold": split_gold,
           "potion": potion, "coin": coin_lucky, "coin_dragon": coin_dragon, "coin_rabbit": coin_rabbit,

@@ -61,7 +61,7 @@ struct GameView<M: GameModel>: View {
         let delta: Int? = game.isOnline ? game.scoreDelta : nil
         return ResultOverlay(won: won, side: me, skin: game.mySkin, reason: game.reason, delta: delta,
                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
-                             rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins, unicornCoins: game.unicornCoins,
+                             rabbitStreak: game.rabbitStreak, rabbitCoins: game.rabbitCoins, unicornCoins: game.unicornCoins, gameCoins: game.gameCoins,
                              share: won ? winShare : nil,
                              onLobby: onLeave, onAgain: onAgain)
     }
@@ -381,10 +381,34 @@ struct ResultOverlay: View {
     var rabbitStreak = 0
     var rabbitCoins = 0
     var unicornCoins = 0
+    var gameCoins = 0
     /// 이겼으면 승리 공유 카드
     var share: WinShare? = nil
     let onLobby: () -> Void
     let onAgain: (() -> Void)?
+
+    /// 💰 이겨도 져도: 이번 판 캐릭터 효과로 받은 💰, 승리 보상까지 있으면 총액
+    @ViewBuilder private var coinSummary: some View {
+        let bonus = won ? rabbitCoins + unicornCoins : 0
+        if gameCoins > 0 {
+            let who = skin?.label ?? tr("내 캐릭터", "your character", zh: "我的角色", es: "tu personaje", fr: "ton perso", de: "deinem Charakter", pt: "seu personagem", ru: "персонаж", ja: "キャラ")
+            let n = gameCoins
+            Text(tr("💰 이번 판 \(who) 효과로 +\(n)", "💰 +\(n) this game from \(who)", zh: "💰 本局 \(who) 效果 +\(n)", es: "💰 +\(n) en esta partida con \(who)",
+                    fr: "💰 +\(n) cette partie grâce à \(who)", de: "💰 +\(n) in dieser Partie durch \(who)", pt: "💰 +\(n) nesta partida com \(who)",
+                    ru: "💰 +\(n) за партию: \(who)", ja: "💰 この対戦で\(who)の効果 +\(n)"))
+                .font(.system(size: 16, weight: .black)).multilineTextAlignment(.center).foregroundColor(Color(hex: 0xC77700))
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color(hex: 0xFFF3C4)))
+                .padding(.top, 6)
+        }
+        if gameCoins > 0 && bonus > 0 {
+            let total = gameCoins + bonus
+            Text(tr("💰 이번 판 총 +\(total)", "💰 Total this game +\(total)", zh: "💰 本局合计 +\(total)", es: "💰 Total de la partida +\(total)",
+                    fr: "💰 Total de la partie +\(total)", de: "💰 Gesamt in dieser Partie +\(total)", pt: "💰 Total da partida +\(total)",
+                    ru: "💰 Всего за партию +\(total)", ja: "💰 この対戦の合計 +\(total)"))
+                .font(.system(size: 18, weight: .black)).foregroundColor(Color(hex: 0xC77700)).padding(.top, 4)
+        }
+    }
 
     /// 🦄 무지개 축복 💰
     private var unicornResult: some View {
@@ -452,6 +476,7 @@ struct ResultOverlay: View {
                     }
                     if won && rabbitStreak > 0 { rabbitResult }
                     if won && unicornCoins > 0 { unicornResult }
+                    coinSummary
                     if friendly {
                         Text(tr("🤝 친선전 (오늘 이 친구와는 점수가 걸린 \(Shop.friendRatedPerDay)판을 다 했어요)",
                                 "🤝 Friendly match (you've played today's \(Shop.friendRatedPerDay) scored games with this friend)",

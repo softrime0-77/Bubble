@@ -24,6 +24,8 @@ protocol GameModel: ObservableObject {
     var rabbitCoins: Int { get }
     /// 🦄 내가 유니콘으로 이겼을 때 받은 💰
     var unicornCoins: Int { get }
+    /// 이번 판에 내 캐릭터(복냥이·아기 용)로 받은 💰 합계
+    var gameCoins: Int { get }
     var deadline: Date? { get }
     /// 이번 차례 제한 시간 (초)
     var turnSec: Int { get }

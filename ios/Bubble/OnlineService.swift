@@ -139,6 +139,9 @@ struct OnlineGameDoc {
     var rabbitCoins: Int = 0
     /// 🦄 이긴 쪽이 유니콘 무지개 축복으로 받은 💰
     var unicornCoins: Int = 0
+    /// 이번 판에 캐릭터(복냥이·아기 용)로 받은 💰 합계
+    var catCoins: Int = 0
+    var hamCoins: Int = 0
 
     func side(of uid: String) -> Side? { uid == catUid ? .cat : uid == hamUid ? .hamster : nil }
     func name(_ s: Side) -> String { s == .cat ? catName : hamName }
@@ -796,7 +799,9 @@ final class OnlineService: ObservableObject {
             hamStreak: int(d["hamStreak"]) ?? 0,
             rabbitStreak: int(d["rabbitStreak"]) ?? 0,
             rabbitCoins: int(d["rabbitCoins"]) ?? 0,
-            unicornCoins: int(d["unicornCoins"]) ?? 0
+            unicornCoins: int(d["unicornCoins"]) ?? 0,
+            catCoins: int(d["catCoins"]) ?? 0,
+            hamCoins: int(d["hamCoins"]) ?? 0
         )
     }
 

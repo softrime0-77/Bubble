@@ -96,6 +96,8 @@ data class GameUi(
     val rabbitCoins: Int = 0,
     /** 🦄 내가 유니콘으로 이겼을 때 받은 💰 */
     val unicornCoins: Int = 0,
+    /** 이번 판에 내 캐릭터(복냥이·아기 용)로 받은 💰 합계 */
+    val gameCoins: Int = 0,
     /** 서버가 수를 거절했을 때 등 잠깐 보여줄 안내 문구. */
     val notice: String? = null,
     val busy: Boolean = false,
@@ -744,6 +746,7 @@ zh = "无法连接服务器：${e.message}", hi = "सर्वर से कन
             rabbitStreak = if (og.winner == side) og.rabbitStreak else 0,
             rabbitCoins = if (og.winner == side) og.rabbitCoins else 0,
             unicornCoins = if (og.winner == side) og.unicornCoins else 0,
+            gameCoins = if (side == Side.CAT) og.catCoins else og.hamCoins,
             notice = if (newMove) null else notice,
             busy = false,
         )

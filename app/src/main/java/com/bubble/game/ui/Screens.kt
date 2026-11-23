@@ -197,32 +197,35 @@ private fun LobbyScreen(vm: AppViewModel) {
             LanguageMenu()
             Spacer(Modifier.width(8.dp))
             MusicToggle()
-            // 관리자만: 🛠 포인트 수정
-            if (ui.profile?.admin == true) {
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "🛠", fontSize = 18.sp,
-                    modifier = Modifier
-                        .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
-                        .clickable { showAdmin = true }
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
-                )
-            }
-            // 관리자만: 동시 접속자 수
-            ui.onlineCount?.let { n ->
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    tr("🟢 ${n}명 접속", "🟢 $n online", zh = "🟢 在线 $n", hi = "🟢 $n ऑनलाइन", es = "🟢 $n en línea",
-                        fr = "🟢 $n en ligne", ar = "🟢 $n متصل", de = "🟢 $n online", pt = "🟢 $n online",
-                        ru = "🟢 $n в сети", ja = "🟢 ${n}人接続中"),
-                    fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color(0xFF2E7D32),
-                    modifier = Modifier
-                        .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                )
-            }
             Spacer(Modifier.weight(1f))
             if (ui.profile != null) ShopIconButton(onClick = vm::openShop)
+        }
+        // 관리자만: 🛠 포인트 수정 · 🟢 동시 접속자 수 (윗줄이 좁아지지 않게 아랫줄에)
+        if (ui.profile?.admin == true || ui.onlineCount != null) {
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (ui.profile?.admin == true) {
+                    Text(
+                        "🛠", fontSize = 18.sp,
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
+                            .clickable { showAdmin = true }
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                ui.onlineCount?.let { n ->
+                    Text(
+                        tr("🟢 ${n}명 접속", "🟢 $n online", zh = "🟢 在线 $n", hi = "🟢 $n ऑनलाइन", es = "🟢 $n en línea",
+                            fr = "🟢 $n en ligne", ar = "🟢 $n متصل", de = "🟢 $n online", pt = "🟢 $n online",
+                            ru = "🟢 $n в сети", ja = "🟢 ${n}人接続中"),
+                        fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color(0xFF2E7D32),
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.75f), RoundedCornerShape(50))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
         }
         TitleBanner()
         TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
@@ -1582,7 +1585,7 @@ private fun ShopIconButton(onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = Ui.gold, contentColor = Ui.text),
         modifier = Modifier.offset(y = bob.dp),
     ) {
-        Text(tr("🛒 상점", "🛒 Shop", zh = "🛒 商店", hi = "🛒 दुकान", es = "🛒 Tienda", fr = "🛒 Boutique", ar = "🛒 المتجر", de = "🛒 Shop", pt = "🛒 Loja", ru = "🛒 Магазин", ja = "🛒 ショップ"), fontWeight = FontWeight.Black, fontSize = 16.sp)
+        Text(tr("🛒 상점", "🛒 Shop", zh = "🛒 商店", hi = "🛒 दुकान", es = "🛒 Tienda", fr = "🛒 Boutique", ar = "🛒 المتجر", de = "🛒 Shop", pt = "🛒 Loja", ru = "🛒 Магазин", ja = "🛒 ショップ"), fontWeight = FontWeight.Black, fontSize = 16.sp, maxLines = 1, softWrap = false)
     }
 }
 

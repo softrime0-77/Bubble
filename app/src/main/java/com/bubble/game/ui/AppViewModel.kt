@@ -452,7 +452,8 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
 
     private fun startSession(id: String) {
         uid = id
-        billing.start()
+        // 원스토어 빌드는 구글 플레이 결제를 쓰지 않음
+        if (!com.bubble.game.BuildConfig.ONESTORE) billing.start()
         sessionJob?.cancel()
         _lobby.update { it.copy(loading = true, needsLogin = false, error = null) }
         sessionJob = viewModelScope.launch {

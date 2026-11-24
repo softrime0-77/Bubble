@@ -31,6 +31,9 @@ android {
         versionCode = 25
         versionName = "1.20.0"
 
+        // 원스토어용 빌드(onestore)에서만 true: 구글 플레이 결제(포인트 충전·광고 제거)를 숨김
+        buildConfigField("Boolean", "ONESTORE", "false")
+
         // AdMob 앱 ID (AndroidManifest의 meta-data로 들어감)
         manifestPlaceholders["admobAppId"] = "ca-app-pub-4615819907336992~2572585109"
     }
@@ -61,6 +64,13 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // 원스토어 출시용: release와 같고, 구글 플레이 결제만 뺌 (./gradlew assembleOnestore)
+        // src/onestore/AndroidManifest.xml 에서 BILLING 권한도 제거
+        create("onestore") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            buildConfigField("Boolean", "ONESTORE", "true")
         }
     }
     compileOptions {

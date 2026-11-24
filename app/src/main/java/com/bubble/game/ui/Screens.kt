@@ -2959,7 +2959,7 @@ private fun PointsCard(vm: AppViewModel) {
                     Text(
                         tr("🚫 광고 제거", "🚫 Remove ads", zh = "🚫 去除广告", hi = "🚫 विज्ञापन हटाएँ", es = "🚫 Quitar anuncios", fr = "🚫 Supprimer les pubs",
                             ar = "🚫 إزالة الإعلانات", de = "🚫 Werbung entfernen", pt = "🚫 Remover anúncios", ru = "🚫 Убрать рекламу", ja = "🚫 広告を削除") +
-                            "  " + (prices[BillingManager.REMOVE_ADS] ?: "₩3,000"),
+                            "  " + (prices[BillingManager.REMOVE_ADS] ?: "₩4,900"),
                         fontWeight = FontWeight.Black, color = Ui.text,
                     )
                     Text(

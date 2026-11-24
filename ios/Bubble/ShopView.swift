@@ -301,7 +301,7 @@ struct ShopView: View {
                 VStack(spacing: 2) {
                     Text(tr("🚫 광고 제거", "🚫 Remove ads", zh: "🚫 去除广告", es: "🚫 Quitar anuncios", fr: "🚫 Supprimer les pubs",
                             de: "🚫 Werbung entfernen", pt: "🚫 Remover anúncios", ru: "🚫 Убрать рекламу", ja: "🚫 広告を削除")
-                         + "  " + (store.prices[PointStore.removeAds] ?? "₩3,000"))
+                         + "  " + (store.prices[PointStore.removeAds] ?? "₩4,900"))
                         .font(.system(size: 15, weight: .black)).foregroundColor(UiColor.text)
                     Text(tr("한 번 사면 계속 · 게임 사이 전면 광고 없음 (원할 때 보는 보상 광고는 그대로)",
                             "One-time · no ads between games (optional reward ads stay)",

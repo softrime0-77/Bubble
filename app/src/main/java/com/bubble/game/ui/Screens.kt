@@ -324,6 +324,16 @@ private fun LobbyScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(16.dp))
 
+        // Credential Manager가 실패하면 예전 방식 구글 로그인 창으로 다시 시도.
+        // 로그인 중(loading)에는 로그인 카드가 화면에서 빠지므로, 항상 있는 이 자리에서 띄움
+        val legacyLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+        ) { r -> vm.onLegacySignInResult(r.data) }
+        val legacyIntent by vm.legacySignIn.collectAsState()
+        LaunchedEffect(legacyIntent) {
+            legacyIntent?.let { vm.onLegacySignInLaunched(); legacyLauncher.launch(it) }
+        }
+
         SoftCard {
             when {
                 !ui.onlineAvailable -> Text(
@@ -347,14 +357,6 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
 ), fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f))
                     Spacer(Modifier.height(12.dp))
                     val activity = LocalContext.current
-                    // Credential Manager가 실패하면 예전 방식 구글 로그인 창으로 다시 시도
-                    val legacyLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
-                    ) { r -> vm.onLegacySignInResult(r.data) }
-                    val legacyIntent by vm.legacySignIn.collectAsState()
-                    LaunchedEffect(legacyIntent) {
-                        legacyIntent?.let { vm.onLegacySignInLaunched(); legacyLauncher.launch(it) }
-                    }
                     Button(
                         onClick = { vm.signInWithGoogle(activity) },
                         shape = RoundedCornerShape(24.dp),

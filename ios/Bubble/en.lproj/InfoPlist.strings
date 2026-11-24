@@ -1,3 +1,3 @@
-/* 홈 화면에 보이는 앱 이름 (안드로이드 app_name과 같게) */
-"CFBundleDisplayName" = "Bubble Cats vs Hamsters";
-"CFBundleName" = "Bubble Cats vs Hamsters";
+/* 홈 화면 앱 이름: 잘리지 않게 짧게 (스토어 이름은 따로 길게) */
+"CFBundleDisplayName" = "Bubble";
+"CFBundleName" = "Bubble";

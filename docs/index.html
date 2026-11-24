@@ -6,7 +6,7 @@
 <title>Bubble 냥햄대전 · 냥냥 vs 햄햄 방울 대전</title>
 <meta name="description" content="손가락 하나로 즐기는 1:1 두뇌 방울 배틀! 랜덤 매칭·친구 대전·AI 대전, 주간 랭킹에 도전하세요.">
 <meta property="og:title" content="Bubble 냥햄대전 · 냥냥 vs 햄햄 방울 대전">
-<meta property="og:description" content="손가락 하나로 즐기는 1:1 두뇌 방울 배틀! 무료 다운로드">
+<meta property="og:description" content="손가락 하나로 즐기는 1:1 두뇌 방울 배틀!">
 <meta property="og:image" content="https://softrime0-77.github.io/Bubble/store/feature_1024x500_ko.png">
 <meta property="og:url" content="https://softrime0-77.github.io/Bubble/">
 <meta name="theme-color" content="#FF7EB3">
@@ -90,12 +90,6 @@
   footer { font-size:13px; opacity:.7; margin-top:40px; line-height:1.8; }
   footer a { color:inherit; }
 
-  /* 아래에 붙는 다운로드 버튼 (휴대폰) */
-  .sticky { position:fixed; left:0; right:0; bottom:0; padding:10px 16px calc(10px + env(safe-area-inset-bottom));
-            background:linear-gradient(transparent,#DCD6FFee 30%); display:flex; justify-content:center;
-            transform:translateY(120%); transition:transform .3s; }
-  .sticky.show { transform:none; }
-  .sticky .btn { margin:0; width:100%; max-width:420px; justify-content:center; }
 
   .reveal { opacity:0; transform:translateY(24px); transition:opacity .6s, transform .6s; }
   .reveal.on { opacity:1; transform:none; }
@@ -110,7 +104,6 @@
     <h1>Bubble</h1>
     <p class="sub">냥냥 vs 햄햄 방울 대전</p>
     <p class="tag">손가락 하나로 즐기는 1:1 두뇌 방울 배틀! · Cats vs Hamsters</p>
-    <a class="btn" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">📱 안드로이드 무료 다운로드</a>
     <p class="free">무료 · 회원가입은 구글 로그인 한 번이면 끝</p>
     <div class="chips"><span class="chip">🎲 랜덤 매칭</span><span class="chip">👫 친구 대전</span><span class="chip">🤖 AI 대전</span><span class="chip">🏆 주간 랭킹</span><span class="chip">🐾 캐릭터 12종+</span></div>
   </header>
@@ -173,16 +166,6 @@
     </div>
   </section>
 
-  <section class="reveal">
-    <h2>📲 설치 방법</h2>
-    <p class="lead">안드로이드 휴대폰에서 3단계면 끝!</p>
-    <div class="steps">
-      <div><b>다운로드 버튼을 눌러요</b><br><small>bubble.apk 파일이 내려받아져요</small></div>
-      <div><b>파일을 열고 '설치'를 눌러요</b><br><small>"출처를 알 수 없는 앱" 안내가 뜨면 설정에서 허용해 주세요</small></div>
-      <div><b>구글 로그인 후 바로 대전!</b><br><small>닉네임은 자동으로 만들어지고, 첫 변경은 무료예요</small></div>
-    </div>
-    <a class="btn" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">📱 지금 다운로드 <small>무료</small></a>
-  </section>
 
   <footer>
     iPhone은 TestFlight 초대로 먼저 만나볼 수 있어요.<br>
@@ -190,7 +173,6 @@
   </footer>
 </main>
 
-<div class="sticky"><a class="btn" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">📱 안드로이드 무료 다운로드</a></div>
 
 <script>
   // 비눗방울
@@ -204,9 +186,6 @@
   // 스크롤하면 섹션이 스르륵
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } }), { threshold: .12 });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-  // 첫 화면의 다운로드 버튼이 안 보이면 아래에 버튼을 띄움
-  const sticky = document.querySelector('.sticky');
-  new IntersectionObserver(([e]) => sticky.classList.toggle('show', !e.isIntersecting)).observe(document.querySelector('.hero .btn'));
 </script>
 </body>
 </html>

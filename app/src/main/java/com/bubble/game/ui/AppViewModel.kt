@@ -394,11 +394,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val token = GoogleSignIn.requestIdToken(activityContext, clientId)
                 startSession(repo.signInWithGoogle(token))
             } catch (e: GetCredentialCancellationException) {
-                _lobby.update { it.copy(loading = false) }
+                // 사용자가 창을 닫은 경우 말고도, 앱 서명(SHA-1)·OAuth 설정이 안 맞으면
+                // "[16] Account reauth failed" 같은 취소 오류로 돌아옴 → 원인을 화면에 보여 줌
+                android.util.Log.w("Bubble", "Google sign-in cancelled", e)
+                val reason = e.message?.takeIf { it.isNotBlank() && !it.contains("cancelled by the user", ignoreCase = true) }
+                _lobby.update { it.copy(loading = false, error = reason?.let { r -> tr(
+                    "구글 로그인이 취소됐어요 (${e.type.substringAfterLast('.')}: $r)",
+                    "Google sign-in was cancelled (${e.type.substringAfterLast('.')}: $r)") }) }
             } catch (e: Exception) {
+                android.util.Log.e("Bubble", "Google sign-in failed", e)
                 _lobby.update { it.copy(loading = false, error = tr(
-"구글 로그인에 실패했어요: ${e.message}",
-"Google sign-in failed: ${e.message}",
+"구글 로그인에 실패했어요: ${e.javaClass.simpleName}: ${e.message}",
+"Google sign-in failed: ${e.javaClass.simpleName}: ${e.message}",
 zh = "Google 登录失败：${e.message}", hi = "Google साइन-इन विफल: ${e.message}", es = "Error al iniciar sesión con Google: ${e.message}", fr = "Échec de la connexion Google : ${e.message}", ar = "فشل تسجيل الدخول عبر Google: ${e.message}", de = "Google-Anmeldung fehlgeschlagen: ${e.message}", pt = "Falha no login com Google: ${e.message}", ru = "Не удалось войти через Google: ${e.message}", ja = "Googleログインに失敗しました：${e.message}",
 )) }
             }

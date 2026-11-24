@@ -28,8 +28,8 @@ android {
         applicationId = "com.softrime.bubble"
         minSdk = 24
         targetSdk = 36
-        versionCode = 27
-        versionName = "1.21.1"
+        versionCode = 28
+        versionName = "1.21.2"
 
         // 원스토어용 빌드(onestore)에서만 true: 구글 플레이 결제(포인트 충전·광고 제거)를 숨김
         buildConfigField("Boolean", "ONESTORE", "false")

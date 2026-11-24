@@ -1846,7 +1846,8 @@ private fun ShopScreen(vm: AppViewModel) {
         ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
         if (p == null) return@Column
 
-        PointsCard(vm)
+        // 원스토어 빌드: 구글 플레이 결제(포인트 충전·광고 제거) 숨김
+        if (!com.bubble.game.BuildConfig.ONESTORE) PointsCard(vm)
         ItemUsageCard()
 
         // 부활물약

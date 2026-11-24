@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 원스토어 출시용: 구글 플레이 결제 권한 제거 (결제 메뉴는 BuildConfig.ONESTORE로 숨김) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="com.android.vending.BILLING" tools:node="remove" />
+</manifest>

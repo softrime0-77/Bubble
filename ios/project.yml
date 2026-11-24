@@ -76,7 +76,7 @@ targets:
           - CFBundleURLSchemes: [bubble]
     settings:
       base:
-        # App Store 번들 ID (com.bubble.game은 Apple에서 이미 쓰는 ID라 아이폰만 다름. 안드로이드는 com.bubble.game)
+        # 앱 ID (com.bubble.game은 Apple·Google에서 이미 쓰는 ID라 com.softrime.bubble, 안드로이드도 같음)
         PRODUCT_BUNDLE_IDENTIFIER: com.softrime.bubble
         PRODUCT_NAME: Bubble
         # App Store Connect의 버전(1.0)과 같게. 빌드 번호(CURRENT_PROJECT_VERSION)는 TestFlight 업로드 때 CI가 올림

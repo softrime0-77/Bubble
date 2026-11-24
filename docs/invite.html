@@ -39,7 +39,7 @@
   var code = /^[A-Z0-9]{6}$/.test(raw.toUpperCase()) ? raw.toUpperCase() : "";
   document.getElementById("code").textContent = code || "------";
   document.getElementById("open").href = "bubble://invite?code=" + encodeURIComponent(code);
-  document.getElementById("play").href = "https://play.google.com/store/apps/details?id=com.bubble.game&referrer=" +
+  document.getElementById("play").href = "https://play.google.com/store/apps/details?id=com.softrime.bubble&referrer=" +
     encodeURIComponent("code=" + code);
   // 친구 대전 링크: invite.html?battle=ABC234 → 앱에서 바로 그 대전방에 들어감
   var rawBattle = new URLSearchParams(location.search).get("battle") || "";
@@ -52,7 +52,7 @@
     document.getElementById("code").textContent = battle;
     document.getElementById("hint").textContent = ko ? "앱이 없으면 설치하고 로그인한 다음, 이 링크를 다시 눌러 주세요" : "No app yet? Install it, sign in, then tap this link again";
     document.getElementById("open").href = "bubble://invite?battle=" + encodeURIComponent(battle);
-    document.getElementById("play").href = "https://play.google.com/store/apps/details?id=com.bubble.game";
+    document.getElementById("play").href = "https://play.google.com/store/apps/details?id=com.softrime.bubble";
     document.getElementById("open").textContent = ko ? "앱에서 대전 시작" : "Start the battle in the app";
     if (!ko) {
       document.documentElement.lang = "en";

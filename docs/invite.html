@@ -19,7 +19,7 @@
   .hint { font-size:.9rem; opacity:.8; }
   a.btn { display:block; margin:12px auto; max-width:320px; padding:14px; border-radius:999px; color:#fff;
           font-weight:800; text-decoration:none; font-size:1.05rem; }
-  .open { background:var(--violet); } .play { background:var(--pink); } .apk { background:#fff; color:var(--ink) !important; }
+  .open { background:var(--violet); } .play { background:var(--pink); }
 </style>
 </head>
 <body>
@@ -31,7 +31,6 @@
   <p class="hint" id="hint">앱을 이 링크로 열거나 설치하면 추천 코드가 자동으로 입력돼요</p>
   <a class="btn open" id="open" href="#">앱에서 열기</a>
   <a class="btn play" id="play" href="#">Google Play에서 받기</a>
-  <a class="btn apk" id="apk" href="https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk">APK 직접 받기</a>
 </main>
 <script>
   // 코드는 6자리 영문 대문자/숫자만 허용
@@ -57,7 +56,6 @@
     if (!ko) {
       document.documentElement.lang = "en";
       document.getElementById("play").textContent = "Get it on Google Play";
-      document.getElementById("apk").textContent = "Download the APK";
     }
   } else if (!ko) {
     document.documentElement.lang = "en";
@@ -67,7 +65,6 @@
     document.getElementById("hint").textContent = "Open or install the app from this link and the referral code is entered for you";
     document.getElementById("open").textContent = "Open in the app";
     document.getElementById("play").textContent = "Get it on Google Play";
-    document.getElementById("apk").textContent = "Download the APK";
   }
 </script>
 </body>

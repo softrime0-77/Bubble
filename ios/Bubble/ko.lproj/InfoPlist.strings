@@ -1,0 +1,3 @@
+/* 홈 화면에 보이는 앱 이름 (안드로이드 app_name과 같게) */
+"CFBundleDisplayName" = "Bubble 냥햄대전";
+"CFBundleName" = "Bubble 냥햄대전";

@@ -378,6 +378,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** 예전 방식 구글 로그인 창을 띄워 달라는 요청 (화면이 띄우고 [onLegacySignInResult]로 결과를 돌려줌) */
+    private val _legacySignIn = MutableStateFlow<android.content.Intent?>(null)
+    val legacySignIn: StateFlow<android.content.Intent?> = _legacySignIn.asStateFlow()
+
+    fun onLegacySignInLaunched() { _legacySignIn.value = null }
+
+    fun onLegacySignInResult(data: android.content.Intent?) {
+        viewModelScope.launch {
+            try {
+                val token = GoogleSignIn.legacyToken(data)
+                startSession(repo.signInWithGoogle(token))
+            } catch (e: GoogleSignIn.LegacySignInException) {
+                android.util.Log.e("Bubble", "Legacy Google sign-in failed: ${e.code}")
+                _lobby.update { it.copy(loading = false, error = if (e.code == 12501) null else tr(
+                    "구글 로그인에 실패했어요 (코드 ${e.code}${if (e.code == 10) ": 앱 서명/OAuth 설정" else ""})",
+                    "Google sign-in failed (code ${e.code}${if (e.code == 10) ": app signing/OAuth setup" else ""})")) }
+            } catch (e: Exception) {
+                android.util.Log.e("Bubble", "Legacy Google sign-in failed", e)
+                _lobby.update { it.copy(loading = false, error = tr(
+                    "구글 로그인에 실패했어요: ${e.javaClass.simpleName}: ${e.message}",
+                    "Google sign-in failed: ${e.javaClass.simpleName}: ${e.message}")) }
+            }
+        }
+    }
+
     /** 구글 계정으로 로그인. [activityContext]는 계정 선택 창을 띄울 Activity. */
     fun signInWithGoogle(activityContext: Context) {
         if (_lobby.value.loading) return
@@ -394,13 +419,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val token = GoogleSignIn.requestIdToken(activityContext, clientId)
                 startSession(repo.signInWithGoogle(token))
             } catch (e: GetCredentialCancellationException) {
-                // 사용자가 창을 닫은 경우 말고도, 앱 서명(SHA-1)·OAuth 설정이 안 맞으면
-                // "[16] Account reauth failed" 같은 취소 오류로 돌아옴 → 원인을 화면에 보여 줌
+                // 사용자가 창을 닫은 경우 말고도 "[16] Account reauth failed" 같은 취소 오류로 돌아오는 기기가 있음
+                // → 예전 방식 구글 로그인 창으로 한 번 더 시도 (화면에서 띄움)
                 android.util.Log.w("Bubble", "Google sign-in cancelled", e)
-                val reason = e.message?.takeIf { it.isNotBlank() && !it.contains("cancelled by the user", ignoreCase = true) }
-                _lobby.update { it.copy(loading = false, error = reason?.let { r -> tr(
-                    "구글 로그인이 취소됐어요 (${e.type.substringAfterLast('.')}: $r)",
-                    "Google sign-in was cancelled (${e.type.substringAfterLast('.')}: $r)") }) }
+                val userClosed = e.message.isNullOrBlank() || e.message!!.contains("cancelled by the user", ignoreCase = true)
+                if (userClosed) {
+                    _lobby.update { it.copy(loading = false) }
+                } else {
+                    _legacySignIn.value = GoogleSignIn.legacyIntent(getApplication(), clientId)
+                }
             } catch (e: Exception) {
                 android.util.Log.e("Bubble", "Google sign-in failed", e)
                 _lobby.update { it.copy(loading = false, error = tr(
@@ -418,6 +445,7 @@ zh = "Google 登录失败：${e.message}", hi = "Google साइन-इन व�
         uid = null
         lastRank = null
         repo.signOut()
+        GoogleSignIn.webClientId(getApplication())?.let { GoogleSignIn.legacySignOut(getApplication(), it) }
         _lobby.value = LobbyUi(onlineAvailable = true, loading = false, needsLogin = true)
     }
 

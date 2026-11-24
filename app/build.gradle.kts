@@ -28,8 +28,8 @@ android {
         applicationId = "com.softrime.bubble"
         minSdk = 24
         targetSdk = 36
-        versionCode = 28
-        versionName = "1.21.2"
+        versionCode = 29
+        versionName = "1.21.3"
 
         // 원스토어용 빌드(onestore)에서만 true: 구글 플레이 결제(포인트 충전·광고 제거)를 숨김
         buildConfigField("Boolean", "ONESTORE", "false")
@@ -112,6 +112,8 @@ dependencies {
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    // 예전 구글 로그인 창 (Credential Manager가 [16] 등으로 실패할 때 대체 + 오류 코드 확인)
+    implementation("com.google.android.gms:play-services-auth:21.1.1")
     implementation("com.google.android.gms:play-services-ads:23.6.0")
     implementation("com.google.android.ump:user-messaging-platform:3.1.0")
     implementation("com.android.billingclient:billing-ktx:8.0.0")

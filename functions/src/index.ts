@@ -938,8 +938,8 @@ export const redeemReferral = onCall(async (req) => {
 
 // ======================= 인앱 결제 =======================
 
-const PACKAGE_NAME = "com.bubble.game";
-/** 아이폰 앱 번들 ID (App Store). com.bubble.game은 Apple에서 이미 쓰는 ID라 다름 */
+const PACKAGE_NAME = "com.softrime.bubble";
+/** 아이폰 앱 번들 ID (App Store). 안드로이드 패키지 이름과 같음 */
 const APPLE_BUNDLE_ID = "com.softrime.bubble";
 /** Play Console에 만든 소모성 상품 ID → 지급 점수 */
 /** 결제로 받는 것은 "상점 포인트(coins)" — 상점 전용이라 점수·계급에는 들어가지 않음 */

@@ -25,11 +25,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.bubble.game"
+        applicationId = "com.softrime.bubble"
         minSdk = 24
         targetSdk = 35
-        versionCode = 25
-        versionName = "1.20.0"
+        versionCode = 26
+        versionName = "1.21.0"
 
         // 원스토어용 빌드(onestore)에서만 true: 구글 플레이 결제(포인트 충전·광고 제거)를 숨김
         buildConfigField("Boolean", "ONESTORE", "false")

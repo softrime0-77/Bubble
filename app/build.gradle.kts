@@ -22,14 +22,14 @@ val bubbleKeystorePassword: String? = System.getenv("BUBBLE_KEYSTORE_PASSWORD")
 
 android {
     namespace = "com.bubble.game"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.softrime.bubble"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 26
-        versionName = "1.21.0"
+        targetSdk = 36
+        versionCode = 27
+        versionName = "1.21.1"
 
         // 원스토어용 빌드(onestore)에서만 true: 구글 플레이 결제(포인트 충전·광고 제거)를 숨김
         buildConfigField("Boolean", "ONESTORE", "false")
@@ -114,7 +114,7 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("com.google.android.gms:play-services-ads:23.6.0")
     implementation("com.google.android.ump:user-messaging-platform:3.1.0")
-    implementation("com.android.billingclient:billing-ktx:7.1.1")
+    implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation("com.android.installreferrer:installreferrer:2.2")
 
     testImplementation("junit:junit:4.13.2")

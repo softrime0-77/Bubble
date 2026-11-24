@@ -493,7 +493,9 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
         _lobby.update { it.copy(loading = true, needsLogin = false, error = null) }
         sessionJob = viewModelScope.launch {
             try {
-                repo.ensureProfile(country)?.let { w -> _lobby.update { it.copy(welcome = w) } }
+                // 서버가 응답하지 않아도 "접속 중"에 영원히 머물지 않게 30초 제한 (넘기면 오류 + 다시 시도)
+                kotlinx.coroutines.withTimeout(30_000) { repo.ensureProfile(country) }
+                    ?.let { w -> _lobby.update { it.copy(welcome = w) } }
                 // 1분마다 접속 신호
                 launch {
                     while (isActive) {
@@ -539,6 +541,8 @@ zh = "你的账号已删除。感谢游玩 🐾", hi = "आपका खात�
                         if (_screen.value == Screen.Lobby) refreshLeaderboard(force = true)
                     }
                 }
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                _lobby.update { it.copy(loading = false, error = tr("서버 응답이 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요.", "The server is not responding. Check your connection and try again.")) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

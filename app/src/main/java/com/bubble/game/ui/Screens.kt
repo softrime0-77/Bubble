@@ -255,10 +255,54 @@ private fun LobbyScreen(vm: AppViewModel) {
     var confirmDelete by remember { mutableStateOf(false) }
     var showAdmin by remember { mutableStateOf(false) }
     var showMusic by remember { mutableStateOf(false) }
+    var showCharacterPicker by remember { mutableStateOf(false) }
     if (showMusic) MusicPicker(ui.profile) { showMusic = false }
     var tutorialAsked by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var cardOf by remember { mutableStateOf<RankedPlayer?>(null) }
     cardOf?.let { c -> PlayerCardDialog(c, me = c.uid == ui.profile?.uid) { cardOf = null } }
+    if (showCharacterPicker) {
+        val profile = ui.profile
+        if (profile != null) {
+            val selectable = buildList<Animal?> {
+                add(null)
+                add(Animal.HAMSTER)
+                addAll(Animal.entries.filter { animal ->
+                    animal != Animal.HAMSTER &&
+                        (animal in profile.owned || animal in profile.skins ||
+                            (animal.rankOnly && profile.score >= animal.rankMin))
+                })
+            }.distinct()
+            AlertDialog(
+                onDismissRequest = { showCharacterPicker = false },
+                title = { Text(tr("캐릭터 선택", "Choose a character"), fontWeight = FontWeight.Black) },
+                text = {
+                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                        selectable.forEach { animal ->
+                            Row(
+                                Modifier.fillMaxWidth().clickable {
+                                    vm.equip(animal)
+                                    showCharacterPicker = false
+                                }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Critter(if (animal == Animal.HAMSTER) Side.HAMSTER else Side.CAT, Modifier.size(48.dp), skin = animal)
+                                Spacer(Modifier.width(12.dp))
+                                Text(animal?.label ?: tr("기본 고양이", "Default cat"), Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                                if (profile.equipped == animal) Text("✓", color = Ui.primary, fontWeight = FontWeight.Black)
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            tr("상세 설명은 상점에서 볼 수 있어요.", "See the shop for character details."),
+                            fontSize = 12.sp, color = Ui.text.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+                        )
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showCharacterPicker = false }) { Text(tr("닫기", "Close")) } },
+            )
+        } else showCharacterPicker = false
+    }
 
     Column(
         Modifier
@@ -371,7 +415,7 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                 ui.profile != null -> {
                     val p = ui.profile!!
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped, ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                        Critter(Side.CAT, Modifier.size(52.dp).clickable { showCharacterPicker = true }, skin = p.equipped, ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
@@ -1290,7 +1334,11 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             var showDone by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { delay(1_200); showDone = true }
             val rewarded = vm.lobby.collectAsState().value.profile?.tutorialDone == true
-            if (showDone) TutorialDone(alreadyRewarded = rewarded, onClaim = { vm.finishTutorial(true) })
+            if (showDone) TutorialDone(
+                alreadyRewarded = rewarded,
+                onClaim = { vm.finishTutorial(true) },
+                onShop = { vm.finishTutorial(true); vm.openShop() },
+            )
         } else if (g.finished && g.winner != null) {
             val activity = LocalContext.current as Activity
             val rewardedReady by AdManager.rewardedReady.collectAsState()

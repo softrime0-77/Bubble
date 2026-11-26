@@ -1,5 +1,10 @@
 # Bubble 냥햄대전 🐱🫧🐹
 
+## Android 빌드 받기
+
+- [**AAB 받기**](https://github.com/softrime0-77/Bubble/actions/workflows/build.yml) (GitHub에 로그인한 뒤 최신 성공 빌드에서 `bubble-builds` 아티팩트를 다운로드하세요.)
+- [APK 받기](https://github.com/softrime0-77/Bubble/releases/latest/download/bubble.apk) (항상 최신 릴리스 APK)
+
 고양이와 햄스터가 비눗방울 속에서 겨루는 2인 턴제 안드로이드 게임입니다.
 앱을 켜면 대기방(로비)이 나오고, **랜덤 매칭**으로 익명의 상대와 1:1 대결을 합니다. 이기면 점수가 올라가요.
 
@@ -154,7 +159,7 @@ firebase deploy --only functions,firestore:rules
 `google-services.json`이 없어도 앱은 빌드되고 AI 연습 모드로 동작합니다. 온라인 대전을 켜려면:
 
 1. [Firebase 콘솔](https://console.firebase.google.com)에서 프로젝트를 만듭니다.
-2. **Android 앱 추가** → 패키지 이름 `com.bubble.game` → `google-services.json`을 내려받아 `app/` 폴더에 넣습니다.
+2. **Android 앱 추가** → 패키지 이름 `com.softrime.bubble` → `google-services.json`을 내려받아 `app/` 폴더에 넣습니다.
 3. **Authentication → 로그인 방법 → Google** 을 사용 설정합니다.
    그리고 프로젝트 설정 → 내 앱 → **디지털 지문 추가**에 서명 키의 SHA-1을 등록한 뒤, `google-services.json`을 다시 내려받습니다.
 4. **Firestore Database** 를 만들고, **규칙** 탭에 이 저장소의 `firestore.rules` 내용을 붙여넣고 게시합니다.
@@ -232,7 +237,7 @@ firebase deploy --only functions,firestore:rules
 
 Firebase 설정은 저장소 Secrets의 `GOOGLE_SERVICE_INFO_PLIST`에서 CI가 넣습니다 (파일은 저장소에 올리지 않음).
 
-아이폰 번들 ID는 **`com.softrime.bubble`** 입니다 (`com.bubble.game`은 App Store에서 이미 다른 사람이 쓰고 있어서). 안드로이드는 그대로 `com.bubble.game`이고, 서버·매칭은 같이 씁니다.
+Android 패키지와 iPhone 번들 ID는 모두 **`com.softrime.bubble`** 입니다 (`com.bubble.game`은 다른 앱이 사용 중입니다). 두 앱은 서버·매칭을 같이 씁니다.
 
 ### 아이폰 기능
 

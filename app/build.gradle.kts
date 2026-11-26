@@ -25,7 +25,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.bubble.game"
+        applicationId = "com.softrime.bubble"
         minSdk = 24
         targetSdk = 35
         versionCode = 25

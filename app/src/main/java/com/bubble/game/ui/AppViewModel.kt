@@ -942,7 +942,7 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
 
     // ---------- 🎓 튜토리얼 ----------
 
-    /** 정해진 판에서 손가락 안내를 따라 두는 연습 (상대는 두지 않음, 점수 없음) */
+    /** 정해진 판에서 내 공격과 상대의 반격을 연습 (점수 없음) */
     fun startTutorial() {
         gameJob?.cancel()
         localTimerJob?.cancel()
@@ -969,7 +969,10 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
             return
         }
         applyLocal(g.mySide, move)
-        // 상대는 두지 않고 계속 내 차례
+        // 내 공격 다음에는 정해진 반격을 한 번 보여 주고 내 차례로 돌아옵니다.
+        if (step < TutorialScript.replies.size && !_game.value.finished) {
+            applyLocal(g.mySide.opponent, TutorialScript.replies[step])
+        }
         _game.update { it.copy(turn = it.mySide, tutorial = step + 1, notice = null, turnDeadline = null, turnSec = null) }
     }
 

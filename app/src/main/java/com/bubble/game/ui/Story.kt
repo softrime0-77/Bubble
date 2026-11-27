@@ -411,6 +411,18 @@ fun IndependentBadge(modifier: Modifier = Modifier) {
     )
 }
 
+/** 아직 독립 전 (🌈 땅을 사지 않음) 표시 */
+@Composable
+fun NotIndependentBadge(modifier: Modifier = Modifier) {
+    Text(
+        tr("🏰 아직 고양이 왕국", "🏰 Not free yet", zh = "🏰 尚未独立", ja = "🏰 まだネコ王国"),
+        fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.text.copy(alpha = 0.6f),
+        modifier = modifier
+            .background(Ui.text.copy(alpha = 0.08f), RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
+}
+
 /** 상점의 땅 그림: 작은 언덕 위 깃발 */
 @Composable
 fun LandArt(modifier: Modifier = Modifier) {

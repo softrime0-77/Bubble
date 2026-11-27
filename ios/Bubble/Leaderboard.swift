@@ -664,6 +664,8 @@ struct PlayerCardView: View {
                 .font(.system(size: 15)).foregroundColor(UiColor.text.opacity(0.8))
             Text("🐾 " + (p.look?.label ?? tr("기본 고양이", "Basic Cat", zh: "基础猫咪", es: "Gato básico", fr: "Chat de base", de: "Standardkatze", pt: "Gato básico", ru: "Обычный котик", ja: "ふつうのネコ")))
                 .font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.7))
+            // 🌈 독립했는지 (땅을 샀으면 칭호, 아니면 아직 고양이 왕국)
+            Group { if p.land { IndependentBadge() } else { NotIndependentBadge() } }.padding(.top, 2)
             RankBadge(score: p.score, large: true).padding(.top, 8)
             Text(pts(p.score)).font(.system(size: first ? 26 : 22, weight: .black))
                 .foregroundColor(first ? Color(hex: 0xC77700) : UiColor.primaryDark).padding(.top, 4)

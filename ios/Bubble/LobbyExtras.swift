@@ -487,3 +487,76 @@ struct AdminSheet: View {
         .onAppear { search("") }
     }
 }
+
+/// 로비에서 장착할 수 있는 캐릭터 (nil = 기본 고양이): 무료 햄스터 · 산 스킨 · 해금한 유니콘 · 남은 소모품 동물
+func equippableAnimals(_ p: Profile) -> [Animal?] {
+    var list: [Animal?] = [nil, .hamster]
+    list += Animal.allCases.filter { $0.cosmetic && p.skins.contains($0) }.map { Optional($0) }
+    list += Animal.allCases.filter { $0.rankOnly && p.score >= $0.rankMin }.map { Optional($0) }
+    list += Animal.allCases.filter { $0.consumable && p.animalCount($0) > 0 }.map { Optional($0) }
+    return list
+}
+
+/// 👆 로비 캐릭터를 누르면: 가진 캐릭터 목록에서 골라 바로 바꾸기 (상세 설명은 상점에서)
+struct CharacterPickerSheet: View {
+    @ObservedObject private var online = OnlineService.shared
+    let onShop: () -> Void
+    let onClose: () -> Void
+
+    private let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
+
+    var body: some View {
+        sheetFrame(title: tr("🐾 캐릭터 바꾸기", "🐾 Change character", zh: "🐾 更换角色", ja: "🐾 キャラを変える"), onClose: onClose) {
+            if let p = online.profile {
+                Text(tr("눌러서 바로 바꿔요", "Tap one to switch", zh: "点一下就能更换", ja: "タップですぐ変更"))
+                    .font(.system(size: 13)).foregroundColor(UiColor.text.opacity(0.7))
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(Array(equippableAnimals(p).enumerated()), id: \.offset) { _, a in
+                        cell(a, p)
+                    }
+                }
+                Text(tr("📖 캐릭터별 상세 설명은 상점에서 볼 수 있어요", "📖 See each character's details in the shop",
+                        zh: "📖 各角色的详细说明可在商店查看", ja: "📖 キャラごとの詳しい説明はショップで見られるよ"))
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(UiColor.accent).multilineTextAlignment(.center)
+                    .padding(.top, 8)
+                Button(action: onShop) {
+                    Text(tr("🛒 상점 가기", "🛒 Go to shop", zh: "🛒 去商店", ja: "🛒 ショップへ"))
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(UiColor.accent)
+                        .padding(.horizontal, 18).padding(.vertical, 8)
+                        .overlay(Capsule().stroke(UiColor.accent))
+                }
+            }
+        }
+    }
+
+    private func cell(_ a: Animal?, _ p: Profile) -> some View {
+        let on = p.equipped == a
+        let side: Side = a.map { ($0.consumable || $0.looksLikeCat) ? .cat : .hamster } ?? .cat
+        return Button {
+            guard !on, !online.busy else { return }
+            Task { await online.equip(a) }
+            onClose()
+        } label: {
+            VStack(spacing: 2) {
+                Critter(side: side, skin: a, happy: on,
+                        ribbons: a == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0)
+                    .frame(width: 56, height: 56)
+                Text(a?.label ?? tr("기본 고양이", "Basic cat", zh: "基础猫咪", ja: "ふつうのネコ"))
+                    .font(.system(size: 12, weight: on ? .black : .semibold)).foregroundColor(UiColor.text)
+                    .multilineTextAlignment(.center).lineLimit(2)
+                if on {
+                    Text(tr("✅ 장착 중", "✅ Equipped", zh: "✅ 已装备", ja: "✅ 装備中"))
+                        .font(.system(size: 11, weight: .bold)).foregroundColor(UiColor.primaryDark)
+                } else if let a, a.consumable {
+                    Text(tr("\(p.animalCount(a))개", "×\(p.animalCount(a))", zh: "\(p.animalCount(a))个", ja: "\(p.animalCount(a))個"))
+                        .font(.system(size: 11)).foregroundColor(UiColor.text.opacity(0.6))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8).padding(.horizontal, 4)
+            .background(RoundedRectangle(cornerRadius: 16).fill(on ? UiColor.primary.opacity(0.18) : Color.white.opacity(0.6)))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(on ? UiColor.primary : UiColor.text.opacity(0.12), lineWidth: on ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+    }
+}

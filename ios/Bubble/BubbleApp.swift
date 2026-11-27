@@ -61,7 +61,7 @@ struct RootView: View {
                 LobbyView(onStartAi: startAi, onRandomMatch: startMatching, onFriendBattle: startFriendBattle, onShop: { screen = .shop },
                           onTutorial: { screen = .local(LocalGame(tutorial: true)) }).transition(.opacity)
             case .shop:
-                ShopView(onClose: { screen = .lobby }).transition(.move(edge: .trailing))
+                ShopView(onClose: { online.shopTour = false; screen = .lobby }).transition(.move(edge: .trailing))
             case let .matching(started):
                 MatchingView(startedAt: started, onCancel: cancelMatching).transition(.opacity)
             case let .friendWait(code, started):
@@ -79,7 +79,13 @@ struct RootView: View {
                              }
                              if finished { Ads.shared.maybeShowInterstitial { screen = .lobby } } else { screen = .lobby }
                          },
-                         onAgain: { game.stop(); screen = .local(LocalGame(level: game.level)) })
+                         onAgain: { game.stop(); screen = .local(LocalGame(level: game.level)) },
+                         onTutorialShop: game.tutorial == nil ? nil : {
+                             // 🎓 튜토리얼 끝 → 상점으로 들어가 캐릭터 안내
+                             game.stop()
+                             online.shopTour = true
+                             screen = .shop
+                         })
                     .transition(.opacity)
             case let .online(game):
                 ZStack {

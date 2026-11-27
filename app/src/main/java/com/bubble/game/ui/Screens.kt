@@ -40,6 +40,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -160,6 +161,77 @@ private fun MusicPicker(p: com.bubble.game.data.Profile?, onClose: () -> Unit) {
     )
 }
 
+/**
+ * 로비에서 장착할 수 있는 캐릭터 (null = 기본 햄스터): 산 스킨 · 해금한 유니콘 · 남은 시계 햄스터.
+ * 세계관상 나는 늘 햄스터라 기본과 "무료 햄스터"가 같은 모습이어서 기본 하나만 보여줌. 🐧 펭귄은 판매 중단.
+ */
+internal fun equippable(p: com.bubble.game.data.Profile): List<Animal?> =
+    listOf<Animal?>(null) +
+        Animal.entries.filter { it.cosmetic && !it.retired && it in p.skins } +
+        Animal.entries.filter { it.rankOnly && p.score >= it.rankMin } +
+        Animal.entries.filter { it.consumable && p.animalCount(it) > 0 }
+
+/** 👆 로비 캐릭터를 누르면: 가진 캐릭터 목록에서 골라 바로 바꾸기 (상세 설명은 상점에서) */
+@Composable
+private fun CharacterPicker(
+    p: com.bubble.game.data.Profile,
+    busy: Boolean,
+    onPick: (Animal?) -> Unit,
+    onShop: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val list = equippable(p)
+    AlertDialog(
+        onDismissRequest = onClose,
+        confirmButton = { TextButton(onClick = onClose) { Text(tr("닫기", "Close", ja = "閉じる", zh = "关闭")) } },
+        dismissButton = { TextButton(onClick = onShop) { Text(tr("🛒 상점 가기", "🛒 Go to shop", ja = "🛒 ショップへ", zh = "🛒 去商店"), color = Ui.accent, fontWeight = FontWeight.Bold) } },
+        title = { Text(tr("🐾 캐릭터 바꾸기", "🐾 Change character", ja = "🐾 キャラを変える", zh = "🐾 更换角色"), fontWeight = FontWeight.Black) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    tr("눌러서 바로 바꿔요", "Tap one to switch", ja = "タップですぐ変更", zh = "点一下就能更换"),
+                    fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
+                )
+                Spacer(Modifier.height(8.dp))
+                list.chunked(3).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { a ->
+                            val on = p.equipped == a || (a == null && (p.equipped == null || p.equipped == Animal.HAMSTER))
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 4.dp)
+                                    .background(if (on) Ui.primary.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                                    .border(if (on) 2.dp else 1.dp, if (on) Ui.primary else Ui.text.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                                    .clickable(enabled = !busy && !on) { onPick(a) }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Critter(Side.HAMSTER, Modifier.size(56.dp), skin = a, happy = on, ribbons = if (a == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                                Text(
+                                    a?.label ?: tr("기본 햄스터", "Basic hamster", ja = "ふつうのハムスター", zh = "基础仓鼠"),
+                                    fontSize = 12.sp, fontWeight = if (on) FontWeight.Black else FontWeight.SemiBold, color = Ui.text,
+                                    textAlign = TextAlign.Center, maxLines = 2, lineHeight = 14.sp,
+                                )
+                                when {
+                                    on -> Text(tr("✅ 장착 중", "✅ Equipped", ja = "✅ 装備中", zh = "✅ 已装备"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Ui.primaryDark)
+                                    a != null && a.consumable -> Text(tr("${p.animalCount(a)}개", "×${p.animalCount(a)}", ja = "${p.animalCount(a)}個", zh = "${p.animalCount(a)}个"), fontSize = 11.sp, color = Ui.text.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    tr("📖 캐릭터별 상세 설명은 상점에서 볼 수 있어요", "📖 See each character's details in the shop", ja = "📖 キャラごとの詳しい説明はショップで見られるよ", zh = "📖 各角色的详细说明可在商店查看"),
+                    fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+    )
+}
+
 /** 상점: 산 캐릭터의 음악을 로비 음악으로 (한 번 더 누르면 기본 곡으로) */
 @Composable
 private fun LobbyMusicButton(a: Animal) {
@@ -266,6 +338,15 @@ private fun LobbyScreen(vm: AppViewModel) {
     var showAdmin by remember { mutableStateOf(false) }
     var showMusic by remember { mutableStateOf(false) }
     if (showMusic) MusicPicker(ui.profile) { showMusic = false }
+    var showCharacters by remember { mutableStateOf(false) }
+    ui.profile?.let { p ->
+        if (showCharacters) CharacterPicker(
+            p, busy = ui.shopBusy,
+            onPick = { a -> vm.equip(a); showCharacters = false },
+            onShop = { showCharacters = false; vm.openShop() },
+            onClose = { showCharacters = false },
+        )
+    }
     var tutorialAsked by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var cardOf by remember { mutableStateOf<RankedPlayer?>(null) }
     cardOf?.let { c -> PlayerCardDialog(c, me = c.uid == ui.profile?.uid) { cardOf = null } }
@@ -395,10 +476,25 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                 ui.profile != null -> {
                     val p = ui.profile!!
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Critter(Side.HAMSTER, Modifier.size(52.dp), skin = p.equipped.shownSkin(), ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                        // 내 캐릭터를 누르면 가진 캐릭터 중에서 바로 바꾸기
+                        Box(
+                            Modifier.clip(RoundedCornerShape(50)).clickable { showCharacters = true },
+                            contentAlignment = Alignment.BottomEnd,
+                        ) {
+                            Critter(Side.HAMSTER, Modifier.size(52.dp), skin = p.equipped.shownSkin(), ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                            Text(
+                                "🔄", fontSize = 10.sp,
+                                modifier = Modifier.background(Color.White, RoundedCornerShape(50)).padding(2.dp),
+                            )
+                        }
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
+                            // 🐰 연승 토끼 장착 중이면 이름 옆에 지금 연승 리본 수
+                            // (계급 배지 줄에 넣으면 핑크다이아처럼 긴 배지와 겹쳐 "계급표"가 세로로 깨짐)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                                if (p.equipped == Animal.RABBIT) RibbonBadge(p.winStreak)
+                            }
                             // 🚩 땅을 사서 독립했으면 칭호 (누르면 엔딩 다시 보기)
                             if (p.land) IndependentBadge(Modifier.padding(top = 2.dp).clickable(onClick = vm::showLandEnding))
                             Spacer(Modifier.height(4.dp))
@@ -407,9 +503,7 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                                 modifier = Modifier.clickable { showRanks = true },
                             ) {
                                 RankBadge(p.score)
-                                // 🐰 연승 토끼 장착 중이면 지금 연승 리본 수
-                                if (p.equipped == Animal.RABBIT) RibbonBadge(p.winStreak)
-                                Text(tr("  계급표 ›", "  Ranks ›", zh = "  等级表 ›", hi = "  रैंक ›", es = "  Rangos ›", fr = "  Rangs ›", ar = "  الرتب ›", de = "  Ränge ›", pt = "  Ranks ›", ru = "  Ранги ›", ja = "  ランク表 ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
+                                Text(tr("  계급표 ›", "  Ranks ›", zh = "  等级表 ›", hi = "  रैंक ›", es = "  Rangos ›", fr = "  Rangs ›", ar = "  الرتب ›", de = "  Ränge ›", pt = "  Ranks ›", ru = "  Ранги ›", ja = "  ランク表 ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent, maxLines = 1, softWrap = false)
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
@@ -1232,7 +1326,10 @@ private fun GameScreen(vm: AppViewModel) {
                     enabled = splitsLeft > 0,
                     colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
                     shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.padding(top = 10.dp),
+                    modifier = Modifier.padding(top = 10.dp).onGloballyPositioned { c ->
+                        // 🎓 튜토리얼 손가락이 가리킬 자리
+                        centers["split"] = c.positionInRoot() + androidx.compose.ui.geometry.Offset(c.size.width / 2f, c.size.height / 2f)
+                    },
                 ) {
                     Text(
                         if (splitsLeft > 0) tr(
@@ -1247,12 +1344,15 @@ zh = "✂️ 分裂 (${power / 2} + ${power / 2}) · 剩 ${splitsLeft} 次", hi 
             }
             // 부활물약: 터진 방울이 있고 물약이 남았으면 (선택 없이 바로 사용)
             val reviveTarget = (0 until GameLogic.SET_COUNT).firstOrNull { GameLogic.canRevive(g.board, me, it) }
-            AnimatedVisibility(g.myTurn && reviveTarget != null, enter = fadeIn() + slideInVertically { it }) {
+            // 🎓 튜토리얼에선 물약 단계에서만 보여 줌
+            AnimatedVisibility(g.myTurn && reviveTarget != null && TutorialScript.allowsRevive(g.tutorial), enter = fadeIn() + slideInVertically { it }) {
                 Button(
                     onClick = { reviveTarget?.let { vm.play(Move.Revive(it)) }; selected = null },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5C8A)),
                     shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 8.dp).onGloballyPositioned { c ->
+                        centers["revive"] = c.positionInRoot() + androidx.compose.ui.geometry.Offset(c.size.width / 2f, c.size.height / 2f)
+                    },
                 ) {
                     Text(
                         tr(
@@ -1301,7 +1401,7 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
         )
         marks.forEach { m -> androidx.compose.runtime.key(m.key) { HitMarkFx(m) { marks.remove(it) } } }
         // 🎓 튜토리얼 손가락 안내
-        g.tutorial?.let { step -> if (!g.finished && !inFlight) TutorialGuide(step, g.mySide, selected, centers, layerOrigin, onSkip = { vm.finishTutorial(false) }) }
+        g.tutorial?.let { step -> if (!g.finished && !inFlight) TutorialGuide(step, g.mySide, g.myTurn, selected, centers, layerOrigin, onSkip = { vm.finishTutorial(false) }) }
         coins.forEach { c -> androidx.compose.runtime.key(c.key) { CoinPopFx(c) { coins.remove(it) } } }
         revives.forEach { r -> androidx.compose.runtime.key(r.key) { ReviveFx(r) { revives.remove(it) } } }
 
@@ -1349,7 +1449,8 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             var showDone by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { delay(1_200); showDone = true }
             val rewarded = vm.lobby.collectAsState().value.profile?.tutorialDone == true
-            if (showDone) TutorialDone(alreadyRewarded = rewarded, onClaim = { vm.finishTutorial(true) })
+            val canShop = vm.lobby.collectAsState().value.profile != null
+            if (showDone) TutorialDone(alreadyRewarded = rewarded, canShop = canShop, onClaim = { toShop -> vm.finishTutorial(true, toShop) })
         } else if (g.finished && g.winner != null) {
             val activity = LocalContext.current as Activity
             val rewardedReady by AdManager.rewardedReady.collectAsState()
@@ -1904,6 +2005,8 @@ private fun ShopScreen(vm: AppViewModel) {
         ui.info?.let { Text(it, color = Ui.accent, fontWeight = FontWeight.Bold) }
         ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
         if (p == null) return@Column
+        // 🎓 튜토리얼에서 들어왔으면 캐릭터 안내
+        if (ui.shopTour) ShopTourCard(onDismiss = vm::dismissShopTour)
 
         // 원스토어 빌드: 구글 플레이 결제(포인트 충전·광고 제거) 숨김
         if (!com.bubble.game.BuildConfig.ONESTORE) PointsCard(vm)
@@ -2861,8 +2964,8 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
     val b = Shop.RABBIT_5_COINS
     val c = Shop.RABBIT_MORE_COINS
     val n = p.winStreak
-    return tr("🚩 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
-        "🚩 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random, scored friend & AI matches · streak $n",
+    return tr("🚩 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승 햄스터로 이길 때만 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
+        "🚩 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win with the Streak Hamster, golden at 5\n· Random, scored friend & AI matches · streak $n",
         zh = "🚩 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 ${n} 连胜",
         es = "🚩 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
         fr = "🚩 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",
@@ -2927,23 +3030,23 @@ private fun UnicornResult(coins: Int) {
 /** 무지개 글자색 (진하게: 흰 바탕에서 읽히게) */
 internal val rainbowText = listOf(Color(0xFFE5397A), Color(0xFFE07A00), Color(0xFF2E9E4F), Color(0xFF2B7FD6), Color(0xFF7B4BD8))
 
-/** 🐰 결과 화면: 연승 보상 또는 다음 보상 안내 */
+/** 🚩 결과 화면: 연승 보상 또는 다음 보상 안내 */
 @Composable
 private fun RabbitResult(streak: Int, coins: Int) {
     LaunchedEffect(coins) { if (coins > 0) { kotlinx.coroutines.delay(700); com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN_RABBIT) } }
     val text = when {
-        coins > 0 -> tr("🐰 ${streak}연승 보상 💰+$coins!", "🐰 $streak-win streak reward 💰+$coins!", zh = "🐰 ${streak}连胜奖励 💰+$coins！",
-            es = "🐰 ¡Premio por $streak seguidas 💰+$coins!", fr = "🐰 Récompense $streak victoires 💰+$coins !", de = "🐰 $streak Siege in Folge 💰+$coins!",
-            pt = "🐰 Prêmio por $streak seguidas 💰+$coins!", ru = "🐰 Награда за $streak побед подряд 💰+$coins!", ja = "🐰 ${streak}連勝ボーナス 💰+$coins！")
-        streak < 3 -> tr("🐰 ${streak}연승! 3연승이면 💰+${Shop.RABBIT_3_COINS}", "🐰 $streak in a row! 3 wins = 💰+${Shop.RABBIT_3_COINS}",
-            zh = "🐰 ${streak}连胜！3连胜 💰+${Shop.RABBIT_3_COINS}", es = "🐰 ¡$streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", fr = "🐰 $streak d’affilée ! 3 = 💰+${Shop.RABBIT_3_COINS}",
-            de = "🐰 $streak in Folge! 3 = 💰+${Shop.RABBIT_3_COINS}", pt = "🐰 $streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", ru = "🐰 $streak подряд! 3 = 💰+${Shop.RABBIT_3_COINS}", ja = "🐰 ${streak}連勝！3連勝で 💰+${Shop.RABBIT_3_COINS}")
-        streak == 4 -> tr("🐰 4연승! 한 번 더 이기면 💰+${Shop.RABBIT_5_COINS}", "🐰 4 in a row! One more win = 💰+${Shop.RABBIT_5_COINS}",
-            zh = "🐰 4连胜！再赢一次 💰+${Shop.RABBIT_5_COINS}", es = "🐰 ¡4 seguidas! Una más = 💰+${Shop.RABBIT_5_COINS}", fr = "🐰 4 d’affilée ! Encore une = 💰+${Shop.RABBIT_5_COINS}",
-            de = "🐰 4 in Folge! Noch einer = 💰+${Shop.RABBIT_5_COINS}", pt = "🐰 4 seguidas! Mais uma = 💰+${Shop.RABBIT_5_COINS}", ru = "🐰 4 подряд! Ещё одна = 💰+${Shop.RABBIT_5_COINS}", ja = "🐰 4連勝！あと1勝で 💰+${Shop.RABBIT_5_COINS}")
-        else -> tr("🐰 ${streak}연승! 오늘 연승 보상은 다 받았어요 (최대 💰${Shop.RABBIT_DAILY_MAX})", "🐰 $streak in a row! Today's streak rewards are maxed (💰${Shop.RABBIT_DAILY_MAX})",
-            zh = "🐰 ${streak}连胜！今天的连胜奖励已领满（💰${Shop.RABBIT_DAILY_MAX}）", es = "🐰 ¡$streak seguidas! Premios de hoy al máximo", fr = "🐰 $streak d’affilée ! Récompenses du jour au max",
-            de = "🐰 $streak in Folge! Tagesmaximum erreicht", pt = "🐰 $streak seguidas! Prêmios de hoje no máximo", ru = "🐰 $streak подряд! Лимит наград на сегодня", ja = "🐰 ${streak}連勝！今日の連勝ボーナスは上限です")
+        coins > 0 -> tr("🚩 ${streak}연승 보상 💰+$coins!", "🚩 $streak-win streak reward 💰+$coins!", zh = "🚩 ${streak}连胜奖励 💰+$coins！",
+            es = "🚩 ¡Premio por $streak seguidas 💰+$coins!", fr = "🚩 Récompense $streak victoires 💰+$coins !", de = "🚩 $streak Siege in Folge 💰+$coins!",
+            pt = "🚩 Prêmio por $streak seguidas 💰+$coins!", ru = "🚩 Награда за $streak побед подряд 💰+$coins!", ja = "🚩 ${streak}連勝ボーナス 💰+$coins！")
+        streak < 3 -> tr("🚩 ${streak}연승! 3연승이면 💰+${Shop.RABBIT_3_COINS}", "🚩 $streak in a row! 3 wins = 💰+${Shop.RABBIT_3_COINS}",
+            zh = "🚩 ${streak}连胜！3连胜 💰+${Shop.RABBIT_3_COINS}", es = "🚩 ¡$streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", fr = "🚩 $streak d’affilée ! 3 = 💰+${Shop.RABBIT_3_COINS}",
+            de = "🚩 $streak in Folge! 3 = 💰+${Shop.RABBIT_3_COINS}", pt = "🚩 $streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", ru = "🚩 $streak подряд! 3 = 💰+${Shop.RABBIT_3_COINS}", ja = "🚩 ${streak}連勝！3連勝で 💰+${Shop.RABBIT_3_COINS}")
+        streak == 4 -> tr("🚩 4연승! 한 번 더 이기면 💰+${Shop.RABBIT_5_COINS}", "🚩 4 in a row! One more win = 💰+${Shop.RABBIT_5_COINS}",
+            zh = "🚩 4连胜！再赢一次 💰+${Shop.RABBIT_5_COINS}", es = "🚩 ¡4 seguidas! Una más = 💰+${Shop.RABBIT_5_COINS}", fr = "🚩 4 d’affilée ! Encore une = 💰+${Shop.RABBIT_5_COINS}",
+            de = "🚩 4 in Folge! Noch einer = 💰+${Shop.RABBIT_5_COINS}", pt = "🚩 4 seguidas! Mais uma = 💰+${Shop.RABBIT_5_COINS}", ru = "🚩 4 подряд! Ещё одна = 💰+${Shop.RABBIT_5_COINS}", ja = "🚩 4連勝！あと1勝で 💰+${Shop.RABBIT_5_COINS}")
+        else -> tr("🚩 ${streak}연승! 오늘 연승 보상은 다 받았어요 (최대 💰${Shop.RABBIT_DAILY_MAX})", "🚩 $streak in a row! Today's streak rewards are maxed (💰${Shop.RABBIT_DAILY_MAX})",
+            zh = "🚩 ${streak}连胜！今天的连胜奖励已领满（💰${Shop.RABBIT_DAILY_MAX}）", es = "🚩 ¡$streak seguidas! Premios de hoy al máximo", fr = "🚩 $streak d’affilée ! Récompenses du jour au max",
+            de = "🚩 $streak in Folge! Tagesmaximum erreicht", pt = "🚩 $streak seguidas! Prêmios de hoje no máximo", ru = "🚩 $streak подряд! Лимит наград на сегодня", ja = "🚩 ${streak}連勝！今日の連勝ボーナスは上限です")
     }
     Text(
         text, fontSize = if (coins > 0) 17.sp else 14.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center,

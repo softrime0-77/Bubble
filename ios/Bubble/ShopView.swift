@@ -32,6 +32,8 @@ struct ShopView: View {
                     Text(e).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.danger).multilineTextAlignment(.center)
                 }
                 if let p = online.profile {
+                    // 🎓 튜토리얼에서 들어왔으면 캐릭터 안내
+                    if online.shopTour { ShopTourCard { online.shopTour = false } }
                     pointsCard
                     itemUsageCard
                     shopCard(title: t("💖 부활물약"),
@@ -456,8 +458,8 @@ struct ShopView: View {
             let today = p.rabbitDay == OnlineService.today() ? p.rabbitCoins : 0
             let mx = Shop.rabbitDailyMax, n = p.winStreak
             let a3 = Shop.rabbit3Coins, a5 = Shop.rabbit5Coins, more = Shop.rabbitMoreCoins
-            return tr("🐰 연승할수록 💰 보상!\n· 3연승 +\(a3) · 5연승 +\(a5) · 6연승부터 이길 때마다 +\(more)\n· 지면 연승이 처음부터 (다시 3연승하면 또 +\(a3))\n· 하루 최대 \(mx) (오늘 \(today)/\(mx))\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 \(n)연승",
-                      "🐰 Win streaks pay 💰!\n· 3 wins +\(a3) · 5 wins +\(a5) · from 6, +\(more) per win\n· A loss resets the streak (3 again = +\(a3) again)\n· Max \(mx) a day (today \(today)/\(mx))\n· A ribbon per win, golden ribbons at 5\n· Random, scored friend & AI matches · streak \(n)",
+            return tr("🐰 연승할수록 💰 보상!\n· 3연승 +\(a3) · 5연승 +\(a5) · 6연승부터 이길 때마다 +\(more)\n· 지면 연승이 처음부터 (다시 3연승하면 또 +\(a3))\n· 하루 최대 \(mx) (오늘 \(today)/\(mx))\n· 토끼로 이길 때만 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 \(n)연승",
+                      "🐰 Win streaks pay 💰!\n· 3 wins +\(a3) · 5 wins +\(a5) · from 6, +\(more) per win\n· A loss resets the streak (3 again = +\(a3) again)\n· Max \(mx) a day (today \(today)/\(mx))\n· A ribbon per win with the rabbit, golden at 5\n· Random, scored friend & AI matches · streak \(n)",
                       zh: "🐰 连胜越多 💰 越多！\n· 3连胜 +\(a3) · 5连胜 +\(a5) · 6连胜起每胜 +\(more)\n· 输了连胜重来（再3连胜又 +\(a3)）\n· 每天最多 \(mx)（今天 \(today)/\(mx)）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 \(n) 连胜",
                       es: "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +\(a3) · 5 seguidas +\(a5) · desde 6, +\(more) por victoria\n· Perder reinicia la racha\n· Máx. \(mx) al día (hoy \(today)/\(mx))\n· Un lazo por victoria, dorados a las 5 · racha \(n)",
                       fr: "🐰 Les séries rapportent 💰 !\n· 3 victoires +\(a3) · 5 victoires +\(a5) · dès 6, +\(more) par victoire\n· Une défaite remet la série à zéro\n· Max \(mx) par jour (aujourd’hui \(today)/\(mx))\n· Un ruban par victoire, dorés à 5 · série \(n)",

@@ -538,7 +538,7 @@ class ScreenshotTest {
         shot("hit_marks", 520)
     }
 
-    /** 🎓 튜토리얼: 첫 단계 안내, 끝 화면 */
+    /** 🎓 튜토리얼: 첫 단계 안내, 상대 반격 뒤, 분할·물약 단계, 끝 화면 */
     @Test
     fun tutorial() {
         rule.mainClock.autoAdvance = false
@@ -547,15 +547,21 @@ class ScreenshotTest {
         vm.startTutorial()
         rule.mainClock.advanceTimeBy(900)
         shot("tutorial_1", 300)
-        vm.play(com.bubble.game.game.Move.Add(1, true, 0))
-        rule.mainClock.advanceTimeBy(1500)
-        shot("tutorial_2", 300)
-        vm.play(com.bubble.game.game.Move.Add(0, false, 1))
-        rule.mainClock.advanceTimeBy(1500)
-        vm.play(com.bubble.game.game.Move.Add(1, true, 0))
-        rule.mainClock.advanceTimeBy(1500)
-        vm.play(com.bubble.game.game.Move.Add(1, true, 1))
-        rule.mainClock.advanceTimeBy(3000)
+        // 내가 두면 상대도 정해진 수로 반격 (1.7초 뒤)
+        TutorialScript.moves.forEachIndexed { i, m ->
+            vm.play(m)
+            // 상대 반격은 viewModelScope(메인 루퍼)의 delay 뒤에 오므로 루퍼 시간도 흘려 줌
+            org.robolectric.shadows.ShadowLooper.idleMainLooper(2_000, java.util.concurrent.TimeUnit.MILLISECONDS)
+            rule.mainClock.advanceTimeBy(3000)
+            // 날아가는 중(실제 시계 기준)이 끝나야 손가락 안내가 보임
+            Thread.sleep(700)
+            rule.mainClock.advanceTimeBy(200)
+            when (i) {
+                0 -> shot("tutorial_2", 300)
+                1 -> shot("tutorial_split", 300)
+                2 -> shot("tutorial_revive", 300)
+            }
+        }
         shot("tutorial_done", 300)
     }
 
@@ -564,6 +570,13 @@ class ScreenshotTest {
         rule.mainClock.autoAdvance = false
         rule.setContent { TutorialDone(alreadyRewarded = true) {} }
         shot("tutorial_done_rewarded", 500)
+    }
+
+    @Test
+    fun shopTour() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent { ShopTourCard {} }
+        shot("shop_tour", 300)
     }
 
     @Test

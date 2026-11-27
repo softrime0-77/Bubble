@@ -205,6 +205,8 @@ final class OnlineService: ObservableObject {
     @Published var checkin: CheckinReward? = nil
     /// 미션 완료 축하 팝업 (미션 이름, 💰)
     @Published var mission: MissionReward? = nil
+    /// 🎓 튜토리얼 끝에 상점으로 들어왔으면 상점 맨 위에 캐릭터 안내
+    @Published var shopTour = false
 
     private var appleNonce: String? = nil
     private var infoTask: Task<Void, Never>? = nil

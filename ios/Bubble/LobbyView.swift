@@ -17,6 +17,7 @@ struct LobbyView: View {
     @State private var showRules = false
     @State private var tutorialAsked = false
     @State private var showMusic = false
+    @State private var showCharacters = false
     @State private var cardOf: RankedPlayer?
 
     /// 닉네임: 첫 변경은 무료, 그다음은 변경권이 있어야
@@ -257,6 +258,9 @@ struct LobbyView: View {
         }
         .sheet(isPresented: $showAdmin) { AdminSheet { showAdmin = false } }
         .sheet(isPresented: $showMusic) { MusicPickerSheet { showMusic = false } }
+        .sheet(isPresented: $showCharacters) {
+            CharacterPickerSheet(onShop: { showCharacters = false; onShop() }) { showCharacters = false }
+        }
         .sheet(isPresented: $showRanks) { RanksSheet(myScore: online.profile?.score ?? 0) { showRanks = false } }
         .alert(t("닉네임"), isPresented: $renaming) {
             TextField(t("최대 12자"), text: $newName)
@@ -342,15 +346,25 @@ struct LobbyView: View {
                 .font(.system(size: 14)).foregroundColor(UiColor.text).multilineTextAlignment(.center)
         } else if let p = online.profile {
             HStack(spacing: 10) {
-                Critter(side: .cat, skin: p.equipped, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0).frame(width: 52, height: 52)
+                // 내 캐릭터를 누르면 가진 캐릭터 중에서 바로 바꾸기
+                Button { showCharacters = true } label: {
+                    Critter(side: .cat, skin: p.equipped, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0)
+                        .frame(width: 52, height: 52)
+                        .overlay(alignment: .bottomTrailing) {
+                            Text("🔄").font(.system(size: 10)).padding(2).background(Circle().fill(.white))
+                        }
+                }
+                .buttonStyle(.plain)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text)
+                    // 🐰 연승 토끼 장착 중이면 이름 옆에 지금 연승 리본 수 (계급 배지 줄에 넣으면 줄이 깨짐)
+                    HStack(spacing: 6) {
+                        Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text).lineLimit(1)
+                        if p.equipped == .rabbit { RibbonBadge(n: p.winStreak) }
+                    }
                     Button { showRanks = true } label: {
                         HStack(spacing: 0) {
                             RankBadge(score: p.score)
-                            // 🐰 연승 토끼 장착 중이면 지금 연승 리본 수
-                            if p.equipped == .rabbit { RibbonBadge(n: p.winStreak).padding(.leading, 6) }
-                            Text(t("  계급표 ›")).font(.system(size: 12, weight: .bold)).foregroundColor(UiColor.accent)
+                            Text(t("  계급표 ›")).font(.system(size: 12, weight: .bold)).foregroundColor(UiColor.accent).lineLimit(1).fixedSize()
                         }
                     }
                     Text(tr("\(p.wins)승 \(p.losses)패 · 💖 \(p.potions) · 💰 \(p.coins)", "\(p.wins)W \(p.losses)L · 💖 \(p.potions) · 💰 \(p.coins)",

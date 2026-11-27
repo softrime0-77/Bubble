@@ -344,13 +344,15 @@ struct LobbyView: View {
             HStack(spacing: 10) {
                 Critter(side: .cat, skin: p.equipped, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0).frame(width: 52, height: 52)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text)
+                    // 🐰 연승 토끼 장착 중이면 이름 옆에 지금 연승 리본 수 (계급 배지 줄에 넣으면 줄이 깨짐)
+                    HStack(spacing: 6) {
+                        Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text).lineLimit(1)
+                        if p.equipped == .rabbit { RibbonBadge(n: p.winStreak) }
+                    }
                     Button { showRanks = true } label: {
                         HStack(spacing: 0) {
                             RankBadge(score: p.score)
-                            // 🐰 연승 토끼 장착 중이면 지금 연승 리본 수
-                            if p.equipped == .rabbit { RibbonBadge(n: p.winStreak).padding(.leading, 6) }
-                            Text(t("  계급표 ›")).font(.system(size: 12, weight: .bold)).foregroundColor(UiColor.accent)
+                            Text(t("  계급표 ›")).font(.system(size: 12, weight: .bold)).foregroundColor(UiColor.accent).lineLimit(1).fixedSize()
                         }
                     }
                     Text(tr("\(p.wins)승 \(p.losses)패 · 💖 \(p.potions) · 💰 \(p.coins)", "\(p.wins)W \(p.losses)L · 💖 \(p.potions) · 💰 \(p.coins)",

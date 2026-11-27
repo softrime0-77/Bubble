@@ -384,16 +384,19 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                         Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped, ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
+                            // 🐰 연승 토끼 장착 중이면 이름 옆에 지금 연승 리본 수
+                            // (계급 배지 줄에 넣으면 핑크다이아처럼 긴 배지와 겹쳐 "계급표"가 세로로 깨짐)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                                if (p.equipped == Animal.RABBIT) RibbonBadge(p.winStreak)
+                            }
                             Spacer(Modifier.height(4.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.clickable { showRanks = true },
                             ) {
                                 RankBadge(p.score)
-                                // 🐰 연승 토끼 장착 중이면 지금 연승 리본 수
-                                if (p.equipped == Animal.RABBIT) RibbonBadge(p.winStreak)
-                                Text(tr("  계급표 ›", "  Ranks ›", zh = "  等级表 ›", hi = "  रैंक ›", es = "  Rangos ›", fr = "  Rangs ›", ar = "  الرتب ›", de = "  Ränge ›", pt = "  Ranks ›", ru = "  Ранги ›", ja = "  ランク表 ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent)
+                                Text(tr("  계급표 ›", "  Ranks ›", zh = "  等级表 ›", hi = "  रैंक ›", es = "  Rangos ›", fr = "  Rangs ›", ar = "  الرتب ›", de = "  Ränge ›", pt = "  Ranks ›", ru = "  Ранги ›", ja = "  ランク表 ›"), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ui.accent, maxLines = 1, softWrap = false)
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
@@ -2754,8 +2757,8 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
     val b = Shop.RABBIT_5_COINS
     val c = Shop.RABBIT_MORE_COINS
     val n = p.winStreak
-    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승마다 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
-        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win, golden ribbons at 5\n· Random, scored friend & AI matches · streak $n",
+    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 토끼로 이길 때만 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
+        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win with the rabbit, golden at 5\n· Random, scored friend & AI matches · streak $n",
         zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 ${n} 连胜",
         es = "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
         fr = "🐰 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",

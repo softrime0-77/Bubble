@@ -814,9 +814,9 @@ zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活�
 zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，超时即判负。\n", hi = "• ऑनलाइन हर चाल ${OnlineRepository.TURN_LIMIT_MS / 1000} सेकंड। समय खत्म तो हार।\n", es = "• En línea cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Si se acaba el tiempo, pierdes.\n", fr = "• En ligne, chaque tour dure ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Temps écoulé = défaite.\n", ar = "• مدة الدور عبر الإنترنت ${OnlineRepository.TURN_LIMIT_MS / 1000} ثانية. إذا انتهى الوقت تخسر.\n", de = "• Online dauert ein Zug ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Zeit abgelaufen = verloren.\n", pt = "• Online, cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Se o tempo acabar, você perde.\n", ru = "• Онлайн ход длится ${OnlineRepository.TURN_LIMIT_MS / 1000} с. Время вышло — поражение.\n", ja = "• オンラインの1ターンは${OnlineRepository.TURN_LIMIT_MS / 1000}秒。時間切れで負けです。\n",
 ) +
                     tr(
-                    "   상대가 양·강아지·기린을 썼다면 내 턴이 15·12·8초로 줄어요.\n" +
+                    "   상대가 시계 햄스터 1·2·3을 썼다면 내 턴이 15·12·8초로 줄어요.\n" +
                         "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 8초. 시간을 넘기면 패배!\n\n",
-                    "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 12 or 8s.\n" +
+                    "   If your opponent uses Time Hamster 1, 2 or 3, your turn drops to 15, 12 or 8s.\n" +
                         "• Your turn vs AI: Easy 20s · Normal 15s · Hard 8s. Run out of time and you lose!\n\n",
                     zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、12 或 8 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 8 秒。超时判负！\n\n",
                     hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 12 या 8 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 8से। समय खत्म तो हार!\n\n",
@@ -2032,8 +2032,8 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text, modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            tr("승패에는 영향이 없어요. 💰 복냥이 · 🐼 판다 · 🐉 아기 용은 상점 포인트 보너스가 있어요",
-                "No effect on winning. 💰 Lucky Cat, 🐼 Panda and 🐉 Dragon give shop-point bonuses",
+            tr("승패에는 영향이 없어요. 💰 복햄이 · 📜 출석 햄스터 · 🔥 불꽃 햄스터는 상점 포인트 보너스가 있어요",
+                "No effect on winning. 💰 Lucky, 📜 Check-in and 🔥 Fire Hamsters give shop-point bonuses",
                 zh = "不影响胜负。💰 招财猫 · 🐼 熊猫 · 🐉 小龙有商店积分奖励", es = "No afectan al resultado. 💰 Gato, 🐼 Panda y 🐉 Dragón dan puntos de tienda",
                 fr = "Aucun effet sur la victoire. 💰 Chat, 🐼 Panda et 🐉 Dragon donnent des points boutique", de = "Kein Einfluss auf Sieg. 💰 Katze, 🐼 Panda und 🐉 Drache geben Shop-Punkte",
                 pt = "Não afetam a vitória. 💰 Gato, 🐼 Panda e 🐉 Dragão dão pontos da loja", ru = "На победу не влияют. 💰 Котик, 🐼 Панда и 🐉 Дракон дают очки магазина",
@@ -3207,7 +3207,7 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
             if (g.opponentSkin == Animal.UNICORN) {
                 Spacer(Modifier.height(10.dp))
                 VsNotice(
-                    tr("🦄 다이아 전용 유니콘 등장!", "🦄 A Diamond-only Unicorn appears!", zh = "🦄 钻石专属独角兽登场！", es = "🦄 ¡Aparece un unicornio exclusivo de Diamante!",
+                    tr("🦄 다이아 전용 유니콘 햄스터 등장!", "🦄 A Diamond-only Unicorn Hamster appears!", zh = "🦄 钻石专属独角兽登场！", es = "🦄 ¡Aparece un unicornio exclusivo de Diamante!",
                         fr = "🦄 Une licorne réservée au Diamant apparaît !", de = "🦄 Ein Diamant-Einhorn erscheint!", pt = "🦄 Surge um unicórnio exclusivo do Diamante!",
                         ru = "🦄 Появился единорог для Алмазов!", ja = "🦄 ダイヤ専用ユニコーン登場！"),
                     Color(0xFF8E6CF0),
@@ -3226,7 +3226,7 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
             if (g.opponentSkin == Animal.RABBIT && g.opponentRibbons >= Shop.RABBIT_MAX_RIBBONS) {
                 Spacer(Modifier.height(10.dp))
                 VsNotice(
-                    tr("🔥 상대가 연승 토끼로 5연승 이상 중!", "🔥 Your rival's Streak Bunny is on a 5+ win streak!",
+                    tr("🔥 상대가 연승 햄스터로 5연승 이상 중!", "🔥 Your rival's Streak Hamster is on a 5+ win streak!",
                         zh = "🔥 对手的连胜兔已经 5 连胜以上！", es = "🔥 ¡El conejo de tu rival lleva 5+ victorias seguidas!", fr = "🔥 Le lapin adverse est sur 5+ victoires d’affilée !",
                         de = "🔥 Der Siegeshase deines Gegners hat 5+ Siege in Folge!", pt = "🔥 O coelho do rival está com 5+ vitórias seguidas!", ru = "🔥 Зайка соперника — серия 5+ побед!", ja = "🔥 相手の連勝ウサギが5連勝以上中！"),
                     Color(0xFFFF8A3D),
@@ -3237,7 +3237,7 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
                 val n = g.myRibbons
                 VsNotice(
                     if (n >= Shop.RABBIT_MAX_RIBBONS) {
-                        tr("🔥 내 연승 토끼 5연승 이상! 이기면 💰+${Shop.RABBIT_MORE_COINS}", "🔥 Your bunny is on 5+ wins! Win = 💰+${Shop.RABBIT_MORE_COINS}",
+                        tr("🔥 내 연승 햄스터 5연승 이상! 이기면 💰+${Shop.RABBIT_MORE_COINS}", "🔥 Your Streak Hamster is on 5+ wins! Win = 💰+${Shop.RABBIT_MORE_COINS}",
                             zh = "🔥 我的连胜兔 5 连胜以上！赢了 💰+${Shop.RABBIT_MORE_COINS}", es = "🔥 ¡Tu conejo lleva 5+! Gana = 💰+${Shop.RABBIT_MORE_COINS}", fr = "🔥 Ton lapin est à 5+ ! Victoire = 💰+${Shop.RABBIT_MORE_COINS}",
                             de = "🔥 Dein Hase hat 5+ Siege! Sieg = 💰+${Shop.RABBIT_MORE_COINS}", pt = "🔥 Seu coelho está com 5+! Vitória = 💰+${Shop.RABBIT_MORE_COINS}", ru = "🔥 Ваш зайка: 5+ побед! Победа = 💰+${Shop.RABBIT_MORE_COINS}", ja = "🔥 自分のウサギが5連勝以上！勝つと 💰+${Shop.RABBIT_MORE_COINS}")
                     } else {

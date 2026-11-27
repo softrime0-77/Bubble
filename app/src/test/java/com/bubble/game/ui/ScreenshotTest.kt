@@ -81,6 +81,24 @@ class ScreenshotTest {
     }
 
     @Test
+    fun shopSkinArt() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent { BubbleApp(vm) }
+        vm.openShop()
+        rule.mainClock.advanceTimeBy(900)
+        // 상점을 조금씩 쓸어 올리며 캐릭터 카드들 찍기
+        for (i in 1..4) {
+            repeat(2) {
+                rule.onNodeWithText("🛒 상점", useUnmergedTree = true).performTouchInput { swipeUp(startY = bottom + 1400f, endY = top - 600f) }
+                rule.mainClock.advanceTimeBy(300)
+            }
+            shot("shop_skins_$i", 600)
+        }
+    }
+
+    @Test
     fun landRankingRows() {
         rule.mainClock.autoAdvance = false
         rule.setContent {

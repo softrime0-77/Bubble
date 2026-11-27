@@ -62,37 +62,37 @@ enum class Animal(
     /** 유료 스킨: 한 번 사면 계속 쓰고, 모습만 바뀜 (효과 없음) */
     val cosmetic: Boolean = false,
 ) {
-    SHEEP("양", "Sheep", 20, 15),
-    DOG("강아지", "Puppy", 40, 12),
-    GIRAFFE("기린", "Giraffe", 70, 8),
+    SHEEP("시계 햄스터 1", "Time Hamster 1", 20, 15),
+    DOG("시계 햄스터 2", "Time Hamster 2", 40, 12),
+    GIRAFFE("시계 햄스터 3", "Time Hamster 3", 70, 8),
     /** 무료 캐릭터: 모습만 햄스터로 바뀌고 효과 없음, 소모되지 않음 */
     HAMSTER("햄스터", "Hamster", 0, Shop.DEFAULT_TURN_SEC),
     // 유료 스킨 (functions/src/catalog.ts COSMETIC_SKINS와 같은 가격)
-    PINK_CAT("핑크 고양이", "Pink Cat", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
-    BLACK_CAT("까망 고양이", "Black Cat", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    PINK_CAT("핑크 햄스터", "Pink Hamster", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    BLACK_CAT("까망 햄스터", "Black Hamster", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     SNOW_HAMSTER("눈송이 햄스터", "Snow Hamster", 300, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     GOLD_HAMSTER("황금 햄스터", "Golden Hamster", 500, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 💰 복냥이: 한 번 사면 계속. 공격할 때마다 50% 확률로 상점 포인트 +1 (하루 최대 30) */
-    LUCKY_CAT("복냥이", "Lucky Cat", 1000, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    LUCKY_CAT("복햄이", "Lucky Hamster", 1000, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🐙 문어: 분할할 때 먹물이 퍽 */
-    OCTOPUS("문어", "Octopus", 400, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    OCTOPUS("물햄스터", "Water Hamster", 400, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🐧 펭귄: 공격할 때 얼음 썰매 */
     PENGUIN("펭귄", "Penguin", 400, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🐼 출석 판다: 장착하고 출석하면 💰 +10 */
-    PANDA("출석 판다", "Check-in Panda", 500, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    PANDA("출석 햄스터", "Check-in Hamster", 500, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🐉 아기 용: 상대 방울을 터뜨리면 💰 +2 (하루 최대 10) */
-    DRAGON("아기 용", "Baby Dragon", 700, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    DRAGON("불꽃 햄스터", "Fire Hamster", 700, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🐰 연승 토끼: 연승할수록 리본이 늘어남 (최대 5) */
-    RABBIT("연승 토끼", "Streak Bunny", 600, Shop.DEFAULT_TURN_SEC, cosmetic = true),
+    RABBIT("연승 햄스터", "Streak Hamster", 600, Shop.DEFAULT_TURN_SEC, cosmetic = true),
     /** 🦄 유니콘: 팔지 않음. 다이아 계급 이상이면 장착 */
-    UNICORN("유니콘", "Unicorn", 0, Shop.DEFAULT_TURN_SEC),
+    UNICORN("유니콘 햄스터", "Unicorn Hamster", 0, Shop.DEFAULT_TURN_SEC),
     ;
 
     /** 효과가 있는 영구 캐릭터 (복냥이) */
     val lucky: Boolean get() = this == LUCKY_CAT
 
-    /** 그릴 때 고양이 모양인지 (상점 미리보기용) */
-    val looksLikeCat: Boolean get() = this == PINK_CAT || this == BLACK_CAT || this == LUCKY_CAT
+    /** 그릴 때 고양이 모양인지 (상점 미리보기용). 세계관상 내 캐릭터는 모두 햄스터 */
+    val looksLikeCat: Boolean get() = false
 
     /** 소모품 동물 (랜덤 매칭 1판에 1개, 상대 턴을 줄임) */
     val consumable: Boolean get() = !free && !cosmetic && !rankOnly
@@ -107,21 +107,21 @@ enum class Animal(
     /** 순서: zh, hi, es, fr, ar, de, pt, ru, ja */
     private val others: List<String>
         get() = when (this) {
-            SHEEP -> listOf("绵羊", "भेड़", "Oveja", "Mouton", "خروف", "Schaf", "Ovelha", "Овечка", "ヒツジ")
-            DOG -> listOf("小狗", "पिल्ला", "Perrito", "Chiot", "جرو", "Welpe", "Cachorrinho", "Щенок", "子イヌ")
-            GIRAFFE -> listOf("长颈鹿", "जिराफ़", "Jirafa", "Girafe", "زرافة", "Giraffe", "Girafa", "Жираф", "キリン")
+            SHEEP -> listOf("时间仓鼠 1", "टाइम हैम्स्टर 1", "Hámster del tiempo 1", "Hamster du temps 1", "هامستر الوقت 1", "Zeithamster 1", "Hamster do tempo 1", "Хомяк времени 1", "とけいハムスター1")
+            DOG -> listOf("时间仓鼠 2", "टाइम हैम्स्टर 2", "Hámster del tiempo 2", "Hamster du temps 2", "هامستر الوقت 2", "Zeithamster 2", "Hamster do tempo 2", "Хомяк времени 2", "とけいハムスター2")
+            GIRAFFE -> listOf("时间仓鼠 3", "टाइम हैम्स्टर 3", "Hámster del tiempo 3", "Hamster du temps 3", "هامستر الوقت 3", "Zeithamster 3", "Hamster do tempo 3", "Хомяк времени 3", "とけいハムスター3")
             HAMSTER -> listOf("仓鼠", "हैम्स्टर", "Hámster", "Hamster", "هامستر", "Hamster", "Hamster", "Хомяк", "ハムスター")
-            PINK_CAT -> listOf("粉红猫咪", "गुलाबी बिल्ली", "Gato rosa", "Chat rose", "قطة وردية", "Pinke Katze", "Gato rosa", "Розовый котик", "ピンクネコ")
-            BLACK_CAT -> listOf("小黑猫", "काली बिल्ली", "Gato negro", "Chat noir", "قطة سوداء", "Schwarze Katze", "Gato preto", "Чёрный котик", "くろネコ")
+            PINK_CAT -> listOf("粉红仓鼠", "गुलाबी हैम्स्टर", "Hámster rosa", "Hamster rose", "هامستر وردي", "Pinker Hamster", "Hamster rosa", "Розовый хомяк", "ピンクハムスター")
+            BLACK_CAT -> listOf("小黑仓鼠", "काला हैम्स्टर", "Hámster negro", "Hamster noir", "هامستر أسود", "Schwarzer Hamster", "Hamster preto", "Чёрный хомяк", "くろハムスター")
             SNOW_HAMSTER -> listOf("雪花仓鼠", "स्नो हैम्स्टर", "Hámster nieve", "Hamster neige", "هامستر الثلج", "Schneehamster", "Hamster neve", "Снежный хомяк", "ゆきハムスター")
             GOLD_HAMSTER -> listOf("黄金仓鼠", "गोल्डन हैम्स्टर", "Hámster dorado", "Hamster doré", "هامستر ذهبي", "Goldhamster", "Hamster dourado", "Золотой хомяк", "きんハムスター")
-            LUCKY_CAT -> listOf("招财猫", "लकी बिल्ली", "Gato de la suerte", "Chat porte-bonheur", "قطة الحظ", "Glückskatze", "Gato da sorte", "Котик удачи", "まねきネコ")
-            OCTOPUS -> listOf("章鱼", "ऑक्टोपस", "Pulpo", "Pieuvre", "أخطبوط", "Oktopus", "Polvo", "Осьминог", "タコ")
+            LUCKY_CAT -> listOf("招财仓鼠", "लकी हैम्स्टर", "Hámster de la suerte", "Hamster porte-bonheur", "هامستر الحظ", "Glückshamster", "Hamster da sorte", "Хомяк удачи", "まねきハムスター")
+            OCTOPUS -> listOf("水仓鼠", "पानी हैम्स्टर", "Hámster de agua", "Hamster d’eau", "هامستر الماء", "Wasserhamster", "Hamster d’água", "Водяной хомяк", "みずハムスター")
             PENGUIN -> listOf("企鹅", "पेंगुइन", "Pingüino", "Pingouin", "بطريق", "Pinguin", "Pinguim", "Пингвин", "ペンギン")
-            PANDA -> listOf("签到熊猫", "हाज़िरी पांडा", "Panda asistente", "Panda de présence", "باندا الحضور", "Check-in-Panda", "Panda da presença", "Панда-отметка", "しゅっせきパンダ")
-            DRAGON -> listOf("小龙", "बेबी ड्रैगन", "Dragoncito", "Bébé dragon", "تنين صغير", "Babydrache", "Dragãozinho", "Дракончик", "ちびドラゴン")
-            RABBIT -> listOf("连胜兔", "जीत खरगोश", "Conejo racha", "Lapin série", "أرنب الانتصارات", "Siegeshase", "Coelho da sequência", "Зайка-серия", "れんしょうウサギ")
-            UNICORN -> listOf("独角兽", "यूनिकॉर्न", "Unicornio", "Licorne", "وحيد القرن", "Einhorn", "Unicórnio", "Единорог", "ユニコーン")
+            PANDA -> listOf("签到仓鼠", "हाज़िरी हैम्स्टर", "Hámster asistente", "Hamster de présence", "هامستر الحضور", "Check-in-Hamster", "Hamster da presença", "Хомяк-отметка", "しゅっせきハムスター")
+            DRAGON -> listOf("火焰仓鼠", "आग हैम्स्टर", "Hámster de fuego", "Hamster de feu", "هامستر النار", "Feuerhamster", "Hamster de fogo", "Огненный хомяк", "ほのおハムスター")
+            RABBIT -> listOf("连胜仓鼠", "जीत हैम्स्टर", "Hámster racha", "Hamster série", "هامستر الانتصارات", "Siegeshamster", "Hamster da sequência", "Хомяк-серия", "れんしょうハムスター")
+            UNICORN -> listOf("独角兽仓鼠", "यूनिकॉर्न हैम्स्टर", "Hámster unicornio", "Hamster licorne", "هامستر وحيد القرن", "Einhorn-Hamster", "Hamster unicórnio", "Хомяк-единорог", "ユニコーンハムスター")
         }
 
     val label: String get() = Lang.pick(listOf(ko, en) + others)

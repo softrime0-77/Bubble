@@ -68,6 +68,8 @@ struct Profile: Equatable {
     var potionAds = 0
     /// 주간 랭킹 보상 (아직 안 봤으면 팝업)
     var weeklyReward: WeeklyReward? = nil
+    /// 🌈 땅을 사서 독립했는지 ("독립 햄스터" 칭호, 랭킹 표시)
+    var land = false
     var rank: Rank { Rank.of(score) }
     func animalCount(_ a: Animal) -> Int { animals[a] ?? 0 }
 }
@@ -91,6 +93,8 @@ struct RankRow: Identifiable, Equatable {
     var losses: Int? = nil
     /// 지금 보이는 캐릭터 (nil이면 기본 고양이)
     var look: Animal? = nil
+    /// 🌈 독립 햄스터
+    var land = false
     var id: String { uid }
 }
 
@@ -207,6 +211,8 @@ final class OnlineService: ObservableObject {
     @Published var mission: MissionReward? = nil
     /// 🎓 튜토리얼 끝에 상점으로 들어왔으면 상점 맨 위에 캐릭터 안내
     @Published var shopTour = false
+    /// 🌈 땅을 사서 독립! 엔딩 컷
+    @Published var landEnding = false
 
     private var appleNonce: String? = nil
     private var infoTask: Task<Void, Never>? = nil
@@ -396,6 +402,17 @@ final class OnlineService: ObservableObject {
         await shopAction(tf("{0} 구매 완료! 🎉", label), sound: .buy) { _ = try await call("buyItem", ["item": item, "qty": qty]) }
     }
 
+    /// 🌈 땅 사기: 점수로만 (💰 상점 포인트 불가, 서버가 검사). 성공하면 독립 엔딩
+    func buyLand() async {
+        var ok = false
+        await shopAction(tr("🌈 우리 땅이 생겼어요! 햄스터 독립 만세!", "🌈 We have our own land! Hamster independence!",
+                            zh: "🌈 我们有自己的土地了！仓鼠独立万岁！", ja: "🌈 ぼくらの土地ができた！ハムスター独立ばんざい！"), sound: .buy) {
+            _ = try await call("buyItem", ["item": "LAND", "qty": 1])
+            ok = true
+        }
+        if ok { rankDown = nil; landEnding = true }
+    }
+
     func equip(_ animal: Animal?) async {
         await shopAction(animal.map { tf("{0} 장착!", $0.label) } ?? t("기본 캐릭터로 바꿨어요"), sound: .equip) {
             _ = try await call("equipAnimal", ["animal": animal.map { $0.rawValue as Any } ?? NSNull()])
@@ -496,7 +513,8 @@ final class OnlineService: ObservableObject {
                 return RankRow(uid: uid, rank: rank, name: d["name"] as? String ?? "Player",
                                score: Self.int(d["score"]) ?? Self.startScore, country: d["country"] as? String,
                                wins: Self.int(d["wins"]), losses: Self.int(d["losses"]),
-                               look: (d["look"] as? String).flatMap { Animal(rawValue: $0) })
+                               look: (d["look"] as? String).flatMap { Animal(rawValue: $0) },
+                               land: d["land"] as? Bool ?? false)
             }
         }
     }
@@ -656,7 +674,8 @@ final class OnlineService: ObservableObject {
         // 같은 계정에서 계급이 올라가면 축하 화면
         if let old, old.uid == p.uid, p.rank.rawValue > old.rank.rawValue { rankUpScore = p.score; rankDown = nil }
         // 계급이 내려가면 응원 팝업
-        if let old, old.uid == p.uid, p.rank.rawValue < old.rank.rawValue { rankDown = (old.rank, p.score) }
+        // (🌈 땅을 사서 점수가 크게 줄어든 건 독립 엔딩이 대신하므로 계급 하락 팝업 없음)
+        if let old, old.uid == p.uid, p.rank.rawValue < old.rank.rawValue, !(p.land && !old.land) { rankDown = (old.rank, p.score) }
         if old == nil { redeemPendingInvite(p) }
         refreshMyRanking()
     }
@@ -770,7 +789,8 @@ final class OnlineService: ObservableObject {
             potionAds: int(d["potionAds"]) ?? 0,
             weeklyReward: (d["weeklyReward"] as? [String: Any]).map { w in
                 WeeklyReward(week: w["week"] as? String ?? "", rank: int(w["rank"]) ?? 0, coins: int(w["coins"]) ?? 0, seen: w["seen"] as? Bool ?? false)
-            }
+            },
+            land: d["land"] as? Bool ?? false
         )
     }
 

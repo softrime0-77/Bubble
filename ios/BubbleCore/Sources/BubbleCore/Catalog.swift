@@ -91,8 +91,10 @@ public enum Animal: String, CaseIterable, Sendable {
     public var lucky: Bool { self == .luckyCat }
     /// 소모품 동물 (랜덤 매칭 1판에 1개)
     public var consumable: Bool { !free && !cosmetic && !rankOnly }
-    /// 그릴 때 고양이 모양인지 햄스터 모양인지 (상점 미리보기용)
-    public var looksLikeCat: Bool { self == .pinkCat || self == .blackCat || self == .luckyCat }
+    /// 그릴 때 고양이 모양인지 (상점 미리보기용). 세계관상 내 캐릭터는 모두 햄스터
+    public var looksLikeCat: Bool { false }
+    /// 🐧 판매 중단 (상점·캐릭터 목록에서 숨김, 서버도 안 팖)
+    public var retired: Bool { self == .penguin }
     /// 무료 캐릭터 (사지 않고 바로 장착, 효과 없음)
     public var free: Bool { price == 0 && !rankOnly }
 }
@@ -101,6 +103,8 @@ public enum Shop {
     public static let potionPrice = 50
     /// ✏️ 닉네임 변경권 (첫 변경은 무료). functions/src/catalog.ts RENAME_PRICE와 같게
     public static let renamePrice = 100
+    /// 🌈 땅: 점수로만 사는 최종 목표 (💰 상점 포인트 사용 불가, 한 번만). functions/src/catalog.ts LAND_PRICE와 같게
+    public static let landPrice = 100_000
     public static let boostPrice = 100
     public static let boostMultiplier = 3
     public static let maxRevivesPerGame = 3

@@ -20,7 +20,7 @@ private func circle(_ c: CGPoint, _ r: CGFloat) -> Path {
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /// 터질 때·날아갈 때 흩뿌리는 모양
-enum FxShape { case star, heart, paw, snow, coin, bone, leaf, cloud, moon, seed, ink, flame, ice }
+enum FxShape { case star, heart, paw, snow, coin, bone, leaf, cloud, moon, seed, ink, flame, ice, drop, flag }
 
 /// 캐릭터마다 다른 반짝이 색과 모양, 터질 때 붙는 이모지
 struct FxTheme {
@@ -33,7 +33,7 @@ struct FxTheme {
     func shape(_ k: Int) -> FxShape { shapes[k % shapes.count] }
 
     static func of(_ side: Side, _ skin: Animal?) -> FxTheme {
-        switch skin ?? (side == .cat ? nil : .hamster) {
+        switch skin ?? (SideLook.of(side) == .cat ? nil : .hamster) {
         case nil:
             return FxTheme(colors: [Color(hex: 0xFF9A3C), Color(hex: 0xFFC94D), .white, Color(hex: 0xFFD3A8)], shapes: [.paw, .star], emoji: "🐾")
         case .hamster:
@@ -45,15 +45,15 @@ struct FxTheme {
         case .snowHamster:
             return FxTheme(colors: [Color(hex: 0x5CC8FF), Color(hex: 0xBFE9FF), .white, Color(hex: 0x9AB8FF)], shapes: [.snow, .star], emoji: "❄️")
         case .octopus:
-            return FxTheme(colors: [Color(hex: 0x2E1F4D), Color(hex: 0xB57BEE), Color(hex: 0x8E52D6), .white], shapes: [.ink, .star], emoji: "🐙")
+            return FxTheme(colors: [Color(hex: 0x4FC3F7), Color(hex: 0xB3E5FC), Color(hex: 0x29B6F6), .white], shapes: [.drop, .star], emoji: "💧")
         case .penguin:
             return FxTheme(colors: [Color(hex: 0x7FD3FF), .white, Color(hex: 0x5CC8FF), Color(hex: 0xBFE9FF)], shapes: [.ice, .snow, .star], emoji: "🐧")
         case .panda:
-            return FxTheme(colors: [Color(hex: 0x6CCB5F), .white, Color(hex: 0x3B3B45), Color(hex: 0xB8F0A8)], shapes: [.leaf, .heart], emoji: "🐼")
+            return FxTheme(colors: [Color(hex: 0xE53935), Color(hex: 0xFFD54F), .white, Color(hex: 0xFF8A80)], shapes: [.star, .heart], emoji: "💮")
         case .dragon:
             return FxTheme(colors: [Color(hex: 0xFF6A2B), Color(hex: 0xFFC21A), Color(hex: 0xFF2D55), .white], shapes: [.flame, .star], emoji: "🔥")
         case .rabbit:
-            return FxTheme(colors: [Color(hex: 0xFF8FB8), .white, Color(hex: 0xFFC94D), Color(hex: 0x7C6CF2)], shapes: [.heart, .star], emoji: "🐰")
+            return FxTheme(colors: [Color(hex: 0xE53935), .white, Color(hex: 0xFFC94D), Color(hex: 0x64B5F6)], shapes: [.flag, .star], emoji: "🚩")
         case .unicorn:
             return FxTheme(colors: [Color(hex: 0xFF7EB3), Color(hex: 0xFFE066), Color(hex: 0x7FC8FF), Color(hex: 0xB98CFF), Color(hex: 0x7DDB9B), .white], shapes: [.star, .heart], emoji: "🌈")
         case .luckyCat:
@@ -180,6 +180,28 @@ func drawFx(_ ctx: inout GraphicsContext, _ shape: FxShape, _ c: CGPoint, _ r: C
         line.move(to: CGPoint(x: 0, y: -r * 0.7))
         line.addLine(to: CGPoint(x: 0, y: r * 0.7))
         g.stroke(line, with: .color(.white.opacity(0.7)), style: StrokeStyle(lineWidth: r * 0.14, lineCap: .round))
+    case .drop:
+        // 💧 물방울: 위가 뾰족한 눈물 모양 + 반짝
+        var p = Path()
+        p.move(to: CGPoint(x: 0, y: -r * 1.1))
+        p.addCurve(to: CGPoint(x: r * 0.8, y: r * 0.35), control1: CGPoint(x: r * 0.25, y: -r * 0.5), control2: CGPoint(x: r * 0.8, y: 0))
+        p.addCurve(to: CGPoint(x: -r * 0.8, y: r * 0.35), control1: CGPoint(x: r * 0.8, y: r * 0.85), control2: CGPoint(x: -r * 0.8, y: r * 0.85))
+        p.addCurve(to: CGPoint(x: 0, y: -r * 1.1), control1: CGPoint(x: -r * 0.8, y: 0), control2: CGPoint(x: -r * 0.25, y: -r * 0.5))
+        p.closeSubpath()
+        g.fill(p, with: .color(color))
+        g.fill(Path(ellipseIn: CGRect(x: -r * 0.5, y: -r * 0.05, width: r * 0.4, height: r * 0.4)), with: .color(.white.opacity(0.7)))
+    case .flag:
+        // 🚩 작은 깃발
+        var pole = Path()
+        pole.move(to: CGPoint(x: -r * 0.5, y: -r))
+        pole.addLine(to: CGPoint(x: -r * 0.5, y: r))
+        g.stroke(pole, with: .color(Color(hex: 0x8D6E63)), style: StrokeStyle(lineWidth: r * 0.16, lineCap: .round))
+        var f = Path()
+        f.move(to: CGPoint(x: -r * 0.45, y: -r))
+        f.addLine(to: CGPoint(x: r * 0.9, y: -r * 0.6))
+        f.addLine(to: CGPoint(x: -r * 0.45, y: -r * 0.15))
+        f.closeSubpath()
+        g.fill(f, with: .color(color))
     }
 }
 
@@ -1253,7 +1275,7 @@ enum WinFx { case fireworks, storm, rainbow, night, paws, ink, sled, clouds, fla
 
 /// 캐릭터별 승리 효과 (테마 비는 모두 공통)
 func winFx(_ side: Side, _ skin: Animal?) -> [WinFx] {
-    switch skin ?? (side == .cat ? nil : .hamster) {
+    switch skin ?? (SideLook.of(side) == .cat ? nil : .hamster) {
     case nil: return [.paws]                       // 🐾 고양이: 발자국이 콩콩
     case .hamster: return [.fireworks]             // 🌻 해바라기씨 폭죽
     case .pinkCat: return [.fireworks]             // 💗 하트 폭죽
@@ -1261,11 +1283,11 @@ func winFx(_ side: Side, _ skin: Animal?) -> [WinFx] {
     case .snowHamster: return [.storm]             // ❄️ 눈보라
     case .goldHamster: return [.fireworks]         // ✨ 금가루 폭죽
     case .luckyCat: return [.fireworks, .paws]     // 💰 금화 폭죽 + 복 발자국
-    case .octopus: return [.ink]                   // 🐙 먹물이 퍽퍽
+    case .octopus: return [.fireworks, .storm]     // 💧 물방울 폭죽 + 물보라
     case .penguin: return [.sled, .storm]          // 🐧 썰매가 쌩 + 눈
-    case .panda: return [.storm]                   // 🐼 대나무잎 회오리
+    case .panda: return [.fireworks]               // 💮 출석 도장 폭죽
     case .dragon: return [.flames, .fireworks]     // 🐉 불꽃이 활활
-    case .rabbit: return [.fireworks]              // 🐰 리본·하트 폭죽
+    case .rabbit: return [.fireworks]              // 🚩 깃발·별 폭죽
     case .unicorn: return [.rainbow, .fireworks]   // 🦄 무지개 + 별
     case .sheep: return [.clouds]                  // ☁️ 구름이 둥실
     case .dog: return [.paws]                      // 🦴 발자국
@@ -1331,7 +1353,7 @@ struct WinRain: View {
     }
 
     private static func storm(_ ctx: inout GraphicsContext, _ w: CGFloat, _ h: CGFloat, _ fall: CGFloat, _ theme: FxTheme, _ skin: Animal?) {
-        let icy = skin == .snowHamster || skin == .penguin
+        let icy = skin == .snowHamster || skin == .penguin || skin == .octopus
         let frost: Color = icy ? Color(hex: 0xDFF4FF) : theme.main.opacity(0.6)
         ctx.fill(Path(CGRect(x: 0, y: 0, width: w, height: h * 0.22)),
                  with: .linearGradient(Gradient(colors: [frost.opacity(0.7), .clear]), startPoint: .zero, endPoint: CGPoint(x: 0, y: h * 0.22)))
@@ -1341,7 +1363,7 @@ struct WinRain: View {
                  with: .linearGradient(Gradient(colors: [frost.opacity(0.45), .clear]), startPoint: .zero, endPoint: CGPoint(x: w * 0.18, y: 0)))
         ctx.fill(Path(CGRect(x: w * 0.82, y: 0, width: w * 0.18, height: h)),
                  with: .linearGradient(Gradient(colors: [.clear, frost.opacity(0.45)]), startPoint: CGPoint(x: w * 0.82, y: 0), endPoint: CGPoint(x: w, y: 0)))
-        let big: FxShape = (skin == .panda || skin == .giraffe) ? .leaf : .snow
+        let big: FxShape = skin == .octopus ? .drop : .snow
         for (i, q) in flakes.enumerated() {
             let fi = CGFloat(i)
             let tt: CGFloat = (fall * (0.8 + q.s * 0.5) + q.a).truncatingRemainder(dividingBy: 1)

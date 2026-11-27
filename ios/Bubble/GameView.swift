@@ -56,7 +56,7 @@ struct GameView<M: GameModel>: View {
             matchLine: "\(game.myName) vs \(opp)",
             scoreLine: gain + "\(rank.emoji) \(rank.label)",
             side: game.mySide,
-            skin: game.mySkin,
+            skin: myLook,
             footer: footer,
             message: message)
     }
@@ -64,7 +64,7 @@ struct GameView<M: GameModel>: View {
     private func resultOverlay(_ w: Side) -> ResultOverlay {
         let won = w == me
         let delta: Int? = game.isOnline ? game.scoreDelta : nil
-        return ResultOverlay(won: won, side: me, skin: game.mySkin, reason: game.reason, delta: delta,
+        return ResultOverlay(won: won, side: me, skin: myLook, reason: game.reason, delta: delta,
                              online: game.isOnline, bonus: game.scoreBonus, boosted: game.myBoost, friendly: game.friendlyMatch, rewardOffer: rewardOffer,
                              rabbitStreak: game.rabbitStreak, ribbonsBefore: game.myRibbons,
                              rabbitCoins: game.rabbitCoins, unicornCoins: game.unicornCoins, gameCoins: game.gameCoins,
@@ -73,6 +73,9 @@ struct GameView<M: GameModel>: View {
     }
 
     private var me: Side { game.mySide }
+    /// ⏱ 시계 햄스터(소모품)는 모습을 바꾸지 않음 → 기본 햄스터로 그림 (시작 때 알림만)
+    private var myLook: Animal? { game.mySkin.shownSkin }
+    private var oppLook: Animal? { game.opponentSkin.shownSkin }
 
     /// 🎓 튜토리얼 끝: 끝까지 했으면 보상(계정당 한 번), 아니면 건너뛰기. 그다음 로비로
     private func finishTutorial(_ completed: Bool, toShop: Bool = false) {
@@ -82,6 +85,7 @@ struct GameView<M: GameModel>: View {
     private var opp: Side { game.mySide.opponent }
 
     var body: some View {
+        let _ = SideLook.set(game.mySide)
         ZStack {
             VStack(spacing: 0) {
                 HStack {
@@ -93,10 +97,10 @@ struct GameView<M: GameModel>: View {
                 .padding(.horizontal, 16)
 
                 HStack(spacing: 8) {
-                    PlayerTag(side: opp, name: game.opponentName, active: game.turn == opp && !game.finished, skin: game.opponentSkin)
+                    PlayerTag(side: opp, name: game.opponentName, active: game.turn == opp && !game.finished, skin: oppLook)
                     SplitCounter(left: game.board.splitsLeft(opp))
                     ReviveCounter(left: game.board.revivesLeft(opp))
-                    if game.opponentSkin == .rabbit { RibbonBadge(n: game.opponentRibbons) }
+                    if oppLook == .rabbit { RibbonBadge(n: game.opponentRibbons) }
                 }
                 .padding(.top, 6)
 
@@ -112,7 +116,7 @@ struct GameView<M: GameModel>: View {
                 Spacer(minLength: 8)
                 turnBanner
                 if let d = game.deadline, !game.finished {
-                    TurnTimerView(deadline: d, totalSec: game.turnSec, mine: game.turn == me, skin: game.mySkin)
+                    TurnTimerView(deadline: d, totalSec: game.turnSec, mine: game.turn == me, skin: myLook)
                         .padding(.top, 10)
                 }
                 Spacer(minLength: 8)
@@ -126,10 +130,10 @@ struct GameView<M: GameModel>: View {
                 .padding(.horizontal, 20)
 
                 HStack(spacing: 8) {
-                    PlayerTag(side: me, name: game.myName, active: game.myTurn, skin: game.mySkin)
+                    PlayerTag(side: me, name: game.myName, active: game.myTurn, skin: myLook)
                     SplitCounter(left: game.board.splitsLeft(me))
                     ReviveCounter(left: game.board.revivesLeft(me))
-                    if game.mySkin == .rabbit { RibbonBadge(n: game.myRibbons) }
+                    if myLook == .rabbit { RibbonBadge(n: game.myRibbons) }
                     if game.myBoost {
                         Text("🚀×3").font(.system(size: 13, weight: .black)).foregroundColor(Color(hex: 0xB23C00))
                             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -167,8 +171,10 @@ struct GameView<M: GameModel>: View {
         .coordinateSpace(name: "game")
         .onPreferenceChange(BubbleCentersKey.self) { centers = $0 }
         // 🎵 게임 곡: 내 캐릭터별 (서버 대전은 캐릭터가 조금 늦게 정해지므로 바뀌면 다시)
-        .onAppear { Music.shared.play(Music.gameTrack(game.mySkin, game.mySide)) }
-        .onChange(of: Music.gameTrack(game.mySkin, game.mySide)) { track in Music.shared.play(track) }
+        .onAppear { Music.shared.play(Music.gameTrack(myLook, .hamster)) }
+        .onChange(of: Music.gameTrack(myLook, .hamster)) { track in Music.shared.play(track) }
+        // 🐹 대전 화면에서는 "나 = 햄스터, 상대 = 고양이" (나가면 원래대로)
+        .onDisappear { SideLook.mySide = nil }
         // ⏰ 내 차례가 되면 띵동
         .onChange(of: game.turn) { t in if t == me && !game.finished { Music.shared.sfx(.turn) } }
         // 🎓 튜토리얼이 끝나면 펑 이펙트를 잠깐 보여 준 뒤 완료 화면
@@ -187,7 +193,7 @@ struct GameView<M: GameModel>: View {
             guard let l, let at = centers["\(l.side.opponent)\(l.to)"] else { return }
             let pop = CoinPop(at: at, amount: l.coins)
             coins.append(pop)
-            Music.shared.sfx(Music.coinSfx(l.side == me ? game.mySkin : game.opponentSkin))
+            Music.shared.sfx(Music.coinSfx(l.side == me ? myLook : oppLook))
             DispatchQueue.main.asyncAfter(deadline: .now() + CoinPop.sec + 0.05) { coins.removeAll { $0.id == pop.id } }
         }
         .onChange(of: game.lastShot) { s in
@@ -234,10 +240,10 @@ struct GameView<M: GameModel>: View {
         let count = game.board.sets(side)[from]
         let power = split ? count / 2 : count
         guard power > 0 else { return }
-        let shot = FlyingShot(from: a, to: b, side: side, skin: side == me ? game.mySkin : game.opponentSkin, power: power,
+        let shot = FlyingShot(from: a, to: b, side: side, skin: side == me ? myLook : oppLook, power: power,
                               attack: toOpponent, boom: !split && game.board.sets(target)[to] + power >= GameLogic.explodeAt, split: split)
         shots.append(shot)
-        Music.shared.sfx(split ? Music.splitSfx(side == me ? game.mySkin : game.opponentSkin) : .shoot)
+        Music.shared.sfx(split ? Music.splitSfx(side == me ? myLook : oppLook) : .shoot)
         DispatchQueue.main.asyncAfter(deadline: .now() + FlyingShot.flySec) {
             // 🔊 맞는 소리: 터지면 펑, 아니면 통 (분할은 소리 없이)
             if shot.boom {
@@ -323,7 +329,7 @@ struct GameView<M: GameModel>: View {
         return SetBubbleView(
             side: opp, count: count, title: setName(i), mode: target ? .target : .normal, size: 140,
             preview: target ? previewFor(count) : nil, explodeKey: explodeKey(opp, i),
-            skin: game.opponentSkin, ribbons: game.opponentRibbons, onTap: action
+            skin: oppLook, ribbons: game.opponentRibbons, onTap: action
         )
         .background(centerReader(opp, i))
     }
@@ -337,7 +343,7 @@ struct GameView<M: GameModel>: View {
         return SetBubbleView(
             side: me, count: mine[i], title: setName(i), mode: mode, size: 150,
             preview: boostTarget ? "💪 " + previewFor(mine[i]) : nil, explodeKey: explodeKey(me, i),
-            skin: game.mySkin,
+            skin: myLook,
             ribbons: game.myRibbons,
             onTap: {
                 if boostTarget, let s = game.selected {
@@ -494,28 +500,28 @@ struct ResultOverlay: View {
             .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { Music.shared.sfx(.coinUnicorn) } }
     }
 
-    /// 🐰 연승 보상 또는 다음 보상 안내
+    /// 🚩 연승 보상 또는 다음 보상 안내
     private var rabbitResult: some View {
         let n = rabbitStreak, c = rabbitCoins
         let text: String
         if c > 0 {
-            text = tr("🐰 \(n)연승 보상 💰+\(c)!", "🐰 \(n)-win streak reward 💰+\(c)!", zh: "🐰 \(n)连胜奖励 💰+\(c)！",
-                      es: "🐰 ¡Premio por \(n) seguidas 💰+\(c)!", fr: "🐰 Récompense \(n) victoires 💰+\(c) !", de: "🐰 \(n) Siege in Folge 💰+\(c)!",
-                      pt: "🐰 Prêmio por \(n) seguidas 💰+\(c)!", ru: "🐰 Награда за \(n) побед подряд 💰+\(c)!", ja: "🐰 \(n)連勝ボーナス 💰+\(c)！")
+            text = tr("🚩 \(n)연승 보상 💰+\(c)!", "🚩 \(n)-win streak reward 💰+\(c)!", zh: "🚩 \(n)连胜奖励 💰+\(c)！",
+                      es: "🚩 ¡Premio por \(n) seguidas 💰+\(c)!", fr: "🚩 Récompense \(n) victoires 💰+\(c) !", de: "🚩 \(n) Siege in Folge 💰+\(c)!",
+                      pt: "🚩 Prêmio por \(n) seguidas 💰+\(c)!", ru: "🚩 Награда за \(n) побед подряд 💰+\(c)!", ja: "🚩 \(n)連勝ボーナス 💰+\(c)！")
         } else if n < 3 {
             let a = Shop.rabbit3Coins
-            text = tr("🐰 \(n)연승! 3연승이면 💰+\(a)", "🐰 \(n) in a row! 3 wins = 💰+\(a)", zh: "🐰 \(n)连胜！3连胜 💰+\(a)",
-                      es: "🐰 ¡\(n) seguidas! 3 = 💰+\(a)", fr: "🐰 \(n) d’affilée ! 3 = 💰+\(a)", de: "🐰 \(n) in Folge! 3 = 💰+\(a)",
-                      pt: "🐰 \(n) seguidas! 3 = 💰+\(a)", ru: "🐰 \(n) подряд! 3 = 💰+\(a)", ja: "🐰 \(n)連勝！3連勝で 💰+\(a)")
+            text = tr("🚩 \(n)연승! 3연승이면 💰+\(a)", "🚩 \(n) in a row! 3 wins = 💰+\(a)", zh: "🚩 \(n)连胜！3连胜 💰+\(a)",
+                      es: "🚩 ¡\(n) seguidas! 3 = 💰+\(a)", fr: "🚩 \(n) d’affilée ! 3 = 💰+\(a)", de: "🚩 \(n) in Folge! 3 = 💰+\(a)",
+                      pt: "🚩 \(n) seguidas! 3 = 💰+\(a)", ru: "🚩 \(n) подряд! 3 = 💰+\(a)", ja: "🚩 \(n)連勝！3連勝で 💰+\(a)")
         } else if n == 4 {
             let b = Shop.rabbit5Coins
-            text = tr("🐰 4연승! 한 번 더 이기면 💰+\(b)", "🐰 4 in a row! One more win = 💰+\(b)", zh: "🐰 4连胜！再赢一次 💰+\(b)",
-                      es: "🐰 ¡4 seguidas! Una más = 💰+\(b)", fr: "🐰 4 d’affilée ! Encore une = 💰+\(b)", de: "🐰 4 in Folge! Noch einer = 💰+\(b)",
-                      pt: "🐰 4 seguidas! Mais uma = 💰+\(b)", ru: "🐰 4 подряд! Ещё одна = 💰+\(b)", ja: "🐰 4連勝！あと1勝で 💰+\(b)")
+            text = tr("🚩 4연승! 한 번 더 이기면 💰+\(b)", "🚩 4 in a row! One more win = 💰+\(b)", zh: "🚩 4连胜！再赢一次 💰+\(b)",
+                      es: "🚩 ¡4 seguidas! Una más = 💰+\(b)", fr: "🚩 4 d’affilée ! Encore une = 💰+\(b)", de: "🚩 4 in Folge! Noch einer = 💰+\(b)",
+                      pt: "🚩 4 seguidas! Mais uma = 💰+\(b)", ru: "🚩 4 подряд! Ещё одна = 💰+\(b)", ja: "🚩 4連勝！あと1勝で 💰+\(b)")
         } else {
-            text = tr("🐰 \(n)연승! 오늘 연승 보상은 다 받았어요 (최대 💰\(Shop.rabbitDailyMax))", "🐰 \(n) in a row! Today's streak rewards are maxed (💰\(Shop.rabbitDailyMax))",
-                      zh: "🐰 \(n)连胜！今天的连胜奖励已领满", es: "🐰 ¡\(n) seguidas! Premios de hoy al máximo", fr: "🐰 \(n) d’affilée ! Récompenses du jour au max",
-                      de: "🐰 \(n) in Folge! Tagesmaximum erreicht", pt: "🐰 \(n) seguidas! Prêmios de hoje no máximo", ru: "🐰 \(n) подряд! Лимит наград на сегодня", ja: "🐰 \(n)連勝！今日の連勝ボーナスは上限です")
+            text = tr("🚩 \(n)연승! 오늘 연승 보상은 다 받았어요 (최대 💰\(Shop.rabbitDailyMax))", "🚩 \(n) in a row! Today's streak rewards are maxed (💰\(Shop.rabbitDailyMax))",
+                      zh: "🚩 \(n)连胜！今天的连胜奖励已领满", es: "🚩 ¡\(n) seguidas! Premios de hoy al máximo", fr: "🚩 \(n) d’affilée ! Récompenses du jour au max",
+                      de: "🚩 \(n) in Folge! Tagesmaximum erreicht", pt: "🚩 \(n) seguidas! Prêmios de hoje no máximo", ru: "🚩 \(n) подряд! Лимит наград на сегодня", ja: "🚩 \(n)連勝！今日の連勝ボーナスは上限です")
         }
         return Text(text)
             .font(.system(size: c > 0 ? 17 : 14, weight: .black)).multilineTextAlignment(.center)

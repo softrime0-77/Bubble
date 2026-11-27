@@ -133,7 +133,7 @@ struct SetBubbleView: View {
                            style: StrokeStyle(lineWidth: 3, dash: [9, 7]))
                 return
             }
-            let tint: Color = danger ? UiColor.danger : (side == .cat ? Color(hex: 0xFFB86B) : Color(hex: 0xC8A2FF))
+            let tint: Color = danger ? UiColor.danger : (SideLook.of(side) == .cat ? Color(hex: 0xFFB86B) : Color(hex: 0xC8A2FF))
             ctx.fill(Path(ellipseIn: rect), with: .radialGradient(
                 Gradient(colors: [.white.opacity(0.85), tint.opacity(0.35), tint.opacity(0.55)]),
                 center: CGPoint(x: c.x - r * 0.3, y: c.y - r * 0.35), startRadius: 0, endRadius: r * 1.5))

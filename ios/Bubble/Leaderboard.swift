@@ -18,6 +18,8 @@ struct RankedPlayer: Identifiable, Equatable {
     var losses: Int?
     /// 지금 보이는 캐릭터 (nil이면 기본 고양이)
     var look: Animal?
+    /// 🌈 땅을 사서 독립한 햄스터
+    var land = false
     var id: String { uid }
 }
 
@@ -33,13 +35,13 @@ extension Profile {
     }
 
     func ranked(_ position: Int) -> RankedPlayer {
-        RankedPlayer(position: position, uid: uid, name: name, country: country, score: score, wins: wins, losses: losses, look: look)
+        RankedPlayer(position: position, uid: uid, name: name, country: country, score: score, wins: wins, losses: losses, look: look.shownSkin, land: land)
     }
 }
 
 extension RankRow {
     var ranked: RankedPlayer {
-        RankedPlayer(position: rank, uid: uid, name: name, country: country, score: score, wins: wins, losses: losses, look: look)
+        RankedPlayer(position: rank, uid: uid, name: name, country: country, score: score, wins: wins, losses: losses, look: look.shownSkin, land: land)
     }
 }
 
@@ -144,7 +146,7 @@ struct RankingRowView: View {
     }
 
     private func nameText(_ time: CGFloat) -> some View {
-        let name = p.name + (me ? t(" (나)") : "")
+        let name = (p.land ? "🌈 " : "") + p.name + (me ? t(" (나)") : "")
         return Group {
             if first {
                 // 금빛 그라데이션 글자가 흐르듯 움직임
@@ -637,7 +639,7 @@ struct PlayerCardView: View {
     }
 
     @ViewBuilder private func nameView(_ time: CGFloat) -> some View {
-        let name = p.name + (me ? t(" (나)") : "")
+        let name = (p.land ? "🌈 " : "") + p.name + (me ? t(" (나)") : "")
         if first {
             let x = (time / 2).truncatingRemainder(dividingBy: 1)
             Text(name).font(.system(size: 22, weight: .black)).multilineTextAlignment(.center).lineLimit(3)

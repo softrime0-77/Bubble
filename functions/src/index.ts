@@ -133,6 +133,15 @@ async function loadGame(tx: Transaction, gameId: string, uid: string) {
 }
 
 /**
+ * 🐰 연승(리본) 기록: 연승 토끼를 장착하고 이겼을 때만 +1, 지면 처음부터(0).
+ * 다른 캐릭터로 이긴 판은 리본이 늘지 않음 (그대로 둠).
+ */
+function streakField(won: boolean, skin: string | null | undefined): Record<string, unknown> {
+  if (!won) return { winStreak: 0 };
+  return skin === RABBIT_SKIN ? { winStreak: FieldValue.increment(1) } : {};
+}
+
+/**
  * 🐰 연승 토끼 보상: 이 판을 토끼로 이겨서 새 연승이 3·5·6+가 되면 💰.
  * 이긴 사람 문서에 넣을 필드와 게임 문서에 남길 값(앱 결과 화면용)을 돌려줌.
  */
@@ -202,7 +211,7 @@ function finishGame(
     tx.update(humanSnap.ref, {
       ...missionProgress(humanSnap.data() ?? {}, dayKey(Date.now()), { play: 1, win: humanWon ? 1 : 0, random: 0 }),
       ...(delta !== 0 ? { score: FieldValue.increment(delta) } : {}),
-      winStreak: humanWon ? FieldValue.increment(1) : 0,
+      ...streakField(humanWon, human === "CAT" ? game.catSkin : game.hamSkin),
       ...rabbit.user,
       ...(rabbit.coins > 0 ? { coins: FieldValue.increment(rabbit.coins) } : {}),
     });
@@ -227,13 +236,13 @@ function finishGame(
       tx.update(users.cat.ref, {
         ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 0 }),
         score: FieldValue.increment(catDelta), [catWon ? "wins" : "losses"]: FieldValue.increment(1),
-        winStreak: catWon ? FieldValue.increment(1) : 0,
+        ...streakField(catWon, game.catSkin),
         ...(catWon ? rabbit.user : {}),
       });
       tx.update(users.ham.ref, {
         ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 0 }),
         score: FieldValue.increment(hamDelta), [catWon ? "losses" : "wins"]: FieldValue.increment(1),
-        winStreak: catWon ? 0 : FieldValue.increment(1),
+        ...streakField(!catWon, game.hamSkin),
         ...(catWon ? {} : rabbit.user),
       });
     }
@@ -255,19 +264,19 @@ function finishGame(
     ...missionProgress(users.cat.data() ?? {}, today, { play: 1, win: catWon ? 1 : 0, random: 1 }),
     score: FieldValue.increment(catDelta),
     [catWon ? "wins" : "losses"]: FieldValue.increment(1),
-    winStreak: catWon ? FieldValue.increment(1) : 0,
+    ...streakField(catWon, game.catSkin),
     ...(catWon ? { ...rabbit.user, ...boostSpend(users.cat, game.catBoost === true) } : {}),
   });
   tx.update(users.ham.ref, {
     ...missionProgress(users.ham.data() ?? {}, today, { play: 1, win: catWon ? 0 : 1, random: 1 }),
     score: FieldValue.increment(hamDelta),
     [catWon ? "losses" : "wins"]: FieldValue.increment(1),
-    winStreak: catWon ? 0 : FieldValue.increment(1),
+    ...streakField(!catWon, game.hamSkin),
     ...(catWon ? {} : { ...rabbit.user, ...boostSpend(users.ham, game.hamBoost === true) }),
   });
 }
 
-/** 🐰 연승 토끼 리본 수 (연승 수, 최대 5). 토끼가 아니어도 기록해 두고 앱이 토끼일 때만 그림 */
+/** 🐰 연승 토끼 리본 수 (토끼로 이긴 연승 수, 최대 5). 앱은 토끼를 장착했을 때만 그림 */
 function ribbons(profile: DocumentSnapshot): number {
   const s = (profile.get("winStreak") as number | undefined) ?? 0;
   return Math.max(0, Math.min(RABBIT_MAX_RIBBONS, Math.floor(s)));

@@ -104,30 +104,36 @@ struct GameView<M: GameModel>: View {
                 }
                 .padding(.top, 6)
 
-                HStack {
-                    ForEach(0..<GameLogic.setCount, id: \.self) { i in
-                        opponentBubble(i)
-                        if i == 0 { Spacer() }
+                // 방울 크기는 남는 공간에 맞춤 (화면이 짧거나 안내가 두 줄이어도 아래 버튼이 잘리지 않게)
+                GeometryReader { geo in
+                    let size = bubbleFit(140, geo.size, inset: 48)
+                    HStack {
+                        ForEach(0..<GameLogic.setCount, id: \.self) { i in
+                            opponentBubble(i, size: size)
+                            if i == 0 { Spacer() }
+                        }
                     }
+                    .padding(.horizontal, 24)
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 14)
+                .padding(.top, 6)
 
-                Spacer(minLength: 8)
                 turnBanner
                 if let d = game.deadline, !game.finished {
                     TurnTimerView(deadline: d, totalSec: game.turnSec, mine: game.turn == me, skin: myLook)
                         .padding(.top, 10)
                 }
-                Spacer(minLength: 8)
-
-                HStack {
-                    ForEach(0..<GameLogic.setCount, id: \.self) { i in
-                        myBubble(i)
-                        if i == 0 { Spacer() }
+                GeometryReader { geo in
+                    let size = bubbleFit(150, geo.size, inset: 40)
+                    HStack {
+                        ForEach(0..<GameLogic.setCount, id: \.self) { i in
+                            myBubble(i, size: size)
+                            if i == 0 { Spacer() }
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .padding(.horizontal, 20)
 
                 HStack(spacing: 8) {
                     PlayerTag(side: me, name: game.myName, active: game.myTurn, skin: myLook)
@@ -319,7 +325,13 @@ struct GameView<M: GameModel>: View {
         }
     }
 
-    private func opponentBubble(_ i: Int) -> some View {
+    /// 대전 방울 크기: 기본 [max]에서 칸 높이(미리보기 · 이름표가 튀어나오는 몫 28 빼고)와
+    /// 폭(방울 2개, 좌우 여백 [inset])에 맞게 줄임. 최소 72
+    private func bubbleFit(_ max: CGFloat, _ area: CGSize, inset: CGFloat) -> CGFloat {
+        Swift.max(72, Swift.min(max, area.height - 28, (area.width - inset) / 2 - 8))
+    }
+
+    private func opponentBubble(_ i: Int, size: CGFloat) -> some View {
         let count = game.board.sets(opp)[i]
         let target = game.selected != nil && count > 0
         var action: (() -> Void)? = nil
@@ -327,21 +339,21 @@ struct GameView<M: GameModel>: View {
             action = { if let s = game.selected { shoot(from: s, toOpponent: true, to: i) } }
         }
         return SetBubbleView(
-            side: opp, count: count, title: setName(i), mode: target ? .target : .normal, size: 140,
+            side: opp, count: count, title: setName(i), mode: target ? .target : .normal, size: size,
             preview: target ? previewFor(count) : nil, explodeKey: explodeKey(opp, i),
             skin: oppLook, ribbons: game.opponentRibbons, onTap: action
         )
         .background(centerReader(opp, i))
     }
 
-    private func myBubble(_ i: Int) -> some View {
+    private func myBubble(_ i: Int, size: CGFloat) -> some View {
         let mine = game.board.sets(me)
         let isSel = game.selected == i
         let boostTarget = game.selected != nil && game.selected != i && mine[i] > 0
         let pickable = game.myTurn && mine[i] > 0
         let mode: BubbleMode = isSel ? .selected : boostTarget ? .target : (pickable ? .normal : .disabled)
         return SetBubbleView(
-            side: me, count: mine[i], title: setName(i), mode: mode, size: 150,
+            side: me, count: mine[i], title: setName(i), mode: mode, size: size,
             preview: boostTarget ? "💪 " + previewFor(mine[i]) : nil, explodeKey: explodeKey(me, i),
             skin: myLook,
             ribbons: game.myRibbons,

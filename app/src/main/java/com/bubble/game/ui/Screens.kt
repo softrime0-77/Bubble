@@ -44,6 +44,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -93,6 +94,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bubble.game.data.OnlineRepository
@@ -1083,6 +1085,13 @@ private fun MatchingScreen(startedAt: Long, onCancel: () -> Unit) {
 
 // ======================= 게임 =======================
 
+/**
+ * 대전 방울 크기: 기본 [max]에서, 주어진 칸 높이(위 미리보기 · 아래 이름표가 튀어나오는 몫 28dp 빼고)와
+ * 폭(방울 2개)에 맞게 줄임. 너무 작아지지 않게 최소 72dp.
+ */
+internal fun bubbleFit(max: Dp, width: Dp, height: Dp): Dp =
+    minOf(max, height - 28.dp, width / 2 - 12.dp).coerceAtLeast(72.dp)
+
 @Composable
 private fun GameScreen(vm: AppViewModel) {
     val liveRaw by vm.game.collectAsState()
@@ -1240,7 +1249,9 @@ private fun GameScreen(vm: AppViewModel) {
                 ReviveCounter(g.board.revivesLeft(opp))
                 if (g.opponentSkin == Animal.RABBIT) RibbonBadge(g.opponentRibbons)
             }
-            Spacer(Modifier.height(14.dp))
+            // 방울 크기는 남는 공간에 맞춤 (화면이 짧거나 안내가 두 줄이어도 아래 버튼이 잘리지 않게)
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val oppSize = bubbleFit(140.dp, maxWidth, maxHeight)
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
                 for (i in 0 until GameLogic.SET_COUNT) {
                     val target = sel != null && theirs[i] > 0
@@ -1249,7 +1260,7 @@ private fun GameScreen(vm: AppViewModel) {
                         count = theirs[i],
                         title = GameLogic.setName(i),
                         mode = if (target) BubbleMode.TARGET else BubbleMode.NORMAL,
-                        size = 140.dp,
+                        size = oppSize,
                         skin = g.opponentSkin,
                         ribbons = g.opponentRibbons,
                         preview = if (target) previewFor(theirs[i]) else null,
@@ -1261,12 +1272,13 @@ private fun GameScreen(vm: AppViewModel) {
                     )
                 }
             }
+            }
 
-            Spacer(Modifier.weight(1f))
             TurnBanner(g, sel != null)
             TurnTimer(g, now)
-            Spacer(Modifier.weight(1f))
 
+            BoxWithConstraints(Modifier.weight(1.07f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val mySize = bubbleFit(150.dp, maxWidth, maxHeight)
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
                 for (i in 0 until GameLogic.SET_COUNT) {
                     val isSel = sel == i
@@ -1282,7 +1294,7 @@ private fun GameScreen(vm: AppViewModel) {
                             !pickable -> BubbleMode.DISABLED
                             else -> BubbleMode.NORMAL
                         },
-                        size = 150.dp,
+                        size = mySize,
                         skin = g.mySkin,
                         ribbons = g.myRibbons,
                         preview = if (boostTarget) "💪 " + previewFor(mine[i]) else null,
@@ -1301,7 +1313,8 @@ private fun GameScreen(vm: AppViewModel) {
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            }
+            Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PlayerTag(me, if (g.myName == tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分")) tr("나", "Me", zh = "我", hi = "मैं", es = "Yo", fr = "Moi", ar = "أنا", de = "Ich", pt = "Eu", ru = "Я", ja = "自分") else g.myName + tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)"), null, active = g.myTurn, skin = g.mySkin, modifier = Modifier.weight(1f, fill = false), country = g.myCountry, score = g.myScore)
                 Spacer(Modifier.width(8.dp))

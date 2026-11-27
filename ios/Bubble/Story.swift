@@ -345,6 +345,18 @@ struct IndependentBadge: View {
     }
 }
 
+/// 아직 독립 전 (🌈 땅을 사지 않음) 표시
+struct NotIndependentBadge: View {
+    var body: some View {
+        Text(tr("🏰 아직 고양이 왕국", "🏰 Not free yet", zh: "🏰 尚未独立", ja: "🏰 まだネコ王国"))
+            .font(.system(size: 13, weight: .bold))
+            .foregroundColor(UiColor.text.opacity(0.6))
+            .padding(.horizontal, 10).padding(.vertical, 4)
+            .background(UiColor.text.opacity(0.08))
+            .clipShape(Capsule())
+    }
+}
+
 /// 상점의 땅 그림: 작은 언덕 위 무지개 깃발 + 햄스터
 struct LandArt: View {
     var body: some View {

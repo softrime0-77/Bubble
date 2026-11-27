@@ -594,6 +594,9 @@ private fun CardBody(p: RankedPlayer, me: Boolean, fx: FxCard, modifier: Modifie
                 "🐾 " + (p.look?.label ?: tr("기본 고양이", "Basic Cat", zh = "基础猫咪", es = "Gato básico", fr = "Chat de base", de = "Standardkatze", pt = "Gato básico", ru = "Обычный котик", ja = "ふつうのネコ")),
                 fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
             )
+            // 🌈 독립했는지 (땅을 샀으면 칭호, 아니면 아직 고양이 왕국)
+            Spacer(Modifier.height(6.dp))
+            if (p.land) IndependentBadge() else NotIndependentBadge()
             Spacer(Modifier.height(12.dp))
             RankBadge(p.score, large = true)
             Spacer(Modifier.height(8.dp))

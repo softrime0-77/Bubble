@@ -404,6 +404,24 @@ class ScreenshotTest {
     }
 
     @Test
+    fun gameDefaultArt() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(1, 3), ham = listOf(4, 2), catSplits = 3, hamSplits = 2),
+                mySide = Side.HAMSTER, turn = Side.HAMSTER, busy = false,
+                turnSec = 20, turnDeadline = System.currentTimeMillis() + 14_000,
+                mySkin = null, opponentSkin = null,
+            )
+        }
+        shot("game_default_art", 1200)
+    }
+
+    @Test
     fun game() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())

@@ -1,5 +1,8 @@
 package com.bubble.game.ui
 
+import com.bubble.game.R
+import androidx.compose.ui.graphics.graphicsLayer
+
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -66,6 +69,23 @@ fun Critter(
         label = "blink",
     )
     val eyesClosed = blink > 0.94f
+    // 기본 고양이·햄스터는 일러스트 그림 (방울 없는 캐릭터만)
+    val art = when {
+        skin == null && side == Side.CAT -> if (happy) R.drawable.sprite_cat_happy else R.drawable.sprite_cat_idle
+        skin == null || skin == Animal.HAMSTER -> if (happy) R.drawable.sprite_ham_happy else R.drawable.sprite_ham_idle
+        else -> null
+    }
+    if (art != null) {
+        androidx.compose.foundation.Image(
+            androidx.compose.ui.res.painterResource(art),
+            contentDescription = null,
+            modifier = modifier.graphicsLayer {
+                rotationZ = sway * 0.6f
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.95f)
+            },
+        )
+        return
+    }
     Canvas(modifier) {
         rotate(sway, pivot = Offset(size.width / 2, size.height * 0.9f)) {
             when (skin) {

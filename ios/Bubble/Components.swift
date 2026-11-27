@@ -200,10 +200,12 @@ struct PlayerTag: View {
             let glow = (sin(tl.date.timeIntervalSinceReferenceDate * 2 * .pi / 1.4) + 1) / 2
             HStack(spacing: 6) {
                 Critter(side: side, skin: skin).frame(width: 26, height: 26)
-                Text("\(skin?.label ?? side.label) · \(name)")
+                // 캐릭터는 그림으로 보이니 닉네임만 (긴 캐릭터 이름 때문에 줄이 넘치지 않게)
+                Text(name)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(UiColor.text)
                     .lineLimit(1)
+                    .truncationMode(.tail)
             }
             .padding(.horizontal, 12).padding(.vertical, 4)
             .background(Capsule().fill(active ? UiColor.gold.opacity(0.35 + glow * 0.4) : .white.opacity(0.6)))

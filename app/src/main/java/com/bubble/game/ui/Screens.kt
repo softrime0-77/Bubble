@@ -40,6 +40,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -157,6 +158,79 @@ private fun MusicPicker(p: com.bubble.game.data.Profile?, onClose: () -> Unit) {
     )
 }
 
+/** 로비에서 장착할 수 있는 캐릭터 (null = 기본 고양이): 무료 햄스터 · 산 스킨 · 해금한 유니콘 · 남은 소모품 동물 */
+internal fun equippable(p: com.bubble.game.data.Profile): List<Animal?> =
+    listOf<Animal?>(null, Animal.HAMSTER) +
+        Animal.entries.filter { it.cosmetic && it in p.skins } +
+        Animal.entries.filter { it.rankOnly && p.score >= it.rankMin } +
+        Animal.entries.filter { it.consumable && p.animalCount(it) > 0 }
+
+/** 👆 로비 캐릭터를 누르면: 가진 캐릭터 목록에서 골라 바로 바꾸기 (상세 설명은 상점에서) */
+@Composable
+private fun CharacterPicker(
+    p: com.bubble.game.data.Profile,
+    busy: Boolean,
+    onPick: (Animal?) -> Unit,
+    onShop: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val list = equippable(p)
+    AlertDialog(
+        onDismissRequest = onClose,
+        confirmButton = { TextButton(onClick = onClose) { Text(tr("닫기", "Close", ja = "閉じる", zh = "关闭")) } },
+        dismissButton = { TextButton(onClick = onShop) { Text(tr("🛒 상점 가기", "🛒 Go to shop", ja = "🛒 ショップへ", zh = "🛒 去商店"), color = Ui.accent, fontWeight = FontWeight.Bold) } },
+        title = { Text(tr("🐾 캐릭터 바꾸기", "🐾 Change character", ja = "🐾 キャラを変える", zh = "🐾 更换角色"), fontWeight = FontWeight.Black) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    tr("눌러서 바로 바꿔요", "Tap one to switch", ja = "タップですぐ変更", zh = "点一下就能更换"),
+                    fontSize = 13.sp, color = Ui.text.copy(alpha = 0.7f),
+                )
+                Spacer(Modifier.height(8.dp))
+                list.chunked(3).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { a ->
+                            val on = p.equipped == a || (a == null && p.equipped == null)
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 4.dp)
+                                    .background(if (on) Ui.primary.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                                    .border(if (on) 2.dp else 1.dp, if (on) Ui.primary else Ui.text.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                                    .clickable(enabled = !busy && !on) { onPick(a) }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                val side = when {
+                                    a == null -> Side.CAT
+                                    a.consumable || a.looksLikeCat -> Side.CAT
+                                    else -> Side.HAMSTER
+                                }
+                                Critter(side, Modifier.size(56.dp), skin = a, happy = on, ribbons = if (a == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                                Text(
+                                    a?.label ?: tr("기본 고양이", "Basic cat", ja = "ふつうのネコ", zh = "基础猫咪"),
+                                    fontSize = 12.sp, fontWeight = if (on) FontWeight.Black else FontWeight.SemiBold, color = Ui.text,
+                                    textAlign = TextAlign.Center, maxLines = 2, lineHeight = 14.sp,
+                                )
+                                when {
+                                    on -> Text(tr("✅ 장착 중", "✅ Equipped", ja = "✅ 装備中", zh = "✅ 已装备"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Ui.primaryDark)
+                                    a != null && a.consumable -> Text(tr("${p.animalCount(a)}개", "×${p.animalCount(a)}", ja = "${p.animalCount(a)}個", zh = "${p.animalCount(a)}个"), fontSize = 11.sp, color = Ui.text.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    tr("📖 캐릭터별 상세 설명은 상점에서 볼 수 있어요", "📖 See each character's details in the shop", ja = "📖 キャラごとの詳しい説明はショップで見られるよ", zh = "📖 各角色的详细说明可在商店查看"),
+                    fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Ui.accent, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+    )
+}
+
 /** 상점: 산 캐릭터의 음악을 로비 음악으로 (한 번 더 누르면 기본 곡으로) */
 @Composable
 private fun LobbyMusicButton(a: Animal) {
@@ -256,6 +330,15 @@ private fun LobbyScreen(vm: AppViewModel) {
     var showAdmin by remember { mutableStateOf(false) }
     var showMusic by remember { mutableStateOf(false) }
     if (showMusic) MusicPicker(ui.profile) { showMusic = false }
+    var showCharacters by remember { mutableStateOf(false) }
+    ui.profile?.let { p ->
+        if (showCharacters) CharacterPicker(
+            p, busy = ui.shopBusy,
+            onPick = { a -> vm.equip(a); showCharacters = false },
+            onShop = { showCharacters = false; vm.openShop() },
+            onClose = { showCharacters = false },
+        )
+    }
     var tutorialAsked by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var cardOf by remember { mutableStateOf<RankedPlayer?>(null) }
     cardOf?.let { c -> PlayerCardDialog(c, me = c.uid == ui.profile?.uid) { cardOf = null } }
@@ -381,7 +464,17 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                 ui.profile != null -> {
                     val p = ui.profile!!
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped, ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                        // 내 캐릭터를 누르면 가진 캐릭터 중에서 바로 바꾸기
+                        Box(
+                            Modifier.clip(RoundedCornerShape(50)).clickable { showCharacters = true },
+                            contentAlignment = Alignment.BottomEnd,
+                        ) {
+                            Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped, ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                            Text(
+                                "🔄", fontSize = 10.sp,
+                                modifier = Modifier.background(Color.White, RoundedCornerShape(50)).padding(2.dp),
+                            )
+                        }
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
@@ -1209,7 +1302,10 @@ private fun GameScreen(vm: AppViewModel) {
                     enabled = splitsLeft > 0,
                     colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
                     shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.padding(top = 10.dp),
+                    modifier = Modifier.padding(top = 10.dp).onGloballyPositioned { c ->
+                        // 🎓 튜토리얼 손가락이 가리킬 자리
+                        centers["split"] = c.positionInRoot() + androidx.compose.ui.geometry.Offset(c.size.width / 2f, c.size.height / 2f)
+                    },
                 ) {
                     Text(
                         if (splitsLeft > 0) tr(
@@ -1224,12 +1320,15 @@ zh = "✂️ 分裂 (${power / 2} + ${power / 2}) · 剩 ${splitsLeft} 次", hi 
             }
             // 부활물약: 터진 방울이 있고 물약이 남았으면 (선택 없이 바로 사용)
             val reviveTarget = (0 until GameLogic.SET_COUNT).firstOrNull { GameLogic.canRevive(g.board, me, it) }
-            AnimatedVisibility(g.myTurn && reviveTarget != null, enter = fadeIn() + slideInVertically { it }) {
+            // 🎓 튜토리얼에선 물약 단계에서만 보여 줌
+            AnimatedVisibility(g.myTurn && reviveTarget != null && TutorialScript.allowsRevive(g.tutorial), enter = fadeIn() + slideInVertically { it }) {
                 Button(
                     onClick = { reviveTarget?.let { vm.play(Move.Revive(it)) }; selected = null },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5C8A)),
                     shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 8.dp).onGloballyPositioned { c ->
+                        centers["revive"] = c.positionInRoot() + androidx.compose.ui.geometry.Offset(c.size.width / 2f, c.size.height / 2f)
+                    },
                 ) {
                     Text(
                         tr(
@@ -1278,7 +1377,7 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
         )
         marks.forEach { m -> androidx.compose.runtime.key(m.key) { HitMarkFx(m) { marks.remove(it) } } }
         // 🎓 튜토리얼 손가락 안내
-        g.tutorial?.let { step -> if (!g.finished && !inFlight) TutorialGuide(step, g.mySide, selected, centers, layerOrigin, onSkip = { vm.finishTutorial(false) }) }
+        g.tutorial?.let { step -> if (!g.finished && !inFlight) TutorialGuide(step, g.mySide, g.myTurn, selected, centers, layerOrigin, onSkip = { vm.finishTutorial(false) }) }
         coins.forEach { c -> androidx.compose.runtime.key(c.key) { CoinPopFx(c) { coins.remove(it) } } }
         revives.forEach { r -> androidx.compose.runtime.key(r.key) { ReviveFx(r) { revives.remove(it) } } }
 
@@ -1300,7 +1399,8 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             var showDone by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { delay(1_200); showDone = true }
             val rewarded = vm.lobby.collectAsState().value.profile?.tutorialDone == true
-            if (showDone) TutorialDone(alreadyRewarded = rewarded, onClaim = { vm.finishTutorial(true) })
+            val canShop = vm.lobby.collectAsState().value.profile != null
+            if (showDone) TutorialDone(alreadyRewarded = rewarded, canShop = canShop, onClaim = { toShop -> vm.finishTutorial(true, toShop) })
         } else if (g.finished && g.winner != null) {
             val activity = LocalContext.current as Activity
             val rewardedReady by AdManager.rewardedReady.collectAsState()
@@ -1855,6 +1955,8 @@ private fun ShopScreen(vm: AppViewModel) {
         ui.info?.let { Text(it, color = Ui.accent, fontWeight = FontWeight.Bold) }
         ui.error?.let { Text(it, color = Ui.danger, fontWeight = FontWeight.Bold) }
         if (p == null) return@Column
+        // 🎓 튜토리얼에서 들어왔으면 캐릭터 안내
+        if (ui.shopTour) ShopTourCard(onDismiss = vm::dismissShopTour)
 
         // 원스토어 빌드: 구글 플레이 결제(포인트 충전·광고 제거) 숨김
         if (!com.bubble.game.BuildConfig.ONESTORE) PointsCard(vm)

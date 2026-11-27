@@ -8,6 +8,8 @@ struct GameView<M: GameModel>: View {
     var onAgain: (() -> Void)?
     /// 졌을 때 로비로 가며 광고를 보면 돌려받는 점수 (없으면 nil)
     var rewardOffer: Int? = nil
+    /// 🎓 튜토리얼 끝에 "상점 들어가 보기" (nil이면 로비로만)
+    var onTutorialShop: (() -> Void)? = nil
 
     @State private var confirmLeave = false
     /// 날아가는 방울들, 방울 가운데 위치, 화면 흔들림, 내 방울이 날아가는 중인 시각
@@ -73,9 +75,9 @@ struct GameView<M: GameModel>: View {
     private var me: Side { game.mySide }
 
     /// 🎓 튜토리얼 끝: 끝까지 했으면 보상(계정당 한 번), 아니면 건너뛰기. 그다음 로비로
-    private func finishTutorial(_ completed: Bool) {
+    private func finishTutorial(_ completed: Bool, toShop: Bool = false) {
         Task { await OnlineService.shared.finishTutorial(completed: completed) }
-        onLeave()
+        if toShop, let go = onTutorialShop { go() } else { onLeave() }
     }
     private var opp: Side { game.mySide.opponent }
 
@@ -150,11 +152,13 @@ struct GameView<M: GameModel>: View {
 
             // 🎓 튜토리얼 손가락 안내
             if let step = game.tutorial, !game.finished, Date() >= inFlightUntil {
-                TutorialGuide(step: step, mySide: me, selected: game.selected, centers: centers, onSkip: { finishTutorial(false) })
+                TutorialGuide(step: step, mySide: me, myTurn: game.myTurn, selected: game.selected, centers: centers, onSkip: { finishTutorial(false) })
             }
             if game.finished, game.tutorial != nil {
                 if showTutorialDone {
-                    TutorialDone(alreadyRewarded: OnlineService.shared.profile?.tutorialDone == true) { finishTutorial(true) }.transition(.opacity)
+                    TutorialDone(alreadyRewarded: OnlineService.shared.profile?.tutorialDone == true,
+                                 canShop: onTutorialShop != nil && OnlineService.shared.profile != nil) { toShop in finishTutorial(true, toShop: toShop) }
+                        .transition(.opacity)
                 }
             } else if game.finished, let w = game.winner {
                 resultOverlay(w)
@@ -298,9 +302,14 @@ struct GameView<M: GameModel>: View {
     }
 
     private func centerReader(_ side: Side, _ i: Int) -> some View {
+        centerReader("\(side)\(i)")
+    }
+
+    /// 🎓 튜토리얼 손가락이 가리킬 자리 (방울 · "split" · "revive" 버튼)
+    private func centerReader(_ key: String) -> some View {
         GeometryReader { geo in
             let f = geo.frame(in: .named("game"))
-            Color.clear.preference(key: BubbleCentersKey.self, value: ["\(side)\(i)": CGPoint(x: f.midX, y: f.midY)])
+            Color.clear.preference(key: BubbleCentersKey.self, value: [key: CGPoint(x: f.midX, y: f.midY)])
         }
     }
 
@@ -382,6 +391,7 @@ struct GameView<M: GameModel>: View {
                     .background(Capsule().fill(left > 0 ? UiColor.accent : Color.gray))
             }
             .disabled(left == 0)
+            .background(centerReader("split"))
             .padding(.top, 10)
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
@@ -389,7 +399,9 @@ struct GameView<M: GameModel>: View {
 
     /// 💖 부활물약: 내 차례에 터진 방울이 있고 이번 판 물약이 남았으면
     @ViewBuilder private var reviveButton: some View {
-        if game.myTurn, let target = (0..<GameLogic.setCount).first(where: { GameLogic.canRevive(game.board, me, $0) }) {
+        // 🎓 튜토리얼에선 물약 단계에서만 보여 줌
+        if game.myTurn, TutorialScript.allowsRevive(game.tutorial),
+           let target = (0..<GameLogic.setCount).first(where: { GameLogic.canRevive(game.board, me, $0) }) {
             Button {
                 playWithFx(.revive(index: target))
             } label: {
@@ -398,6 +410,7 @@ struct GameView<M: GameModel>: View {
                     .padding(.horizontal, 18).padding(.vertical, 10)
                     .background(Capsule().fill(Color(hex: 0xE0457B)))
             }
+            .background(centerReader("revive"))
             .padding(.top, 8)
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }

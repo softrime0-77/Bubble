@@ -89,7 +89,8 @@ func pts(_ n: Int) -> String {
 }
 
 extension Side {
-    var label: String { self == .cat ? t("고양이") : t("햄스터") }
+    /// 화면용 이름 (대전 중에는 [SideLook]: 나 = 햄스터, 상대 = 고양이)
+    var label: String { SideLook.of(self) == .cat ? t("고양이") : t("햄스터") }
 }
 
 extension AiLevel {
@@ -120,21 +121,21 @@ extension Rank {
 extension Animal {
     var label: String {
         switch self {
-        case .sheep: return pick(["양", "Sheep", "绵羊", "भेड़", "Oveja", "Mouton", "خروف", "Schaf", "Ovelha", "Овечка", "ヒツジ"])
-        case .dog: return pick(["강아지", "Puppy", "小狗", "पिल्ला", "Perrito", "Chiot", "جرو", "Welpe", "Cachorrinho", "Щенок", "子イヌ"])
-        case .giraffe: return pick(["기린", "Giraffe", "长颈鹿", "जिराफ़", "Jirafa", "Girafe", "زرافة", "Giraffe", "Girafa", "Жираф", "キリン"])
+        case .sheep: return pick(["시계 햄스터 1", "Time Hamster 1", "时间仓鼠 1", "टाइम हैम्स्टर 1", "Hámster del tiempo 1", "Hamster du temps 1", "هامستر الوقت 1", "Zeithamster 1", "Hamster do tempo 1", "Хомяк времени 1", "とけいハムスター1"])
+        case .dog: return pick(["시계 햄스터 2", "Time Hamster 2", "时间仓鼠 2", "टाइम हैम्स्टर 2", "Hámster del tiempo 2", "Hamster du temps 2", "هامستر الوقت 2", "Zeithamster 2", "Hamster do tempo 2", "Хомяк времени 2", "とけいハムスター2"])
+        case .giraffe: return pick(["시계 햄스터 3", "Time Hamster 3", "时间仓鼠 3", "टाइम हैम्स्टर 3", "Hámster del tiempo 3", "Hamster du temps 3", "هامستر الوقت 3", "Zeithamster 3", "Hamster do tempo 3", "Хомяк времени 3", "とけいハムスター3"])
         case .hamster: return pick(["햄스터", "Hamster", "仓鼠", "हैम्स्टर", "Hámster", "Hamster", "هامستر", "Hamster", "Hamster", "Хомяк", "ハムスター"])
-        case .pinkCat: return pick(["핑크 고양이", "Pink Cat", "粉红猫咪", "गुलाबी बिल्ली", "Gato rosa", "Chat rose", "قطة وردية", "Pinke Katze", "Gato rosa", "Розовый котик", "ピンクネコ"])
-        case .blackCat: return pick(["까망 고양이", "Black Cat", "小黑猫", "काली बिल्ली", "Gato negro", "Chat noir", "قطة سوداء", "Schwarze Katze", "Gato preto", "Чёрный котик", "くろネコ"])
+        case .pinkCat: return pick(["핑크 햄스터", "Pink Hamster", "粉红仓鼠", "गुलाबी हैम्स्टर", "Hámster rosa", "Hamster rose", "هامستر وردي", "Pinker Hamster", "Hamster rosa", "Розовый хомяк", "ピンクハムスター"])
+        case .blackCat: return pick(["까망 햄스터", "Black Hamster", "小黑仓鼠", "काला हैम्स्टर", "Hámster negro", "Hamster noir", "هامستر أسود", "Schwarzer Hamster", "Hamster preto", "Чёрный хомяк", "くろハムスター"])
         case .snowHamster: return pick(["눈송이 햄스터", "Snow Hamster", "雪花仓鼠", "स्नो हैम्स्टर", "Hámster nieve", "Hamster neige", "هامستر الثلج", "Schneehamster", "Hamster neve", "Снежный хомяк", "ゆきハムスター"])
         case .goldHamster: return pick(["황금 햄스터", "Golden Hamster", "黄金仓鼠", "गोल्डन हैम्स्टर", "Hámster dorado", "Hamster doré", "هامستر ذهبي", "Goldhamster", "Hamster dourado", "Золотой хомяк", "きんハムスター"])
-        case .octopus: return pick(["문어", "Octopus", "章鱼", "ऑक्टोपस", "Pulpo", "Pieuvre", "أخطبوط", "Oktopus", "Polvo", "Осьминог", "タコ"])
+        case .octopus: return pick(["물햄스터", "Water Hamster", "水仓鼠", "पानी हैम्स्टर", "Hámster de agua", "Hamster d’eau", "هامستر الماء", "Wasserhamster", "Hamster d’água", "Водяной хомяк", "みずハムスター"])
         case .penguin: return pick(["펭귄", "Penguin", "企鹅", "पेंगुइन", "Pingüino", "Pingouin", "بطريق", "Pinguin", "Pinguim", "Пингвин", "ペンギン"])
-        case .panda: return pick(["출석 판다", "Check-in Panda", "签到熊猫", "हाज़िरी पांडा", "Panda asistente", "Panda de présence", "باندا الحضور", "Check-in-Panda", "Panda da presença", "Панда-отметка", "しゅっせきパンダ"])
-        case .dragon: return pick(["아기 용", "Baby Dragon", "小龙", "बेबी ड्रैगन", "Dragoncito", "Bébé dragon", "تنين صغير", "Babydrache", "Dragãozinho", "Дракончик", "ちびドラゴン"])
-        case .rabbit: return pick(["연승 토끼", "Streak Bunny", "连胜兔", "जीत खरगोश", "Conejo racha", "Lapin série", "أرنب الانتصارات", "Siegeshase", "Coelho da sequência", "Зайка-серия", "れんしょうウサギ"])
-        case .unicorn: return pick(["유니콘", "Unicorn", "独角兽", "यूनिकॉर्न", "Unicornio", "Licorne", "وحيد القرن", "Einhorn", "Unicórnio", "Единорог", "ユニコーン"])
-        case .luckyCat: return pick(["복냥이", "Lucky Cat", "招财猫", "लकी बिल्ली", "Gato de la suerte", "Chat porte-bonheur", "قطة الحظ", "Glückskatze", "Gato da sorte", "Котик удачи", "まねきネコ"])
+        case .panda: return pick(["출석 햄스터", "Check-in Hamster", "签到仓鼠", "हाज़िरी हैम्स्टर", "Hámster asistente", "Hamster de présence", "هامستر الحضور", "Check-in-Hamster", "Hamster da presença", "Хомяк-отметка", "しゅっせきハムスター"])
+        case .dragon: return pick(["불꽃 햄스터", "Fire Hamster", "火焰仓鼠", "आग हैम्स्टर", "Hámster de fuego", "Hamster de feu", "هامستر النار", "Feuerhamster", "Hamster de fogo", "Огненный хомяк", "ほのおハムスター"])
+        case .rabbit: return pick(["연승 햄스터", "Streak Hamster", "连胜仓鼠", "जीत हैम्स्टर", "Hámster racha", "Hamster série", "هامستر الانتصارات", "Siegeshamster", "Hamster da sequência", "Хомяк-серия", "れんしょうハムスター"])
+        case .unicorn: return pick(["유니콘 햄스터", "Unicorn Hamster", "独角兽仓鼠", "यूनिकॉर्न हैम्स्टर", "Hámster unicornio", "Hamster licorne", "هامستر وحيد القرن", "Einhorn-Hamster", "Hamster unicórnio", "Хомяк-единорог", "ユニコーンハムスター"])
+        case .luckyCat: return pick(["복햄이", "Lucky Hamster", "招财仓鼠", "लकी हैम्स्टर", "Hámster de la suerte", "Hamster porte-bonheur", "هامستر الحظ", "Glückshamster", "Hamster da sorte", "Хомяк удачи", "まねきハムスター"])
         }
     }
 }

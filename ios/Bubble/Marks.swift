@@ -9,7 +9,7 @@ private func msin(_ x: CGFloat) -> CGFloat { CGFloat(sin(Double(x))) }
 private func clamp(_ x: CGFloat) -> CGFloat { min(1, max(0, x)) }
 
 enum MarkKind: CaseIterable {
-    case ice, gold, heart, claw, stamp, ink, snow, bamboo, fire, hop, magic, paw, seed
+    case ice, gold, heart, claw, stamp, ink, snow, bamboo, fire, hop, magic, paw, seed, splash, check, flag
 
     static func of(_ skin: Animal?, _ side: Side) -> MarkKind {
         switch skin {
@@ -18,14 +18,14 @@ enum MarkKind: CaseIterable {
         case .pinkCat: return .heart
         case .blackCat: return .claw
         case .luckyCat: return .stamp
-        case .octopus: return .ink
+        case .octopus: return .splash   // 💧 물햄스터: 물보라
         case .penguin: return .snow
-        case .panda: return .bamboo
+        case .panda: return .check      // 💮 출석 햄스터: 출석 도장
         case .dragon: return .fire
-        case .rabbit: return .hop
+        case .rabbit: return .flag      // 🚩 연승 햄스터: Win 깃발
         case .unicorn: return .magic
         case .hamster: return .seed
-        default: return side == .cat ? .paw : .seed
+        default: return SideLook.of(side) == .cat ? .paw : .seed
         }
     }
 
@@ -44,6 +44,10 @@ enum MarkKind: CaseIterable {
         case .hop: return .markHop
         case .magic: return .markMagic
         case .paw, .seed: return .hit
+        // 💧 물보라 · 💮 출석 도장 · 🚩 깃발 (비슷한 소리 재사용)
+        case .splash: return .markInk
+        case .check: return .markStamp
+        case .flag: return .markHop
         }
     }
 }
@@ -95,6 +99,75 @@ struct HitMarkFx: View {
         case .magic: magic(&ctx, c, r, p, a)
         case .paw: paw(&ctx, CGPoint(x: c.x, y: c.y + r * 0.1), r * 0.5 * pop(p), Color(hex: 0xFF8FB8).opacity(0.85 * a))
         case .seed: seed(&ctx, c, r, p, a)
+        case .splash: splash(&ctx, c, r, p, a)
+        case .check: check(&ctx, c, r, p)
+        case .flag: flag(&ctx, c, r, p, a)
+        }
+    }
+
+    // 💧 물보라: 물결 고리 두 겹 + 사방으로 튀는 물방울
+    private func splash(_ ctx: inout GraphicsContext, _ c: CGPoint, _ r: CGFloat, _ p: CGFloat, _ a: Double) {
+        let water = Color(hex: 0x4FC3F7)
+        for k in 0...1 {
+            let q = clamp((p - CGFloat(k) * 0.15) / 0.7)
+            if q > 0 { ctx.stroke(circle(c, r * (0.3 + q * 0.8)), with: .color(water.opacity(0.7 * Double(1 - q) * a)), lineWidth: 5 - CGFloat(k) * 2) }
+        }
+        ctx.fill(circle(c, r), with: .radialGradient(Gradient(colors: [water.opacity(0.4 * a), .clear]), center: c, startRadius: 0, endRadius: r))
+        let q = clamp(p / 0.6)
+        for (u, v, w) in seeds.prefix(10) {
+            let ang = u * mTau
+            let d = r * (0.25 + q * (0.6 + v * 0.5))
+            let pos = CGPoint(x: c.x + mcos(ang) * d, y: c.y + msin(ang) * d - msin(q * .pi) * r * 0.35 + q * q * r * 0.3)
+            let rr = (3 + w * 5) * (1 - q * 0.4)
+            ctx.fill(circle(pos, rr), with: .color(water.opacity(0.85 * a)))
+            ctx.fill(circle(CGPoint(x: pos.x - 1.5, y: pos.y - 1.5), 1.2 + w * 1.5), with: .color(.white.opacity(0.7 * a)))
+        }
+    }
+
+    // 💮 출석 도장: 빨간 동그라미 쾅 + 체크
+    private func check(_ ctx: inout GraphicsContext, _ c: CGPoint, _ r: CGFloat, _ p: CGFloat) {
+        let slam: CGFloat = p < 0.15 ? 1.8 - 0.8 * (p / 0.15) : 1
+        let rr = r * 0.5 * slam
+        let al = Double(clamp(p / 0.1) * (1 - clamp((p - 0.75) / 0.25)))
+        let red = Color(hex: 0xE53935)
+        var g = ctx
+        g.translateBy(x: c.x, y: c.y)
+        g.rotate(by: .degrees(-10))
+        g.stroke(circle(.zero, rr), with: .color(red.opacity(0.85 * al)), lineWidth: 5)
+        g.stroke(circle(.zero, rr * 0.78), with: .color(red.opacity(0.5 * al)), lineWidth: 2)
+        var chk = Path()
+        chk.move(to: CGPoint(x: -rr * 0.45, y: 0))
+        chk.addLine(to: CGPoint(x: -rr * 0.1, y: rr * 0.35))
+        chk.addLine(to: CGPoint(x: rr * 0.5, y: -rr * 0.35))
+        g.stroke(chk, with: .color(red.opacity(0.9 * al)), style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+        if p >= 0.15 && p <= 0.4 {
+            let q = (p - 0.15) / 0.25
+            ctx.stroke(circle(c, r * (0.6 + (p - 0.15) * 3)), with: .color(red.opacity(Double(0.4 * (1 - q)))), lineWidth: 3)
+        }
+    }
+
+    // 🚩 Win 깃발이 콕 꽂히고 펄럭
+    private func flag(_ ctx: inout GraphicsContext, _ c: CGPoint, _ r: CGFloat, _ p: CGFloat, _ a: Double) {
+        let drop: CGFloat = p < 0.18 ? 1 - p / 0.18 : 0
+        let base = CGPoint(x: c.x - r * 0.15, y: c.y + r * 0.45 - drop * r * 1.2)
+        let top = CGPoint(x: base.x, y: base.y - r)
+        line(&ctx, base, top, Color(hex: 0x8D6E63).opacity(a), 4)
+        let wave = msin(p * 20) * r * 0.06
+        var f = Path()
+        f.move(to: top)
+        f.addQuadCurve(to: CGPoint(x: top.x + r * 0.7, y: top.y + r * 0.05 + wave), control: CGPoint(x: top.x + r * 0.35, y: top.y - r * 0.05 + wave))
+        f.addLine(to: CGPoint(x: top.x + r * 0.7, y: top.y + r * 0.42 + wave))
+        f.addQuadCurve(to: CGPoint(x: top.x, y: top.y + r * 0.4), control: CGPoint(x: top.x + r * 0.35, y: top.y + r * 0.32 - wave))
+        f.closeSubpath()
+        ctx.fill(f, with: .color(Color(hex: 0xE53935).opacity(a)))
+        ctx.draw(Text("Win").font(.system(size: r * 0.24, weight: .black)).foregroundColor(.white.opacity(a)),
+                 at: CGPoint(x: top.x + r * 0.35, y: top.y + r * 0.21 + wave))
+        if p >= 0.18 && p <= 0.4 {
+            let q = (p - 0.18) / 0.22
+            for (u, _, w) in seeds.prefix(5) {
+                ctx.fill(circle(CGPoint(x: base.x + (u - 0.5) * r * q, y: base.y - q * r * 0.15), 3 + w * 3),
+                         with: .color(Color(hex: 0xBCAAA4).opacity(Double(0.6 * (1 - q)))))
+            }
         }
     }
 
@@ -345,11 +418,11 @@ func markDesc(_ a: Animal) -> String {
     case .pinkCat: return tr("💕 공격하면 맞은 방울에 하트 뿅뿅, 볼이 발그레 (모습만)", "💕 Hit bubbles blush and float hearts (look only)", zh: "💕 被打的泡泡冒出爱心、脸红（仅外观）", ja: "💕 攻撃した泡にハートがポンポン（見た目だけ）")
     case .blackCat: return tr("🐾 공격하면 맞은 방울에 발톱 자국 슥슥 (모습만)", "🐾 Hit bubbles get claw marks (look only)", zh: "🐾 被打的泡泡留下爪痕（仅外观）", ja: "🐾 攻撃した泡にツメあとシュッシュッ（見た目だけ）")
     case .luckyCat: return tr("🧧 공격하면 맞은 방울에 빨간 福 도장 쾅! (모습만)", "🧧 Hit bubbles get a red 福 stamp! (look only)", zh: "🧧 被打的泡泡盖上红色「福」印章！（仅外观）", ja: "🧧 攻撃した泡に赤い「福」のハンコ！（見た目だけ）")
-    case .octopus: return tr("🖤 공격하면 맞은 방울에 먹물 철퍽 (모습만)", "🖤 Hit bubbles get splashed with ink (look only)", zh: "🖤 被打的泡泡溅上墨汁（仅外观）", ja: "🖤 攻撃した泡にスミがベチャッ（見た目だけ）")
+    case .octopus: return tr("💧 공격하면 맞은 방울에 물보라 촤악 (모습만)", "💧 Hit bubbles get a splash of water (look only)", zh: "💧 被打的泡泡溅起水花（仅外观）", ja: "💧 攻撃した泡に水しぶきザバッ（見た目だけ）")
     case .penguin: return tr("☃️ 공격하면 맞은 방울에 눈이 소복이 쌓였다 털려요 (모습만)", "☃️ Snow piles up on hit bubbles, then shakes off (look only)", zh: "☃️ 被打的泡泡积满雪又抖落（仅外观）", ja: "☃️ 攻撃した泡に雪がこんもり（見た目だけ）")
-    case .panda: return tr("🎋 공격하면 맞은 방울에 판다 발도장과 대나무 잎 (모습만)", "🎋 Hit bubbles get a panda paw print and bamboo leaves (look only)", zh: "🎋 被打的泡泡留下熊猫脚印和竹叶（仅外观）", ja: "🎋 攻撃した泡にパンダの足あとと笹の葉（見た目だけ）")
+    case .panda: return tr("💮 공격하면 맞은 방울에 빨간 출석 도장 쾅 (모습만)", "💮 Hit bubbles get a red check-in stamp (look only)", zh: "💮 被打的泡泡盖上红色签到章（仅外观）", ja: "💮 攻撃した泡に赤い出席スタンプ（見た目だけ）")
     case .dragon: return tr("🔥 공격하면 맞은 방울에 불꽃 화르륵, 연기 모락 (모습만)", "🔥 Hit bubbles catch fire and smoke (look only)", zh: "🔥 被打的泡泡着火冒烟（仅外观）", ja: "🔥 攻撃した泡にほのおボウッ（見た目だけ）")
-    case .rabbit: return tr("🐾 공격하면 맞은 방울에 토끼 발자국 콩콩콩 (모습만)", "🐾 Bunny footprints hop across hit bubbles (look only)", zh: "🐾 被打的泡泡留下兔子脚印（仅外观）", ja: "🐾 攻撃した泡にウサギの足あとピョンピョン（見た目だけ）")
+    case .rabbit: return tr("🚩 공격하면 맞은 방울에 Win 깃발이 콕! (모습만)", "🚩 A \"Win\" flag gets planted on hit bubbles (look only)", zh: "🚩 被打的泡泡插上 Win 小旗（仅外观）", ja: "🚩 攻撃した泡に「Win」の旗がグサッ（見た目だけ）")
     case .unicorn: return tr("🌈 공격하면 맞은 방울에 무지개 고리와 별가루 반짝 (모습만)", "🌈 Rainbow rings and stardust swirl on hit bubbles (look only)", zh: "🌈 被打的泡泡环绕彩虹和星尘（仅外观）", ja: "🌈 攻撃した泡に虹の輪と星くず（見た目だけ）")
     default: return ""
     }

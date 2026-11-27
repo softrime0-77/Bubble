@@ -6,6 +6,7 @@ import SwiftUI
 struct LobbyView: View {
     @ObservedObject var lang = LangStore.shared
     @ObservedObject var online = OnlineService.shared
+    @ObservedObject var story = StoryState.shared
     @ObservedObject var ads = Ads.shared
     var onStartAi: (AiLevel) -> Void
     var onRandomMatch: () -> Void
@@ -96,8 +97,11 @@ struct LobbyView: View {
                 }
 
                 TitleBanner()
-                HStack(spacing: 18) {
+                HStack(spacing: 14) {
                     Button(t("📖 게임 규칙 보기")) { showRules = true }
+                        .font(.system(size: 15)).foregroundColor(UiColor.text)
+                    // 📜 프롤로그 다시 보기
+                    Button(tr("📜 이야기", "📜 Story", zh: "📜 故事", ja: "📜 ストーリー")) { StoryState.shared.showPrologue = true }
                         .font(.system(size: 15)).foregroundColor(UiColor.text)
                     // 🎓 튜토리얼 (보상을 아직 안 받았으면 🎁 표시)
                     Button(tr("🎮 튜토리얼", "🎮 Tutorial", zh: "🎮 教程", ja: "🎮 チュートリアル") + (online.profile?.tutorialDone == false ? " 🎁" : "")) { onTutorial() }
@@ -296,7 +300,8 @@ struct LobbyView: View {
                     pt: "Você foi #\(w?.rank ?? 0)! 💰 \(w?.coins ?? 0) pontos 🎉", ru: "На прошлой неделе #\(w?.rank ?? 0)! 💰 \(w?.coins ?? 0) 🎉",
                     ja: "先週は\(w?.rank ?? 0)位！💰 \(w?.coins ?? 0) をプレゼント 🎉"))
         }
-        .alert(t("🎉 가입을 환영해요!"), isPresented: Binding(get: { online.welcome != nil }, set: { if !$0 { online.welcome = nil } })) {
+        // 처음 실행이면 📜 프롤로그를 먼저 보고 환영 안내
+        .alert(t("🎉 가입을 환영해요!"), isPresented: Binding(get: { online.welcome != nil && !story.showPrologue }, set: { if !$0 { online.welcome = nil } })) {
             Button(t("시작하기")) { online.welcome = nil }
         } message: {
             Text(welcomeText)
@@ -304,7 +309,7 @@ struct LobbyView: View {
     }
 
     private var needsTutorial: Bool {
-        guard let p = online.profile, !tutorialAsked, online.welcome == nil else { return false }
+        guard let p = online.profile, !tutorialAsked, online.welcome == nil, !story.showPrologue, !online.landEnding else { return false }
         return !p.tutorialDone && !p.tutorialSeen
     }
 
@@ -348,7 +353,7 @@ struct LobbyView: View {
             HStack(spacing: 10) {
                 // 내 캐릭터를 누르면 가진 캐릭터 중에서 바로 바꾸기
                 Button { showCharacters = true } label: {
-                    Critter(side: .cat, skin: p.equipped, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0)
+                    Critter(side: .hamster, skin: p.equipped.shownSkin, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0)
                         .frame(width: 52, height: 52)
                         .overlay(alignment: .bottomTrailing) {
                             Text("🔄").font(.system(size: 10)).padding(2).background(Circle().fill(.white))
@@ -360,6 +365,10 @@ struct LobbyView: View {
                     HStack(spacing: 6) {
                         Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text).lineLimit(1)
                         if p.equipped == .rabbit { RibbonBadge(n: p.winStreak) }
+                    }
+                    // 🌈 땅을 사서 독립했으면 칭호 (누르면 엔딩 다시 보기)
+                    if p.land {
+                        Button { online.landEnding = true } label: { IndependentBadge() }.buttonStyle(.plain)
                     }
                     Button { showRanks = true } label: {
                         HStack(spacing: 0) {

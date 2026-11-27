@@ -287,7 +287,7 @@ struct MusicPickerSheet: View {
             ("CAT", tr("🐱 기본 고양이", "🐱 Basic cat", zh: "🐱 基础猫咪", ja: "🐱 ふつうのネコ")),
             (Animal.hamster.rawValue, "🐹 " + Animal.hamster.label),
         ]
-        for a in Animal.allCases where a.cosmetic || a.rankOnly { list.append((a.rawValue, a.label)) }
+        for a in Animal.allCases where (a.cosmetic && !a.retired) || a.rankOnly { list.append((a.rawValue, a.label)) }
         return list
     }
 

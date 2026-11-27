@@ -56,6 +56,21 @@ struct Critter: View {
     var ribbons: Int = 0
 
     var body: some View {
+        if let art = critterArt(side: side, skin: skin, happy: happy) {
+            // 🎨 일러스트 캐릭터: 살랑살랑 흔들리기만
+            TimelineView(.animation) { tl in
+                let time = tl.date.timeIntervalSinceReferenceDate
+                let swayPeriod = 1.8 + Double(phase * 137 % 400) / 500
+                Image(art).resizable().interpolation(.high).scaledToFit()
+                    .rotationEffect(.degrees(sin(time * 2 * .pi / swayPeriod) * 3.6), anchor: UnitPoint(x: 0.5, y: 0.95))
+            }
+        } else {
+            drawn
+        }
+    }
+
+    /// 예전처럼 코드로 그리는 캐릭터 (일러스트가 없는 🐧 펭귄)
+    private var drawn: some View {
         TimelineView(.animation) { tl in
             let time = tl.date.timeIntervalSinceReferenceDate
             let swayPeriod = 1.8 + Double(phase * 137 % 400) / 500
@@ -86,6 +101,18 @@ struct Critter: View {
             }
             .rotationEffect(.degrees(sway), anchor: UnitPoint(x: 0.5, y: 0.9))
         }
+    }
+}
+
+/// 캐릭터 일러스트 이름 (Assets.xcassets). 없으면 nil → 코드로 그림.
+/// 대전 중에는 [SideLook]으로 "나 = 햄스터, 상대 = 고양이".
+func critterArt(side: Side, skin: Animal?, happy: Bool) -> String? {
+    let face = happy ? "happy" : "idle"
+    switch skin {
+    case nil: return (SideLook.of(side) == .cat ? "sprite_cat_" : "sprite_ham_") + face
+    case .hamster: return "sprite_ham_" + face
+    case .penguin: return nil
+    case .some(let a): return "skin_\(a.rawValue.lowercased())_\(face)"
     }
 }
 

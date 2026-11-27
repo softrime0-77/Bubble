@@ -33,8 +33,9 @@ final class LocalGame: GameModel {
     var myTurn: Bool { !finished && !busy && turn == mySide }
     var turnSec: Int { level.turnSec }
     var myName: String { t("나") }
-    var mySkin: Animal? { nil }
-    var opponentSkin: Animal? { nil }
+    /// 로컬 연습은 캐릭터를 쓰지 않음 (CI 데모 스크린샷에서만 넣음)
+    @Published var mySkin: Animal? = nil
+    @Published var opponentSkin: Animal? = nil
     var isAi: Bool { true }
     var isOnline: Bool { false }
     var scoreDelta: Int? { nil }

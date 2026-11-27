@@ -488,10 +488,11 @@ struct AdminSheet: View {
     }
 }
 
-/// 로비에서 장착할 수 있는 캐릭터 (nil = 기본 고양이): 무료 햄스터 · 산 스킨 · 해금한 유니콘 · 남은 소모품 동물
+/// 로비에서 장착할 수 있는 캐릭터 (nil = 기본 햄스터): 산 스킨 · 해금한 유니콘 · 남은 시계 햄스터.
+/// 세계관상 나는 늘 햄스터라 기본과 "무료 햄스터"가 같은 모습이어서 기본 하나만. 🐧 펭귄은 판매 중단.
 func equippableAnimals(_ p: Profile) -> [Animal?] {
-    var list: [Animal?] = [nil, .hamster]
-    list += Animal.allCases.filter { $0.cosmetic && p.skins.contains($0) }.map { Optional($0) }
+    var list: [Animal?] = [nil]
+    list += Animal.allCases.filter { $0.cosmetic && !$0.retired && p.skins.contains($0) }.map { Optional($0) }
     list += Animal.allCases.filter { $0.rankOnly && p.score >= $0.rankMin }.map { Optional($0) }
     list += Animal.allCases.filter { $0.consumable && p.animalCount($0) > 0 }.map { Optional($0) }
     return list
@@ -530,18 +531,17 @@ struct CharacterPickerSheet: View {
     }
 
     private func cell(_ a: Animal?, _ p: Profile) -> some View {
-        let on = p.equipped == a
-        let side: Side = a.map { ($0.consumable || $0.looksLikeCat) ? .cat : .hamster } ?? .cat
+        let on = p.equipped == a || (a == nil && p.equipped == .hamster)
         return Button {
             guard !on, !online.busy else { return }
             Task { await online.equip(a) }
             onClose()
         } label: {
             VStack(spacing: 2) {
-                Critter(side: side, skin: a, happy: on,
+                Critter(side: .hamster, skin: a, happy: on,
                         ribbons: a == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0)
                     .frame(width: 56, height: 56)
-                Text(a?.label ?? tr("기본 고양이", "Basic cat", zh: "基础猫咪", ja: "ふつうのネコ"))
+                Text(a?.label ?? tr("기본 햄스터", "Basic hamster", zh: "基础仓鼠", ja: "ふつうのハムスター"))
                     .font(.system(size: 12, weight: on ? .black : .semibold)).foregroundColor(UiColor.text)
                     .multilineTextAlignment(.center).lineLimit(2)
                 if on {

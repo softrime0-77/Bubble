@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "filename": "sprite_ham_idle.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

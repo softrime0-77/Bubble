@@ -135,6 +135,7 @@ struct ShopView: View {
                             }
                         }
                     }
+                    landCard(p)
                 }
             }
             .padding(.horizontal, 20)
@@ -147,7 +148,9 @@ struct ShopView: View {
         .alert(confirm.map { tf("{0} 살까요?", $0.label) } ?? "", isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
             Button(t("취소"), role: .cancel) { confirm = nil }
             Button(t("살게요")) {
-                if let c = confirm { Task { await online.buy(c.item, label: c.label, qty: c.qty) } }
+                if let c = confirm {
+                    if c.item == "LAND" { Task { await online.buyLand() } } else { Task { await online.buy(c.item, label: c.label, qty: c.qty) } }
+                }
                 confirm = nil
             }
         } message: {
@@ -158,7 +161,8 @@ struct ShopView: View {
     /// 상점 포인트 먼저, 모자라면 점수 (서버 splitPayment와 같은 규칙)
     private var confirmText: String {
         guard let c = confirm, let p = online.profile else { return "" }
-        let fromCoins = min(max(p.coins, 0), c.price)
+        // 🌈 땅은 점수로만
+        let fromCoins = c.item == "LAND" ? 0 : min(max(p.coins, 0), c.price)
         let fromScore = c.price - fromCoins
         let after = p.score - fromScore
         var text = tf("💰 상점 포인트 {0} + 점수 {1} 사용\n남는 점수: {2}점", fromCoins, fromScore, after)
@@ -358,15 +362,15 @@ struct ShopView: View {
                 fr: "✨ Skins (à vie)", de: "✨ Skins (für immer)", pt: "✨ Skins (para sempre)", ru: "✨ Скины (навсегда)", ja: "✨ スキン（買い切り）"))
             .font(.system(size: 20, weight: .black)).foregroundColor(UiColor.text)
             .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
-        Text(tr("승패에는 영향이 없어요. 💰 복냥이 · 🐼 판다 · 🐉 아기 용은 상점 포인트 보너스가 있어요",
-                "No effect on winning. 💰 Lucky Cat, 🐼 Panda and 🐉 Dragon give shop-point bonuses",
+        Text(tr("승패에는 영향이 없어요. 💰 복햄이 · 📜 출석 햄스터 · 🔥 불꽃 햄스터는 상점 포인트 보너스가 있어요",
+                "No effect on winning. 💰 Lucky, 📜 Check-in and 🔥 Fire Hamsters give shop-point bonuses",
                 zh: "不影响胜负。💰 招财猫 · 🐼 熊猫 · 🐉 小龙有商店积分奖励", es: "No afectan al resultado. 💰 Gato, 🐼 Panda y 🐉 Dragón dan puntos de tienda",
                 fr: "Aucun effet sur la victoire. 💰 Chat, 🐼 Panda et 🐉 Dragon donnent des points boutique", de: "Kein Einfluss auf Sieg. 💰 Katze, 🐼 Panda und 🐉 Drache geben Shop-Punkte",
                 pt: "Não afetam a vitória. 💰 Gato, 🐼 Panda e 🐉 Dragão dão pontos da loja", ru: "На победу не влияют. 💰 Котик, 🐼 Панда и 🐉 Дракон дают очки магазина",
                 ja: "勝敗には影響なし。💰 まねきネコ · 🐼 パンダ · 🐉 ドラゴンはポイントボーナスあり"))
             .font(.system(size: 12)).foregroundColor(UiColor.text.opacity(0.7))
             .frame(maxWidth: .infinity, alignment: .leading)
-        ForEach(Animal.allCases.filter { $0.cosmetic }, id: \.self) { a in
+        ForEach(Animal.allCases.filter { $0.cosmetic && !$0.retired }, id: \.self) { a in
             skinCard(a, p)
         }
         ForEach(Animal.allCases.filter { $0.rankOnly }, id: \.self) { a in
@@ -422,9 +426,8 @@ struct ShopView: View {
                       zh: "✨ 永久皮肤 · 🏆 黄金计时条，获胜时金粉烟花（不影响胜负）", es: "✨ Aspecto permanente · 🏆 Temporizador dorado y fuegos de oro al ganar", fr: "✨ Skin permanent · 🏆 Minuteur doré, feux d’or à la victoire",
                       de: "✨ Dauerhafter Skin · 🏆 Gold-Timer, Goldfeuerwerk beim Sieg", pt: "✨ Skin permanente · 🏆 Timer dourado e fogos de ouro ao vencer", ru: "✨ Навсегда · 🏆 Золотой таймер, золотой салют при победе", ja: "✨ 永久スキン · 🏆 黄金タイマー、勝つと金粉の花火")
         case .octopus:
-            return tr("🐙 분할하면 먹물이 퍽! · 이기면 화면에 먹물이 퍽퍽 · 승패 영향 없음", "🐙 Ink splash when you split · ink splats when you win · no effect on winning", zh: "🐙 分裂时喷墨！· 仅外观",
-                      es: "🐙 ¡Tinta al dividir! · solo aspecto", fr: "🐙 Jet d’encre en divisant · look seulement", de: "🐙 Tinte beim Teilen · nur Look",
-                      pt: "🐙 Tinta ao dividir · só visual", ru: "🐙 Чернила при делении · только вид", ja: "🐙 分割でスミがぷしゅっ · 見た目だけ")
+            return tr("💧 분할하면 물보라가 촤악! · 이기면 화면에 물방울 폭죽 · 승패 영향 없음", "💧 A splash of water when you split · water-drop fireworks when you win · no effect on winning",
+                      zh: "💧 分裂时水花四溅！· 赢了满屏水滴烟花 · 仅外观", ja: "💧 分割で水しぶきザバッ！· 勝つと水玉の花火 · 見た目だけ")
         case .penguin:
             return tr("🐧 공격하면 빨간 썰매를 타고 쌩! 눈가루·얼음 조각이 튀고 부딪히면 얼음이 와장창\n이기면 썰매 퍼레이드와 눈보라 · 승패 영향 없음",
                       "🐧 Attacks ride a red sled — snow spray, ice shards and an icy crash\nWin: sled parade in a snowstorm · no effect on winning",
@@ -437,11 +440,11 @@ struct ShopView: View {
                       ja: "🐧 攻撃は赤いソリでシュー！雪と氷のかけら、当たると氷がパリーン\n勝利：ソリのパレードと吹雪 · 勝敗に影響なし")
         case .panda:
             let b = Shop.pandaCheckinBonus
-            return tr("🐼 장착하고 출석하면 💰 +\(b) 더 (하루 1번) · 이기면 대나무잎 회오리 · 영구", "🐼 Check in while equipped for 💰 +\(b) more (once a day) · permanent",
-                      zh: "🐼 装备后签到多得 💰 +\(b)（每天 1 次）· 永久", es: "🐼 Equipado: 💰 +\(b) extra al registrarte (1 al día) · permanente",
-                      fr: "🐼 Équipé : 💰 +\(b) en plus à la présence (1/jour) · permanent", de: "🐼 Ausgerüstet: 💰 +\(b) beim Check-in (1×/Tag) · dauerhaft",
-                      pt: "🐼 Equipado: 💰 +\(b) na presença (1 por dia) · permanente", ru: "🐼 Надета: +\(b) 💰 за вход (1 раз в день) · навсегда",
-                      ja: "🐼 装備して出席すると 💰 +\(b)（1日1回）· 永久")
+            return tr("📜 장착하고 출석하면 💰 +\(b) 더 (하루 1번) · 이기면 출석 도장 폭죽 · 영구", "📜 Check in while equipped for 💰 +\(b) more (once a day) · permanent",
+                      zh: "📜 装备后签到多得 💰 +\(b)（每天 1 次）· 永久", es: "📜 Equipado: 💰 +\(b) extra al registrarte (1 al día) · permanente",
+                      fr: "📜 Équipé : 💰 +\(b) en plus à la présence (1/jour) · permanent", de: "📜 Ausgerüstet: 💰 +\(b) beim Check-in (1×/Tag) · dauerhaft",
+                      pt: "📜 Equipado: 💰 +\(b) na presença (1 por dia) · permanente", ru: "📜 Надета: +\(b) 💰 за вход (1 раз в день) · навсегда",
+                      ja: "📜 装備して出席すると 💰 +\(b)（1日1回）· 永久")
         case .dragon:
             let today = p.dragonDay == OnlineService.today() ? p.dragonCoins : 0
             let c = Shop.dragonPopCoins, mx = Shop.dragonDailyMax
@@ -458,15 +461,15 @@ struct ShopView: View {
             let today = p.rabbitDay == OnlineService.today() ? p.rabbitCoins : 0
             let mx = Shop.rabbitDailyMax, n = p.winStreak
             let a3 = Shop.rabbit3Coins, a5 = Shop.rabbit5Coins, more = Shop.rabbitMoreCoins
-            return tr("🐰 연승할수록 💰 보상!\n· 3연승 +\(a3) · 5연승 +\(a5) · 6연승부터 이길 때마다 +\(more)\n· 지면 연승이 처음부터 (다시 3연승하면 또 +\(a3))\n· 하루 최대 \(mx) (오늘 \(today)/\(mx))\n· 토끼로 이길 때만 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 \(n)연승",
-                      "🐰 Win streaks pay 💰!\n· 3 wins +\(a3) · 5 wins +\(a5) · from 6, +\(more) per win\n· A loss resets the streak (3 again = +\(a3) again)\n· Max \(mx) a day (today \(today)/\(mx))\n· A ribbon per win with the rabbit, golden at 5\n· Random, scored friend & AI matches · streak \(n)",
-                      zh: "🐰 连胜越多 💰 越多！\n· 3连胜 +\(a3) · 5连胜 +\(a5) · 6连胜起每胜 +\(more)\n· 输了连胜重来（再3连胜又 +\(a3)）\n· 每天最多 \(mx)（今天 \(today)/\(mx)）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 \(n) 连胜",
-                      es: "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +\(a3) · 5 seguidas +\(a5) · desde 6, +\(more) por victoria\n· Perder reinicia la racha\n· Máx. \(mx) al día (hoy \(today)/\(mx))\n· Un lazo por victoria, dorados a las 5 · racha \(n)",
-                      fr: "🐰 Les séries rapportent 💰 !\n· 3 victoires +\(a3) · 5 victoires +\(a5) · dès 6, +\(more) par victoire\n· Une défaite remet la série à zéro\n· Max \(mx) par jour (aujourd’hui \(today)/\(mx))\n· Un ruban par victoire, dorés à 5 · série \(n)",
-                      de: "🐰 Siegesserien bringen 💰!\n· 3 Siege +\(a3) · 5 Siege +\(a5) · ab 6 +\(more) pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. \(mx) pro Tag (heute \(today)/\(mx))\n· Eine Schleife pro Sieg, golden ab 5 · Serie \(n)",
-                      pt: "🐰 Sequências dão 💰!\n· 3 vitórias +\(a3) · 5 vitórias +\(a5) · a partir de 6, +\(more) por vitória\n· Perder zera a sequência\n· Máx. \(mx) por dia (hoje \(today)/\(mx))\n· Um laço por vitória, dourados aos 5 · sequência \(n)",
-                      ru: "🐰 Серии побед дают 💰!\n· 3 победы +\(a3) · 5 побед +\(a5) · с 6-й +\(more) за победу\n· Поражение обнуляет серию\n· Макс. \(mx) в день (сегодня \(today)/\(mx))\n· Бантик за победу, золотые на 5 · серия \(n)",
-                      ja: "🐰 連勝するほど 💰！\n· 3連勝 +\(a3) · 5連勝 +\(a5) · 6連勝からは勝つたびに +\(more)\n· 負けると連勝はリセット（また3連勝で +\(a3)）\n· 1日最大\(mx)（今日 \(today)/\(mx)）\n· 連勝ごとにリボン、5連勝で金色 · 今\(n)連勝")
+            return tr("🚩 연승할수록 💰 보상!\n· 3연승 +\(a3) · 5연승 +\(a5) · 6연승부터 이길 때마다 +\(more)\n· 지면 연승이 처음부터 (다시 3연승하면 또 +\(a3))\n· 하루 최대 \(mx) (오늘 \(today)/\(mx))\n· 토끼로 이길 때만 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 \(n)연승",
+                      "🚩 Win streaks pay 💰!\n· 3 wins +\(a3) · 5 wins +\(a5) · from 6, +\(more) per win\n· A loss resets the streak (3 again = +\(a3) again)\n· Max \(mx) a day (today \(today)/\(mx))\n· A ribbon per win with the rabbit, golden at 5\n· Random, scored friend & AI matches · streak \(n)",
+                      zh: "🚩 连胜越多 💰 越多！\n· 3连胜 +\(a3) · 5连胜 +\(a5) · 6连胜起每胜 +\(more)\n· 输了连胜重来（再3连胜又 +\(a3)）\n· 每天最多 \(mx)（今天 \(today)/\(mx)）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 \(n) 连胜",
+                      es: "🚩 ¡Las rachas dan 💰!\n· 3 seguidas +\(a3) · 5 seguidas +\(a5) · desde 6, +\(more) por victoria\n· Perder reinicia la racha\n· Máx. \(mx) al día (hoy \(today)/\(mx))\n· Un lazo por victoria, dorados a las 5 · racha \(n)",
+                      fr: "🚩 Les séries rapportent 💰 !\n· 3 victoires +\(a3) · 5 victoires +\(a5) · dès 6, +\(more) par victoire\n· Une défaite remet la série à zéro\n· Max \(mx) par jour (aujourd’hui \(today)/\(mx))\n· Un ruban par victoire, dorés à 5 · série \(n)",
+                      de: "🚩 Siegesserien bringen 💰!\n· 3 Siege +\(a3) · 5 Siege +\(a5) · ab 6 +\(more) pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. \(mx) pro Tag (heute \(today)/\(mx))\n· Eine Schleife pro Sieg, golden ab 5 · Serie \(n)",
+                      pt: "🚩 Sequências dão 💰!\n· 3 vitórias +\(a3) · 5 vitórias +\(a5) · a partir de 6, +\(more) por vitória\n· Perder zera a sequência\n· Máx. \(mx) por dia (hoje \(today)/\(mx))\n· Um laço por vitória, dourados aos 5 · sequência \(n)",
+                      ru: "🚩 Серии побед дают 💰!\n· 3 победы +\(a3) · 5 побед +\(a5) · с 6-й +\(more) за победу\n· Поражение обнуляет серию\n· Макс. \(mx) в день (сегодня \(today)/\(mx))\n· Бантик за победу, золотые на 5 · серия \(n)",
+                      ja: "🚩 連勝するほど 💰！\n· 3連勝 +\(a3) · 5連勝 +\(a5) · 6連勝からは勝つたびに +\(more)\n· 負けると連勝はリセット（また3連勝で +\(a3)）\n· 1日最大\(mx)（今日 \(today)/\(mx)）\n· 連勝ごとにリボン、5連勝で金色 · 今\(n)連勝")
         default:
             return tr("✨ 영구 스킨 · 효과 없음", "✨ Permanent skin · no effect")
         }
@@ -528,6 +531,39 @@ struct ShopView: View {
                   pt: "💰 Cada ataque tem \(pct)% de chance de dar +1 ponto da loja\n(máx. \(mx) por dia · hoje \(today)/\(mx)) · permanente",
                   ru: "💰 Каждая атака: \(pct)% шанс +1 очко магазина\n(макс. \(mx) в день · сегодня \(today)/\(mx)) · навсегда",
                   ja: "💰 攻撃するたびに\(pct)%の確率でショップポイント+1\n（1日最大\(mx) · 今日 \(today)/\(mx)）· 永久")
+    }
+
+    /// 🌈 땅: 최종 목표. 점수로만 (💰 상점 포인트는 결제로 살 수 있어서 못 씀), 한 번만
+    private func landCard(_ p: Profile) -> some View {
+        let price = Shop.landPrice
+        return shopCard(title: tr("🌈 땅", "🌈 Land", zh: "🌈 土地", ja: "🌈 土地"),
+                        desc: tr("고양이 왕국 한가운데의 작은 땅 한 조각.\n이걸 사면… 독립을?!\n🎮 게임으로 모은 점수로만 살 수 있어요 (💰 상점 포인트 사용 불가)",
+                                 "A small patch of land in the middle of the Cat Kingdom.\nIf you buy it… independence?!\n🎮 Score earned in games only (💰 shop points can't be used)",
+                                 zh: "猫咪王国正中央的一小块土地。\n买下它……就能独立？！\n🎮 只能用游戏赢得的分数购买（不能用 💰 商店积分）",
+                                 ja: "ネコ王国のまんなかにある小さな土地。\nこれを買えば…独立！？\n🎮 ゲームで集めたスコアだけで買えます（💰 ショップポイントは使えません）"),
+                        price: price,
+                        owned: p.land ? tr("🌈 우리 땅!", "🌈 Ours!", zh: "🌈 我们的土地！", ja: "🌈 ぼくらの土地！") : nil,
+                        art: AnyView(LandArt())) {
+            if p.land {
+                Button { online.landEnding = true } label: {
+                    Text(tr("엔딩 다시 보기", "Watch the ending again", zh: "再看一次结局", ja: "エンディングをもう一度"))
+                        .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Capsule().fill(UiColor.accent))
+                }
+            } else {
+                let can = p.score >= price
+                Button { confirm = ("LAND", tr("땅", "Land", zh: "土地", ja: "土地"), price, 1) } label: {
+                    Text(can ? tr("점수 \(price)점에 사기", "Buy for \(price) score", zh: "用 \(price) 分购买", ja: "スコア\(price)点で買う")
+                             : tr("\(price - p.score)점 더 모아요", "\(price - p.score) more to go", zh: "还差 \(price - p.score) 分", ja: "あと\(price - p.score)点"))
+                        .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Capsule().fill(UiColor.primary.opacity(can ? 1 : 0.4)))
+                }
+                .disabled(online.busy || !can)
+            }
+        }
     }
 
     private func buyButton(_ item: String, _ label: String, _ price: Int, _ p: Profile) -> some View {

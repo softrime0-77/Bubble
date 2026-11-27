@@ -42,6 +42,7 @@ enum AppScreen {
 struct RootView: View {
     @ObservedObject private var lang = LangStore.shared
     @ObservedObject private var online = OnlineService.shared
+    @ObservedObject private var story = StoryState.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var screen: AppScreen = .lobby
     @State private var matchTask: Task<Void, Never>? = nil
@@ -86,6 +87,7 @@ struct RootView: View {
                              online.shopTour = true
                              screen = .shop
                          })
+                    .overlay { TimeHamsterAlerts(mine: game.mySkin, theirs: game.opponentSkin, delay: 0.3) }
                     .transition(.opacity)
             case let .online(game):
                 ZStack {
@@ -94,6 +96,9 @@ struct RootView: View {
                              onAgain: againAction(game),
                              rewardOffer: refundOffer(game))
                     if showVs { VsIntro(game: game) { showVs = false }.transition(.opacity) }
+                    // ⏱ 시계 햄스터를 썼으면 시작 때 알림 (VS 소개가 있으면 그다음에)
+                    TimeHamsterAlerts(mine: game.mySkin, theirs: game.opponentSkin, delay: showVs ? 3.1 : 0.3)
+                        .id(game.gameId + "\(game.mySkin?.rawValue ?? "")\(game.opponentSkin?.rawValue ?? "")")
                 }
                 .transition(.opacity)
             }
@@ -123,6 +128,16 @@ struct RootView: View {
                     .onAppear { Music.shared.sfx(.rankUp) }
             }
         }
+        // 🌈 독립 엔딩 · 📜 프롤로그 (전체 화면, 가장 위)
+        .overlay {
+            if online.landEnding, screen.key == "lobby" || screen.key == "shop" {
+                LandEnding(name: online.profile?.name) { online.landEnding = false }.transition(.opacity)
+            } else if story.showPrologue, screen.key == "lobby" {
+                PrologueView { story.finish() }.transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: story.showPrologue)
+        .animation(.easeInOut(duration: 0.3), value: online.landEnding)
         .animation(.easeInOut(duration: 0.3), value: screen.key)
         .animation(.easeInOut(duration: 0.3), value: showVs)
         // 아랍어는 오른쪽에서 왼쪽
@@ -303,8 +318,10 @@ struct RootView: View {
         if let i = args.firstIndex(of: "-lang"), i + 1 < args.count, let code = LangCode(rawValue: args[i + 1]) {
             lang.code = code
         }
-        guard let i = args.firstIndex(of: "-demo"), i + 1 < args.count else { return }
-        let demo = args[i + 1]
+        let demoArg = args.firstIndex(of: "-demo").flatMap { i in i + 1 < args.count ? args[i + 1] : nil }
+        // CI 스크린샷은 프롤로그에 가리지 않게 (프롤로그 스크린샷만 띄움)
+        if args.contains("-lang") || demoArg != nil { story.showPrologue = demoArg == "prologue" }
+        guard let demo = demoArg else { return }
         let profile = Profile(uid: "demo", name: t("고양이") + "77", score: 1980, wins: 42, losses: 17, potions: 2, coins: 500,
                               boosts: 1, boostOn: true, animals: [.dog: 2], equipped: .dog, refCode: "ABC234", referrals: 3)
         switch demo {
@@ -318,6 +335,21 @@ struct RootView: View {
             screen = .local(g)
         case "lobby":
             online.setDemoProfile(profile)
+        case "independent":
+            // 🌈 땅을 산 독립 햄스터 로비 (칭호 배지)
+            var p = profile
+            p.land = true
+            online.setDemoProfile(p)
+        case "ending":
+            online.setDemoProfile(profile)
+            online.landEnding = true
+        case "timealert":
+            // ⏱ 내가 시계 햄스터 1, 상대가 시계 햄스터 3: 시작 알림 (모습은 기본 햄스터·고양이)
+            let g = LocalGame(level: .easy, mySide: .cat)
+            g.setDemo(board: Board(cat: [1, 1], ham: [1, 1]), log: [])
+            g.mySkin = .sheep
+            g.opponentSkin = .giraffe
+            screen = .local(g)
         case "shop":
             online.setDemoProfile(profile)
             screen = .shop

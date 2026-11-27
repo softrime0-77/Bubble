@@ -34,7 +34,7 @@ import kotlin.random.Random
  * 눈송이 얼음 · 황금 코팅 · 핑크 하트 · 까망 발톱 · 복냥이 福 도장 · 문어 먹물 · 펭귄 눈 ·
  * 판다 발도장 · 아기 용 불꽃 · 토끼 발자국 · 유니콘 별가루 · 기본 고양이 발도장 · 기본 햄스터 해바라기씨
  */
-enum class MarkKind { ICE, GOLD, HEART, CLAW, STAMP, INK, SNOW, BAMBOO, FIRE, HOP, MAGIC, PAW, SEED }
+enum class MarkKind { ICE, GOLD, HEART, CLAW, STAMP, INK, SNOW, BAMBOO, FIRE, HOP, MAGIC, PAW, SEED, SPLASH, CHECK, FLAG }
 
 fun markKind(skin: Animal?, side: Side): MarkKind = when (skin) {
     Animal.SNOW_HAMSTER -> MarkKind.ICE
@@ -42,11 +42,11 @@ fun markKind(skin: Animal?, side: Side): MarkKind = when (skin) {
     Animal.PINK_CAT -> MarkKind.HEART
     Animal.BLACK_CAT -> MarkKind.CLAW
     Animal.LUCKY_CAT -> MarkKind.STAMP
-    Animal.OCTOPUS -> MarkKind.INK
+    Animal.OCTOPUS -> MarkKind.SPLASH   // 💧 물햄스터: 물보라
     Animal.PENGUIN -> MarkKind.SNOW
-    Animal.PANDA -> MarkKind.BAMBOO
+    Animal.PANDA -> MarkKind.CHECK      // 💮 출석 햄스터: 참 잘했어요 도장
     Animal.DRAGON -> MarkKind.FIRE
-    Animal.RABBIT -> MarkKind.HOP
+    Animal.RABBIT -> MarkKind.FLAG      // 🚩 연승 햄스터: Win 깃발 꽂기
     Animal.UNICORN -> MarkKind.MAGIC
     Animal.HAMSTER -> MarkKind.SEED
     else -> if (com.bubble.game.game.SideLook.of(side) == Side.CAT) MarkKind.PAW else MarkKind.SEED
@@ -215,6 +215,66 @@ private fun DrawScope.drawMark(kind: MarkKind, c: Offset, r: Float, p: Float, s:
                 val ang = u * tau + p * 4f
                 val d = r * (0.6f + v * 0.5f)
                 star(Offset(c.x + cos(ang) * d, c.y + sin(ang) * d), (3f + w * 5f) * density, Color.hsv((i * 36f) % 360f, 0.35f, 1f).copy(alpha = a))
+            }
+        }
+        // 💧 물보라: 물결 고리 두 겹 + 사방으로 튀는 물방울
+        MarkKind.SPLASH -> {
+            val water = Color(0xFF4FC3F7)
+            for (k in 0..1) {
+                val q = ((p - k * 0.15f) / 0.7f).coerceIn(0f, 1f)
+                if (q > 0f) drawCircle(water.copy(alpha = 0.7f * (1f - q) * a), r * (0.3f + q * 0.8f), c, style = Stroke((5f - k * 2f) * density))
+            }
+            drawCircle(Brush.radialGradient(listOf(Color(0x664FC3F7), Color.Transparent), c, r), r, c, alpha = a)
+            s.take(10).forEach { (u, v, w) ->
+                val ang = u * tau
+                val q = (p / 0.6f).coerceIn(0f, 1f)
+                val d = r * (0.25f + q * (0.6f + v * 0.5f))
+                val pos = Offset(c.x + cos(ang) * d, c.y + sin(ang) * d - sin(q * PI.toFloat()) * r * 0.35f + q * q * r * 0.3f)
+                drawCircle(water.copy(alpha = 0.85f * a), (3f + w * 5f) * density * (1f - q * 0.4f), pos)
+                drawCircle(Color.White.copy(alpha = 0.7f * a), (1.2f + w * 1.5f) * density, pos + Offset(-1.5f * density, -1.5f * density))
+            }
+        }
+        // 💮 출석 도장: 빨간 동그라미 쾅 + 체크
+        MarkKind.CHECK -> {
+            val slam = if (p < 0.15f) 1.8f - 0.8f * (p / 0.15f) else 1f
+            val rr = r * 0.5f * slam
+            val al = (p / 0.1f).coerceIn(0f, 1f) * (1f - ((p - 0.75f) / 0.25f).coerceIn(0f, 1f))
+            val red = Color(0xFFE53935)
+            rotate(-10f, c) {
+                drawCircle(red.copy(alpha = 0.85f * al), rr, c, style = Stroke(5.dp.toPx()))
+                drawCircle(red.copy(alpha = 0.5f * al), rr * 0.78f, c, style = Stroke(2.dp.toPx()))
+                val chk = Path().apply {
+                    moveTo(c.x - rr * 0.45f, c.y)
+                    lineTo(c.x - rr * 0.1f, c.y + rr * 0.35f)
+                    lineTo(c.x + rr * 0.5f, c.y - rr * 0.35f)
+                }
+                drawPath(chk, red.copy(alpha = 0.9f * al), style = Stroke(6.dp.toPx(), cap = StrokeCap.Round))
+            }
+            if (p in 0.15f..0.4f) drawCircle(red.copy(alpha = 0.4f * (1f - (p - 0.15f) / 0.25f)), r * (0.6f + (p - 0.15f) * 3f), c, style = Stroke(3.dp.toPx()))
+        }
+        // 🚩 Win 깃발이 콕 꽂히고 펄럭
+        MarkKind.FLAG -> {
+            val drop = if (p < 0.18f) (1f - p / 0.18f) else 0f
+            val base = Offset(c.x - r * 0.15f, c.y + r * 0.45f - drop * r * 1.2f)
+            val top = Offset(base.x, base.y - r * 1.0f)
+            drawLine(Color(0xFF8D6E63).copy(alpha = a), base, top, 4.dp.toPx(), StrokeCap.Round)
+            val wave = sin(p * 20f) * r * 0.06f
+            val flag = Path().apply {
+                moveTo(top.x, top.y)
+                quadraticBezierTo(top.x + r * 0.35f, top.y - r * 0.05f + wave, top.x + r * 0.7f, top.y + r * 0.05f + wave)
+                lineTo(top.x + r * 0.7f, top.y + r * 0.42f + wave)
+                quadraticBezierTo(top.x + r * 0.35f, top.y + r * 0.32f - wave, top.x, top.y + r * 0.4f)
+                close()
+            }
+            drawPath(flag, Color(0xFFE53935).copy(alpha = a))
+            drawContext.canvas.nativeCanvas.drawText("Win", top.x + r * 0.35f, top.y + r * 0.3f, Paint().apply {
+                color = android.graphics.Color.argb((255 * a).toInt(), 255, 255, 255)
+                textSize = r * 0.24f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD; isAntiAlias = true
+            })
+            // 꽂힐 때 작은 먼지
+            if (p in 0.18f..0.4f) s.take(5).forEach { (u, _, w) ->
+                val q = (p - 0.18f) / 0.22f
+                drawCircle(Color(0xFFBCAAA4).copy(alpha = 0.6f * (1f - q)), (3f + w * 3f) * density, Offset(base.x + (u - 0.5f) * r * q, base.y - q * r * 0.15f))
             }
         }
         // 🐱 분홍 발바닥 도장

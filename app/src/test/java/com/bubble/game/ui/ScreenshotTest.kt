@@ -498,7 +498,26 @@ class ScreenshotTest {
         shot("shot_pop", 200)
     }
 
-    /** 맞은 방울 흔적 13가지 */
+    @Test
+    fun timeHamsterAlert() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(1, 1), ham = listOf(1, 1)), mySide = Side.HAMSTER, turn = Side.CAT, busy = false,
+                gameId = "t1", showIntro = false,
+                mySkin = com.bubble.game.game.Animal.SHEEP, opponentSkin = com.bubble.game.game.Animal.GIRAFFE,
+            )
+        }
+        shot("time_alert_mine", 1_000)
+        rule.mainClock.advanceTimeBy(2_700)
+        shot("time_alert_theirs", 600)
+    }
+
+    /** 맞은 방울 흔적 */
     @Test
     @Config(sdk = [34], qualifiers = "w400dp-h860dp-xxhdpi")
     fun hitMarks() {
@@ -507,8 +526,8 @@ class ScreenshotTest {
             androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFFF6EEFF))) {
                 val d = androidx.compose.ui.platform.LocalDensity.current
                 MarkKind.entries.forEachIndexed { i, k ->
-                    val cx = with(d) { (70 + (i % 3) * 130).dp.toPx() }
-                    val cy = with(d) { (80 + (i / 3) * 160).dp.toPx() }
+                    val cx = with(d) { (55 + (i % 4) * 97).dp.toPx() }
+                    val cy = with(d) { (75 + (i / 4) * 150).dp.toPx() }
                     androidx.compose.foundation.Canvas(androidx.compose.ui.Modifier.fillMaxSize()) {
                         drawCircle(androidx.compose.ui.graphics.Color(0xFFE9D8FF), 56.dp.toPx(), androidx.compose.ui.geometry.Offset(cx, cy))
                     }

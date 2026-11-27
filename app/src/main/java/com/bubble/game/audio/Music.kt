@@ -223,6 +223,10 @@ object Music {
         com.bubble.game.ui.MarkKind.FIRE -> Sfx.MARK_FIRE
         com.bubble.game.ui.MarkKind.HOP -> Sfx.MARK_HOP
         com.bubble.game.ui.MarkKind.MAGIC -> Sfx.MARK_MAGIC
+        // 💧 물보라 · 💮 출석 도장 · 🚩 깃발 (비슷한 소리 재사용)
+        com.bubble.game.ui.MarkKind.SPLASH -> Sfx.MARK_INK
+        com.bubble.game.ui.MarkKind.CHECK -> Sfx.MARK_STAMP
+        com.bubble.game.ui.MarkKind.FLAG -> Sfx.MARK_HOP
         com.bubble.game.ui.MarkKind.PAW, com.bubble.game.ui.MarkKind.SEED -> Sfx.HIT
     }
 

@@ -1,5 +1,7 @@
 package com.bubble.game.ui
 
+import com.bubble.game.game.shownSkin
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -83,8 +85,8 @@ fun Profile.look(): Animal? = equipped?.takeIf { a ->
     a.free || (a.cosmetic && a in skins) || (a.rankOnly && score >= a.rankMin) || (a.consumable && animalCount(a) > 0)
 }
 
-fun Profile.ranked(position: Int) = RankedPlayer(position, uid, name, country, score, wins, losses, look(), land)
-fun RankRow.ranked() = RankedPlayer(rank, uid, name, country, score, wins, losses, look, land)
+fun Profile.ranked(position: Int) = RankedPlayer(position, uid, name, country, score, wins, losses, look().shownSkin(), land)
+fun RankRow.ranked() = RankedPlayer(rank, uid, name, country, score, wins, losses, look.shownSkin(), land)
 
 /**
  * 순위 이펙트 단계. 계급표처럼 위로 갈수록 화려하게:

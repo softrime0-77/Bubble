@@ -88,6 +88,9 @@ enum class Animal(
     UNICORN("유니콘 햄스터", "Unicorn Hamster", 0, Shop.DEFAULT_TURN_SEC),
     ;
 
+    /** 🐧 판매 중단 (상점·음악 목록에서 숨김, 서버도 안 팖) */
+    val retired: Boolean get() = this == PENGUIN
+
     /** 효과가 있는 영구 캐릭터 (복냥이) */
     val lucky: Boolean get() = this == LUCKY_CAT
 
@@ -130,6 +133,12 @@ enum class Animal(
         fun of(id: String?): Animal? = entries.firstOrNull { it.name == id }
     }
 }
+
+/**
+ * 화면에 보이는 내 모습: ⏱ 시계 햄스터(소모품)는 모습을 바꾸지 않고
+ * 게임 시작 때 알림으로만 보여줌 → 기본 햄스터로 그림.
+ */
+fun Animal?.shownSkin(): Animal? = this?.takeUnless { it.consumable }
 
 object Shop {
     const val POTION_PRICE = 50

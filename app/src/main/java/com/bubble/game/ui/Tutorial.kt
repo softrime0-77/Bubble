@@ -85,8 +85,8 @@ object TutorialScript {
         1 -> if (!selected) tr("😮 상대도 공격했어요! 내 방울이 1+3=4로 커졌어요.\n👆 4마리 방울을 골라요", "😮 They attacked back! Your bubble grew to 1+3=4.\n👆 Pick your bubble with 4", ja = "😮 相手も攻撃してきた！自分のバブルが1+3=4に。\n👆 4匹のバブルを選んで", zh = "😮 对手也攻击了！你的泡泡变成 1+3=4。\n👆 选4只的泡泡")
         else tr("👆 상대 3마리 방울을 콕! 3+4=7, 5 이상이면 💥 펑!", "👆 Tap their bubble with 3! 3+4=7, 5 or more = 💥 POP!", ja = "👆 相手の3匹のバブルをタップ！3+4=7、5以上で💥パン！", zh = "👆 点对手3只的泡泡！3+4=7，达到5就💥砰！")
         2 -> if (!selected) tr("💥 앗, 상대가 내 방울을 터뜨렸어요!\n👆 남은 2마리 방울을 골라요", "💥 Oops, they popped your bubble!\n👆 Pick your remaining bubble with 2", ja = "💥 あっ、自分のバブルが割られた！\n👆 残った2匹のバブルを選んで", zh = "💥 哎呀，你的泡泡被打爆了！\n👆 选剩下的2只泡泡")
-        else tr("✂️ 짝수 방울 + 빈 방울이면 반으로 나눌 수 있어요!\n👆 아래 ✂️ 분할하기 버튼을 눌러요", "✂️ Even bubble + empty bubble = you can split!\n👆 Tap the ✂️ Split button below", ja = "✂️ 偶数のバブル＋空のバブルなら半分に分けられる！\n👆 下の✂️分割ボタンをタップ", zh = "✂️ 偶数泡泡＋空泡泡就能一分为二！\n👆 点下面的 ✂️ 分裂按钮")
-        3 -> tr("😱 또 터졌어요! 💖 부활물약이면 터진 방울을 1마리로 살려요.\n👆 아래 💖 버튼을 눌러요", "😱 Popped again! A 💖 revive potion brings it back with 1.\n👆 Tap the 💖 button below", ja = "😱 また割られた！💖 復活薬で1匹に戻せるよ。\n👆 下の💖ボタンをタップ", zh = "😱 又被打爆了！💖 复活药水能让它以1只复活。\n👆 点下面的 💖 按钮")
+        else tr("✂️ 분할은 남은 방울이 짝수(2·4마리)이고 다른 방울이 비었을 때만 돼요. 한 판에 ${com.bubble.game.game.GameLogic.MAX_SPLITS}번까지!\n👆 아래 ✂️ 분할하기 버튼을 눌러요", "✂️ You can split only when the bubble is even (2 or 4) and the other is empty. Up to ${com.bubble.game.game.GameLogic.MAX_SPLITS} per game!\n👆 Tap the ✂️ Split button below", ja = "✂️ 分割できるのは残りが偶数(2·4匹)で、もう片方が空の時だけ。1試合${com.bubble.game.game.GameLogic.MAX_SPLITS}回まで！\n👆 下の✂️分割ボタンをタップ", zh = "✂️ 只有剩下的泡泡是偶数（2或4只）且另一个为空时才能分裂，每局最多${com.bubble.game.game.GameLogic.MAX_SPLITS}次！\n👆 点下面的 ✂️ 分裂按钮")
+        3 -> tr("😱 또 터졌어요! 💖 부활물약이면 터진 방울을 1마리로 살려요.\n물약은 상점에서 사는 소모품이라 쓰면 1개 없어져요 (지금은 연습용!)\n👆 아래 💖 버튼을 눌러요", "😱 Popped again! A 💖 revive potion brings it back with 1.\nPotions are consumables bought in the shop, used up when you drink one (this one is for practice!)\n👆 Tap the 💖 button below", ja = "😱 また割られた！💖 復活薬で1匹に戻せるよ。\n復活薬はショップで買う消耗品で、使うと1個なくなるよ（今は練習用！）\n👆 下の💖ボタンをタップ", zh = "😱 又被打爆了！💖 复活药水能让它以1只复活。\n药水是在商店购买的消耗品，用一次少一个（这次是练习用的！）\n👆 点下面的 💖 按钮")
         4 -> if (!selected) tr("😤 또 터졌지만 괜찮아요! 상대도 4마리 하나뿐.\n👆 남은 1마리 방울을 골라요", "😤 Popped again, but it's fine! They only have one bubble of 4.\n👆 Pick your bubble with 1", ja = "😤 また割られたけど大丈夫！相手も4匹のバブル1つだけ。\n👆 残った1匹のバブルを選んで", zh = "😤 又被打爆了，没关系！对手也只剩一个4只的泡泡。\n👆 选剩下的1只泡泡")
         else tr("👆 상대 4마리 방울을 콕! 4+1=5 💥 펑! 다 터뜨리면 승리!", "👆 Tap their bubble with 4! 4+1=5 💥 POP! Pop them all to win!", ja = "👆 相手の4匹のバブルをタップ！4+1=5 💥パン！全部割れば勝ち！", zh = "👆 点对手4只的泡泡！4+1=5 💥砰！全部打爆就赢了！")
         else -> ""
@@ -183,12 +183,12 @@ private fun tutorialPages(): List<TutorialPage> = listOf(
             tr("💥 5마리 이상이 되면 펑! 방울 2개가 다 터지면 져요",
                 "💥 5 or more = POP! Lose both bubbles and you lose",
                 ja = "💥 5匹以上でパン！バブルが2つとも割れたら負け", zh = "💥 达到5只就砰！两个泡泡都破了就输了"),
-            tr("✂️ 분할: 한쪽이 비고 남은 방울이 짝수면 반으로! (한 판 ${com.bubble.game.game.GameLogic.MAX_SPLITS}번)",
-                "✂️ Split: one side empty and the other even? Halve it! (${com.bubble.game.game.GameLogic.MAX_SPLITS} per game)",
-                ja = "✂️ 分割：片方が空で残りが偶数なら半分に！（1試合${com.bubble.game.game.GameLogic.MAX_SPLITS}回）", zh = "✂️ 分裂：一边空了、另一边是偶数就能对半分！（每局${com.bubble.game.game.GameLogic.MAX_SPLITS}次）"),
-            tr("💖 부활물약: 터진 방울을 1마리로 살려요. 상점·출석에서 얻고, 한 판 최대 ${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME}번 (랜덤 매칭 1번)",
-                "💖 Revive potion: brings a popped bubble back with 1. Get them in the shop or check-ins. Up to ${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME} per game (1 in random matches)",
-                ja = "💖 復活薬：割れたバブルを1匹で復活。ショップや出席で入手、1試合最大${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME}回（ランダムは1回）", zh = "💖 复活药水：让破掉的泡泡以1只复活。商店或签到获得，每局最多${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME}次（随机匹配1次）"),
+            tr("✂️ 분할: 남은 방울이 짝수(2·4마리)이고 다른 방울이 0일 때만 반으로 나눠요. 한 판에 ${com.bubble.game.game.GameLogic.MAX_SPLITS}번까지!",
+                "✂️ Split: only when your bubble is even (2 or 4) and the other is empty, halve it. Up to ${com.bubble.game.game.GameLogic.MAX_SPLITS} per game!",
+                ja = "✂️ 分割：残りが偶数(2·4匹)で、もう片方が0の時だけ半分に。1試合${com.bubble.game.game.GameLogic.MAX_SPLITS}回まで！", zh = "✂️ 分裂：只有剩下的泡泡是偶数（2或4只）且另一个为0时才能对半分，每局最多${com.bubble.game.game.GameLogic.MAX_SPLITS}次！"),
+            tr("💖 부활물약: 상점에서 사는 소모품이에요. 쓸 때마다 1개씩 없어지고, 터진 방울을 1마리로 살려요. 한 판 최대 ${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME}번 (랜덤 매칭 1번)",
+                "💖 Revive potion: a consumable you buy in the shop. Each use spends one and brings a popped bubble back with 1. Up to ${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME} per game (1 in random matches)",
+                ja = "💖 復活薬：ショップで買う消耗品。使うたびに1個減り、割れたバブルを1匹で復活。1試合最大${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME}回（ランダムは1回）", zh = "💖 复活药水：在商店购买的消耗品，每用一次少一个，让破掉的泡泡以1只复活。每局最多${com.bubble.game.game.Shop.MAX_REVIVES_PER_GAME}次（随机匹配1次）"),
             tr("⏱ 온라인 대전은 한 턴 ${com.bubble.game.data.OnlineRepository.TURN_LIMIT_MS / 1000}초! 시간을 넘기면 패배예요",
                 "⏱ Online turns are ${com.bubble.game.data.OnlineRepository.TURN_LIMIT_MS / 1000}s. Run out of time and you lose!",
                 ja = "⏱ オンライン対戦は1ターン${com.bubble.game.data.OnlineRepository.TURN_LIMIT_MS / 1000}秒！時間切れで負け", zh = "⏱ 在线对战每回合${com.bubble.game.data.OnlineRepository.TURN_LIMIT_MS / 1000}秒，超时判负！"),

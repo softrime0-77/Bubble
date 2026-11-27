@@ -69,6 +69,8 @@ fun Critter(
         label = "blink",
     )
     val eyesClosed = blink > 0.94f
+    // 대전 중에는 "나 = 햄스터, 상대 = 고양이"로 보여줌
+    val side = com.bubble.game.game.SideLook.of(side)
     // 기본 고양이·햄스터는 일러스트 그림 (방울 없는 캐릭터만)
     val art = when {
         skin == null && side == Side.CAT -> if (happy) R.drawable.sprite_cat_happy else R.drawable.sprite_cat_idle

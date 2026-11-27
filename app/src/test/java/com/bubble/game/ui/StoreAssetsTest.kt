@@ -115,12 +115,13 @@ private fun StoreIcon() {
         // 작은 장식 방울
         GlossyBubble(70.dp, Color(0xFFC8A2FF), Modifier.align(Alignment.TopEnd).offset(x = (-40).dp, y = 40.dp))
         GlossyBubble(44.dp, Color(0xFFFFB86B), Modifier.align(Alignment.BottomStart).offset(x = 48.dp, y = (-56).dp))
+        // 주인공은 햄스터 (세계관: 고양이 왕국에서 독립하려는 햄스터)
         Box(contentAlignment = Alignment.Center) {
-            GlossyBubble(380.dp, Color(0xFFFFB86B))
-            Critter(Side.CAT, Modifier.size(250.dp).offset(y = 6.dp), happy = true)
+            GlossyBubble(380.dp, Color(0xFFC8A2FF))
+            Critter(Side.HAMSTER, Modifier.size(260.dp).offset(y = 6.dp), happy = true)
         }
         Critter(
-            Side.HAMSTER,
+            Side.CAT,
             Modifier.align(Alignment.BottomEnd).offset(x = (-26).dp, y = (-22).dp).size(150.dp).rotate(-12f),
         )
     }

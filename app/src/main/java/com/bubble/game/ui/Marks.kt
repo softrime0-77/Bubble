@@ -49,7 +49,7 @@ fun markKind(skin: Animal?, side: Side): MarkKind = when (skin) {
     Animal.RABBIT -> MarkKind.HOP
     Animal.UNICORN -> MarkKind.MAGIC
     Animal.HAMSTER -> MarkKind.SEED
-    else -> if (side == Side.CAT) MarkKind.PAW else MarkKind.SEED
+    else -> if (com.bubble.game.game.SideLook.of(side) == Side.CAT) MarkKind.PAW else MarkKind.SEED
 }
 
 data class HitMark(val key: Long, val at: Offset, val kind: MarkKind)

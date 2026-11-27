@@ -76,7 +76,7 @@ data class FxTheme(val colors: List<Color>, val shapes: List<FxShape>, val emoji
     val main: Color get() = colors.first()
 }
 
-fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (side == Side.CAT) null else Animal.HAMSTER) {
+fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (com.bubble.game.game.SideLook.of(side) == Side.CAT) null else Animal.HAMSTER) {
     null -> FxTheme(listOf(Color(0xFFFF9A3C), Color(0xFFFFC94D), Color.White, Color(0xFFFFD3A8)), listOf(FxShape.PAW, FxShape.STAR), "🐾")
     Animal.HAMSTER -> FxTheme(listOf(Color(0xFFB98CFF), Color(0xFFFF9EC7), Color.White, Color(0xFFFFE3A3)), listOf(FxShape.SEED, FxShape.HEART, FxShape.STAR), "🌻")
     Animal.PINK_CAT -> FxTheme(listOf(Color(0xFFFF4FA0), Color(0xFFFFA8D2), Color.White, Color(0xFFFFD6EC)), listOf(FxShape.HEART, FxShape.STAR), "💗")
@@ -1027,7 +1027,7 @@ fun ReviveFx(r: ReviveBurst, onDone: (ReviveBurst) -> Unit) {
 enum class WinFx { FIREWORKS, STORM, RAINBOW, NIGHT, PAWS, INK, SLED, CLOUDS, FLAMES }
 
 /** 캐릭터별 승리 효과 (테마 비는 모두 공통) */
-fun winFx(side: Side, skin: Animal?): List<WinFx> = when (skin ?: if (side == Side.CAT) null else Animal.HAMSTER) {
+fun winFx(side: Side, skin: Animal?): List<WinFx> = when (skin ?: if (com.bubble.game.game.SideLook.of(side) == Side.CAT) null else Animal.HAMSTER) {
     null -> listOf(WinFx.PAWS)                              // 🐾 고양이: 발자국이 콩콩
     Animal.HAMSTER -> listOf(WinFx.FIREWORKS)               // 🌻 햄스터: 해바라기씨 폭죽
     Animal.PINK_CAT -> listOf(WinFx.FIREWORKS)              // 💗 하트 폭죽

@@ -413,9 +413,11 @@ class ScreenshotTest {
         vm.debugSetGame {
             it.copy(
                 board = Board(cat = listOf(1, 3), ham = listOf(4, 2), catSplits = 3, hamSplits = 2),
-                mySide = Side.HAMSTER, turn = Side.HAMSTER, busy = false,
+                // 실제 진영은 고양이여도 화면에서는 내가 햄스터로 보여야 함
+                mySide = Side.CAT, turn = Side.CAT, busy = false,
                 turnSec = 20, turnDeadline = System.currentTimeMillis() + 14_000,
                 mySkin = null, opponentSkin = null,
+                log = listOf(com.bubble.game.game.MoveText.describe(com.bubble.game.game.MoveInfo(Side.HAMSTER, com.bubble.game.game.Move.Add(0, true, 1), 1, 3, false, 3))),
             )
         }
         shot("game_default_art", 1200)

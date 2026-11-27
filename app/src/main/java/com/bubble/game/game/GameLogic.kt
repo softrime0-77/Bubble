@@ -1,13 +1,28 @@
 package com.bubble.game.game
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.bubble.game.i18n.tr
 
-/** 진영: 고양이 또는 햄스터. 고양이가 항상 먼저 둡니다. */
+/**
+ * 화면에 보이는 진영. 세계관상 "나"는 늘 햄스터, 상대는 늘 고양이로 보여줍니다.
+ * 규칙(고양이 진영이 먼저 둠)과 서버 데이터는 그대로이고, 그림·이름만 바꿔 보여줘요.
+ * 대전 화면에 들어가면 [mySide]가 정해지고, 나오면 null(그대로 보여줌).
+ */
+object SideLook {
+    var mySide: Side? by androidx.compose.runtime.mutableStateOf(null)
+
+    /** [side]가 화면에서 어떤 동물로 보이는지 */
+    fun of(side: Side): Side = mySide?.let { if (side == it) Side.HAMSTER else Side.CAT } ?: side
+}
+
+/** 진영: 고양이 또는 햄스터. 고양이 진영이 항상 먼저 둡니다 (화면에서는 [SideLook]으로 "나 = 햄스터"). */
 enum class Side {
     CAT, HAMSTER;
 
     val opponent: Side get() = if (this == CAT) HAMSTER else CAT
-    val label: String get() = if (this == CAT) tr("고양이", "Cat", zh = "猫咪", hi = "बिल्ली", es = "Gato", fr = "Chat", ar = "قطة", de = "Katze", pt = "Gato", ru = "Котик", ja = "ネコ") else tr("햄스터", "Hamster", zh = "仓鼠", hi = "हैम्स्टर", es = "Hámster", fr = "Hamster", ar = "هامستر", de = "Hamster", pt = "Hamster", ru = "Хомяк", ja = "ハムスター")
+    /** 화면용 이름 ([SideLook] 적용) */
+    val label: String get() = if (SideLook.of(this) == CAT) tr("고양이", "Cat", zh = "猫咪", hi = "बिल्ली", es = "Gato", fr = "Chat", ar = "قطة", de = "Katze", pt = "Gato", ru = "Котик", ja = "ネコ") else tr("햄스터", "Hamster", zh = "仓鼠", hi = "हैम्स्टर", es = "Hámster", fr = "Hamster", ar = "هامستر", de = "Hamster", pt = "Hamster", ru = "Хомяк", ja = "ハムスター")
     val labelKo: String get() = if (this == CAT) "고양이" else "햄스터"
     val labelEn: String get() = if (this == CAT) "Cat" else "Hamster"
 }

@@ -70,6 +70,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -190,7 +191,8 @@ fun BubbleApp(vm: AppViewModel) {
     val gameNow by vm.game.collectAsState()
     val lobbyNow by vm.lobby.collectAsState()
     val track = when (screen) {
-        Screen.Game -> com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide)
+        // 나는 늘 햄스터
+        Screen.Game -> com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, Side.HAMSTER)
         is Screen.Matching, is Screen.FriendWait -> com.bubble.game.audio.Music.matching
         else -> com.bubble.game.audio.Music.lobbyTrack { a -> ownsMusic(lobbyNow.profile, a) }
     }
@@ -987,6 +989,9 @@ private fun MatchingScreen(startedAt: Long, onCancel: () -> Unit) {
 @Composable
 private fun GameScreen(vm: AppViewModel) {
     val live by vm.game.collectAsState()
+    // 🐹 대전 화면에서는 "나 = 햄스터, 상대 = 고양이"로 보여줌 (나가면 원래대로)
+    com.bubble.game.game.SideLook.mySide = live.mySide
+    DisposableEffect(Unit) { onDispose { com.bubble.game.game.SideLook.mySide = null } }
     // 화면에 보여주는 판: 방울이 날아가 부딪힐 때까지 바뀐 판을 잠깐 늦게 보여줌
     var g by remember { mutableStateOf(live) }
     val shots = remember { mutableStateListOf<FlyingShot>() }
@@ -1611,7 +1616,7 @@ private fun winCard(g: GameUi, refCode: String?): ShareCard.Win {
         title = tr("승리!", "Victory!", zh = "胜利！", hi = "जीत!", es = "¡Victoria!", fr = "Victoire !", ar = "فوز!", de = "Sieg!", pt = "Vitória!", ru = "Победа!", ja = "勝利！"),
         matchLine = "$vs · ${g.myName} vs ${g.opponentName}",
         scoreLine = pts + "${rank.emoji} ${rank.label}",
-        emoji = if (g.mySide == Side.CAT) "🐱" else "🐹",
+        emoji = "🐹",
         footer = footer,
         message = message,
     )

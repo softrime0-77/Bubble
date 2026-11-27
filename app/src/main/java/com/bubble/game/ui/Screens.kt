@@ -71,6 +71,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -98,6 +99,8 @@ import com.bubble.game.game.AiLevel
 import com.bubble.game.game.GameLogic
 import com.bubble.game.game.Move
 import com.bubble.game.game.Side
+import androidx.compose.foundation.border
+import com.bubble.game.game.shownSkin
 import kotlinx.coroutines.delay
 
 /** 이 캐릭터의 음악을 쓸 수 있는지: 산 스킨 · 무료 햄스터 · 계급 유니콘 */
@@ -117,7 +120,7 @@ private fun MusicPicker(p: com.bubble.game.data.Profile?, onClose: () -> Unit) {
         null to tr("🏠 기본 로비 곡", "🏠 Default lobby song", ja = "🏠 いつものロビー曲", zh = "🏠 默认大厅音乐"),
         "CAT" to tr("🐱 기본 고양이", "🐱 Basic cat", ja = "🐱 ふつうのネコ", zh = "🐱 基础猫咪"),
         Animal.HAMSTER.name to "🐹 ${Animal.HAMSTER.label}",
-    ) + (Animal.entries.filter { it.cosmetic } + Animal.entries.filter { it.rankOnly }).map { it.name to it.label }
+    ) + (Animal.entries.filter { it.cosmetic && !it.retired } + Animal.entries.filter { it.rankOnly }).map { it.name to it.label }
     AlertDialog(
         onDismissRequest = onClose,
         confirmButton = { TextButton(onClick = onClose) { Text(tr("닫기", "Close", ja = "閉じる", zh = "关闭")) } },
@@ -158,10 +161,13 @@ private fun MusicPicker(p: com.bubble.game.data.Profile?, onClose: () -> Unit) {
     )
 }
 
-/** 로비에서 장착할 수 있는 캐릭터 (null = 기본 고양이): 무료 햄스터 · 산 스킨 · 해금한 유니콘 · 남은 소모품 동물 */
+/**
+ * 로비에서 장착할 수 있는 캐릭터 (null = 기본 햄스터): 산 스킨 · 해금한 유니콘 · 남은 시계 햄스터.
+ * 세계관상 나는 늘 햄스터라 기본과 "무료 햄스터"가 같은 모습이어서 기본 하나만 보여줌. 🐧 펭귄은 판매 중단.
+ */
 internal fun equippable(p: com.bubble.game.data.Profile): List<Animal?> =
-    listOf<Animal?>(null, Animal.HAMSTER) +
-        Animal.entries.filter { it.cosmetic && it in p.skins } +
+    listOf<Animal?>(null) +
+        Animal.entries.filter { it.cosmetic && !it.retired && it in p.skins } +
         Animal.entries.filter { it.rankOnly && p.score >= it.rankMin } +
         Animal.entries.filter { it.consumable && p.animalCount(it) > 0 }
 
@@ -190,7 +196,7 @@ private fun CharacterPicker(
                 list.chunked(3).forEach { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { a ->
-                            val on = p.equipped == a || (a == null && p.equipped == null)
+                            val on = p.equipped == a || (a == null && (p.equipped == null || p.equipped == Animal.HAMSTER))
                             Column(
                                 Modifier
                                     .weight(1f)
@@ -201,14 +207,9 @@ private fun CharacterPicker(
                                     .padding(vertical = 8.dp, horizontal = 4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                val side = when {
-                                    a == null -> Side.CAT
-                                    a.consumable || a.looksLikeCat -> Side.CAT
-                                    else -> Side.HAMSTER
-                                }
-                                Critter(side, Modifier.size(56.dp), skin = a, happy = on, ribbons = if (a == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                                Critter(Side.HAMSTER, Modifier.size(56.dp), skin = a, happy = on, ribbons = if (a == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
                                 Text(
-                                    a?.label ?: tr("기본 고양이", "Basic cat", ja = "ふつうのネコ", zh = "基础猫咪"),
+                                    a?.label ?: tr("기본 햄스터", "Basic hamster", ja = "ふつうのハムスター", zh = "基础仓鼠"),
                                     fontSize = 12.sp, fontWeight = if (on) FontWeight.Black else FontWeight.SemiBold, color = Ui.text,
                                     textAlign = TextAlign.Center, maxLines = 2, lineHeight = 14.sp,
                                 )
@@ -264,7 +265,8 @@ fun BubbleApp(vm: AppViewModel) {
     val gameNow by vm.game.collectAsState()
     val lobbyNow by vm.lobby.collectAsState()
     val track = when (screen) {
-        Screen.Game -> com.bubble.game.audio.Music.gameTrack(gameNow.mySkin, gameNow.mySide)
+        // 나는 늘 햄스터
+        Screen.Game -> com.bubble.game.audio.Music.gameTrack(gameNow.mySkin.shownSkin(), Side.HAMSTER)
         is Screen.Matching, is Screen.FriendWait -> com.bubble.game.audio.Music.matching
         else -> com.bubble.game.audio.Music.lobbyTrack { a -> ownsMusic(lobbyNow.profile, a) }
     }
@@ -314,6 +316,12 @@ fun BubbleApp(vm: AppViewModel) {
             if (mission != null) last.value = mission
             last.value?.let { MissionCelebration(it.label, it.coins, onDismiss = vm::dismissMission) }
         }
+        // 🚩 독립 엔딩 / 📜 프롤로그 (전체 화면, 가장 위)
+        if (lobby.landEnding && (screen == Screen.Shop || screen == Screen.Lobby)) {
+            LandEnding(lobby.profile?.name, onDismiss = vm::dismissLandEnding)
+        }
+        val prologue by vm.prologue.collectAsState()
+        if (prologue && screen == Screen.Lobby) PrologueScreen(onDone = vm::finishPrologue)
     }
     }
 }
@@ -395,8 +403,12 @@ private fun LobbyScreen(vm: AppViewModel) {
             }
         }
         TitleBanner()
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // 좁은 화면·긴 언어에서는 다음 줄로 넘어감
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.Center) {
             TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
+            // 📜 프롤로그 다시 보기
+            TextButton(onClick = vm::showPrologue) { Text(tr("📜 이야기", "📜 Story", zh = "📜 故事", ja = "📜 ストーリー"), color = Ui.text) }
             // 🎓 튜토리얼 (보상을 아직 안 받았으면 🎁 표시)
             TextButton(onClick = vm::startTutorial) {
                 Text(
@@ -469,7 +481,7 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                             Modifier.clip(RoundedCornerShape(50)).clickable { showCharacters = true },
                             contentAlignment = Alignment.BottomEnd,
                         ) {
-                            Critter(Side.CAT, Modifier.size(52.dp), skin = p.equipped, ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
+                            Critter(Side.HAMSTER, Modifier.size(52.dp), skin = p.equipped.shownSkin(), ribbons = if (p.equipped == Animal.RABBIT) p.winStreak.coerceIn(0, Shop.RABBIT_MAX_RIBBONS) else 0)
                             Text(
                                 "🔄", fontSize = 10.sp,
                                 modifier = Modifier.background(Color.White, RoundedCornerShape(50)).padding(2.dp),
@@ -483,6 +495,8 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                                 Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                                 if (p.equipped == Animal.RABBIT) RibbonBadge(p.winStreak)
                             }
+                            // 🚩 땅을 사서 독립했으면 칭호 (누르면 엔딩 다시 보기)
+                            if (p.land) IndependentBadge(Modifier.padding(top = 2.dp).clickable(onClick = vm::showLandEnding))
                             Spacer(Modifier.height(4.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -681,7 +695,9 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
         }
     }
 
-    ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
+    // 처음 실행이면 📜 프롤로그를 먼저 보고 환영 팝업
+    val prologueShowing by vm.prologue.collectAsState()
+    if (!prologueShowing) ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
     ui.profile?.weeklyReward?.takeIf { !it.seen }?.let { w ->
         LaunchedEffect(w.week) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.WEEKLY) }
         AlertDialog(
@@ -704,7 +720,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
     if (showRules) RulesDialog(onTutorial = { showRules = false; vm.startTutorial() }) { showRules = false }
     // 🎓 처음 한 번: 튜토리얼 권하기 (가입 환영 팝업이 닫힌 뒤)
     val prof = ui.profile
-    if (prof != null && !prof.tutorialDone && !prof.tutorialSeen && ui.welcome == null && !tutorialAsked) {
+    if (prof != null && !prof.tutorialDone && !prof.tutorialSeen && ui.welcome == null && !tutorialAsked && !prologueShowing && !ui.landEnding) {
         TutorialPrompt(
             onStart = { tutorialAsked = true; vm.startTutorial() },
             onLater = { tutorialAsked = true; vm.finishTutorial(false) },
@@ -894,9 +910,9 @@ zh = "• 💖 复活药水（商店）能让破掉的泡泡带着 1 只复活�
 zh = "• 在线对战每回合 ${OnlineRepository.TURN_LIMIT_MS / 1000} 秒，超时即判负。\n", hi = "• ऑनलाइन हर चाल ${OnlineRepository.TURN_LIMIT_MS / 1000} सेकंड। समय खत्म तो हार।\n", es = "• En línea cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Si se acaba el tiempo, pierdes.\n", fr = "• En ligne, chaque tour dure ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Temps écoulé = défaite.\n", ar = "• مدة الدور عبر الإنترنت ${OnlineRepository.TURN_LIMIT_MS / 1000} ثانية. إذا انتهى الوقت تخسر.\n", de = "• Online dauert ein Zug ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Zeit abgelaufen = verloren.\n", pt = "• Online, cada turno dura ${OnlineRepository.TURN_LIMIT_MS / 1000} s. Se o tempo acabar, você perde.\n", ru = "• Онлайн ход длится ${OnlineRepository.TURN_LIMIT_MS / 1000} с. Время вышло — поражение.\n", ja = "• オンラインの1ターンは${OnlineRepository.TURN_LIMIT_MS / 1000}秒。時間切れで負けです。\n",
 ) +
                     tr(
-                    "   상대가 양·강아지·기린을 썼다면 내 턴이 15·12·8초로 줄어요.\n" +
+                    "   상대가 시계 햄스터 1·2·3을 썼다면 내 턴이 15·12·8초로 줄어요.\n" +
                         "• AI 대전의 내 턴: 쉬움 20초 · 보통 15초 · 어려움 8초. 시간을 넘기면 패배!\n\n",
-                    "   If your opponent uses a sheep, puppy or giraffe, your turn drops to 15, 12 or 8s.\n" +
+                    "   If your opponent uses Time Hamster 1, 2 or 3, your turn drops to 15, 12 or 8s.\n" +
                         "• Your turn vs AI: Easy 20s · Normal 15s · Hard 8s. Run out of time and you lose!\n\n",
                     zh = "   如果对手使用了绵羊、小狗或长颈鹿，你的回合会缩短为 15、12 或 8 秒。\n• AI 对战中你的回合：简单 20 秒 · 普通 15 秒 · 困难 8 秒。超时判负！\n\n",
                     hi = "   अगर विरोधी ने भेड़, पिल्ला या जिराफ़ इस्तेमाल किया, तो आपकी बारी 15, 12 या 8 सेकंड की होगी।\n• AI के खिलाफ आपकी बारी: आसान 20से · सामान्य 15से · कठिन 8से। समय खत्म तो हार!\n\n",
@@ -1068,7 +1084,12 @@ private fun MatchingScreen(startedAt: Long, onCancel: () -> Unit) {
 
 @Composable
 private fun GameScreen(vm: AppViewModel) {
-    val live by vm.game.collectAsState()
+    val liveRaw by vm.game.collectAsState()
+    // ⏱ 시계 햄스터(소모품)는 모습을 바꾸지 않음: 그림은 기본 햄스터, 시작 때 알림만
+    val live = remember(liveRaw) { liveRaw.copy(mySkin = liveRaw.mySkin.shownSkin(), opponentSkin = liveRaw.opponentSkin.shownSkin()) }
+    // 🐹 대전 화면에서는 "나 = 햄스터, 상대 = 고양이"로 보여줌 (나가면 원래대로)
+    com.bubble.game.game.SideLook.mySide = live.mySide
+    DisposableEffect(Unit) { onDispose { com.bubble.game.game.SideLook.mySide = null } }
     // 화면에 보여주는 판: 방울이 날아가 부딪힐 때까지 바뀐 판을 잠깐 늦게 보여줌
     var g by remember { mutableStateOf(live) }
     val shots = remember { mutableStateListOf<FlyingShot>() }
@@ -1394,7 +1415,33 @@ zh = "💖 复活${GameLogic.setName(reviveTarget ?: 0)} · 剩 ${g.board.revive
             }
         }
         AnimatedVisibility(showVs && !g.finished, enter = fadeIn() + scaleIn(initialScale = 0.9f), exit = fadeOut()) {
-            VsIntro(g) { showVs = false }
+            // VS 소개에는 실제로 쓴 시계 햄스터 안내가 나오도록 원래 값으로
+            VsIntro(g.copy(mySkin = liveRaw.mySkin, opponentSkin = liveRaw.opponentSkin)) { showVs = false }
+        }
+
+        // ⏱ 시계 햄스터 알림: 게임 시작 때 한 번 (VS 소개가 있으면 그다음에)
+        var timeAlert by remember { mutableStateOf<Pair<Animal, Boolean>?>(null) }
+        LaunchedEffect(g.gameId) {
+            val mine = liveRaw.mySkin?.takeIf { it.consumable }
+            val theirs = liveRaw.opponentSkin?.takeIf { it.consumable }
+            if (g.gameId == null || (mine == null && theirs == null)) return@LaunchedEffect
+            if (g.showIntro) delay(3_100)
+            for ((a, isMine) in listOfNotNull(mine?.let { it to true }, theirs?.let { it to false })) {
+                timeAlert = a to isMine
+                delay(2_600)
+                timeAlert = null
+                delay(250)
+            }
+        }
+        AnimatedVisibility(
+            timeAlert != null && !g.finished,
+            enter = fadeIn() + androidx.compose.animation.slideInVertically { -it },
+            exit = fadeOut() + androidx.compose.animation.slideOutVertically { -it },
+            modifier = Modifier.align(Alignment.TopCenter),
+        ) {
+            val last = remember { mutableStateOf(timeAlert) }
+            if (timeAlert != null) last.value = timeAlert
+            last.value?.let { (a, isMine) -> TimeHamsterAlert(a, isMine) }
         }
 
         if (g.finished && g.winner != null && g.tutorial != null) {
@@ -1700,7 +1747,7 @@ private fun winCard(g: GameUi, refCode: String?): ShareCard.Win {
         title = tr("승리!", "Victory!", zh = "胜利！", hi = "जीत!", es = "¡Victoria!", fr = "Victoire !", ar = "فوز!", de = "Sieg!", pt = "Vitória!", ru = "Победа!", ja = "勝利！"),
         matchLine = "$vs · ${g.myName} vs ${g.opponentName}",
         scoreLine = pts + "${rank.emoji} ${rank.label}",
-        emoji = if (g.mySide == Side.CAT) "🐱" else "🐹",
+        emoji = "🐹",
         footer = footer,
         message = message,
     )
@@ -2118,8 +2165,8 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             fontWeight = FontWeight.Black, fontSize = 20.sp, color = Ui.text, modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            tr("승패에는 영향이 없어요. 💰 복냥이 · 🐼 판다 · 🐉 아기 용은 상점 포인트 보너스가 있어요",
-                "No effect on winning. 💰 Lucky Cat, 🐼 Panda and 🐉 Dragon give shop-point bonuses",
+            tr("승패에는 영향이 없어요. 💰 복햄이 · 📜 출석 햄스터 · 🔥 불꽃 햄스터는 상점 포인트 보너스가 있어요",
+                "No effect on winning. 💰 Lucky, 📜 Check-in and 🔥 Fire Hamsters give shop-point bonuses",
                 zh = "不影响胜负。💰 招财猫 · 🐼 熊猫 · 🐉 小龙有商店积分奖励", es = "No afectan al resultado. 💰 Gato, 🐼 Panda y 🐉 Dragón dan puntos de tienda",
                 fr = "Aucun effet sur la victoire. 💰 Chat, 🐼 Panda et 🐉 Dragon donnent des points boutique", de = "Kein Einfluss auf Sieg. 💰 Katze, 🐼 Panda und 🐉 Drache geben Shop-Punkte",
                 pt = "Não afetam a vitória. 💰 Gato, 🐼 Panda e 🐉 Dragão dão pontos da loja", ru = "На победу не влияют. 💰 Котик, 🐼 Панда и 🐉 Дракон дают очки магазина",
@@ -2127,7 +2174,7 @@ zh = "在你的回合，让一个破掉（空）的泡泡带着 1 只复活。\n
             fontSize = 12.sp, color = Ui.text.copy(alpha = 0.7f), modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(6.dp))
-        Animal.entries.filter { it.cosmetic }.forEach { a ->
+        Animal.entries.filter { it.cosmetic && !it.retired }.forEach { a ->
             val have = a in p.skins
             val on = p.equipped == a
             val side = if (a.looksLikeCat) Side.CAT else Side.HAMSTER
@@ -2232,11 +2279,46 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
                 }
             }
         }
+
+        // 🚩 땅: 최종 목표. 점수로만 (💰 상점 포인트는 결제로 살 수 있어서 못 씀), 한 번만
+        val landName = tr("땅", "Land", zh = "土地", ja = "土地")
+        ShopCard(
+            title = tr("🚩 땅", "🚩 Land", zh = "🚩 土地", ja = "🚩 土地"),
+            desc = tr(
+                "고양이 왕국 한가운데의 작은 땅 한 조각.\n이걸 사면… 독립을?!\n🎮 게임으로 모은 점수로만 살 수 있어요 (💰 상점 포인트 사용 불가)",
+                "A small patch of land in the middle of the Cat Kingdom.\nIf you buy it… independence?!\n🎮 Score earned in games only (💰 shop points can't be used)",
+                zh = "猫咪王国正中央的一小块土地。\n买下它……就能独立？！\n🎮 只能用游戏赢得的分数购买（不能用 💰 商店积分）",
+                ja = "ネコ王国のまんなかにある小さな土地。\nこれを買えば…独立！？\n🎮 ゲームで集めたスコアだけで買えます（💰 ショップポイントは使えません）",
+            ),
+            price = Shop.LAND_PRICE,
+            owned = if (p.land) tr("🚩 우리 땅!", "🚩 Ours!", zh = "🚩 我们的土地！", ja = "🚩 ぼくらの土地！") else null,
+            art = { LandArt(Modifier.size(88.dp)) },
+        ) {
+            if (p.land) {
+                Button(
+                    onClick = vm::showLandEnding, shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                ) { Text(tr("엔딩 다시 보기", "Watch the ending again", zh = "再看一次结局", ja = "エンディングをもう一度"), fontWeight = FontWeight.Bold) }
+            } else {
+                Button(
+                    onClick = { confirm = Purchase("LAND", landName, Shop.LAND_PRICE) },
+                    enabled = !ui.shopBusy && p.score >= Shop.LAND_PRICE,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                ) {
+                    Text(
+                        if (p.score >= Shop.LAND_PRICE) tr("점수 ${Shop.LAND_PRICE}점에 사기", "Buy for ${Shop.LAND_PRICE} score", zh = "用 ${Shop.LAND_PRICE} 分购买", ja = "スコア${Shop.LAND_PRICE}点で買う")
+                        else tr("${Shop.LAND_PRICE - p.score}점 더 모아요", "${Shop.LAND_PRICE - p.score} more to go", zh = "还差 ${Shop.LAND_PRICE - p.score} 分", ja = "あと${Shop.LAND_PRICE - p.score}点"),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
     }
 
     confirm?.let { (item, label, price, qty) ->
-        // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙)
-        val fromCoins = minOf(p?.coins ?: 0, price)
+        // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙). 🚩 땅은 점수로만
+        val fromCoins = if (item == "LAND") 0 else minOf(p?.coins ?: 0, price)
         val fromScore = price - fromCoins
         val after = (p?.score ?: 0) - fromScore
         AlertDialog(
@@ -2267,8 +2349,32 @@ zh = "⚠️ 你的等级会从${p.rank.label}降到${Rank.of(after).label}", hi
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { vm.buy(item, label, qty); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
+            confirmButton = { TextButton(onClick = { if (item == "LAND") vm.buyLand() else vm.buy(item, label, qty); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
+        )
+    }
+}
+
+/** ⏱ 시계 햄스터 알림 카드 (게임 시작 때 위에서 내려옴) */
+@Composable
+private fun TimeHamsterAlert(a: Animal, mine: Boolean) {
+    Row(
+        Modifier
+            .statusBarsPadding()
+            .padding(top = 56.dp, start = 16.dp, end = 16.dp)
+            .background(if (mine) Color(0xFFFFF3C4) else Color(0xFFFFE0E6), RoundedCornerShape(24.dp))
+            .border(2.dp, if (mine) Color(0xFFFFC94D) else Color(0xFFFF8FA3), RoundedCornerShape(24.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Critter(Side.HAMSTER, Modifier.size(56.dp), skin = a, happy = mine)
+        Spacer(Modifier.width(10.dp))
+        Text(
+            if (mine) tr("⏰ ${a.label} 사용!\n상대 턴이 ${a.opponentTurnSec}초로 줄어요", "⏰ ${a.label} used!\nYour rival's turn is ${a.opponentTurnSec}s",
+                zh = "⏰ 使用了${a.label}！\n对手回合缩短为 ${a.opponentTurnSec} 秒", ja = "⏰ ${a.label}を使った！\n相手のターンは${a.opponentTurnSec}秒")
+            else tr("⏰ 상대가 ${a.label}을(를) 썼어요!\n내 턴이 ${a.opponentTurnSec}초로 줄어요", "⏰ Your rival used ${a.label}!\nYour turn is ${a.opponentTurnSec}s",
+                zh = "⏰ 对手用了${a.label}！\n你的回合缩短为 ${a.opponentTurnSec} 秒", ja = "⏰ 相手が${a.label}を使った！\n自分のターンは${a.opponentTurnSec}秒"),
+            fontWeight = FontWeight.Black, fontSize = 16.sp, lineHeight = 22.sp, color = Ui.text,
         )
     }
 }
@@ -2771,9 +2877,8 @@ private fun InviteCard(vm: AppViewModel, p: com.bubble.game.data.Profile, busy: 
 /** 스킨 상점 설명 (효과가 있는 캐릭터는 조건을 숫자 그대로) */
 private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when (a) {
     Animal.LUCKY_CAT -> luckyDesc(p)
-    Animal.OCTOPUS -> tr("🐙 분할하면 먹물이 퍽! · 이기면 화면에 먹물이 퍽퍽 · 승패 영향 없음", "🐙 Ink splash when you split · ink splats when you win · no effect on winning", zh = "🐙 分裂时喷墨！· 仅外观",
-        es = "🐙 ¡Tinta al dividir! · solo aspecto", fr = "🐙 Jet d’encre en divisant · look seulement", de = "🐙 Tinte beim Teilen · nur Look",
-        pt = "🐙 Tinta ao dividir · só visual", ru = "🐙 Чернила при делении · только вид", ja = "🐙 分割でスミがぷしゅっ · 見た目だけ")
+    Animal.OCTOPUS -> tr("💧 분할하면 물보라가 촤악! · 이기면 화면에 물방울 폭죽 · 승패 영향 없음", "💧 A splash of water when you split · water-drop fireworks when you win · no effect on winning", zh = "💧 分裂时水花四溅！· 赢了满屏水滴烟花 · 仅外观",
+        ja = "💧 分割で水しぶきザバッ！· 勝つと水玉の花火 · 見た目だけ")
     Animal.PENGUIN -> tr("🐧 공격하면 빨간 썰매를 타고 쌩! 눈가루·얼음 조각이 튀고 부딪히면 얼음이 와장창\n이기면 썰매 퍼레이드와 눈보라 · 승패 영향 없음",
         "🐧 Attacks ride a red sled — snow spray, ice shards and an icy crash\nWin: sled parade in a snowstorm · no effect on winning",
         zh = "🐧 攻击时坐红色雪橇冲过去！雪粉冰片飞溅，撞上时冰块碎裂\n获胜：雪橇游行与暴风雪 · 不影响胜负",
@@ -2783,11 +2888,11 @@ private fun skinDesc(a: Animal, p: com.bubble.game.data.Profile): String = when 
         pt = "🐧 Ataca de trenó vermelho: neve, lascas de gelo e choque gelado\nVitória: desfile de trenó na nevasca · sem efeito",
         ru = "🐧 Атака на красных санках: снег, осколки льда, ледяной удар\nПобеда: парад на санках в метель · без эффекта",
         ja = "🐧 攻撃は赤いソリでシュー！雪と氷のかけら、当たると氷がパリーン\n勝利：ソリのパレードと吹雪 · 勝敗に影響なし")
-    Animal.PANDA -> tr("🐼 장착하고 출석하면 💰 +${Shop.PANDA_CHECKIN_BONUS} 더 (하루 1번) · 이기면 대나무잎 회오리 · 영구", "🐼 Check in while equipped for 💰 +${Shop.PANDA_CHECKIN_BONUS} more (once a day) · permanent",
-        zh = "🐼 装备后签到多得 💰 +${Shop.PANDA_CHECKIN_BONUS}（每天 1 次）· 永久", es = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} extra al registrarte (1 al día) · permanente",
-        fr = "🐼 Équipé : 💰 +${Shop.PANDA_CHECKIN_BONUS} en plus à la présence (1/jour) · permanent", de = "🐼 Ausgerüstet: 💰 +${Shop.PANDA_CHECKIN_BONUS} beim Check-in (1×/Tag) · dauerhaft",
-        pt = "🐼 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} na presença (1 por dia) · permanente", ru = "🐼 Надета: +${Shop.PANDA_CHECKIN_BONUS} 💰 за вход (1 раз в день) · навсегда",
-        ja = "🐼 装備して出席すると 💰 +${Shop.PANDA_CHECKIN_BONUS}（1日1回）· 永久")
+    Animal.PANDA -> tr("📜 장착하고 출석하면 💰 +${Shop.PANDA_CHECKIN_BONUS} 더 (하루 1번) · 이기면 출석 도장 폭죽 · 영구", "📜 Check in while equipped for 💰 +${Shop.PANDA_CHECKIN_BONUS} more (once a day) · permanent",
+        zh = "📜 装备后签到多得 💰 +${Shop.PANDA_CHECKIN_BONUS}（每天 1 次）· 永久", es = "📜 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} extra al registrarte (1 al día) · permanente",
+        fr = "📜 Équipé : 💰 +${Shop.PANDA_CHECKIN_BONUS} en plus à la présence (1/jour) · permanent", de = "📜 Ausgerüstet: 💰 +${Shop.PANDA_CHECKIN_BONUS} beim Check-in (1×/Tag) · dauerhaft",
+        pt = "📜 Equipado: 💰 +${Shop.PANDA_CHECKIN_BONUS} na presença (1 por dia) · permanente", ru = "📜 Надета: +${Shop.PANDA_CHECKIN_BONUS} 💰 за вход (1 раз в день) · навсегда",
+        ja = "📜 装備して出席すると 💰 +${Shop.PANDA_CHECKIN_BONUS}（1日1回）· 永久")
     Animal.DRAGON -> {
         val today = if (p.dragonDay == OnlineRepository.today()) p.dragonCoins else 0
         val mx = Shop.DRAGON_DAILY_MAX
@@ -2826,11 +2931,11 @@ private fun markDesc(a: Animal): String = when (a) {
     Animal.PINK_CAT -> tr("💕 공격하면 맞은 방울에 하트 뿅뿅, 볼이 발그레 (모습만)", "💕 Hit bubbles blush and float hearts (look only)", ja = "💕 攻撃した泡にハートがポンポン（見た目だけ）", zh = "💕 被打的泡泡冒出爱心、脸红（仅外观）")
     Animal.BLACK_CAT -> tr("🐾 공격하면 맞은 방울에 발톱 자국 슥슥 (모습만)", "🐾 Hit bubbles get claw marks (look only)", ja = "🐾 攻撃した泡にツメあとシュッシュッ（見た目だけ）", zh = "🐾 被打的泡泡留下爪痕（仅外观）")
     Animal.LUCKY_CAT -> tr("🧧 공격하면 맞은 방울에 빨간 福 도장 쾅! (모습만)", "🧧 Hit bubbles get a red 福 stamp! (look only)", ja = "🧧 攻撃した泡に赤い「福」のハンコ！（見た目だけ）", zh = "🧧 被打的泡泡盖上红色「福」印章！（仅外观）")
-    Animal.OCTOPUS -> tr("🖤 공격하면 맞은 방울에 먹물 철퍽 (모습만)", "🖤 Hit bubbles get splashed with ink (look only)", ja = "🖤 攻撃した泡にスミがベチャッ（見た目だけ）", zh = "🖤 被打的泡泡溅上墨汁（仅外观）")
+    Animal.OCTOPUS -> tr("💧 공격하면 맞은 방울에 물보라 촤악 (모습만)", "💧 Hit bubbles get a splash of water (look only)", ja = "💧 攻撃した泡に水しぶきザバッ（見た目だけ）", zh = "💧 被打的泡泡溅起水花（仅外观）")
     Animal.PENGUIN -> tr("☃️ 공격하면 맞은 방울에 눈이 소복이 쌓였다 털려요 (모습만)", "☃️ Snow piles up on hit bubbles, then shakes off (look only)", ja = "☃️ 攻撃した泡に雪がこんもり（見た目だけ）", zh = "☃️ 被打的泡泡积满雪又抖落（仅外观）")
-    Animal.PANDA -> tr("🎋 공격하면 맞은 방울에 판다 발도장과 대나무 잎 (모습만)", "🎋 Hit bubbles get a panda paw print and bamboo leaves (look only)", ja = "🎋 攻撃した泡にパンダの足あとと笹の葉（見た目だけ）", zh = "🎋 被打的泡泡留下熊猫脚印和竹叶（仅外观）")
+    Animal.PANDA -> tr("💮 공격하면 맞은 방울에 빨간 출석 도장 쾅 (모습만)", "💮 Hit bubbles get a red check-in stamp (look only)", ja = "💮 攻撃した泡に赤い出席スタンプ（見た目だけ）", zh = "💮 被打的泡泡盖上红色签到章（仅外观）")
     Animal.DRAGON -> tr("🔥 공격하면 맞은 방울에 불꽃 화르륵, 연기 모락 (모습만)", "🔥 Hit bubbles catch fire and smoke (look only)", ja = "🔥 攻撃した泡にほのおボウッ（見た目だけ）", zh = "🔥 被打的泡泡着火冒烟（仅外观）")
-    Animal.RABBIT -> tr("🐾 공격하면 맞은 방울에 토끼 발자국 콩콩콩 (모습만)", "🐾 Bunny footprints hop across hit bubbles (look only)", ja = "🐾 攻撃した泡にウサギの足あとピョンピョン（見た目だけ）", zh = "🐾 被打的泡泡留下兔子脚印（仅外观）")
+    Animal.RABBIT -> tr("🚩 공격하면 맞은 방울에 Win 깃발이 콕! (모습만)", "🚩 A \"Win\" flag gets planted on hit bubbles (look only)", ja = "🚩 攻撃した泡に「Win」の旗がグサッ（見た目だけ）", zh = "🚩 被打的泡泡插上 Win 小旗（仅外观）")
     Animal.UNICORN -> tr("🌈 공격하면 맞은 방울에 무지개 고리와 별가루 반짝 (모습만)", "🌈 Rainbow rings and stardust swirl on hit bubbles (look only)", ja = "🌈 攻撃した泡に虹の輪と星くず（見た目だけ）", zh = "🌈 被打的泡泡环绕彩虹和星尘（仅外观）")
     else -> ""
 }
@@ -2859,15 +2964,15 @@ private fun rabbitDesc(p: com.bubble.game.data.Profile): String {
     val b = Shop.RABBIT_5_COINS
     val c = Shop.RABBIT_MORE_COINS
     val n = p.winStreak
-    return tr("🐰 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 토끼로 이길 때만 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
-        "🐰 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win with the rabbit, golden at 5\n· Random, scored friend & AI matches · streak $n",
-        zh = "🐰 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 ${n} 连胜",
-        es = "🐰 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
-        fr = "🐰 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",
-        de = "🐰 Siegesserien bringen 💰!\n· 3 Siege +$a · 5 Siege +$b · ab 6 +$c pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. $mx pro Tag (heute $today/$mx)\n· Eine Schleife pro Sieg, golden ab 5 · Serie $n",
-        pt = "🐰 Sequências dão 💰!\n· 3 vitórias +$a · 5 vitórias +$b · a partir de 6, +$c por vitória\n· Perder zera a sequência\n· Máx. $mx por dia (hoje $today/$mx)\n· Um laço por vitória, dourados aos 5 · sequência $n",
-        ru = "🐰 Серии побед дают 💰!\n· 3 победы +$a · 5 побед +$b · с 6-й +$c за победу\n· Поражение обнуляет серию\n· Макс. $mx в день (сегодня $today/$mx)\n· Бантик за победу, золотые на 5 · серия $n",
-        ja = "🐰 連勝するほど 💰！\n· 3連勝 +$a · 5連勝 +$b · 6連勝からは勝つたびに +$c\n· 負けると連勝はリセット（また3連勝で +$a）\n· 1日最大$mx（今日 $today/$mx）\n· 連勝ごとにリボン、5連勝で金色 · 今${n}連勝")
+    return tr("🚩 연승할수록 💰 보상!\n· 3연승 +$a · 5연승 +$b · 6연승부터 이길 때마다 +$c\n· 지면 연승이 처음부터 (다시 3연승하면 또 +$a)\n· 하루 최대 $mx (오늘 $today/$mx)\n· 연승 햄스터로 이길 때만 리본이 하나씩, 5연승이면 금빛 리본\n· 랜덤 매칭·점수 걸린 친구 대전·AI 대전 · 지금 ${n}연승",
+        "🚩 Win streaks pay 💰!\n· 3 wins +$a · 5 wins +$b · from 6, +$c per win\n· A loss resets the streak (3 again = +$a again)\n· Max $mx a day (today $today/$mx)\n· A ribbon per win with the Streak Hamster, golden at 5\n· Random, scored friend & AI matches · streak $n",
+        zh = "🚩 连胜越多 💰 越多！\n· 3连胜 +$a · 5连胜 +$b · 6连胜起每胜 +$c\n· 输了连胜重来（再3连胜又 +$a）\n· 每天最多 $mx（今天 $today/$mx）\n· 每胜一个蝴蝶结，5连胜变金色\n· 随机匹配、计分好友和 AI 对战 · 当前 ${n} 连胜",
+        es = "🚩 ¡Las rachas dan 💰!\n· 3 seguidas +$a · 5 seguidas +$b · desde 6, +$c por victoria\n· Perder reinicia la racha\n· Máx. $mx al día (hoy $today/$mx)\n· Un lazo por victoria, dorados a las 5 · racha $n",
+        fr = "🚩 Les séries rapportent 💰 !\n· 3 victoires +$a · 5 victoires +$b · dès 6, +$c par victoire\n· Une défaite remet la série à zéro\n· Max $mx par jour (aujourd’hui $today/$mx)\n· Un ruban par victoire, dorés à 5 · série $n",
+        de = "🚩 Siegesserien bringen 💰!\n· 3 Siege +$a · 5 Siege +$b · ab 6 +$c pro Sieg\n· Eine Niederlage setzt die Serie zurück\n· Max. $mx pro Tag (heute $today/$mx)\n· Eine Schleife pro Sieg, golden ab 5 · Serie $n",
+        pt = "🚩 Sequências dão 💰!\n· 3 vitórias +$a · 5 vitórias +$b · a partir de 6, +$c por vitória\n· Perder zera a sequência\n· Máx. $mx por dia (hoje $today/$mx)\n· Um laço por vitória, dourados aos 5 · sequência $n",
+        ru = "🚩 Серии побед дают 💰!\n· 3 победы +$a · 5 побед +$b · с 6-й +$c за победу\n· Поражение обнуляет серию\n· Макс. $mx в день (сегодня $today/$mx)\n· Бантик за победу, золотые на 5 · серия $n",
+        ja = "🚩 連勝するほど 💰！\n· 3連勝 +$a · 5連勝 +$b · 6連勝からは勝つたびに +$c\n· 負けると連勝はリセット（また3連勝で +$a）\n· 1日最大$mx（今日 $today/$mx）\n· 連勝ごとにリボン、5連勝で金色 · 今${n}連勝")
 }
 
 /**
@@ -2925,23 +3030,23 @@ private fun UnicornResult(coins: Int) {
 /** 무지개 글자색 (진하게: 흰 바탕에서 읽히게) */
 internal val rainbowText = listOf(Color(0xFFE5397A), Color(0xFFE07A00), Color(0xFF2E9E4F), Color(0xFF2B7FD6), Color(0xFF7B4BD8))
 
-/** 🐰 결과 화면: 연승 보상 또는 다음 보상 안내 */
+/** 🚩 결과 화면: 연승 보상 또는 다음 보상 안내 */
 @Composable
 private fun RabbitResult(streak: Int, coins: Int) {
     LaunchedEffect(coins) { if (coins > 0) { kotlinx.coroutines.delay(700); com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.COIN_RABBIT) } }
     val text = when {
-        coins > 0 -> tr("🐰 ${streak}연승 보상 💰+$coins!", "🐰 $streak-win streak reward 💰+$coins!", zh = "🐰 ${streak}连胜奖励 💰+$coins！",
-            es = "🐰 ¡Premio por $streak seguidas 💰+$coins!", fr = "🐰 Récompense $streak victoires 💰+$coins !", de = "🐰 $streak Siege in Folge 💰+$coins!",
-            pt = "🐰 Prêmio por $streak seguidas 💰+$coins!", ru = "🐰 Награда за $streak побед подряд 💰+$coins!", ja = "🐰 ${streak}連勝ボーナス 💰+$coins！")
-        streak < 3 -> tr("🐰 ${streak}연승! 3연승이면 💰+${Shop.RABBIT_3_COINS}", "🐰 $streak in a row! 3 wins = 💰+${Shop.RABBIT_3_COINS}",
-            zh = "🐰 ${streak}连胜！3连胜 💰+${Shop.RABBIT_3_COINS}", es = "🐰 ¡$streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", fr = "🐰 $streak d’affilée ! 3 = 💰+${Shop.RABBIT_3_COINS}",
-            de = "🐰 $streak in Folge! 3 = 💰+${Shop.RABBIT_3_COINS}", pt = "🐰 $streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", ru = "🐰 $streak подряд! 3 = 💰+${Shop.RABBIT_3_COINS}", ja = "🐰 ${streak}連勝！3連勝で 💰+${Shop.RABBIT_3_COINS}")
-        streak == 4 -> tr("🐰 4연승! 한 번 더 이기면 💰+${Shop.RABBIT_5_COINS}", "🐰 4 in a row! One more win = 💰+${Shop.RABBIT_5_COINS}",
-            zh = "🐰 4连胜！再赢一次 💰+${Shop.RABBIT_5_COINS}", es = "🐰 ¡4 seguidas! Una más = 💰+${Shop.RABBIT_5_COINS}", fr = "🐰 4 d’affilée ! Encore une = 💰+${Shop.RABBIT_5_COINS}",
-            de = "🐰 4 in Folge! Noch einer = 💰+${Shop.RABBIT_5_COINS}", pt = "🐰 4 seguidas! Mais uma = 💰+${Shop.RABBIT_5_COINS}", ru = "🐰 4 подряд! Ещё одна = 💰+${Shop.RABBIT_5_COINS}", ja = "🐰 4連勝！あと1勝で 💰+${Shop.RABBIT_5_COINS}")
-        else -> tr("🐰 ${streak}연승! 오늘 연승 보상은 다 받았어요 (최대 💰${Shop.RABBIT_DAILY_MAX})", "🐰 $streak in a row! Today's streak rewards are maxed (💰${Shop.RABBIT_DAILY_MAX})",
-            zh = "🐰 ${streak}连胜！今天的连胜奖励已领满（💰${Shop.RABBIT_DAILY_MAX}）", es = "🐰 ¡$streak seguidas! Premios de hoy al máximo", fr = "🐰 $streak d’affilée ! Récompenses du jour au max",
-            de = "🐰 $streak in Folge! Tagesmaximum erreicht", pt = "🐰 $streak seguidas! Prêmios de hoje no máximo", ru = "🐰 $streak подряд! Лимит наград на сегодня", ja = "🐰 ${streak}連勝！今日の連勝ボーナスは上限です")
+        coins > 0 -> tr("🚩 ${streak}연승 보상 💰+$coins!", "🚩 $streak-win streak reward 💰+$coins!", zh = "🚩 ${streak}连胜奖励 💰+$coins！",
+            es = "🚩 ¡Premio por $streak seguidas 💰+$coins!", fr = "🚩 Récompense $streak victoires 💰+$coins !", de = "🚩 $streak Siege in Folge 💰+$coins!",
+            pt = "🚩 Prêmio por $streak seguidas 💰+$coins!", ru = "🚩 Награда за $streak побед подряд 💰+$coins!", ja = "🚩 ${streak}連勝ボーナス 💰+$coins！")
+        streak < 3 -> tr("🚩 ${streak}연승! 3연승이면 💰+${Shop.RABBIT_3_COINS}", "🚩 $streak in a row! 3 wins = 💰+${Shop.RABBIT_3_COINS}",
+            zh = "🚩 ${streak}连胜！3连胜 💰+${Shop.RABBIT_3_COINS}", es = "🚩 ¡$streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", fr = "🚩 $streak d’affilée ! 3 = 💰+${Shop.RABBIT_3_COINS}",
+            de = "🚩 $streak in Folge! 3 = 💰+${Shop.RABBIT_3_COINS}", pt = "🚩 $streak seguidas! 3 = 💰+${Shop.RABBIT_3_COINS}", ru = "🚩 $streak подряд! 3 = 💰+${Shop.RABBIT_3_COINS}", ja = "🚩 ${streak}連勝！3連勝で 💰+${Shop.RABBIT_3_COINS}")
+        streak == 4 -> tr("🚩 4연승! 한 번 더 이기면 💰+${Shop.RABBIT_5_COINS}", "🚩 4 in a row! One more win = 💰+${Shop.RABBIT_5_COINS}",
+            zh = "🚩 4连胜！再赢一次 💰+${Shop.RABBIT_5_COINS}", es = "🚩 ¡4 seguidas! Una más = 💰+${Shop.RABBIT_5_COINS}", fr = "🚩 4 d’affilée ! Encore une = 💰+${Shop.RABBIT_5_COINS}",
+            de = "🚩 4 in Folge! Noch einer = 💰+${Shop.RABBIT_5_COINS}", pt = "🚩 4 seguidas! Mais uma = 💰+${Shop.RABBIT_5_COINS}", ru = "🚩 4 подряд! Ещё одна = 💰+${Shop.RABBIT_5_COINS}", ja = "🚩 4連勝！あと1勝で 💰+${Shop.RABBIT_5_COINS}")
+        else -> tr("🚩 ${streak}연승! 오늘 연승 보상은 다 받았어요 (최대 💰${Shop.RABBIT_DAILY_MAX})", "🚩 $streak in a row! Today's streak rewards are maxed (💰${Shop.RABBIT_DAILY_MAX})",
+            zh = "🚩 ${streak}连胜！今天的连胜奖励已领满（💰${Shop.RABBIT_DAILY_MAX}）", es = "🚩 ¡$streak seguidas! Premios de hoy al máximo", fr = "🚩 $streak d’affilée ! Récompenses du jour au max",
+            de = "🚩 $streak in Folge! Tagesmaximum erreicht", pt = "🚩 $streak seguidas! Prêmios de hoje no máximo", ru = "🚩 $streak подряд! Лимит наград на сегодня", ja = "🚩 ${streak}連勝！今日の連勝ボーナスは上限です")
     }
     Text(
         text, fontSize = if (coins > 0) 17.sp else 14.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center,
@@ -3258,7 +3363,7 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
             if (g.opponentSkin == Animal.UNICORN) {
                 Spacer(Modifier.height(10.dp))
                 VsNotice(
-                    tr("🦄 다이아 전용 유니콘 등장!", "🦄 A Diamond-only Unicorn appears!", zh = "🦄 钻石专属独角兽登场！", es = "🦄 ¡Aparece un unicornio exclusivo de Diamante!",
+                    tr("🦄 다이아 전용 유니콘 햄스터 등장!", "🦄 A Diamond-only Unicorn Hamster appears!", zh = "🦄 钻石专属独角兽登场！", es = "🦄 ¡Aparece un unicornio exclusivo de Diamante!",
                         fr = "🦄 Une licorne réservée au Diamant apparaît !", de = "🦄 Ein Diamant-Einhorn erscheint!", pt = "🦄 Surge um unicórnio exclusivo do Diamante!",
                         ru = "🦄 Появился единорог для Алмазов!", ja = "🦄 ダイヤ専用ユニコーン登場！"),
                     Color(0xFF8E6CF0),
@@ -3277,7 +3382,7 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
             if (g.opponentSkin == Animal.RABBIT && g.opponentRibbons >= Shop.RABBIT_MAX_RIBBONS) {
                 Spacer(Modifier.height(10.dp))
                 VsNotice(
-                    tr("🔥 상대가 연승 토끼로 5연승 이상 중!", "🔥 Your rival's Streak Bunny is on a 5+ win streak!",
+                    tr("🔥 상대가 연승 햄스터로 5연승 이상 중!", "🔥 Your rival's Streak Hamster is on a 5+ win streak!",
                         zh = "🔥 对手的连胜兔已经 5 连胜以上！", es = "🔥 ¡El conejo de tu rival lleva 5+ victorias seguidas!", fr = "🔥 Le lapin adverse est sur 5+ victoires d’affilée !",
                         de = "🔥 Der Siegeshase deines Gegners hat 5+ Siege in Folge!", pt = "🔥 O coelho do rival está com 5+ vitórias seguidas!", ru = "🔥 Зайка соперника — серия 5+ побед!", ja = "🔥 相手の連勝ウサギが5連勝以上中！"),
                     Color(0xFFFF8A3D),
@@ -3288,7 +3393,7 @@ private fun VsIntro(g: GameUi, onClose: () -> Unit) {
                 val n = g.myRibbons
                 VsNotice(
                     if (n >= Shop.RABBIT_MAX_RIBBONS) {
-                        tr("🔥 내 연승 토끼 5연승 이상! 이기면 💰+${Shop.RABBIT_MORE_COINS}", "🔥 Your bunny is on 5+ wins! Win = 💰+${Shop.RABBIT_MORE_COINS}",
+                        tr("🔥 내 연승 햄스터 5연승 이상! 이기면 💰+${Shop.RABBIT_MORE_COINS}", "🔥 Your Streak Hamster is on 5+ wins! Win = 💰+${Shop.RABBIT_MORE_COINS}",
                             zh = "🔥 我的连胜兔 5 连胜以上！赢了 💰+${Shop.RABBIT_MORE_COINS}", es = "🔥 ¡Tu conejo lleva 5+! Gana = 💰+${Shop.RABBIT_MORE_COINS}", fr = "🔥 Ton lapin est à 5+ ! Victoire = 💰+${Shop.RABBIT_MORE_COINS}",
                             de = "🔥 Dein Hase hat 5+ Siege! Sieg = 💰+${Shop.RABBIT_MORE_COINS}", pt = "🔥 Seu coelho está com 5+! Vitória = 💰+${Shop.RABBIT_MORE_COINS}", ru = "🔥 Ваш зайка: 5+ побед! Победа = 💰+${Shop.RABBIT_MORE_COINS}", ja = "🔥 自分のウサギが5連勝以上！勝つと 💰+${Shop.RABBIT_MORE_COINS}")
                     } else {

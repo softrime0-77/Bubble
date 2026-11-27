@@ -31,7 +31,83 @@ class ScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
     @org.junit.Before
-    fun korean() = com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.KO)
+    fun korean() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.KO)
+        // 다른 화면 스크린샷이 📜 프롤로그에 가려지지 않게 (프롤로그 테스트는 직접 띄움)
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("bubble_prefs", android.content.Context.MODE_PRIVATE).edit().putBoolean("prologueSeen", true).commit()
+    }
+
+    @Test
+    fun prologue() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent { BubbleApp(vm) }
+        vm.showPrologue()
+        for (page in 1..4) {
+            shot("prologue_$page", 1_200)
+            if (page < 4) rule.onNodeWithText("다음 ▶").performClick()
+        }
+    }
+
+    @Test
+    fun landEnding() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(land = true, tutorialDone = true, tutorialSeen = true), landEnding = true) }
+        rule.setContent { BubbleApp(vm) }
+        shot("land_ending", 2_500)
+    }
+
+    @Test
+    fun landShopAndBadge() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(100_500)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("land_lobby_before", 900)
+        vm.openShop()
+        rule.mainClock.advanceTimeBy(900)
+        // 상점 맨 아래(🚩 땅)까지 쓸어 올리기
+        repeat(8) {
+            rule.onNodeWithText("🛒 상점", useUnmergedTree = true).performTouchInput { swipeUp(startY = bottom + 1500f, endY = top - 1500f) }
+            rule.mainClock.advanceTimeBy(400)
+        }
+        shot("land_shop", 900)
+        vm.debugSetLobby { it.copy(profile = richProfile(500).copy(land = true)) }
+        vm.closeShop()
+        shot("land_lobby_badge", 900)
+    }
+
+    @Test
+    fun shopSkinArt() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent { BubbleApp(vm) }
+        vm.openShop()
+        rule.mainClock.advanceTimeBy(900)
+        // 상점을 조금씩 쓸어 올리며 캐릭터 카드들 찍기
+        for (i in 1..4) {
+            repeat(2) {
+                rule.onNodeWithText("🛒 상점", useUnmergedTree = true).performTouchInput { swipeUp(startY = bottom + 1400f, endY = top - 600f) }
+                rule.mainClock.advanceTimeBy(300)
+            }
+            shot("shop_skins_$i", 600)
+        }
+    }
+
+    @Test
+    fun landRankingRows() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            androidx.compose.foundation.layout.Column(
+                androidx.compose.ui.Modifier.background(androidx.compose.ui.graphics.Color.White).padding(16.dp),
+            ) { rankedSample().take(6).mapIndexed { i, r -> r.copy(land = i % 2 == 1) }.forEach { RankingRow(it, me = false) {} } }
+        }
+        shot("land_ranking_rows", 700)
+    }
 
     /** 다이얼로그는 별도 창이라, 가장 위에 떠 있는 창을 찍습니다. */
     private fun topWindowView(): android.view.View? = runCatching {
@@ -346,6 +422,26 @@ class ScreenshotTest {
     }
 
     @Test
+    fun gameDefaultArt() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(1, 3), ham = listOf(4, 2), catSplits = 3, hamSplits = 2),
+                // 실제 진영은 고양이여도 화면에서는 내가 햄스터로 보여야 함
+                mySide = Side.CAT, turn = Side.CAT, busy = false,
+                turnSec = 20, turnDeadline = System.currentTimeMillis() + 14_000,
+                mySkin = null, opponentSkin = null,
+                log = listOf(com.bubble.game.game.MoveText.describe(com.bubble.game.game.MoveInfo(Side.HAMSTER, com.bubble.game.game.Move.Add(0, true, 1), 1, 3, false, 3))),
+            )
+        }
+        shot("game_default_art", 1200)
+    }
+
+    @Test
     fun game() {
         rule.mainClock.autoAdvance = false
         val vm = AppViewModel(ApplicationProvider.getApplicationContext())
@@ -402,7 +498,26 @@ class ScreenshotTest {
         shot("shot_pop", 200)
     }
 
-    /** 맞은 방울 흔적 13가지 */
+    @Test
+    fun timeHamsterAlert() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                board = Board(cat = listOf(1, 1), ham = listOf(1, 1)), mySide = Side.HAMSTER, turn = Side.CAT, busy = false,
+                gameId = "t1", showIntro = false,
+                mySkin = com.bubble.game.game.Animal.SHEEP, opponentSkin = com.bubble.game.game.Animal.GIRAFFE,
+            )
+        }
+        shot("time_alert_mine", 1_000)
+        rule.mainClock.advanceTimeBy(2_700)
+        shot("time_alert_theirs", 600)
+    }
+
+    /** 맞은 방울 흔적 */
     @Test
     @Config(sdk = [34], qualifiers = "w400dp-h860dp-xxhdpi")
     fun hitMarks() {
@@ -411,8 +526,8 @@ class ScreenshotTest {
             androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFFF6EEFF))) {
                 val d = androidx.compose.ui.platform.LocalDensity.current
                 MarkKind.entries.forEachIndexed { i, k ->
-                    val cx = with(d) { (70 + (i % 3) * 130).dp.toPx() }
-                    val cy = with(d) { (80 + (i / 3) * 160).dp.toPx() }
+                    val cx = with(d) { (55 + (i % 4) * 97).dp.toPx() }
+                    val cy = with(d) { (75 + (i / 4) * 150).dp.toPx() }
                     androidx.compose.foundation.Canvas(androidx.compose.ui.Modifier.fillMaxSize()) {
                         drawCircle(androidx.compose.ui.graphics.Color(0xFFE9D8FF), 56.dp.toPx(), androidx.compose.ui.geometry.Offset(cx, cy))
                     }

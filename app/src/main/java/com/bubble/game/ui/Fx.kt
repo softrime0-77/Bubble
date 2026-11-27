@@ -69,25 +69,25 @@ import kotlin.random.Random
 // ======================= 캐릭터별 이펙트 테마 =======================
 
 /** 터질 때·날아갈 때 흩뿌리는 모양 */
-enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED, INK, FLAME, ICE }
+enum class FxShape { STAR, HEART, PAW, SNOW, COIN, BONE, LEAF, CLOUD, MOON, SEED, INK, FLAME, ICE, DROP, FLAG }
 
 /** 캐릭터마다 다른 반짝이 색과 모양, 터질 때 붙는 이모지 */
 data class FxTheme(val colors: List<Color>, val shapes: List<FxShape>, val emoji: String) {
     val main: Color get() = colors.first()
 }
 
-fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (side == Side.CAT) null else Animal.HAMSTER) {
+fun fxTheme(side: Side, skin: Animal?): FxTheme = when (skin ?: if (com.bubble.game.game.SideLook.of(side) == Side.CAT) null else Animal.HAMSTER) {
     null -> FxTheme(listOf(Color(0xFFFF9A3C), Color(0xFFFFC94D), Color.White, Color(0xFFFFD3A8)), listOf(FxShape.PAW, FxShape.STAR), "🐾")
     Animal.HAMSTER -> FxTheme(listOf(Color(0xFFB98CFF), Color(0xFFFF9EC7), Color.White, Color(0xFFFFE3A3)), listOf(FxShape.SEED, FxShape.HEART, FxShape.STAR), "🌻")
     Animal.PINK_CAT -> FxTheme(listOf(Color(0xFFFF4FA0), Color(0xFFFFA8D2), Color.White, Color(0xFFFFD6EC)), listOf(FxShape.HEART, FxShape.STAR), "💗")
     Animal.BLACK_CAT -> FxTheme(listOf(Color(0xFF7A4DFF), Color(0xFFFFD54A), Color.White, Color(0xFF3B2A6B)), listOf(FxShape.MOON, FxShape.STAR), "🌙")
     Animal.SNOW_HAMSTER -> FxTheme(listOf(Color(0xFF5CC8FF), Color(0xFFBFE9FF), Color.White, Color(0xFF9AB8FF)), listOf(FxShape.SNOW, FxShape.STAR), "❄️")
     Animal.GOLD_HAMSTER -> FxTheme(listOf(Color(0xFFFFB800), Color(0xFFFFE680), Color.White, Color(0xFFFF9F1C)), listOf(FxShape.COIN, FxShape.STAR), "✨")
-    Animal.OCTOPUS -> FxTheme(listOf(Color(0xFF2E1F4D), Color(0xFFB57BEE), Color(0xFF8E52D6), Color.White), listOf(FxShape.INK, FxShape.STAR), "🐙")
+    Animal.OCTOPUS -> FxTheme(listOf(Color(0xFF4FC3F7), Color(0xFFB3E5FC), Color(0xFF29B6F6), Color.White), listOf(FxShape.DROP, FxShape.STAR), "💧")
     Animal.PENGUIN -> FxTheme(listOf(Color(0xFF7FD3FF), Color.White, Color(0xFF5CC8FF), Color(0xFFBFE9FF)), listOf(FxShape.ICE, FxShape.SNOW, FxShape.STAR), "🐧")
-    Animal.PANDA -> FxTheme(listOf(Color(0xFF6CCB5F), Color.White, Color(0xFF3B3B45), Color(0xFFB8F0A8)), listOf(FxShape.LEAF, FxShape.HEART), "🐼")
+    Animal.PANDA -> FxTheme(listOf(Color(0xFFE53935), Color(0xFFFFD54F), Color.White, Color(0xFFFF8A80)), listOf(FxShape.STAR, FxShape.HEART), "💮")
     Animal.DRAGON -> FxTheme(listOf(Color(0xFFFF6A2B), Color(0xFFFFC21A), Color(0xFFFF2D55), Color.White), listOf(FxShape.FLAME, FxShape.STAR), "🔥")
-    Animal.RABBIT -> FxTheme(listOf(Color(0xFFFF8FB8), Color.White, Color(0xFFFFC94D), Color(0xFF7C6CF2)), listOf(FxShape.HEART, FxShape.STAR), "🐰")
+    Animal.RABBIT -> FxTheme(listOf(Color(0xFFE53935), Color.White, Color(0xFFFFC94D), Color(0xFF64B5F6)), listOf(FxShape.FLAG, FxShape.STAR), "🚩")
     Animal.UNICORN -> FxTheme(listOf(Color(0xFFFF7EB3), Color(0xFFFFE066), Color(0xFF7FC8FF), Color(0xFFB98CFF), Color(0xFF7DDB9B), Color.White), listOf(FxShape.STAR, FxShape.HEART), "🌈")
     Animal.LUCKY_CAT -> FxTheme(listOf(Color(0xFFFFC21A), Color(0xFFE5303F), Color.White, Color(0xFFFFE680)), listOf(FxShape.COIN, FxShape.STAR, FxShape.HEART), "💰")
     Animal.SHEEP -> FxTheme(listOf(Color(0xFF9EC9FF), Color.White, Color(0xFFFFC2DE), Color(0xFFE8F1FF)), listOf(FxShape.CLOUD, FxShape.STAR), "☁️")
@@ -206,6 +206,29 @@ fun DrawScope.fxShape(shape: FxShape, c: Offset, r: Float, color: Color, rot: Fl
             FxShape.SEED -> {
                 drawOval(color, Offset(c.x - r * 0.45f, c.y - r), Size(r * 0.9f, r * 2f))
                 drawLine(Color.White.copy(alpha = color.alpha * 0.7f), Offset(c.x, c.y - r * 0.7f), Offset(c.x, c.y + r * 0.7f), r * 0.14f, StrokeCap.Round)
+            }
+            FxShape.DROP -> {
+                // 💧 물방울: 위가 뾰족한 눈물 모양 + 반짝 하이라이트
+                val p = Path().apply {
+                    moveTo(c.x, c.y - r * 1.1f)
+                    cubicTo(c.x + r * 0.25f, c.y - r * 0.5f, c.x + r * 0.8f, c.y, c.x + r * 0.8f, c.y + r * 0.35f)
+                    cubicTo(c.x + r * 0.8f, c.y + r * 0.85f, c.x - r * 0.8f, c.y + r * 0.85f, c.x - r * 0.8f, c.y + r * 0.35f)
+                    cubicTo(c.x - r * 0.8f, c.y, c.x - r * 0.25f, c.y - r * 0.5f, c.x, c.y - r * 1.1f)
+                    close()
+                }
+                drawPath(p, color)
+                drawCircle(Color.White.copy(alpha = color.alpha * 0.7f), r * 0.2f, c + Offset(-r * 0.3f, r * 0.15f))
+            }
+            FxShape.FLAG -> {
+                // 🚩 작은 깃발
+                drawLine(Color(0xFF8D6E63).copy(alpha = color.alpha), Offset(c.x - r * 0.5f, c.y - r), Offset(c.x - r * 0.5f, c.y + r), r * 0.16f, StrokeCap.Round)
+                val p = Path().apply {
+                    moveTo(c.x - r * 0.45f, c.y - r)
+                    lineTo(c.x + r * 0.9f, c.y - r * 0.6f)
+                    lineTo(c.x - r * 0.45f, c.y - r * 0.15f)
+                    close()
+                }
+                drawPath(p, color)
             }
         }
     }
@@ -1027,7 +1050,7 @@ fun ReviveFx(r: ReviveBurst, onDone: (ReviveBurst) -> Unit) {
 enum class WinFx { FIREWORKS, STORM, RAINBOW, NIGHT, PAWS, INK, SLED, CLOUDS, FLAMES }
 
 /** 캐릭터별 승리 효과 (테마 비는 모두 공통) */
-fun winFx(side: Side, skin: Animal?): List<WinFx> = when (skin ?: if (side == Side.CAT) null else Animal.HAMSTER) {
+fun winFx(side: Side, skin: Animal?): List<WinFx> = when (skin ?: if (com.bubble.game.game.SideLook.of(side) == Side.CAT) null else Animal.HAMSTER) {
     null -> listOf(WinFx.PAWS)                              // 🐾 고양이: 발자국이 콩콩
     Animal.HAMSTER -> listOf(WinFx.FIREWORKS)               // 🌻 햄스터: 해바라기씨 폭죽
     Animal.PINK_CAT -> listOf(WinFx.FIREWORKS)              // 💗 하트 폭죽
@@ -1035,11 +1058,11 @@ fun winFx(side: Side, skin: Animal?): List<WinFx> = when (skin ?: if (side == Si
     Animal.SNOW_HAMSTER -> listOf(WinFx.STORM)              // ❄️ 눈보라
     Animal.GOLD_HAMSTER -> listOf(WinFx.FIREWORKS)          // ✨ 금가루 폭죽
     Animal.LUCKY_CAT -> listOf(WinFx.FIREWORKS, WinFx.PAWS) // 💰 금화 폭죽 + 복 발자국
-    Animal.OCTOPUS -> listOf(WinFx.INK)                     // 🐙 먹물이 퍽퍽
+    Animal.OCTOPUS -> listOf(WinFx.FIREWORKS, WinFx.STORM)  // 💧 물방울 폭죽 + 물보라
     Animal.PENGUIN -> listOf(WinFx.SLED, WinFx.STORM)       // 🐧 썰매가 쌩 + 눈
-    Animal.PANDA -> listOf(WinFx.STORM)                     // 🐼 대나무잎 회오리
+    Animal.PANDA -> listOf(WinFx.FIREWORKS)                 // 💮 출석 도장 폭죽
     Animal.DRAGON -> listOf(WinFx.FLAMES, WinFx.FIREWORKS)  // 🐉 불꽃이 활활
-    Animal.RABBIT -> listOf(WinFx.FIREWORKS)                // 🐰 리본·하트 폭죽
+    Animal.RABBIT -> listOf(WinFx.FIREWORKS)                // 🚩 깃발·별 폭죽
     Animal.UNICORN -> listOf(WinFx.RAINBOW, WinFx.FIREWORKS) // 🦄 무지개 + 별
     Animal.SHEEP -> listOf(WinFx.CLOUDS)                    // ☁️ 구름이 둥실
     Animal.DOG -> listOf(WinFx.PAWS)                        // 🦴 발자국 + 뼈다귀
@@ -1103,12 +1126,12 @@ fun WinRain(side: Side, skin: Animal?) {
             fxShape(shape, Offset(x, y), r, color.copy(alpha = 0.9f), fall * 360f * q.spin + q.k)
         }
         if (WinFx.STORM in layers) {
-            val frost = if (skin == Animal.SNOW_HAMSTER || skin == Animal.PENGUIN) Color(0xFFDFF4FF) else theme.colors[0].copy(alpha = 0.6f)
+            val frost = if (skin == Animal.SNOW_HAMSTER || skin == Animal.PENGUIN || skin == Animal.OCTOPUS) Color(0xFFDFF4FF) else theme.colors[0].copy(alpha = 0.6f)
             drawRect(Brush.verticalGradient(listOf(frost.copy(alpha = 0.7f), Color.Transparent), 0f, h * 0.22f))
             drawRect(Brush.verticalGradient(listOf(Color.Transparent, frost.copy(alpha = 0.55f)), h * 0.8f, h))
             drawRect(Brush.horizontalGradient(listOf(frost.copy(alpha = 0.45f), Color.Transparent), 0f, w * 0.18f))
             drawRect(Brush.horizontalGradient(listOf(Color.Transparent, frost.copy(alpha = 0.45f)), w * 0.82f, w))
-            val big = if (skin == Animal.PANDA || skin == Animal.GIRAFFE) FxShape.LEAF else FxShape.SNOW
+            val big = if (skin == Animal.OCTOPUS) FxShape.DROP else FxShape.SNOW
             flakes.forEachIndexed { i, q ->
                 val tt = (fall * (0.8f + q.s * 0.5f) + q.a) % 1f
                 val x = -60f + tt * (w + 160f) + sin(tt * 9f + i) * 40f

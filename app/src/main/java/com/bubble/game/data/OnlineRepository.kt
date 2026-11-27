@@ -101,6 +101,8 @@ data class Profile(
     val potionAds: Int = 0,
     /** 주간 랭킹 보상 (아직 안 봤으면 팝업) */
     val weeklyReward: WeeklyReward? = null,
+    /** 🚩 땅을 사서 독립했는지 ("독립 햄스터" 칭호, 랭킹 깃발) */
+    val land: Boolean = false,
 ) {
     val rank: Rank get() = Rank.of(score)
 
@@ -119,6 +121,8 @@ data class RankRow(
     val wins: Int? = null, val losses: Int? = null,
     /** 지금 보이는 캐릭터 (null이면 기본 고양이) */
     val look: Animal? = null,
+    /** 🚩 독립 햄스터 */
+    val land: Boolean = false,
 )
 
 /** 친구 대전방 상태: 친구가 들어왔으면 gameId, 방이 끝났으면 expired */
@@ -313,6 +317,7 @@ class OnlineRepository(context: Context) {
             wins = (this["wins"] as? Number)?.toInt(),
             losses = (this["losses"] as? Number)?.toInt(),
             look = Animal.of(this["look"] as? String),
+            land = this["land"] == true,
         )
     }
 
@@ -503,6 +508,7 @@ class OnlineRepository(context: Context) {
         mClaimed = (get("mClaimed") as? List<*>).orEmpty().mapNotNull { it as? String }.toSet(),
         potionAdDay = getString("potionAdDay"),
         potionAds = (getLong("potionAds") ?: 0).toInt(),
+        land = getBoolean("land") ?: false,
         weeklyReward = (get("weeklyReward") as? Map<*, *>)?.let { w ->
             WeeklyReward(
                 week = w["week"] as? String ?: "",

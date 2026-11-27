@@ -1,5 +1,8 @@
 package com.bubble.game.ui
 
+import com.bubble.game.R
+import androidx.compose.ui.graphics.graphicsLayer
+
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -66,6 +69,25 @@ fun Critter(
         label = "blink",
     )
     val eyesClosed = blink > 0.94f
+    // 대전 중에는 "나 = 햄스터, 상대 = 고양이"로 보여줌
+    val side = com.bubble.game.game.SideLook.of(side)
+    // 기본 고양이·햄스터는 일러스트 그림 (방울 없는 캐릭터만)
+    val art = when {
+        skin == null && side == Side.CAT -> if (happy) R.drawable.sprite_cat_happy else R.drawable.sprite_cat_idle
+        skin == null || skin == Animal.HAMSTER -> if (happy) R.drawable.sprite_ham_happy else R.drawable.sprite_ham_idle
+        else -> skinArt(skin, happy)
+    }
+    if (art != null) {
+        androidx.compose.foundation.Image(
+            androidx.compose.ui.res.painterResource(art),
+            contentDescription = null,
+            modifier = modifier.graphicsLayer {
+                rotationZ = sway * 0.6f
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.95f)
+            },
+        )
+        return
+    }
     Canvas(modifier) {
         rotate(sway, pivot = Offset(size.width / 2, size.height * 0.9f)) {
             when (skin) {
@@ -91,6 +113,24 @@ fun Critter(
             }
         }
     }
+}
+
+/** 상점 캐릭터 일러스트 (모두 햄스터). 아직 그림이 없으면 null → 예전처럼 코드로 그림 */
+private fun skinArt(skin: Animal, happy: Boolean): Int? = when (skin) {
+    Animal.PINK_CAT -> if (happy) R.drawable.skin_pink_cat_happy else R.drawable.skin_pink_cat_idle
+    Animal.BLACK_CAT -> if (happy) R.drawable.skin_black_cat_happy else R.drawable.skin_black_cat_idle
+    Animal.LUCKY_CAT -> if (happy) R.drawable.skin_lucky_cat_happy else R.drawable.skin_lucky_cat_idle
+    Animal.SNOW_HAMSTER -> if (happy) R.drawable.skin_snow_hamster_happy else R.drawable.skin_snow_hamster_idle
+    Animal.GOLD_HAMSTER -> if (happy) R.drawable.skin_gold_hamster_happy else R.drawable.skin_gold_hamster_idle
+    Animal.OCTOPUS -> if (happy) R.drawable.skin_octopus_happy else R.drawable.skin_octopus_idle
+    Animal.PANDA -> if (happy) R.drawable.skin_panda_happy else R.drawable.skin_panda_idle
+    Animal.DRAGON -> if (happy) R.drawable.skin_dragon_happy else R.drawable.skin_dragon_idle
+    Animal.RABBIT -> if (happy) R.drawable.skin_rabbit_happy else R.drawable.skin_rabbit_idle
+    Animal.SHEEP -> if (happy) R.drawable.skin_sheep_happy else R.drawable.skin_sheep_idle
+    Animal.DOG -> if (happy) R.drawable.skin_dog_happy else R.drawable.skin_dog_idle
+    Animal.GIRAFFE -> if (happy) R.drawable.skin_giraffe_happy else R.drawable.skin_giraffe_idle
+    Animal.UNICORN -> if (happy) R.drawable.skin_unicorn_happy else R.drawable.skin_unicorn_idle
+    else -> null // 🐧 펭귄은 아직 그림 없음
 }
 
 private fun DrawScope.drawEyes(cx: Float, cy: Float, gap: Float, r: Float, closed: Boolean, happy: Boolean) {

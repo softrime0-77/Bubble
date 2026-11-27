@@ -190,7 +190,7 @@ fun SetBubble(
             }
             val tint = when {
                 danger -> Ui.danger
-                side == Side.CAT -> Color(0xFFFFB86B)
+                com.bubble.game.game.SideLook.of(side) == Side.CAT -> Color(0xFFFFB86B)
                 else -> Color(0xFFC8A2FF)
             }
             drawCircle(

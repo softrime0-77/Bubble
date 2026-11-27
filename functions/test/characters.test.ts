@@ -7,9 +7,11 @@ import {
 
 test("new characters prices", () => {
   assert.deepEqual(
-    ["OCTOPUS", "PENGUIN", "PANDA", "DRAGON", "RABBIT"].map((k) => COSMETIC_SKINS[k]),
-    [400, 400, 500, 700, 600],
+    ["OCTOPUS", "PANDA", "DRAGON", "RABBIT"].map((k) => COSMETIC_SKINS[k]),
+    [400, 500, 700, 600],
   );
+  // 🐧 펭귄은 판매 중단
+  assert.equal(isCosmetic("PENGUIN"), false);
   assert.equal(isCosmetic("UNICORN"), false);
   assert.equal(isRankSkin("UNICORN"), true);
   assert.equal(RANK_SKINS.UNICORN, 10001);

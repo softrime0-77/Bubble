@@ -109,7 +109,6 @@ jobs:
           shot prologue_ko -lang ko -demo prologue
           shot ending_ko -lang ko -demo ending
           shot independent_ko -lang ko -demo independent
-          shot timealert_ko -lang ko -demo timealert
           shot lobby_ja -lang ja
           shot shop_en -lang en -demo shop
           shot game_ar -lang ar -demo game

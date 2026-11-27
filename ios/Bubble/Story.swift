@@ -298,7 +298,7 @@ struct LandEnding: View {
                     }
                     .frame(height: 90)
                     RainbowFlag().frame(width: 150, height: 150)
-                        .offset(x: 80, y: planted ? -150 : -460)
+                        .offset(x: 80, y: planted ? -100 : -420)
                     Image("art_ham_happy").resizable().scaledToFit().frame(width: 220)
                         .floating(5)
                         .offset(x: -40, y: -26)

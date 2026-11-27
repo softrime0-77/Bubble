@@ -161,6 +161,8 @@ data class LobbyUi(
     /** 내 순위 (TOP 100 밖이면 아래에 내 위아래 10명을 따로 보여줌) */
     val myRank: Int? = null,
     val aroundMe: List<RankRow> = emptyList(),
+    /** 🚩 땅을 사서 독립! 엔딩 컷 */
+    val landEnding: Boolean = false,
 )
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -191,6 +193,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private var sessionJob: Job? = null
     private var lastRank: Rank? = null
+
+    // ---------- 📜 프롤로그 (처음 실행할 때 한 번, 로비에서 다시 보기) ----------
+
+    private val prefs = app.getSharedPreferences("bubble_prefs", android.content.Context.MODE_PRIVATE)
+    private val _prologue = MutableStateFlow(!prefs.getBoolean("prologueSeen", false))
+    val prologue: StateFlow<Boolean> = _prologue.asStateFlow()
+
+    fun showPrologue() {
+        _prologue.value = true
+    }
+
+    fun finishPrologue() {
+        _prologue.value = false
+        prefs.edit().putBoolean("prologueSeen", true).apply()
+    }
 
     fun dismissRankUp() = _lobby.update { it.copy(rankUpScore = null) }
     fun dismissRankDown() = _lobby.update { it.copy(rankDown = null) }
@@ -332,6 +349,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
     fun buy(item: String, label: String, qty: Int = 1) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉"), com.bubble.game.audio.Music.Sfx.BUY) { repo.buyItem(item, qty) }
+
+    /** 🚩 땅 사기 (점수로만). 성공하면 엔딩 컷. 점수가 크게 줄지만 계급 하락 팝업은 띄우지 않음 */
+    fun buyLand() = shopAction(
+        tr("🚩 우리 땅이 생겼어요! 햄스터 독립 만세!", "🚩 We have our own land! Hamster independence!",
+            zh = "🚩 我们有自己的土地了！仓鼠独立万岁！", ja = "🚩 ぼくらの土地ができた！ハムスター独立ばんざい！"),
+        com.bubble.game.audio.Music.Sfx.BUY,
+    ) {
+        lastRank = null
+        repo.buyItem("LAND")
+        lastRank = null
+        _lobby.update { it.copy(landEnding = true, rankDown = null) }
+    }
+
+    fun showLandEnding() = _lobby.update { it.copy(landEnding = true) }
+
+    fun dismissLandEnding() = _lobby.update { it.copy(landEnding = false, rankDown = null) }
 
     fun equip(animal: Animal?) = shopAction(if (animal == null) tr("기본 캐릭터로 바꿨어요", "Switched back to the default character", zh = "已换回默认角色", hi = "डिफ़ॉल्ट किरदार पर वापस", es = "Volviste al personaje por defecto", fr = "Retour au personnage par défaut", ar = "تمت العودة إلى الشخصية الافتراضية", de = "Zurück zur Standardfigur", pt = "Voltou ao personagem padrão", ru = "Возвращён обычный персонаж", ja = "デフォルトのキャラに戻しました") else tr("${animal.label} 장착!", "${animal.label} equipped!", zh = "已装备${animal.label}！", hi = "${animal.label} लगा दिया!", es = "¡${animal.label} equipado!", fr = "${animal.label} équipé !", ar = "تم تجهيز ${animal.label}!", de = "${animal.label} ausgerüstet!", pt = "${animal.label} equipado!", ru = "${animal.label}: надето!", ja = "${animal.label}を装備しました！"), com.bubble.game.audio.Music.Sfx.EQUIP) {
         repo.equipAnimal(animal)

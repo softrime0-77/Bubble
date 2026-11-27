@@ -240,6 +240,12 @@ fun BubbleApp(vm: AppViewModel) {
             if (mission != null) last.value = mission
             last.value?.let { MissionCelebration(it.label, it.coins, onDismiss = vm::dismissMission) }
         }
+        // 🚩 독립 엔딩 / 📜 프롤로그 (전체 화면, 가장 위)
+        if (lobby.landEnding && (screen == Screen.Shop || screen == Screen.Lobby)) {
+            LandEnding(lobby.profile?.name, onDismiss = vm::dismissLandEnding)
+        }
+        val prologue by vm.prologue.collectAsState()
+        if (prologue && screen == Screen.Lobby) PrologueScreen(onDone = vm::finishPrologue)
     }
     }
 }
@@ -312,8 +318,12 @@ private fun LobbyScreen(vm: AppViewModel) {
             }
         }
         TitleBanner()
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // 좁은 화면·긴 언어에서는 다음 줄로 넘어감
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.Center) {
             TextButton(onClick = { showRules = true }) { Text(tr("📖 게임 규칙 보기", "📖 How to play", zh = "📖 游戏规则", hi = "📖 कैसे खेलें", es = "📖 Cómo jugar", fr = "📖 Règles du jeu", ar = "📖 طريقة اللعب", de = "📖 Spielregeln", pt = "📖 Como jogar", ru = "📖 Как играть", ja = "📖 遊び方"), color = Ui.text) }
+            // 📜 프롤로그 다시 보기
+            TextButton(onClick = vm::showPrologue) { Text(tr("📜 이야기", "📜 Story", zh = "📜 故事", ja = "📜 ストーリー"), color = Ui.text) }
             // 🎓 튜토리얼 (보상을 아직 안 받았으면 🎁 표시)
             TextButton(onClick = vm::startTutorial) {
                 Text(
@@ -385,6 +395,8 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text)
+                            // 🚩 땅을 사서 독립했으면 칭호 (누르면 엔딩 다시 보기)
+                            if (p.land) IndependentBadge(Modifier.padding(top = 2.dp).clickable(onClick = vm::showLandEnding))
                             Spacer(Modifier.height(4.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -585,7 +597,9 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
         }
     }
 
-    ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
+    // 처음 실행이면 📜 프롤로그를 먼저 보고 환영 팝업
+    val prologueShowing by vm.prologue.collectAsState()
+    if (!prologueShowing) ui.welcome?.let { (kind, score) -> WelcomeDialog(kind, score, onDismiss = vm::dismissWelcome) }
     ui.profile?.weeklyReward?.takeIf { !it.seen }?.let { w ->
         LaunchedEffect(w.week) { com.bubble.game.audio.Music.sfx(com.bubble.game.audio.Music.Sfx.WEEKLY) }
         AlertDialog(
@@ -608,7 +622,7 @@ zh = "与匿名玩家 1:1 对战 · 胜 +${OnlineRepository.WIN_POINTS} · 负 -
     if (showRules) RulesDialog(onTutorial = { showRules = false; vm.startTutorial() }) { showRules = false }
     // 🎓 처음 한 번: 튜토리얼 권하기 (가입 환영 팝업이 닫힌 뒤)
     val prof = ui.profile
-    if (prof != null && !prof.tutorialDone && !prof.tutorialSeen && ui.welcome == null && !tutorialAsked) {
+    if (prof != null && !prof.tutorialDone && !prof.tutorialSeen && ui.welcome == null && !tutorialAsked && !prologueShowing && !ui.landEnding) {
         TutorialPrompt(
             onStart = { tutorialAsked = true; vm.startTutorial() },
             onLater = { tutorialAsked = true; vm.finishTutorial(false) },
@@ -2127,11 +2141,46 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
                 }
             }
         }
+
+        // 🚩 땅: 최종 목표. 점수로만 (💰 상점 포인트는 결제로 살 수 있어서 못 씀), 한 번만
+        val landName = tr("땅", "Land", zh = "土地", ja = "土地")
+        ShopCard(
+            title = tr("🚩 땅", "🚩 Land", zh = "🚩 土地", ja = "🚩 土地"),
+            desc = tr(
+                "고양이 왕국 한가운데의 작은 땅 한 조각.\n이걸 사면… 독립을?!\n🎮 게임으로 모은 점수로만 살 수 있어요 (💰 상점 포인트 사용 불가)",
+                "A small patch of land in the middle of the Cat Kingdom.\nIf you buy it… independence?!\n🎮 Score earned in games only (💰 shop points can't be used)",
+                zh = "猫咪王国正中央的一小块土地。\n买下它……就能独立？！\n🎮 只能用游戏赢得的分数购买（不能用 💰 商店积分）",
+                ja = "ネコ王国のまんなかにある小さな土地。\nこれを買えば…独立！？\n🎮 ゲームで集めたスコアだけで買えます（💰 ショップポイントは使えません）",
+            ),
+            price = Shop.LAND_PRICE,
+            owned = if (p.land) tr("🚩 우리 땅!", "🚩 Ours!", zh = "🚩 我们的土地！", ja = "🚩 ぼくらの土地！") else null,
+            art = { LandArt(Modifier.size(88.dp)) },
+        ) {
+            if (p.land) {
+                Button(
+                    onClick = vm::showLandEnding, shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ui.accent),
+                ) { Text(tr("엔딩 다시 보기", "Watch the ending again", zh = "再看一次结局", ja = "エンディングをもう一度"), fontWeight = FontWeight.Bold) }
+            } else {
+                Button(
+                    onClick = { confirm = Purchase("LAND", landName, Shop.LAND_PRICE) },
+                    enabled = !ui.shopBusy && p.score >= Shop.LAND_PRICE,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ui.primary),
+                ) {
+                    Text(
+                        if (p.score >= Shop.LAND_PRICE) tr("점수 ${Shop.LAND_PRICE}점에 사기", "Buy for ${Shop.LAND_PRICE} score", zh = "用 ${Shop.LAND_PRICE} 分购买", ja = "スコア${Shop.LAND_PRICE}点で買う")
+                        else tr("${Shop.LAND_PRICE - p.score}점 더 모아요", "${Shop.LAND_PRICE - p.score} more to go", zh = "还差 ${Shop.LAND_PRICE - p.score} 分", ja = "あと${Shop.LAND_PRICE - p.score}点"),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
     }
 
     confirm?.let { (item, label, price, qty) ->
-        // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙)
-        val fromCoins = minOf(p?.coins ?: 0, price)
+        // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙). 🚩 땅은 점수로만
+        val fromCoins = if (item == "LAND") 0 else minOf(p?.coins ?: 0, price)
         val fromScore = price - fromCoins
         val after = (p?.score ?: 0) - fromScore
         AlertDialog(
@@ -2162,7 +2211,7 @@ zh = "⚠️ 你的等级会从${p.rank.label}降到${Rank.of(after).label}", hi
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { vm.buy(item, label, qty); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
+            confirmButton = { TextButton(onClick = { if (item == "LAND") vm.buyLand() else vm.buy(item, label, qty); confirm = null }) { Text(tr("살게요", "Buy", zh = "购买", hi = "खरीदें", es = "Comprar", fr = "Acheter", ar = "شراء", de = "Kaufen", pt = "Comprar", ru = "Купить", ja = "買う")) } },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("취소", "Cancel", zh = "取消", hi = "रद्द करें", es = "Cancelar", fr = "Annuler", ar = "إلغاء", de = "Abbrechen", pt = "Cancelar", ru = "Отмена", ja = "キャンセル")) } },
         )
     }

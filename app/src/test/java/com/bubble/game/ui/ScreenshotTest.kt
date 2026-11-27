@@ -31,7 +31,65 @@ class ScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
     @org.junit.Before
-    fun korean() = com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.KO)
+    fun korean() {
+        com.bubble.game.i18n.Lang.setForTest(com.bubble.game.i18n.Lang.Code.KO)
+        // 다른 화면 스크린샷이 📜 프롤로그에 가려지지 않게 (프롤로그 테스트는 직접 띄움)
+        ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("bubble_prefs", android.content.Context.MODE_PRIVATE).edit().putBoolean("prologueSeen", true).commit()
+    }
+
+    @Test
+    fun prologue() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215)) }
+        rule.setContent { BubbleApp(vm) }
+        vm.showPrologue()
+        for (page in 1..4) {
+            shot("prologue_$page", 1_200)
+            if (page < 4) rule.onNodeWithText("다음 ▶").performClick()
+        }
+    }
+
+    @Test
+    fun landEnding() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(1215).copy(land = true, tutorialDone = true, tutorialSeen = true), landEnding = true) }
+        rule.setContent { BubbleApp(vm) }
+        shot("land_ending", 2_500)
+    }
+
+    @Test
+    fun landShopAndBadge() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        vm.debugSetLobby { it.copy(onlineAvailable = true, loading = false, profile = richProfile(100_500)) }
+        rule.setContent { BubbleApp(vm) }
+        shot("land_lobby_before", 900)
+        vm.openShop()
+        rule.mainClock.advanceTimeBy(900)
+        // 상점 맨 아래(🚩 땅)까지 쓸어 올리기
+        repeat(8) {
+            rule.onNodeWithText("🛒 상점", useUnmergedTree = true).performTouchInput { swipeUp(startY = bottom + 1500f, endY = top - 1500f) }
+            rule.mainClock.advanceTimeBy(400)
+        }
+        shot("land_shop", 900)
+        vm.debugSetLobby { it.copy(profile = richProfile(500).copy(land = true)) }
+        vm.closeShop()
+        shot("land_lobby_badge", 900)
+    }
+
+    @Test
+    fun landRankingRows() {
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            androidx.compose.foundation.layout.Column(
+                androidx.compose.ui.Modifier.background(androidx.compose.ui.graphics.Color.White).padding(16.dp),
+            ) { rankedSample().take(6).mapIndexed { i, r -> r.copy(land = i % 2 == 1) }.forEach { RankingRow(it, me = false) {} } }
+        }
+        shot("land_ranking_rows", 700)
+    }
 
     /** 다이얼로그는 별도 창이라, 가장 위에 떠 있는 창을 찍습니다. */
     private fun topWindowView(): android.view.View? = runCatching {

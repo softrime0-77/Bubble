@@ -15,7 +15,7 @@ import { pickOpponent } from "./matching";
 import { GoogleAuth } from "google-auth-library";
 import { createHash } from "node:crypto";
 import { AiLevel, chooseMove, isAiLevel } from "./ai";
-import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RABBIT_SKIN, rabbitCoins, UNICORN_SKIN, unicornCoins, TUTORIAL_COINS, TUTORIAL_POTIONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost, adminValue } from "./catalog";
+import { ANIMALS, BOOST_PRICE, cleanCountry, COSMETIC_SKINS, isCosmetic, isFreeSkin, lookSkin, DEFAULT_TURN_MS, POTION_PRICE, winPoints, rankBonus, revivesForGame, splitPayment, turnLimitAgainst, firstBuyBonus, LUCKY_SKIN, luckyRoll, isRankSkin, RANK_SKINS, PANDA_CHECKIN_BONUS, pandaEquipped, DRAGON_SKIN, dragonCoins, RABBIT_MAX_RIBBONS, RABBIT_SKIN, rabbitCoins, UNICORN_SKIN, unicornCoins, TUTORIAL_COINS, TUTORIAL_POTIONS, RANKED_MAX_REVIVES, BUNDLES, bundlePrice, RENAME_PRICE, cleanName, renameCost, adminValue, LAND_PRICE, landCheck } from "./catalog";
 import { CHECKIN_COINS, CHECKIN_POTION_DAY, MISSIONS, missionProgress, nextStreak, POTION_ADS_PER_DAY, potionAdsToday, weekKey, weeklyCoins } from "./rewards";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { dayKey, friendDeltas, isRated, pairKey, roomJoinable, FRIEND_ROOM_TTL_MS } from "./friend";
@@ -764,6 +764,22 @@ export const buyItem = onCall(async (req) => {
   const item = (req.data as { item?: unknown } | null)?.item;
   const rawQty = (req.data as { qty?: unknown } | null)?.qty;
   const qty = rawQty === undefined || rawQty === null ? 1 : rawQty;
+  if (item === "LAND") {
+    // 🚩 땅: 점수로만 (💰 상점 포인트는 결제로 살 수 있어서 안 씀), 계정당 한 번
+    if (qty !== 1) throw err("invalid-argument", "없는 묶음이에요", "No such bundle");
+    const ref = db.collection("users").doc(uid);
+    await db.runTransaction(async (tx) => {
+      const u = await tx.get(ref);
+      if (!u.exists) throw err("failed-precondition", "프로필이 없어요", "Profile not found");
+      const score = (u.get("score") as number | undefined) ?? START_SCORE;
+      const check = landCheck(u.get("land"), score);
+      if (check === "owned") throw err("already-exists", "이미 우리 땅이 있어요", "You already own the land");
+      if (check === "short") throw err("failed-precondition", `점수가 부족해요 (${LAND_PRICE}점 필요)`, `Not enough score (${LAND_PRICE} needed)`);
+      tx.update(ref, { score: FieldValue.increment(-LAND_PRICE), land: true, landAt: Date.now() });
+    });
+    logger.info("land bought", { uid });
+    return { ok: true };
+  }
   if (typeof item !== "string" || (item !== "POTION" && item !== "BOOST" && item !== "RENAME" && !ANIMALS[item] && !isCosmetic(item))) {
     throw err("invalid-argument", "없는 상품이에요", "No such item");
   }
@@ -1234,6 +1250,7 @@ export const myRanking = onCall(async (req) => {
     score: (d.get("score") as number | undefined) ?? START_SCORE, country: (d.get("country") as string | undefined) ?? null,
     wins: (d.get("wins") as number | undefined) ?? 0, losses: (d.get("losses") as number | undefined) ?? 0,
     look: shownAnimal(d),
+    land: d.get("land") === true,
   });
   const above = aboveSnap.docs.reverse().map((d, i, arr) => row(d, rank - (arr.length - i)));
   const below = belowSnap.docs.map((d, i) => row(d, rank + i + 1));

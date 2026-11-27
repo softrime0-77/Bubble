@@ -26,6 +26,18 @@ export function renameCost(freeUsed: unknown, tickets: unknown): "free" | "ticke
   if (freeUsed !== true) return "free";
   return typeof tickets === "number" && tickets >= 1 ? "ticket" : "none";
 }
+/**
+ * 🚩 땅: 고양이 왕국에서 독립하는 최종 목표. 한 번만 살 수 있고,
+ * 결제로 충전한 💰 상점 포인트는 못 쓰고 게임으로 번 점수(score)로만 삽니다.
+ */
+export const LAND_PRICE = 100_000;
+
+/** 땅을 살 수 있는지: 이미 있으면 "owned", 점수가 모자라면 "short" */
+export function landCheck(owned: unknown, score: number): "ok" | "owned" | "short" {
+  if (owned === true) return "owned";
+  return score >= LAND_PRICE ? "ok" : "short";
+}
+
 /** ×3 점수 부스터 (소모품): 켜둔 상태로 랜덤 매칭이 시작되면 1개 사용, 이기면 얻는 점수 3배 (AI 대전엔 안 씀) */
 export const BOOST_PRICE = 100;
 export const BOOST_MULTIPLIER = 3;

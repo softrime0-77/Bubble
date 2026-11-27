@@ -74,6 +74,8 @@ data class RankedPlayer(
     val losses: Int?,
     /** 지금 보이는 캐릭터 (null이면 기본 고양이) */
     val look: Animal?,
+    /** 🚩 땅을 사서 독립한 햄스터 */
+    val land: Boolean = false,
 )
 
 /** 다른 사람에게 보이는 내 캐릭터: 장착했고 실제로 쓸 수 있는 것만 (서버 lookSkin과 같은 규칙 + 남은 동물) */
@@ -81,8 +83,8 @@ fun Profile.look(): Animal? = equipped?.takeIf { a ->
     a.free || (a.cosmetic && a in skins) || (a.rankOnly && score >= a.rankMin) || (a.consumable && animalCount(a) > 0)
 }
 
-fun Profile.ranked(position: Int) = RankedPlayer(position, uid, name, country, score, wins, losses, look())
-fun RankRow.ranked() = RankedPlayer(rank, uid, name, country, score, wins, losses, look)
+fun Profile.ranked(position: Int) = RankedPlayer(position, uid, name, country, score, wins, losses, look(), land)
+fun RankRow.ranked() = RankedPlayer(rank, uid, name, country, score, wins, losses, look, land)
 
 /**
  * 순위 이펙트 단계. 계급표처럼 위로 갈수록 화려하게:
@@ -153,7 +155,7 @@ fun RankingRow(p: RankedPlayer, me: Boolean, onClick: () -> Unit) {
                 )
             }
             Text(Country.flag(p.country), fontSize = if (first) 18.sp else 16.sp, modifier = Modifier.width(26.dp))
-            val name = p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
+            val name = (if (p.land) "🚩 " else "") + p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
             if (first) {
                 // 금빛 그라데이션 글자가 흐르듯 움직임
                 val x = goldShift * 600f
@@ -563,7 +565,7 @@ private fun CardBody(p: RankedPlayer, me: Boolean, fx: FxCard, modifier: Modifie
             CardCritter(p, fx)
             Spacer(Modifier.height(6.dp))
             // 닉네임 전체 (잘리지 않게 줄바꿈)
-            val name = p.name + if (me) tr(" (나)", " (me)", zh = " (我)", es = " (yo)", fr = " (moi)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
+            val name = (if (p.land) "🚩 " else "") + p.name + if (me) tr(" (나)", " (me)", zh = " (我)", es = " (yo)", fr = " (moi)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
             if (p.position == 1) {
                 val x = fx.shine * 400f
                 Text(

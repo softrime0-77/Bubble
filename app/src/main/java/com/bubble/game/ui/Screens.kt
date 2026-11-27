@@ -316,7 +316,7 @@ fun BubbleApp(vm: AppViewModel) {
             if (mission != null) last.value = mission
             last.value?.let { MissionCelebration(it.label, it.coins, onDismiss = vm::dismissMission) }
         }
-        // 🚩 독립 엔딩 / 📜 프롤로그 (전체 화면, 가장 위)
+        // 🌈 독립 엔딩 / 📜 프롤로그 (전체 화면, 가장 위)
         if (lobby.landEnding && (screen == Screen.Shop || screen == Screen.Lobby)) {
             LandEnding(lobby.profile?.name, onDismiss = vm::dismissLandEnding)
         }
@@ -495,7 +495,7 @@ zh = "对手只能看到你的昵称，看不到 Google 名字", hi = "विर
                                 Text(p.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ui.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                                 if (p.equipped == Animal.RABBIT) RibbonBadge(p.winStreak)
                             }
-                            // 🚩 땅을 사서 독립했으면 칭호 (누르면 엔딩 다시 보기)
+                            // 🌈 땅을 사서 독립했으면 칭호 (누르면 엔딩 다시 보기)
                             if (p.land) IndependentBadge(Modifier.padding(top = 2.dp).clickable(onClick = vm::showLandEnding))
                             Spacer(Modifier.height(4.dp))
                             Row(
@@ -2280,10 +2280,10 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
             }
         }
 
-        // 🚩 땅: 최종 목표. 점수로만 (💰 상점 포인트는 결제로 살 수 있어서 못 씀), 한 번만
+        // 🌈 땅: 최종 목표. 점수로만 (💰 상점 포인트는 결제로 살 수 있어서 못 씀), 한 번만
         val landName = tr("땅", "Land", zh = "土地", ja = "土地")
         ShopCard(
-            title = tr("🚩 땅", "🚩 Land", zh = "🚩 土地", ja = "🚩 土地"),
+            title = tr("🌈 땅", "🌈 Land", zh = "🌈 土地", ja = "🌈 土地"),
             desc = tr(
                 "고양이 왕국 한가운데의 작은 땅 한 조각.\n이걸 사면… 독립을?!\n🎮 게임으로 모은 점수로만 살 수 있어요 (💰 상점 포인트 사용 불가)",
                 "A small patch of land in the middle of the Cat Kingdom.\nIf you buy it… independence?!\n🎮 Score earned in games only (💰 shop points can't be used)",
@@ -2291,7 +2291,7 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
                 ja = "ネコ王国のまんなかにある小さな土地。\nこれを買えば…独立！？\n🎮 ゲームで集めたスコアだけで買えます（💰 ショップポイントは使えません）",
             ),
             price = Shop.LAND_PRICE,
-            owned = if (p.land) tr("🚩 우리 땅!", "🚩 Ours!", zh = "🚩 我们的土地！", ja = "🚩 ぼくらの土地！") else null,
+            owned = if (p.land) tr("🌈 우리 땅!", "🌈 Ours!", zh = "🌈 我们的土地！", ja = "🌈 ぼくらの土地！") else null,
             art = { LandArt(Modifier.size(88.dp)) },
         ) {
             if (p.land) {
@@ -2317,7 +2317,7 @@ zh = "⏱ 对手回合 ${Shop.DEFAULT_TURN_SEC}秒 → ${a.opponentTurnSec}秒",
     }
 
     confirm?.let { (item, label, price, qty) ->
-        // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙). 🚩 땅은 점수로만
+        // 상점 포인트 먼저, 모자라면 점수 (서버와 같은 규칙). 🌈 땅은 점수로만
         val fromCoins = if (item == "LAND") 0 else minOf(p?.coins ?: 0, price)
         val fromScore = price - fromCoins
         val after = (p?.score ?: 0) - fromScore

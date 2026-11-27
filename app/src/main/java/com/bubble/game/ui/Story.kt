@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -67,7 +68,7 @@ import kotlin.math.sin
 
 /*
  * 📜 세계관: 거대한 고양이 왕국에 살던 햄스터들이 "우리 땅!"을 외치며 독립을 선언했고,
- * 그래서 고양이와 햄스터의 방울 대결이 시작됐다. 💰 대신 점수를 모아 🚩 땅을 사면 독립 엔딩.
+ * 그래서 고양이와 햄스터의 방울 대결이 시작됐다. 💰 대신 점수를 모아 🌈 땅을 사면 독립 엔딩.
  */
 
 /** 꿈꾸는 밤하늘 배경 (파스텔 보라 → 분홍) + 반짝이는 별 */
@@ -132,10 +133,10 @@ private fun prologueText(page: Int): String = when (page) {
         ja = "びっくりしたネコ王国！\nこうしてネコとハムスターの💥バブル対決がはじまりました。",
     )
     else -> tr(
-        "꼬마 햄스터야, 고양이들을 이기고\n점수를 모아 🚩 우리 땅을 되찾자!",
-        "Little hamster, beat the cats, collect points,\nand win back 🚩 our own land!",
-        zh = "小仓鼠，打败猫咪、收集分数，\n夺回 🚩 我们的土地吧！",
-        ja = "ちびハムスター、ネコたちに勝ってスコアを集めて、\n🚩 ぼくらの土地を取りもどそう！",
+        "꼬마 햄스터야, 고양이들을 이기고\n점수를 모아 🌈 우리 땅을 되찾자!",
+        "Little hamster, beat the cats, collect points,\nand win back 🌈 our own land!",
+        zh = "小仓鼠，打败猫咪、收集分数，\n夺回 🌈 我们的土地吧！",
+        ja = "ちびハムスター、ネコたちに勝ってスコアを集めて、\n🌈 ぼくらの土地を取りもどそう！",
     )
 }
 
@@ -262,7 +263,7 @@ private fun PrologueArt(page: Int) {
     }
 }
 
-/** 🚩 펄럭이는 햄스터 깃발 (분홍 천에 노란 별) */
+/** 🏳️ 펄럭이는 햄스터 나라 깃발 (파스텔 무지개 줄무늬) */
 @Composable
 fun WavingFlag(modifier: Modifier) {
     val t = rememberInfiniteTransition(label = "flag")
@@ -295,25 +296,23 @@ private fun DrawScope.drawFlag(phase: Float) {
         path.lineTo(x, top + fh + wave)
     }
     path.close()
-    drawPath(path, Brush.horizontalGradient(listOf(Color(0xFFFF8FB8), Color(0xFFFFB3CF)), startX = poleX, endX = poleX + fw))
-    // 별
-    val cx = poleX + fw * 0.5f
-    val cy = top + fh * 0.5f + sin(phase + 8 * 0.55f) * h * 0.017f
-    val star = Path()
-    val ro = fh * 0.3f
-    val ri = ro * 0.45f
-    for (k in 0 until 10) {
-        val r = if (k % 2 == 0) ro else ri
-        val a = -PI / 2 + k * PI / 5
-        val px = cx + (r * kotlin.math.cos(a)).toFloat()
-        val py = cy + (r * sin(a)).toFloat()
-        if (k == 0) star.moveTo(px, py) else star.lineTo(px, py)
+    // 🌈 파스텔 무지개 줄무늬 (펄럭이는 천 모양 안에만)
+    val stripes = listOf(
+        Color(0xFFFFB3C7), Color(0xFFFFD1A6), Color(0xFFFFF0A8),
+        Color(0xFFBDEBC1), Color(0xFFB5D8FF), Color(0xFFD6C2FF),
+    )
+    clipPath(path) {
+        val sh = (fh + h * 0.08f) / stripes.size
+        stripes.forEachIndexed { i, c ->
+            drawRect(c, Offset(poleX, top - h * 0.04f + i * sh), Size(fw + 2f, sh + 1f))
+        }
+        // 살짝 반짝이는 광택
+        drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.35f), Color.Transparent), top, top + fh * 0.5f), Offset(poleX, top - h * 0.04f), Size(fw, fh * 0.5f))
     }
-    star.close()
-    drawPath(star, Color(0xFFFFE066))
+    drawPath(path, Color.White.copy(alpha = 0.6f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.012f))
 }
 
-/** 🚩 땅을 사면 나오는 독립 엔딩 컷. 누르면 닫힘. */
+/** 🌈 땅을 사면 나오는 독립 엔딩 컷. 누르면 닫힘. */
 @Composable
 fun LandEnding(name: String?, onDismiss: () -> Unit) {
     BackHandler(onBack = onDismiss)
@@ -380,10 +379,10 @@ fun LandEnding(name: String?, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr(
-                        "${name ?: "꼬마 햄스터"}의 활약으로\n햄스터들이 고양이 왕국에서 독립했어요! 🚩\n칭호 '독립 햄스터'를 받았고,\n랭킹에 깃발이 휘날려요.",
-                        "Thanks to ${name ?: "you"}, the hamsters are free from the Cat Kingdom! 🚩\nYou earned the title 'Free Hamster', and your flag now flies on the ranking.",
-                        zh = "多亏了${name ?: "你"}，仓鼠们从猫咪王国独立了！🚩\n你获得了称号“独立仓鼠”，排行榜上也会飘扬你的旗帜。",
-                        ja = "${name ?: "きみ"}の活躍で、ハムスターたちはネコ王国から独立しました！🚩\n称号「独立ハムスター」をゲット、ランキングに旗がはためきます。",
+                        "${name ?: "꼬마 햄스터"}의 활약으로\n햄스터들이 고양이 왕국에서 독립했어요! 🌈\n칭호 '독립 햄스터'를 받았고,\n랭킹에 깃발이 휘날려요.",
+                        "Thanks to ${name ?: "you"}, the hamsters are free from the Cat Kingdom! 🌈\nYou earned the title 'Free Hamster', and your flag now flies on the ranking.",
+                        zh = "多亏了${name ?: "你"}，仓鼠们从猫咪王国独立了！🌈\n你获得了称号“独立仓鼠”，排行榜上也会飘扬你的旗帜。",
+                        ja = "${name ?: "きみ"}の活躍で、ハムスターたちはネコ王国から独立しました！🌈\n称号「独立ハムスター」をゲット、ランキングに旗がはためきます。",
                     ),
                     fontSize = 15.sp, lineHeight = 22.sp, color = Color(0xFF4A3466), textAlign = TextAlign.Center,
                     modifier = Modifier.alpha(text2.value),
@@ -400,11 +399,11 @@ fun LandEnding(name: String?, onDismiss: () -> Unit) {
     }
 }
 
-/** "🚩 독립 햄스터" 칭호 배지 */
+/** "🌈 독립 햄스터" 칭호 배지 */
 @Composable
 fun IndependentBadge(modifier: Modifier = Modifier) {
     Text(
-        tr("🚩 독립 햄스터", "🚩 Free Hamster", zh = "🚩 独立仓鼠", ja = "🚩 独立ハムスター"),
+        tr("🌈 독립 햄스터", "🌈 Free Hamster", zh = "🌈 独立仓鼠", ja = "🌈 独立ハムスター"),
         fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color.White,
         modifier = modifier
             .background(Brush.horizontalGradient(listOf(Color(0xFFFF7FAE), Color(0xFFB58CFF))), RoundedCornerShape(50))

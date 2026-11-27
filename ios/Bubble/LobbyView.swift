@@ -17,6 +17,7 @@ struct LobbyView: View {
     @State private var showRules = false
     @State private var tutorialAsked = false
     @State private var showMusic = false
+    @State private var showCharacters = false
     @State private var cardOf: RankedPlayer?
 
     /// 닉네임: 첫 변경은 무료, 그다음은 변경권이 있어야
@@ -257,6 +258,9 @@ struct LobbyView: View {
         }
         .sheet(isPresented: $showAdmin) { AdminSheet { showAdmin = false } }
         .sheet(isPresented: $showMusic) { MusicPickerSheet { showMusic = false } }
+        .sheet(isPresented: $showCharacters) {
+            CharacterPickerSheet(onShop: { showCharacters = false; onShop() }) { showCharacters = false }
+        }
         .sheet(isPresented: $showRanks) { RanksSheet(myScore: online.profile?.score ?? 0) { showRanks = false } }
         .alert(t("닉네임"), isPresented: $renaming) {
             TextField(t("최대 12자"), text: $newName)
@@ -342,7 +346,15 @@ struct LobbyView: View {
                 .font(.system(size: 14)).foregroundColor(UiColor.text).multilineTextAlignment(.center)
         } else if let p = online.profile {
             HStack(spacing: 10) {
-                Critter(side: .cat, skin: p.equipped, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0).frame(width: 52, height: 52)
+                // 내 캐릭터를 누르면 가진 캐릭터 중에서 바로 바꾸기
+                Button { showCharacters = true } label: {
+                    Critter(side: .cat, skin: p.equipped, ribbons: p.equipped == .rabbit ? min(max(p.winStreak, 0), Shop.rabbitMaxRibbons) : 0)
+                        .frame(width: 52, height: 52)
+                        .overlay(alignment: .bottomTrailing) {
+                            Text("🔄").font(.system(size: 10)).padding(2).background(Circle().fill(.white))
+                        }
+                }
+                .buttonStyle(.plain)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(p.name).font(.system(size: 18, weight: .bold)).foregroundColor(UiColor.text)
                     Button { showRanks = true } label: {

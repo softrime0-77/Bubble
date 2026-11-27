@@ -32,6 +32,8 @@ struct ShopView: View {
                     Text(e).font(.system(size: 14, weight: .bold)).foregroundColor(UiColor.danger).multilineTextAlignment(.center)
                 }
                 if let p = online.profile {
+                    // 🎓 튜토리얼에서 들어왔으면 캐릭터 안내
+                    if online.shopTour { ShopTourCard { online.shopTour = false } }
                     pointsCard
                     itemUsageCard
                     shopCard(title: t("💖 부활물약"),

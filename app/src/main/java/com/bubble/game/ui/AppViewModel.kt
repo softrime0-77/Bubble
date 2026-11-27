@@ -137,6 +137,8 @@ data class GameUi(
 
 data class LobbyUi(
     val loading: Boolean = true,
+    /** 🎓 튜토리얼 끝에 상점으로 들어왔으면 상점 맨 위에 캐릭터 안내 */
+    val shopTour: Boolean = false,
     val onlineAvailable: Boolean = false,
     val needsLogin: Boolean = false,
     val error: String? = null,
@@ -327,6 +329,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun closeShop() {
+        _lobby.update { it.copy(shopTour = false) }
         _screen.value = Screen.Lobby
     }
 
@@ -888,8 +891,9 @@ zh = "无法连接服务器，本局为不计分练习", hi = "सर्वर �
             winner = w,
             reason = if (w != null) "normal" else "",
             log = (listOf(r.localized) + g.log).take(30),
-            turnDeadline = if (w == null && side.opponent == g.mySide) System.currentTimeMillis() + (g.aiLevel?.turnSec ?: 20) * 1000L else null,
-            turnSec = if (w == null && side.opponent == g.mySide) g.aiLevel?.turnSec else null,
+            // 🎓 튜토리얼은 시간 제한 없음
+            turnDeadline = if (w == null && side.opponent == g.mySide && g.tutorial == null) System.currentTimeMillis() + (g.aiLevel?.turnSec ?: 20) * 1000L else null,
+            turnSec = if (w == null && side.opponent == g.mySide && g.tutorial == null) g.aiLevel?.turnSec else null,
             explosion = r.exploded?.let { Explosion(it.first, it.second, id) } ?: g.explosion,
             lastShot = shotOf(side, move, (g.lastShot?.id ?: 0) + 1),
             busy = false,
@@ -982,7 +986,7 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
 
     // ---------- 🎓 튜토리얼 ----------
 
-    /** 정해진 판에서 손가락 안내를 따라 두는 연습 (상대는 두지 않음, 점수 없음) */
+    /** 정해진 판에서 손가락 안내를 따라 두는 연습 (상대도 정해진 수로 공격, 점수 없음) */
     fun startTutorial() {
         gameJob?.cancel()
         localTimerJob?.cancel()
@@ -1003,22 +1007,40 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
     private fun playTutorial(move: Move) {
         val g = _game.value
         val step = g.tutorial ?: return
-        if (step !in TutorialScript.moves.indices) return
+        if (step !in TutorialScript.moves.indices || !g.myTurn) return
         if (move != TutorialScript.moves[step]) {
-            _game.update { it.copy(notice = tr("👆 손가락이 가리키는 방울을 눌러 주세요", "👆 Tap the bubble the finger points to", ja = "👆 指がさしているバブルをタップしてね", zh = "👆 请点手指指着的泡泡")) }
+            _game.update { it.copy(notice = tr("👆 손가락이 가리키는 곳을 눌러 주세요", "👆 Tap where the finger points", ja = "👆 指がさしているところをタップしてね", zh = "👆 请点手指指着的地方")) }
             return
         }
         applyLocal(g.mySide, move)
-        // 상대는 두지 않고 계속 내 차례
-        _game.update { it.copy(turn = it.mySide, tutorial = step + 1, notice = null, turnDeadline = null, turnSec = null) }
+        val reply = TutorialScript.replies.getOrNull(step)
+        if (reply == null || _game.value.finished) {
+            _game.update { it.copy(turn = it.mySide, tutorial = step + 1, notice = null) }
+            return
+        }
+        // 이번엔 상대 차례: 내 방울이 부딪힌 걸 보여 준 뒤 정해진 수로 반격
+        _game.update { it.copy(tutorial = step + 1, notice = null, busy = true) }
+        gameJob = viewModelScope.launch {
+            delay(1_700)
+            if (_game.value.tutorial == null) return@launch
+            applyLocal(g.mySide.opponent, reply)
+        }
     }
 
-    /** 튜토리얼 끝: [completed]면 보상(계정당 한 번), 아니면 건너뛰기. 다시 안 띄움 */
-    fun finishTutorial(completed: Boolean) {
+    /**
+     * 튜토리얼 끝: [completed]면 보상(계정당 한 번), 아니면 건너뛰기. 다시 안 띄움.
+     * [toShop]이면 로비 대신 상점으로 들어가 캐릭터 안내를 보여 줌.
+     */
+    fun finishTutorial(completed: Boolean, toShop: Boolean = false) {
         val wasTutorial = _game.value.tutorial != null
         if (wasTutorial) {
+            gameJob?.cancel()
             _game.update { it.copy(tutorial = null) }
             leaveGame()
+        }
+        if (toShop && _lobby.value.profile != null) {
+            _lobby.update { it.copy(shopTour = true) }
+            _screen.value = Screen.Shop
         }
         if (uid == null || _lobby.value.profile == null) return
         viewModelScope.launch {
@@ -1030,6 +1052,9 @@ zh = "📺 正在确认广告奖励… 分数马上返还", hi = "📺 विज
             }
         }
     }
+
+    /** 🛒 상점 캐릭터 안내 닫기 */
+    fun dismissShopTour() = _lobby.update { it.copy(shopTour = false) }
 
     // ---------- 공통 ----------
 

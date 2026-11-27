@@ -64,7 +64,7 @@ final class LocalGame: GameModel {
         }
     }
 
-    /// 🎓 튜토리얼: 정해진 판, 상대는 두지 않음, 시간 제한 없음
+    /// 🎓 튜토리얼: 정해진 판, 상대는 정해진 수로 반격, 시간 제한 없음
     init(tutorial: Bool) {
         self.level = .easy
         self.ai = Ai(level: .easy)
@@ -87,17 +87,32 @@ final class LocalGame: GameModel {
 
     func play(_ move: Move) {
         if let step = tutorial {
-            guard step < TutorialScript.moves.count else { return }
+            guard step < TutorialScript.moves.count, myTurn else { return }
             guard move == TutorialScript.moves[step] else {
-                notice = tr("👆 손가락이 가리키는 방울을 눌러 주세요", "👆 Tap the bubble the finger points to", zh: "👆 请点手指指着的泡泡", ja: "👆 指がさしているバブルをタップしてね")
+                notice = tr("👆 손가락이 가리키는 곳을 눌러 주세요", "👆 Tap where the finger points", zh: "👆 请点手指指着的地方", ja: "👆 指がさしているところをタップしてね")
                 selected = nil
                 return
             }
             notice = nil
             apply(mySide, move)
             selected = nil
-            turn = mySide  // 상대는 두지 않고 계속 내 차례
             tutorial = step + 1
+            guard !finished, step < TutorialScript.replies.count, let reply = TutorialScript.replies[step] else {
+                turn = mySide
+                return
+            }
+            // 이번엔 상대 차례: 잠깐 뒤 정해진 수로 반격 (방울이 날아가 부딪힌 뒤 판이 바뀜)
+            busy = true
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 900_000_000)
+                guard let self, self.tutorial != nil, !self.finished else { return }
+                let shot = ShotInfo.of(self.mySide.opponent, reply, id: (self.lastShot?.id ?? 0) + 1)
+                self.lastShot = shot
+                try? await Task.sleep(nanoseconds: UInt64(shot.holdSec * 1_000_000_000))
+                guard self.tutorial != nil, !self.finished else { return }
+                self.apply(self.mySide.opponent, reply)
+                self.busy = false
+            }
             return
         }
         guard myTurn, GameLogic.isLegal(board, mySide, move) else { return }

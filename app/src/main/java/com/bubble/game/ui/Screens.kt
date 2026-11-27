@@ -57,6 +57,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -1547,20 +1548,24 @@ private fun PlayerTag(
             .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // 캐릭터는 그림으로 보이니 이름표에는 닉네임만 (캐릭터 이름이 길면 줄이 깨져 아래 버튼이 화면 밖으로 밀림)
         Critter(side, Modifier.size(26.dp), skin = skin)
-        if (country != null) Text(" " + Country.flag(country), fontSize = 15.sp)
+        if (country != null) Text(" " + Country.flag(country), fontSize = 15.sp, maxLines = 1, softWrap = false)
         Spacer(Modifier.width(6.dp))
-        // 이름이 길면 말줄임 (옆의 분할·물약 표시가 찌그러지지 않게)
-        Text(
-            "${skin?.label ?: side.label} · $name",
-            color = Ui.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
-        )
-        if (score != null) {
-            Spacer(Modifier.width(4.dp))
-            RankBadge(score)
+        // 윗줄: 닉네임 (길면 말줄임) · 아랫줄: 계급 배지 + 점수 (줄바꿈 없음)
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(
+                name,
+                color = Ui.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+            )
+            if (score != null || extra != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (score != null) RankBadge(score)
+                    if (extra != null) Text(" $extra", color = Ui.primaryDark, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                }
+            }
         }
-        if (extra != null) Text("  $extra", color = Ui.primaryDark, fontSize = 13.sp)
     }
 }
 

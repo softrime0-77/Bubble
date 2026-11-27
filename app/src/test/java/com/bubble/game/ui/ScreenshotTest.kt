@@ -441,6 +441,29 @@ class ScreenshotTest {
         shot("game_default_art", 1200)
     }
 
+    /** 상대 이름표가 길어도(긴 캐릭터 이름·다이아 배지·큰 점수) 한 줄로 유지되어 아래 버튼이 밀리지 않아야 함 */
+    @Test
+    @Config(sdk = [34], qualifiers = "w360dp-h780dp-xxhdpi")
+    fun gameLongTags() {
+        rule.mainClock.autoAdvance = false
+        val vm = AppViewModel(ApplicationProvider.getApplicationContext())
+        rule.setContent { BubbleApp(vm) }
+        vm.startAiGame(com.bubble.game.game.AiLevel.NORMAL)
+        rule.mainClock.advanceTimeBy(800)
+        vm.debugSetGame {
+            it.copy(
+                online = true, aiLevel = null, showIntro = false,
+                board = Board(cat = listOf(1, 3), ham = listOf(0, 1), hamRevives = 1),
+                mySide = Side.HAMSTER, turn = Side.HAMSTER, busy = false,
+                turnSec = 20, turnDeadline = System.currentTimeMillis() + 18_000,
+                myName = "말랑햄찌천재42", opponentName = "엄청나게긴닉네임고양이",
+                opponentScore = 14565, myScore = 10234, opponentCountry = "KR", myCountry = "KR",
+                mySkin = com.bubble.game.game.Animal.SNOW_HAMSTER, opponentSkin = com.bubble.game.game.Animal.UNICORN,
+            )
+        }
+        shot("game_long_tags", 1200)
+    }
+
     @Test
     fun game() {
         rule.mainClock.autoAdvance = false

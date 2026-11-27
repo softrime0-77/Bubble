@@ -76,7 +76,7 @@ data class RankedPlayer(
     val losses: Int?,
     /** 지금 보이는 캐릭터 (null이면 기본 고양이) */
     val look: Animal?,
-    /** 🚩 땅을 사서 독립한 햄스터 */
+    /** 🌈 땅을 사서 독립한 햄스터 */
     val land: Boolean = false,
 )
 
@@ -157,7 +157,7 @@ fun RankingRow(p: RankedPlayer, me: Boolean, onClick: () -> Unit) {
                 )
             }
             Text(Country.flag(p.country), fontSize = if (first) 18.sp else 16.sp, modifier = Modifier.width(26.dp))
-            val name = (if (p.land) "🚩 " else "") + p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
+            val name = (if (p.land) "🌈 " else "") + p.name + if (me) tr(" (나)", " (me)", zh = " (我)", hi = " (मैं)", es = " (yo)", fr = " (moi)", ar = " (أنا)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
             if (first) {
                 // 금빛 그라데이션 글자가 흐르듯 움직임
                 val x = goldShift * 600f
@@ -567,7 +567,7 @@ private fun CardBody(p: RankedPlayer, me: Boolean, fx: FxCard, modifier: Modifie
             CardCritter(p, fx)
             Spacer(Modifier.height(6.dp))
             // 닉네임 전체 (잘리지 않게 줄바꿈)
-            val name = (if (p.land) "🚩 " else "") + p.name + if (me) tr(" (나)", " (me)", zh = " (我)", es = " (yo)", fr = " (moi)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
+            val name = (if (p.land) "🌈 " else "") + p.name + if (me) tr(" (나)", " (me)", zh = " (我)", es = " (yo)", fr = " (moi)", de = " (ich)", pt = " (eu)", ru = " (я)", ja = " (自分)") else ""
             if (p.position == 1) {
                 val x = fx.shine * 400f
                 Text(

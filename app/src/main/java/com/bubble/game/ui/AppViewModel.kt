@@ -163,7 +163,7 @@ data class LobbyUi(
     /** 내 순위 (TOP 100 밖이면 아래에 내 위아래 10명을 따로 보여줌) */
     val myRank: Int? = null,
     val aroundMe: List<RankRow> = emptyList(),
-    /** 🚩 땅을 사서 독립! 엔딩 컷 */
+    /** 🌈 땅을 사서 독립! 엔딩 컷 */
     val landEnding: Boolean = false,
 )
 
@@ -353,10 +353,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** "POTION" 또는 동물 이름. 점수 검사·차감은 서버가 합니다. */
     fun buy(item: String, label: String, qty: Int = 1) = shopAction(tr("$label 구매 완료! 🎉", "Bought $label! 🎉", zh = "已购买 ${label}！🎉", hi = "$label खरीद लिया! 🎉", es = "¡Compraste $label! 🎉", fr = "$label acheté ! 🎉", ar = "تم شراء $label! 🎉", de = "$label gekauft! 🎉", pt = "Você comprou $label! 🎉", ru = "Куплено: $label! 🎉", ja = "${label}を買いました！🎉"), com.bubble.game.audio.Music.Sfx.BUY) { repo.buyItem(item, qty) }
 
-    /** 🚩 땅 사기 (점수로만). 성공하면 엔딩 컷. 점수가 크게 줄지만 계급 하락 팝업은 띄우지 않음 */
+    /** 🌈 땅 사기 (점수로만). 성공하면 엔딩 컷. 점수가 크게 줄지만 계급 하락 팝업은 띄우지 않음 */
     fun buyLand() = shopAction(
-        tr("🚩 우리 땅이 생겼어요! 햄스터 독립 만세!", "🚩 We have our own land! Hamster independence!",
-            zh = "🚩 我们有自己的土地了！仓鼠独立万岁！", ja = "🚩 ぼくらの土地ができた！ハムスター独立ばんざい！"),
+        tr("🌈 우리 땅이 생겼어요! 햄스터 독립 만세!", "🌈 We have our own land! Hamster independence!",
+            zh = "🌈 我们有自己的土地了！仓鼠独立万岁！", ja = "🌈 ぼくらの土地ができた！ハムスター独立ばんざい！"),
         com.bubble.game.audio.Music.Sfx.BUY,
     ) {
         lastRank = null

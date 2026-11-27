@@ -185,6 +185,6 @@ object Shop {
 
     const val DEFAULT_TURN_SEC = 20
 
-    /** 🚩 땅: 점수로만 사는 최종 목표 (💰 상점 포인트 사용 불가, 한 번만). functions/src/catalog.ts LAND_PRICE와 같게 */
+    /** 🌈 땅: 점수로만 사는 최종 목표 (💰 상점 포인트 사용 불가, 한 번만). functions/src/catalog.ts LAND_PRICE와 같게 */
     const val LAND_PRICE = 100_000
 }

@@ -101,7 +101,7 @@ data class Profile(
     val potionAds: Int = 0,
     /** 주간 랭킹 보상 (아직 안 봤으면 팝업) */
     val weeklyReward: WeeklyReward? = null,
-    /** 🚩 땅을 사서 독립했는지 ("독립 햄스터" 칭호, 랭킹 깃발) */
+    /** 🌈 땅을 사서 독립했는지 ("독립 햄스터" 칭호, 랭킹 깃발) */
     val land: Boolean = false,
 ) {
     val rank: Rank get() = Rank.of(score)
@@ -121,7 +121,7 @@ data class RankRow(
     val wins: Int? = null, val losses: Int? = null,
     /** 지금 보이는 캐릭터 (null이면 기본 고양이) */
     val look: Animal? = null,
-    /** 🚩 독립 햄스터 */
+    /** 🌈 독립 햄스터 */
     val land: Boolean = false,
 )
 
